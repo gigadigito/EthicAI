@@ -1,0 +1,294 @@
+@inject CriptoVersus.Web.Services.PushInterop Push
+@inject LocalizationService L
+@implements IAsyncDisposable
+
+@if (_isOpen)
+{
+    <div class="modal-backdrop fade show match-alert-modal__backdrop" @onclick="Close"></div>
+    <div class="modal fade show d-block match-alert-modal" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content bg-dark text-light border border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">
+                        <i class="bi bi-bell-fill me-2"></i>@T("matchAlerts")
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" aria-label="@T("close")" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_loading)
+                    {
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-info" role="status">
+                                <span class="visually-hidden">@T("loading")</span>
+                            </div>
+                        </div>
+                    }
+                    else if (_error is not null)
+                    {
+                        <div class="alert alert-danger small mb-0">@_error</div>
+                    }
+                    else if (_permissionState == "unsupported")
+                    {
+                        <div class="text-center py-3">
+                            <i class="bi bi-exclamation-triangle text-warning fs-1 d-block mb-2"></i>
+                            <p class="small mb-0">@T("pushNotSupported")</p>
+                        </div>
+                    }
+                    else if (_permissionState == "denied")
+                    {
+                        <div class="text-center py-3">
+                            <i class="bi bi-bell-slash text-danger fs-1 d-block mb-2"></i>
+                            <p class="small mb-0">@T("pushNotificationsBlocked")</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="match-alert-options">
+                            <label class="match-alert-option">
+                                <input type="checkbox" class="form-check-input" @bind="_notifyScore" />
+                                <span class="match-alert-option__label">
+                                    <i class="bi bi-graph-up-arrow text-info"></i>
+                                    @T("alertScore")
+                                </span>
+                            </label>
+                            <label class="match-alert-option">
+                                <input type="checkbox" class="form-check-input" @bind="_notifyComeback" />
+                                <span class="match-alert-option__label">
+                                    <i class="bi bi-arrow-return-left text-warning"></i>
+                                    @T("alertComeback")
+                                </span>
+                            </label>
+                            <label class="match-alert-option">
+                                <input type="checkbox" class="form-check-input" @bind="_notifyFinished" />
+                                <span class="match-alert-option__label">
+                                    <i class="bi bi-trophy-fill text-success"></i>
+                                    @T("alertFinished")
+                                </span>
+                            </label>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-secondary">
+                    @if (_permissionState is "granted" or "default")
+                    {
+                        @if (_isSubscribed && _statusLoaded)
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-danger flex-fill"
+                                    @onclick="UnsubscribeAsync" disabled="@_saving">
+                                @T("removeAlerts")
+                            </button>
+                            <button type="button" class="btn btn-sm btn-info flex-fill"
+                                    @onclick="SaveAsync" disabled="@_saving">
+                                @(_saving ? T("saving") : T("updateAlerts"))
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-sm btn-info flex-fill"
+                                    @onclick="SubscribeAsync" disabled="@_saving">
+                                @(_saving ? T("saving") : T("activateAlerts"))
+                            </button>
+                        }
+                    }
+                    else if (_permissionState == "default" && !_isSubscribed)
+                    {
+                        <button type="button" class="btn btn-sm btn-info flex-fill"
+                                @onclick="SubscribeAsync" disabled="@_saving">
+                            @(_saving ? T("saving") : T("activateAlerts"))
+                        </button>
+                    }
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            @onclick="Close">@T("close")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int MatchId { get; set; }
+    [Parameter] public string? Culture { get; set; }
+    [Parameter] public EventCallback OnSubscribed { get; set; }
+    [Parameter] public EventCallback OnUnsubscribed { get; set; }
+
+    private bool _isOpen;
+    private bool _loading;
+    private bool _saving;
+    private bool _statusLoaded;
+    private string? _error;
+    private string _permissionState = "default";
+    private bool _isSubscribed;
+    private bool _notifyScore = true;
+    private bool _notifyComeback = true;
+    private bool _notifyFinished = true;
+
+    private string T(string key) => L.T(key, Culture ?? "en");
+
+    public async Task OpenAsync()
+    {
+        _isOpen = true;
+        _loading = true;
+        _error = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var supported = await Push.IsPushSupportedAsync();
+            if (!supported)
+            {
+                _permissionState = "unsupported";
+                _loading = false;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            _permissionState = await Push.GetPermissionStateAsync();
+
+            if (_permissionState is "granted")
+            {
+                await Push.InitializeAsync();
+                _isSubscribed = await Push.IsSubscribedAsync();
+
+                if (_isSubscribed && MatchId > 0)
+                {
+                    var status = await Push.GetMatchAlertStatusAsync(MatchId);
+                    _notifyScore = status.NotifyScore;
+                    _notifyComeback = status.NotifyComeback;
+                    _notifyFinished = status.NotifyFinished;
+                    _statusLoaded = true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SubscribeAsync()
+    {
+        _saving = true;
+        _error = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            if (_permissionState == "default")
+            {
+                var granted = await Push.SubscribeAsync();
+                if (!granted)
+                {
+                    _permissionState = await Push.GetPermissionStateAsync();
+                    if (_permissionState != "granted")
+                    {
+                        _error = T("pushPermissionDenied");
+                        return;
+                    }
+                }
+            }
+
+            var result = await Push.SubscribeMatchAlertAsync(
+                MatchId, _notifyScore, _notifyComeback, _notifyFinished,
+                Culture ?? "en");
+
+            if (!result.Success)
+            {
+                _error = result.Error ?? T("subscribeError");
+                return;
+            }
+
+            _isSubscribed = true;
+            _statusLoaded = true;
+            await OnSubscribed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        _error = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await Push.SubscribeMatchAlertAsync(
+                MatchId, _notifyScore, _notifyComeback, _notifyFinished,
+                Culture ?? "en");
+
+            if (!result.Success)
+            {
+                _error = result.Error ?? T("subscribeError");
+                return;
+            }
+
+            await OnSubscribed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task UnsubscribeAsync()
+    {
+        _saving = true;
+        _error = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await Push.UnsubscribeMatchAlertAsync(MatchId);
+            if (!result.Success)
+            {
+                _error = result.Error ?? T("unsubscribeError");
+                return;
+            }
+
+            _isSubscribed = false;
+            _statusLoaded = false;
+            _notifyScore = true;
+            _notifyComeback = true;
+            _notifyFinished = true;
+            await OnUnsubscribed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void Close()
+    {
+        _isOpen = false;
+        _error = null;
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        return ValueTask.CompletedTask;
+    }
+}

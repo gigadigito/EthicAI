@@ -1459,7 +1459,21 @@
     "arenaNeutral": "Neutro",
     "arenaGreed": "Gan?ncia",
     "arenaExtremeGreed": "Gan?ncia Extrema",
-    "arenaInsufficientData": "Dados insuficientes"
+    "arenaInsufficientData": "Dados insuficientes",
+    "matchAlerts": "Alertas da Partida",
+    "alertScore": "Mudança de placar",
+    "alertComeback": "Virada",
+    "alertFinished": "Partida encerrada",
+    "activateAlerts": "Ativar Alertas",
+    "updateAlerts": "Atualizar",
+    "removeAlerts": "Remover Alertas",
+    "pushNotSupported": "Notificações push não são suportadas neste navegador.",
+    "pushNotificationsBlocked": "Notificações push estão bloqueadas. Ative-as nas configurações do navegador.",
+    "pushPermissionDenied": "A permissão de notificação foi negada.",
+    "subscribeError": "Falha ao ativar alertas.",
+    "unsubscribeError": "Falha ao remover alertas.",
+    "saving": "Salvando...",
+    "loading": "Carregando..."
   },
   "cryptoConverterStats": {
     "seo": {

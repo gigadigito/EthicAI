@@ -41,6 +41,9 @@ namespace EthicAI.EntityModel
         public DbSet<AudioGenerationQueueItem> AudioGenerationQueueItem { get; set; }
         public DbSet<AudioPhraseTemplate> AudioPhraseTemplate { get; set; }
         public DbSet<AudioVoiceProfile> AudioVoiceProfile { get; set; }
+        public DbSet<PushSubscription> PushSubscription { get; set; }
+        public DbSet<MatchAlertSubscription> MatchAlertSubscription { get; set; }
+        public DbSet<MatchAlertDelivery> MatchAlertDelivery { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -1004,6 +1007,14 @@ namespace EthicAI.EntityModel
                       .HasColumnName("fl_current_pressure_dominance_goal_awarded")
                       .HasDefaultValue(false);
 
+                entity.Property(e => e.LastUndisputedLeaderTeamId)
+                      .HasColumnName("cd_last_undisputed_leader")
+                      .IsRequired(false);
+
+                entity.Property(e => e.LastGoalEventSequence)
+                      .HasColumnName("nr_last_goal_event_sequence")
+                      .HasDefaultValue(0);
+
                 entity.Property(e => e.CreatedAtUtc)
                       .HasColumnType("timestamp with time zone")
                       .HasColumnName("dt_created_at");
@@ -1433,6 +1444,190 @@ namespace EthicAI.EntityModel
                 new AudioPhraseTemplate { Id = 9, TemplateKey = "market_crash_pt_br_dramatic", EventType = "market_crash", Language = "pt-BR", Intensity = "dramatic", TemplateText = "{TEAM_NAME} sente o impacto e a arena acompanha cada segundo dessa queda!", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
                 new AudioPhraseTemplate { Id = 10, TemplateKey = "market_crash_en_us_dramatic", EventType = "market_crash", Language = "en-US", Intensity = "dramatic", TemplateText = "{TEAM_NAME} takes a heavy hit and the whole arena can feel the collapse!", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime }
             );
+
+            // Push Notification entities
+            modelBuilder.Entity<PushSubscription>(entity =>
+            {
+                entity.HasKey(e => e.PushSubscriptionId);
+                entity.ToTable("push_subscription");
+
+                entity.Property(e => e.PushSubscriptionId)
+                      .HasColumnName("cd_push_subscription");
+
+                entity.Property(e => e.Endpoint)
+                      .HasColumnName("tx_endpoint")
+                      .IsRequired();
+
+                entity.Property(e => e.P256dh)
+                      .HasColumnName("tx_p256dh")
+                      .IsRequired();
+
+                entity.Property(e => e.Auth)
+                      .HasColumnName("tx_auth")
+                      .IsRequired();
+
+                entity.Property(e => e.ClientId)
+                      .HasColumnName("tx_client_id")
+                      .IsRequired();
+
+                entity.Property(e => e.UserId)
+                      .HasColumnName("cd_user");
+
+                entity.Property(e => e.CreatedAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_created");
+
+                entity.Property(e => e.UpdatedAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_updated");
+
+                entity.Property(e => e.IsActive)
+                      .HasColumnName("is_active");
+
+                entity.HasIndex(e => e.Endpoint)
+                      .IsUnique()
+                      .HasDatabaseName("ux_push_subscription_endpoint")
+                      .HasFilter("is_active = TRUE");
+
+                entity.HasIndex(e => e.ClientId)
+                      .HasDatabaseName("ix_push_subscription_client")
+                      .HasFilter("is_active = TRUE");
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<MatchAlertSubscription>(entity =>
+            {
+                entity.HasKey(e => e.MatchAlertSubscriptionId);
+                entity.ToTable("match_alert_subscription");
+
+                entity.Property(e => e.MatchAlertSubscriptionId)
+                      .HasColumnName("cd_match_alert_subscription");
+
+                entity.Property(e => e.PushSubscriptionId)
+                      .HasColumnName("cd_push_subscription");
+
+                entity.Property(e => e.MatchId)
+                      .HasColumnName("cd_match");
+
+                entity.Property(e => e.IsNotifyScore)
+                      .HasColumnName("is_notify_score");
+
+                entity.Property(e => e.IsNotifyComeback)
+                      .HasColumnName("is_notify_comeback");
+
+                entity.Property(e => e.IsNotifyFinished)
+                      .HasColumnName("is_notify_finished");
+
+                entity.Property(e => e.Culture)
+                      .HasColumnName("tx_culture")
+                      .HasMaxLength(10);
+
+                entity.Property(e => e.CreatedAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_created");
+
+                entity.Property(e => e.IsActive)
+                      .HasColumnName("is_active");
+
+                entity.HasIndex(e => new { e.PushSubscriptionId, e.MatchId })
+                      .IsUnique()
+                      .HasDatabaseName("ux_match_alert_subscription_sub_match")
+                      .HasFilter("is_active = TRUE");
+
+                entity.HasIndex(e => e.MatchId)
+                      .HasDatabaseName("ix_match_alert_subscription_match")
+                      .HasFilter("is_active = TRUE");
+
+                entity.HasOne(e => e.PushSubscription)
+                      .WithMany(s => s.AlertSubscriptions)
+                      .HasForeignKey(e => e.PushSubscriptionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Match)
+                      .WithMany()
+                      .HasForeignKey(e => e.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MatchAlertDelivery>(entity =>
+            {
+                entity.HasKey(e => e.MatchAlertDeliveryId);
+                entity.ToTable("match_alert_delivery");
+
+                entity.Property(e => e.MatchAlertDeliveryId)
+                      .HasColumnName("cd_match_alert_delivery");
+
+                entity.Property(e => e.PushSubscriptionId)
+                      .HasColumnName("cd_push_subscription");
+
+                entity.Property(e => e.MatchId)
+                      .HasColumnName("cd_match");
+
+                entity.Property(e => e.MatchScoreEventId)
+                      .HasColumnName("cd_match_score_event");
+
+                entity.Property(e => e.EventKey)
+                      .HasColumnName("tx_event_key")
+                      .IsRequired();
+
+                entity.Property(e => e.AlertType)
+                      .HasColumnName("tx_alert_type")
+                      .IsRequired();
+
+                entity.Property(e => e.Status)
+                      .HasColumnName("tx_status")
+                      .IsRequired();
+
+                entity.Property(e => e.Attempts)
+                      .HasColumnName("nr_attempts");
+
+                entity.Property(e => e.NextAttemptAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_next_attempt");
+
+                entity.Property(e => e.LastAttemptAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_last_attempt");
+
+                entity.Property(e => e.SentAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_sent");
+
+                entity.Property(e => e.CreatedAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_created");
+
+                entity.HasIndex(e => new { e.PushSubscriptionId, e.EventKey, e.AlertType })
+                      .IsUnique()
+                      .HasDatabaseName("ux_match_alert_delivery_sub_event_type");
+
+                entity.HasIndex(e => e.NextAttemptAt)
+                      .HasDatabaseName("ix_match_alert_delivery_eligible")
+                      .HasFilter("tx_status = 'PENDING'");
+
+                entity.HasIndex(e => e.LastAttemptAt)
+                      .HasDatabaseName("ix_match_alert_delivery_stuck")
+                      .HasFilter("tx_status = 'PROCESSING'");
+
+                entity.HasOne(e => e.PushSubscription)
+                      .WithMany(s => s.AlertDeliveries)
+                      .HasForeignKey(e => e.PushSubscriptionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Match)
+                      .WithMany()
+                      .HasForeignKey(e => e.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.MatchScoreEvent)
+                      .WithMany()
+                      .HasForeignKey(e => e.MatchScoreEventId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
 
             // var posts = PostSeedDatax.GetPosts();
             // foreach (var post in posts)

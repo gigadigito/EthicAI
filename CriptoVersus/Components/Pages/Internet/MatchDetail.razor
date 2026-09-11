@@ -472,6 +472,10 @@
                               ShowDebugPanel="true"
                               InvestmentCompleted="@HandleInvestmentCompletedAsync" />
 
+        <MatchAlertModal @ref="_alertModal"
+                         MatchId="@_match.MatchId"
+                         Culture="@CurrentCulture" />
+
         <!-- =========================
              TECH PANEL + ACTIONS
              ========================= -->
@@ -596,6 +600,10 @@
 
                         <button class="btn btn-outline-info" @onclick="ToggleFollowMatch">
                             @(_isFollowed ? "★ " + T("unfollow") : "☆ " + T("followMatch"))
+                        </button>
+
+                        <button class="btn btn-outline-warning" @onclick="OpenAlertModal">
+                            🔔 @T("matchAlerts")
                         </button>
 
                         <button class="btn btn-outline-secondary" @onclick="GoBack">
@@ -4810,6 +4818,7 @@
     private bool ShouldShowInitialLoadingShell => !_initialLoadCompleted || _loading || string.IsNullOrWhiteSpace(_error);
 
     private MatchInvestmentModal? _investmentModal;
+    private MatchAlertModal? _alertModal;
     private string GetFinalCardHeadline(MatchDto match)
     {
         var winnerTeamId = GetEffectiveWinnerTeamId(match);
@@ -5686,6 +5695,12 @@
                 _match.MatchId);
         }
         catch { }
+    }
+
+    private async Task OpenAlertModal()
+    {
+        if (_alertModal is not null)
+            await _alertModal.OpenAsync();
     }
 
     private void GoBack()

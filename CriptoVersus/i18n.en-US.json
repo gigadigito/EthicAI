@@ -1657,7 +1657,21 @@
     "arenaNeutral": "Neutral",
     "arenaGreed": "Greed",
     "arenaExtremeGreed": "Extreme Greed",
-    "arenaInsufficientData": "Insufficient data"
+    "arenaInsufficientData": "Insufficient data",
+    "matchAlerts": "Match Alerts",
+    "alertScore": "Score change",
+    "alertComeback": "Comeback",
+    "alertFinished": "Match finished",
+    "activateAlerts": "Activate Alerts",
+    "updateAlerts": "Update",
+    "removeAlerts": "Remove Alerts",
+    "pushNotSupported": "Push notifications are not supported in this browser.",
+    "pushNotificationsBlocked": "Push notifications are blocked. Enable them in your browser settings.",
+    "pushPermissionDenied": "Notification permission was denied.",
+    "subscribeError": "Failed to activate alerts.",
+    "unsubscribeError": "Failed to remove alerts.",
+    "saving": "Saving...",
+    "loading": "Loading..."
   },
   "cryptoConverterStats": {
     "seo": {

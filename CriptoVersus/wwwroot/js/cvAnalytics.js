@@ -15,6 +15,27 @@ var CvAnalytics = (function () {
             if (flag === '1') {
                 isInternalTraffic = true;
             }
+
+            if (params.get('cv_source') === 'push' && params.has('alert')) {
+                var matchId = null;
+                var pathParts = window.location.pathname.split('/');
+                for (var i = pathParts.length - 1; i >= 0; i--) {
+                    var num = parseInt(pathParts[i], 10);
+                    if (!isNaN(num) && num > 0) {
+                        matchId = num;
+                        break;
+                    }
+                }
+                var alertType = params.get('alert');
+                setTimeout(function () {
+                    trackPushNotificationClicked(matchId, alertType);
+                }, 500);
+
+                params.delete('cv_source');
+                params.delete('alert');
+                var cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
+                window.history.replaceState({}, '', cleanUrl);
+            }
         } catch (e) { }
     }
 
@@ -112,6 +133,13 @@ var CvAnalytics = (function () {
         trackEvent('home_view', {});
     }
 
+    function trackPushNotificationClicked(matchId, alertType) {
+        trackEvent('push_notification_clicked', {
+            match_id: matchId,
+            alert_type: alertType
+        });
+    }
+
     function markAsInternal() {
         try {
             localStorage.setItem('cv_internal', '1');
@@ -133,6 +161,7 @@ var CvAnalytics = (function () {
         trackMatchFollow: trackMatchFollow,
         trackReturnToFollowedMatch: trackReturnToFollowedMatch,
         trackHomeView: trackHomeView,
+        trackPushNotificationClicked: trackPushNotificationClicked,
         markAsInternal: markAsInternal
     };
 })();

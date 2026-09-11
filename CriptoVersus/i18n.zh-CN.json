@@ -1658,7 +1658,21 @@
     "arenaNeutral": "中性",
     "arenaGreed": "贪婪",
     "arenaExtremeGreed": "极度贪婪",
-    "arenaInsufficientData": "数据不足"
+    "arenaInsufficientData": "数据不足",
+    "matchAlerts": "比赛提醒",
+    "alertScore": "比分变化",
+    "alertComeback": "逆转",
+    "alertFinished": "比赛结束",
+    "activateAlerts": "开启提醒",
+    "updateAlerts": "更新",
+    "removeAlerts": "移除提醒",
+    "pushNotSupported": "此浏览器不支持推送通知。",
+    "pushNotificationsBlocked": "推送通知已被阻止。请在浏览器设置中启用。",
+    "pushPermissionDenied": "通知权限被拒绝。",
+    "subscribeError": "开启提醒失败。",
+    "unsubscribeError": "移除提醒失败。",
+    "saving": "保存中...",
+    "loading": "加载中..."
   },
   "cryptoConverterStats": {
     "seo": {

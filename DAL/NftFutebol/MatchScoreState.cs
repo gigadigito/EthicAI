@@ -32,6 +32,8 @@ namespace DAL.NftFutebol
         public DateTime? CurrentPressureDominanceStartedAtUtc { get; set; }
         public bool CurrentPressureDominanceResolved { get; set; }
         public bool CurrentPressureDominanceGoalAwarded { get; set; }
+        public int? LastUndisputedLeaderTeamId { get; set; }
+        public int LastGoalEventSequence { get; set; }
         public DateTime CreatedAtUtc { get; set; }
         public DateTime UpdatedAtUtc { get; set; }
 

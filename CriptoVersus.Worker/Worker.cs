@@ -241,6 +241,7 @@ namespace CriptoVersus.Worker
                 await ExecuteStageAsync("cleanup-out-of-snapshot", cycleStartUtc, true, innerCt => CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, innerCt), ct);
 
             await ExecuteStageAsync("process-ongoing", cycleStartUtc, true, innerCt => ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, candleBattleScoringService, arenaSentimentService, requiredSnapshot, snapshotUtc, allowedSymbols, nowUtc, innerCt), ct);
+            await ExecuteStageAsync("dispatch-push-alerts", cycleStartUtc, true, innerCt => DispatchPushAlertsAsync(db, innerCt), ct);
             await ExecuteStageAsync("settlements", cycleStartUtc, true, innerCt => ProcessCompletedMatchSettlementsAsync(db, ledgerService, positionService, nowUtc, innerCt), ct);
             await ExecuteStageAsync("sweep-closing-positions", cycleStartUtc, true, innerCt => SweepClosingRequestedPositionsAsync(db, ledgerService, nowUtc, innerCt), ct);
             await ExecuteStageAsync("ensure-ongoing-pool", cycleStartUtc, true, innerCt => EnsureOngoingPoolAsync(db, nowUtc, innerCt), ct);
@@ -430,6 +431,39 @@ namespace CriptoVersus.Worker
         {
             await CancelPendingOutsideSnapshotAsync(db, allowedSymbols, nowUtc, ct);
             await ForceEndOngoingOutsideSnapshotAsync(db, allowedSymbols, nowUtc, GetAutoEndOngoingMatches(), ct);
+        }
+
+        private async Task DispatchPushAlertsAsync(EthicAIDbContext db, CancellationToken ct)
+        {
+            try
+            {
+                var vapidPublicKey = _configuration["PushNotification:VapidPublicKey"] ?? "";
+                var vapidPrivateKey = _configuration["PushNotification:VapidPrivateKey"] ?? "";
+                var vapidSubject = _configuration["PushNotification:VapidSubject"] ?? "mailto:admin@criptoversus.com";
+
+                if (string.IsNullOrWhiteSpace(vapidPublicKey) || string.IsNullOrWhiteSpace(vapidPrivateKey))
+                {
+                    _logger.LogDebug("[PUSH_DISPATCH] VAPID keys not configured, skipping push dispatch.");
+                    return;
+                }
+
+                var dispatcher = new PushNotificationDispatcher(
+                    db,
+                    _logger,
+                    vapidPublicKey,
+                    vapidPrivateKey,
+                    vapidSubject,
+                    maxRetryAttempts: 3,
+                    pushTtlSeconds: 3600);
+
+                var sentCount = await dispatcher.DispatchPendingAlertsAsync(ct);
+                if (sentCount > 0)
+                    _logger.LogInformation("[PUSH_DISPATCH] Dispatched {Count} push notifications.", sentCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[PUSH_DISPATCH] Push dispatch stage failed.");
+            }
         }
 
         private async Task LogPoolStatusAsync(EthicAIDbContext db, DateTime nowUtc, CancellationToken ct)
@@ -1191,6 +1225,10 @@ namespace CriptoVersus.Worker
                 if (TryFinalizeByTimeLimit(match, nowUtc))
                 {
                     await db.SaveChangesAsync(ct);
+
+                    await CreateFinishedAlertDeliveriesAsync(db, match, ct);
+                    await db.SaveChangesAsync(ct);
+
                         LogWorkerMatchSkipped(match.MatchId, "TIME_LIMIT_BEFORE_SNAPSHOT_SAVE");
 
                     _logger.LogInformation(
@@ -1434,6 +1472,9 @@ namespace CriptoVersus.Worker
                         ApplyFinish(match, winnerId, decisionOngoing, nowUtc);
                         await db.SaveChangesAsync(ct);
 
+                        await CreateFinishedAlertDeliveriesAsync(db, match, ct);
+                        await db.SaveChangesAsync(ct);
+
                         _logger.LogWarning(
                             "Match finalization applied. Routine={Routine} AutoEndOngoingMatches={AutoEndOngoingMatches} WinnerTeamId={WinnerTeamId} ReasonCode={ReasonCode} ReasonDetail={ReasonDetail} MatchId={MatchId} TeamA={TeamA} TeamB={TeamB}",
                             "process-ongoing-rule-engine",
@@ -1451,6 +1492,9 @@ namespace CriptoVersus.Worker
                     if (decisionOngoing.Decision == MatchDecisionType.FinishWithWO)
                     {
                         ApplyFinish(match, null, decisionOngoing, nowUtc);
+                        await db.SaveChangesAsync(ct);
+
+                        await CreateFinishedAlertDeliveriesAsync(db, match, ct);
                         await db.SaveChangesAsync(ct);
 
                         _logger.LogWarning(
@@ -1480,6 +1524,8 @@ namespace CriptoVersus.Worker
 
                 if (TryFinalizeByTimeLimit(match, nowUtc))
                 {
+                    await db.SaveChangesAsync(ct);
+                    await CreateFinishedAlertDeliveriesAsync(db, match, ct);
                     await db.SaveChangesAsync(ct);
                     LogWorkerMatchSkipped(match.MatchId, "TIME_LIMIT_BEFORE_SNAPSHOT_SAVE");
 
@@ -2237,6 +2283,15 @@ namespace CriptoVersus.Worker
                 AudioResolvedLanguage = audioResponse?.ResolvedLanguage ?? audioRequest?.Language
             });
 
+            // Push notification: create pending alert deliveries (outbox pattern)
+            var eventEntity = db.ChangeTracker
+                .Entries<MatchScoreEvent>()
+                .Select(e => e.Entity)
+                .FirstOrDefault(e => e.MatchId == match.MatchId
+                                 && e.EventSequence == scoreState.LastEventSequence);
+            if (eventEntity is not null)
+                await CreateAlertDeliveriesAsync(db, match, scoreState, eventEntity, ct);
+
             _logger.LogInformation(
                 "? Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc} audioFound={audioFound} audioFallback={audioFallback} audioQueued={audioQueued}",
                 match.MatchId,
@@ -2250,6 +2305,119 @@ namespace CriptoVersus.Worker
                 audioResponse?.Queued ?? false);
 
             return true;
+        }
+
+        private async Task CreateAlertDeliveriesAsync(
+            EthicAIDbContext db,
+            Match match,
+            MatchScoreState scoreState,
+            MatchScoreEvent scoreEvent,
+            CancellationToken ct)
+        {
+            try
+            {
+                var alertService = new BLL.Push.MatchAlertService();
+                if (!alertService.ShouldNotify(scoreEvent))
+                    return;
+
+                var subscriptions = await db.MatchAlertSubscription
+                    .Where(s => s.MatchId == match.MatchId && s.IsActive)
+                    .ToListAsync(ct);
+
+                if (subscriptions.Count == 0)
+                    return;
+
+                foreach (var sub in subscriptions)
+                {
+                    var alertType = alertService.ClassifyAlertType(scoreEvent, sub, match, scoreState);
+                    if (alertType is null)
+                        continue;
+
+                    var eventKey = alertType == "finished"
+                        ? alertService.BuildFinishedEventKey(match.MatchId)
+                        : alertService.BuildEventKey(scoreEvent, alertType);
+
+                    var exists = await db.MatchAlertDelivery
+                        .AnyAsync(d => d.PushSubscriptionId == sub.PushSubscriptionId
+                                    && d.EventKey == eventKey
+                                    && d.AlertType == alertType, ct);
+                    if (exists)
+                        continue;
+
+                    db.MatchAlertDelivery.Add(new MatchAlertDelivery
+                    {
+                        PushSubscriptionId = sub.PushSubscriptionId,
+                        MatchId = match.MatchId,
+                        MatchScoreEventId = scoreEvent.MatchScoreEventId,
+                        EventKey = eventKey,
+                        AlertType = alertType,
+                        Status = "PENDING",
+                        Attempts = 0,
+                        NextAttemptAt = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
+                scoreState.LastUndisputedLeaderTeamId = alertService.ResolveNewLeader(match, scoreState);
+                scoreState.LastGoalEventSequence = scoreState.LastEventSequence;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "[ALERT_DELIVERY] Failed to create alert deliveries. MatchId={MatchId}",
+                    match.MatchId);
+            }
+        }
+
+        private async Task CreateFinishedAlertDeliveriesAsync(
+            EthicAIDbContext db,
+            Match match,
+            CancellationToken ct)
+        {
+            try
+            {
+                var alertService = new BLL.Push.MatchAlertService();
+                var subscriptions = await db.MatchAlertSubscription
+                    .Where(s => s.MatchId == match.MatchId && s.IsActive && s.IsNotifyFinished)
+                    .ToListAsync(ct);
+
+                if (subscriptions.Count == 0)
+                    return;
+
+                var eventKey = alertService.BuildFinishedEventKey(match.MatchId);
+
+                foreach (var sub in subscriptions)
+                {
+                    var exists = await db.MatchAlertDelivery
+                        .AnyAsync(d => d.PushSubscriptionId == sub.PushSubscriptionId
+                                    && d.EventKey == eventKey
+                                    && d.AlertType == "finished", ct);
+                    if (exists)
+                        continue;
+
+                    db.MatchAlertDelivery.Add(new MatchAlertDelivery
+                    {
+                        PushSubscriptionId = sub.PushSubscriptionId,
+                        MatchId = match.MatchId,
+                        EventKey = eventKey,
+                        AlertType = "finished",
+                        Status = "PENDING",
+                        Attempts = 0,
+                        NextAttemptAt = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
+                _logger.LogInformation(
+                    "[ALERT_DELIVERY] Created finished alert deliveries for MatchId={MatchId}",
+                    match.MatchId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "[ALERT_DELIVERY] Failed to create finished alert deliveries. MatchId={MatchId}",
+                    match.MatchId);
+            }
         }
 
         private AudioResolveRequest? BuildAudioResolveRequest(
