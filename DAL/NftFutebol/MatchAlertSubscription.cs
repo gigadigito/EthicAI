@@ -14,6 +14,5 @@ namespace DAL.NftFutebol
 
         public PushSubscription PushSubscription { get; set; } = null!;
         public Match Match { get; set; } = null!;
-        public ICollection<MatchAlertDelivery> AlertDeliveries { get; set; } = [];
     }
 }
