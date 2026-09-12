@@ -286,7 +286,12 @@ var CvPush = (function () {
     }
 
     async function getMatchAlertStatus(matchId) {
-        var subscriptionId = await ensureSubscriptionId();
+        // Opening the settings modal is read-only: recover an existing server id,
+        // but never create/register a push subscription from a status check.
+        var subscriptionId = getSubscriptionId();
+        if (!subscriptionId) {
+            subscriptionId = await recoverSubscriptionId();
+        }
         if (!subscriptionId) return { hasActiveSubscription: false };
 
         var resp = await fetch(API_BASE + '/matches/' + matchId + '/alerts?pushSubscriptionId=' + subscriptionId);

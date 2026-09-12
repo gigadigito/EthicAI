@@ -1,18 +1,23 @@
 @inject CriptoVersus.Web.Services.PushInterop Push
 @inject LocalizationService L
-@implements IAsyncDisposable
+@inject ILogger<MatchAlertModal> Logger
 
 @if (_isOpen)
 {
     <div class="modal-backdrop fade show match-alert-modal__backdrop" @onclick="Close"></div>
-    <div class="modal fade show d-block match-alert-modal" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal fade show d-block match-alert-modal"
+         tabindex="-1"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="match-alert-modal-title"
+         @onkeydown="HandleKeyDown">
         <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content bg-dark text-light border border-secondary">
+            <div class="modal-content bg-dark text-light border border-secondary" aria-busy="@(_loading || _saving)">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title">
-                        <i class="bi bi-bell-fill me-2"></i>@T("matchAlerts")
+                    <h5 class="modal-title" id="match-alert-modal-title">
+                        <i class="bi bi-bell-fill me-2" aria-hidden="true"></i>@T("matchAlerts")
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" aria-label="@T("close")" @onclick="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" aria-label="@T("close")" @onclick="Close" autofocus></button>
                 </div>
                 <div class="modal-body">
                     @if (_loading)
@@ -25,7 +30,7 @@
                     }
                     else if (_error is not null)
                     {
-                        <div class="alert alert-danger small mb-0">@_error</div>
+                        <div class="alert alert-danger small mb-0" role="alert">@_error</div>
                     }
                     else if (_permissionState == "unsupported")
                     {
@@ -43,23 +48,27 @@
                     }
                     else
                     {
+                        @if (_success is not null)
+                        {
+                            <div class="alert alert-success small py-2" role="status">@_success</div>
+                        }
                         <div class="match-alert-options">
                             <label class="match-alert-option">
-                                <input type="checkbox" class="form-check-input" @bind="_notifyScore" />
+                                <input type="checkbox" class="form-check-input" @bind="_notifyScore" disabled="@_saving" />
                                 <span class="match-alert-option__label">
                                     <i class="bi bi-graph-up-arrow text-info"></i>
                                     @T("alertScore")
                                 </span>
                             </label>
                             <label class="match-alert-option">
-                                <input type="checkbox" class="form-check-input" @bind="_notifyComeback" />
+                                <input type="checkbox" class="form-check-input" @bind="_notifyComeback" disabled="@_saving" />
                                 <span class="match-alert-option__label">
                                     <i class="bi bi-arrow-return-left text-warning"></i>
                                     @T("alertComeback")
                                 </span>
                             </label>
                             <label class="match-alert-option">
-                                <input type="checkbox" class="form-check-input" @bind="_notifyFinished" />
+                                <input type="checkbox" class="form-check-input" @bind="_notifyFinished" disabled="@_saving" />
                                 <span class="match-alert-option__label">
                                     <i class="bi bi-trophy-fill text-success"></i>
                                     @T("alertFinished")
@@ -90,15 +99,8 @@
                             </button>
                         }
                     }
-                    else if (_permissionState == "default" && !_isSubscribed)
-                    {
-                        <button type="button" class="btn btn-sm btn-info flex-fill"
-                                @onclick="SubscribeAsync" disabled="@_saving">
-                            @(_saving ? T("saving") : T("activateAlerts"))
-                        </button>
-                    }
                     <button type="button" class="btn btn-sm btn-outline-secondary"
-                            @onclick="Close">@T("close")</button>
+                             @onclick="Close">@T("close")</button>
                 </div>
             </div>
         </div>
@@ -110,12 +112,14 @@
     [Parameter] public string? Culture { get; set; }
     [Parameter] public EventCallback OnSubscribed { get; set; }
     [Parameter] public EventCallback OnUnsubscribed { get; set; }
+    [Parameter] public EventCallback<bool> AlertStateChanged { get; set; }
 
     private bool _isOpen;
     private bool _loading;
     private bool _saving;
     private bool _statusLoaded;
     private string? _error;
+    private string? _success;
     private string _permissionState = "default";
     private bool _isSubscribed;
     private bool _notifyScore = true;
@@ -128,7 +132,14 @@
     {
         _isOpen = true;
         _loading = true;
+        _statusLoaded = false;
+        _isSubscribed = false;
+        _notifyScore = true;
+        _notifyComeback = true;
+        _notifyFinished = true;
+        _permissionState = "default";
         _error = null;
+        _success = null;
         await InvokeAsync(StateHasChanged);
 
         try
@@ -147,21 +158,29 @@
             if (_permissionState is "granted")
             {
                 await Push.InitializeAsync();
-                _isSubscribed = await Push.IsSubscribedAsync();
+                var hasPushSubscription = await Push.IsSubscribedAsync();
 
-                if (_isSubscribed && MatchId > 0)
+                if (hasPushSubscription && MatchId > 0)
                 {
                     var status = await Push.GetMatchAlertStatusAsync(MatchId);
-                    _notifyScore = status.NotifyScore;
-                    _notifyComeback = status.NotifyComeback;
-                    _notifyFinished = status.NotifyFinished;
-                    _statusLoaded = true;
+                    _isSubscribed = status.HasActiveSubscription;
+                    if (_isSubscribed)
+                    {
+                        _notifyScore = status.NotifyScore;
+                        _notifyComeback = status.NotifyComeback;
+                        _notifyFinished = status.NotifyFinished;
+                    }
                 }
+
+                _statusLoaded = true;
             }
+
+            await AlertStateChanged.InvokeAsync(_isSubscribed);
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            Logger.LogWarning(ex, "Failed to load match alert state for match {MatchId}.", MatchId);
+            _error = T("loadAlertsError");
         }
         finally
         {
@@ -198,17 +217,21 @@
 
             if (!result.Success)
             {
-                _error = result.Error ?? T("subscribeError");
+                Logger.LogWarning("Failed to subscribe to match {MatchId} alerts: {Error}", MatchId, result.Error);
+                _error = T("subscribeError");
                 return;
             }
 
             _isSubscribed = true;
             _statusLoaded = true;
+            _success = T("alertsActivated");
             await OnSubscribed.InvokeAsync();
+            await AlertStateChanged.InvokeAsync(true);
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            Logger.LogWarning(ex, "Failed to subscribe to match {MatchId} alerts.", MatchId);
+            _error = T("subscribeError");
         }
         finally
         {
@@ -231,15 +254,19 @@
 
             if (!result.Success)
             {
-                _error = result.Error ?? T("subscribeError");
+                Logger.LogWarning("Failed to update match {MatchId} alerts: {Error}", MatchId, result.Error);
+                _error = T("updateAlertsError");
                 return;
             }
 
             await OnSubscribed.InvokeAsync();
+            _success = T("alertsUpdated");
+            await AlertStateChanged.InvokeAsync(true);
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            Logger.LogWarning(ex, "Failed to update match {MatchId} alerts.", MatchId);
+            _error = T("updateAlertsError");
         }
         finally
         {
@@ -259,7 +286,8 @@
             var result = await Push.UnsubscribeMatchAlertAsync(MatchId);
             if (!result.Success)
             {
-                _error = result.Error ?? T("unsubscribeError");
+                Logger.LogWarning("Failed to remove match {MatchId} alerts: {Error}", MatchId, result.Error);
+                _error = T("unsubscribeError");
                 return;
             }
 
@@ -268,11 +296,14 @@
             _notifyScore = true;
             _notifyComeback = true;
             _notifyFinished = true;
+            _success = T("alertsRemoved");
             await OnUnsubscribed.InvokeAsync();
+            await AlertStateChanged.InvokeAsync(false);
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            Logger.LogWarning(ex, "Failed to remove match {MatchId} alerts.", MatchId);
+            _error = T("unsubscribeError");
         }
         finally
         {
@@ -285,10 +316,12 @@
     {
         _isOpen = false;
         _error = null;
+        _success = null;
     }
 
-    public ValueTask DisposeAsync()
+    private void HandleKeyDown(KeyboardEventArgs args)
     {
-        return ValueTask.CompletedTask;
+        if (args.Key == "Escape")
+            Close();
     }
 }
