@@ -1,11 +1,57 @@
 var CvPush = (function () {
-    var API_BASE = '/api';
+    var API_BASE = resolveApiBase();
     var swRegistration = null;
     var vapidPublicKey = null;
     var currentClientId = null;
     var currentSubscriptionId = null;
+    var lastFailure = null;
     var CLIENT_ID_KEY = 'cv_push_client_id';
     var SUBSCRIPTION_ID_KEY = 'cv_push_subscription_id';
+
+    function resolveApiBase() {
+        var meta = document.querySelector('meta[name="cv-api-base-url"]');
+        var configured = meta && typeof meta.content === 'string' ? meta.content.trim() : '';
+        if (!configured) return '/api';
+
+        configured = configured.replace(/\/+$/, '');
+        return /\/api$/i.test(configured) ? configured : configured + '/api';
+    }
+
+    function recordFailure(code, message, httpStatus) {
+        lastFailure = {
+            code: code,
+            message: message || code,
+            httpStatus: httpStatus || null
+        };
+        console.error('[MATCH_ALERT] activate failed', {
+            code: lastFailure.code,
+            message: lastFailure.message,
+            httpStatus: lastFailure.httpStatus
+        });
+        return null;
+    }
+
+    function failureResult(defaultCode, defaultMessage) {
+        var failure = lastFailure || { code: defaultCode, message: defaultMessage, httpStatus: null };
+        return {
+            success: false,
+            error: failure.message,
+            errorCode: failure.code,
+            httpStatus: failure.httpStatus
+        };
+    }
+
+    async function readJsonSafely(response) {
+        try {
+            return await response.json();
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function isValidSubscriptionId(value) {
+        return Number.isSafeInteger(value) && value > 0;
+    }
 
     function getClientId() {
         if (currentClientId) return currentClientId;
@@ -28,17 +74,20 @@ var CvPush = (function () {
             var id = localStorage.getItem(SUBSCRIPTION_ID_KEY);
             if (id) {
                 currentSubscriptionId = parseInt(id, 10);
-                if (!isNaN(currentSubscriptionId)) return currentSubscriptionId;
+                if (isValidSubscriptionId(currentSubscriptionId)) return currentSubscriptionId;
+                currentSubscriptionId = null;
+                localStorage.removeItem(SUBSCRIPTION_ID_KEY);
             }
         } catch (e) { }
         return null;
     }
 
     function setSubscriptionId(id) {
-        currentSubscriptionId = id;
+        var parsedId = typeof id === 'string' ? Number(id) : id;
+        currentSubscriptionId = isValidSubscriptionId(parsedId) ? parsedId : null;
         try {
-            if (id) {
-                localStorage.setItem(SUBSCRIPTION_ID_KEY, String(id));
+            if (currentSubscriptionId) {
+                localStorage.setItem(SUBSCRIPTION_ID_KEY, String(currentSubscriptionId));
             } else {
                 localStorage.removeItem(SUBSCRIPTION_ID_KEY);
             }
@@ -53,10 +102,10 @@ var CvPush = (function () {
             var clientId = getClientId();
             var resp = await fetch(API_BASE + '/push/lookup?clientId=' + encodeURIComponent(clientId));
             if (!resp.ok) return null;
-            var data = await resp.json();
-            if (data.subscriptionId) {
+            var data = await readJsonSafely(resp);
+            if (data && isValidSubscriptionId(Number(data.subscriptionId))) {
                 setSubscriptionId(data.subscriptionId);
-                return data.subscriptionId;
+                return getSubscriptionId();
             }
         } catch (e) {
             console.warn('[CvPush] Failed to recover subscriptionId:', e);
@@ -85,7 +134,10 @@ var CvPush = (function () {
     }
 
     async function init() {
-        if (!isPushSupported()) return false;
+        if (!isPushSupported()) {
+            recordFailure('push_unsupported', 'Push notifications are not supported');
+            return false;
+        }
 
         try {
             swRegistration = await navigator.serviceWorker.register('/js/sw-push.js');
@@ -98,7 +150,7 @@ var CvPush = (function () {
             }
             return true;
         } catch (e) {
-            console.warn('[CvPush] Service Worker registration failed:', e);
+            recordFailure('service_worker_registration_failed', e && e.message ? e.message : 'Service Worker registration failed');
             return false;
         }
     }
@@ -108,12 +160,17 @@ var CvPush = (function () {
 
         try {
             var resp = await fetch(API_BASE + '/push/vapid-public-key');
-            if (!resp.ok) return null;
-            var data = await resp.json();
+            if (!resp.ok) {
+                return recordFailure('vapid_fetch_failed', 'VAPID public key request failed', resp.status);
+            }
+            var data = await readJsonSafely(resp);
+            if (!data || typeof data.publicKey !== 'string' || !data.publicKey.trim()) {
+                return recordFailure('vapid_response_invalid', 'VAPID public key response is invalid', resp.status);
+            }
             vapidPublicKey = data.publicKey;
             return vapidPublicKey;
         } catch (e) {
-            console.warn('[CvPush] Failed to fetch VAPID key:', e);
+            recordFailure('vapid_fetch_failed', e && e.message ? e.message : 'Failed to fetch VAPID public key');
             return null;
         }
     }
@@ -125,7 +182,9 @@ var CvPush = (function () {
         }
 
         var permission = await Notification.requestPermission();
-        if (permission !== 'granted') return null;
+        if (permission !== 'granted') {
+            return recordFailure('permission_denied', 'Notification permission was not granted');
+        }
 
         var key = await fetchVapidKey();
         if (!key) return null;
@@ -133,7 +192,8 @@ var CvPush = (function () {
         try {
             var existingSubscription = await swRegistration.pushManager.getSubscription();
             if (existingSubscription) {
-                await sendSubscriptionToServer(existingSubscription);
+                var existingId = await sendSubscriptionToServer(existingSubscription);
+                if (!existingId) return null;
                 return existingSubscription;
             }
 
@@ -142,10 +202,11 @@ var CvPush = (function () {
                 applicationServerKey: urlBase64ToUint8Array(key)
             });
 
-            await sendSubscriptionToServer(subscription);
+            var subscriptionId = await sendSubscriptionToServer(subscription);
+            if (!subscriptionId) return null;
             return subscription;
         } catch (e) {
-            console.warn('[CvPush] Push subscription failed:', e);
+            recordFailure('push_subscription_failed', e && e.message ? e.message : 'PushManager subscription failed');
             return null;
         }
     }
@@ -193,6 +254,9 @@ var CvPush = (function () {
 
     async function sendSubscriptionToServer(subscription) {
         var json = subscription.toJSON();
+        if (!json || !json.endpoint || !json.keys || !json.keys.p256dh || !json.keys.auth) {
+            return recordFailure('push_subscription_invalid', 'Browser push subscription is incomplete');
+        }
         var payload = {
             endpoint: json.endpoint,
             p256dh: json.keys.p256dh,
@@ -200,22 +264,29 @@ var CvPush = (function () {
             clientId: getClientId()
         };
 
-        var resp = await fetch(API_BASE + '/push/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        var resp;
+        try {
+            resp = await fetch(API_BASE + '/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        } catch (e) {
+            return recordFailure('browser_registration_failed', e && e.message ? e.message : 'Browser registration request failed');
+        }
 
         if (!resp.ok) {
-            console.warn('[CvPush] Server subscription save failed:', resp.status);
-            return null;
+            return recordFailure('browser_registration_failed', 'Browser registration request failed', resp.status);
         }
 
-        var data = await resp.json();
-        if (data.subscriptionId) {
-            setSubscriptionId(data.subscriptionId);
+        var data = await readJsonSafely(resp);
+        var subscriptionId = data ? Number(data.subscriptionId) : NaN;
+        if (!data || data.success !== true || !isValidSubscriptionId(subscriptionId)) {
+            return recordFailure('browser_registration_invalid_response', 'Browser registration response is invalid', resp.status);
         }
-        return data.subscriptionId;
+
+        setSubscriptionId(subscriptionId);
+        return subscriptionId;
     }
 
     async function ensureSubscriptionId() {
@@ -235,68 +306,105 @@ var CvPush = (function () {
     }
 
     async function subscribeMatchAlert(matchId, options) {
-        if (!swRegistration) {
-            var ok = await init();
-            if (!ok) return { success: false, error: 'Service Worker not available' };
+        lastFailure = null;
+        if (!Number.isInteger(matchId) || matchId <= 0) {
+            recordFailure('invalid_match_id', 'Match id is invalid');
+            return failureResult('invalid_match_id', 'Match id is invalid');
         }
 
-        var subscription = await swRegistration.pushManager.getSubscription();
-        if (!subscription) {
-            var sub = await subscribe();
-            if (!sub) return { success: false, error: 'Push subscription required' };
-            subscription = sub;
+        if (!swRegistration) {
+            var ok = await init();
+            if (!ok) return failureResult('service_worker_registration_failed', 'Service Worker not available');
+        }
+
+        try {
+            var subscription = await swRegistration.pushManager.getSubscription();
+            if (!subscription) {
+                var sub = await subscribe();
+                if (!sub) return failureResult('push_subscription_failed', 'Push subscription required');
+                subscription = sub;
+            }
+        } catch (e) {
+            recordFailure('push_subscription_failed', e && e.message ? e.message : 'Unable to read browser push subscription');
+            return failureResult('push_subscription_failed', 'Unable to read browser push subscription');
         }
 
         var subscriptionId = await ensureSubscriptionId();
-        if (!subscriptionId) {
-            return { success: false, error: 'Push subscription not registered with server' };
+        if (!isValidSubscriptionId(subscriptionId)) {
+            if (!lastFailure) {
+                recordFailure('browser_registration_invalid_response', 'Push subscription was not registered with the server');
+            }
+            return failureResult('browser_registration_invalid_response', 'Push subscription was not registered with the server');
         }
 
-        var resp = await fetch(API_BASE + '/matches/' + matchId + '/alerts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                pushSubscriptionId: subscriptionId,
-                notifyScore: options.notifyScore !== false,
-                notifyComeback: options.notifyComeback !== false,
-                notifyFinished: options.notifyFinished !== false,
-                culture: options.culture || 'en'
-            })
-        });
+        var resp;
+        try {
+            resp = await fetch(API_BASE + '/matches/' + matchId + '/alerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pushSubscriptionId: subscriptionId,
+                    notifyScore: options.notifyScore !== false,
+                    notifyComeback: options.notifyComeback !== false,
+                    notifyFinished: options.notifyFinished !== false,
+                    culture: options.culture || 'en'
+                })
+            });
+        } catch (e) {
+            recordFailure('match_alert_save_failed', e && e.message ? e.message : 'Match alert request failed');
+            return failureResult('match_alert_save_failed', 'Match alert request failed');
+        }
 
         if (!resp.ok) {
-            var err = await resp.json().catch(function () { return {}; });
-            return { success: false, error: err.error || 'Failed to subscribe' };
+            var err = await readJsonSafely(resp);
+            recordFailure('match_alert_save_failed', err && err.error ? err.error : 'Match alert request failed', resp.status);
+            return failureResult('match_alert_save_failed', 'Match alert request failed');
         }
 
-        return await resp.json();
+        var result = await readJsonSafely(resp);
+        if (!result || result.success !== true || !isValidSubscriptionId(Number(result.alertSubscriptionId))) {
+            recordFailure('match_alert_invalid_response', 'Match alert response is invalid', resp.status);
+            return failureResult('match_alert_invalid_response', 'Match alert response is invalid');
+        }
+
+        return result;
     }
 
     async function unsubscribeMatchAlert(matchId) {
         var subscriptionId = await ensureSubscriptionId();
         if (!subscriptionId) return { success: false, error: 'No active subscription' };
 
-        var resp = await fetch(API_BASE + '/matches/' + matchId + '/alerts?pushSubscriptionId=' + subscriptionId, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' }
-        });
+        try {
+            var resp = await fetch(API_BASE + '/matches/' + matchId + '/alerts?pushSubscriptionId=' + subscriptionId, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
 
-        if (!resp.ok) return { success: false, error: 'Failed to unsubscribe' };
-        return await resp.json();
+            if (!resp.ok) return { success: false, error: 'Failed to unsubscribe' };
+            return await readJsonSafely(resp) || { success: false, error: 'Invalid response' };
+        } catch (e) {
+            console.warn('[MATCH_ALERT] unsubscribe network error');
+            return { success: false, error: 'Network error' };
+        }
     }
 
     async function getMatchAlertStatus(matchId) {
         // Opening the settings modal is read-only: recover an existing server id,
         // but never create/register a push subscription from a status check.
-        var subscriptionId = getSubscriptionId();
-        if (!subscriptionId) {
-            subscriptionId = await recoverSubscriptionId();
-        }
-        if (!subscriptionId) return { hasActiveSubscription: false };
+        try {
+            var subscriptionId = getSubscriptionId();
+            if (!subscriptionId) {
+                subscriptionId = await recoverSubscriptionId();
+            }
+            if (!subscriptionId) return { hasActiveSubscription: false };
 
-        var resp = await fetch(API_BASE + '/matches/' + matchId + '/alerts?pushSubscriptionId=' + subscriptionId);
-        if (!resp.ok) return { hasActiveSubscription: false };
-        return await resp.json();
+            var resp = await fetch(API_BASE + '/matches/' + matchId + '/alerts?pushSubscriptionId=' + subscriptionId);
+            if (!resp.ok) return { hasActiveSubscription: false };
+            return await readJsonSafely(resp) || { hasActiveSubscription: false };
+        } catch (e) {
+            console.warn('[MATCH_ALERT] status read failed');
+            return { hasActiveSubscription: false };
+        }
     }
 
     return {

@@ -217,8 +217,10 @@
 
             if (!result.Success)
             {
-                Logger.LogWarning("Failed to subscribe to match {MatchId} alerts: {Error}", MatchId, result.Error);
-                _error = T("subscribeError");
+                Logger.LogWarning(
+                    "Failed to subscribe to match {MatchId} alerts. Code={ErrorCode} HttpStatus={HttpStatus} Error={Error}",
+                    MatchId, result.ErrorCode, result.HttpStatus, result.Error);
+                _error = T(GetActivationErrorKey(result.ErrorCode));
                 return;
             }
 
@@ -324,4 +326,19 @@
         if (args.Key == "Escape")
             Close();
     }
+
+    private static string GetActivationErrorKey(string? errorCode)
+        => errorCode switch
+        {
+            "push_unsupported" => "pushNotSupported",
+            "permission_denied" => "pushPermissionDenied",
+            "service_worker_registration_failed" => "pushServiceWorkerError",
+            "vapid_fetch_failed" or "vapid_response_invalid" => "pushVapidError",
+            "push_subscription_failed" or "push_subscription_invalid" => "pushSubscriptionError",
+            "browser_registration_failed" => "pushRegistrationError",
+            "browser_registration_invalid_response" or "match_alert_invalid_response" => "pushResponseInvalid",
+            "match_alert_save_failed" => "matchAlertSaveError",
+            "circuit_disconnected" or "js_interop_failed" => "pushConnectionError",
+            _ => "subscribeError"
+        };
 }

@@ -112,6 +112,21 @@ builder.Services.Configure<MatchScoreRebuildOptions>(
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+const string browserCorsPolicy = "CriptoVersusBrowser";
+var browserOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(browserCorsPolicy, policy =>
+    {
+        policy.WithOrigins(browserOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey))
     throw new InvalidOperationException("Jwt:Key não configurado.");
@@ -260,6 +275,7 @@ app.UseStaticFiles(new StaticFileOptions
     ContentTypeProvider = mediaContentTypeProvider
 });
 app.UseRouting();
+app.UseCors(browserCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 

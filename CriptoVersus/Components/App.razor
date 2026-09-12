@@ -3,11 +3,13 @@
 @using CriptoVersus.Web.Services
 @inject AppCultureService AppCulture
 @inject LocalizationService L
+@inject IConfiguration Config
 <html lang="@AppCulture.ToHtmlLang(AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext))">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="cv-api-base-url" content="@Config["Api:BaseUrl"]" />
     <base href="/" />
     <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="app.css" />
@@ -95,7 +97,7 @@
     <script src="/js/blazor-reconnect.js"></script>
     <script src="/js/cvAnalytics.js"></script>
     <script src="/js/cvFollowedMatches.js"></script>
-    <script src="/js/cvPush.js"></script>
+    <script src="/js/cvPush.js?v=20260912"></script>
 
    
     <script type="module" src="/js/dist/interop/blazor.js"></script>

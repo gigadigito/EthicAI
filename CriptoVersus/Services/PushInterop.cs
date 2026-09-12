@@ -5,10 +5,12 @@ namespace CriptoVersus.Web.Services;
 public sealed class PushInterop
 {
     private readonly IJSRuntime _js;
+    private readonly ILogger<PushInterop> _logger;
 
-    public PushInterop(IJSRuntime js)
+    public PushInterop(IJSRuntime js, ILogger<PushInterop> logger)
     {
         _js = js;
+        _logger = logger;
     }
 
     public async Task<bool> IsPushSupportedAsync()
@@ -107,7 +109,12 @@ public sealed class PushInterop
         }
         catch (JSDisconnectedException)
         {
-            return new MatchAlertResult { Success = false, Error = "Disconnected" };
+            return new MatchAlertResult { Success = false, ErrorCode = "circuit_disconnected", Error = "Disconnected" };
+        }
+        catch (JSException ex)
+        {
+            _logger.LogWarning(ex, "Match alert JavaScript activation failed for match {MatchId}.", matchId);
+            return new MatchAlertResult { Success = false, ErrorCode = "js_interop_failed", Error = ex.Message };
         }
     }
 
@@ -121,7 +128,12 @@ public sealed class PushInterop
         }
         catch (JSDisconnectedException)
         {
-            return new MatchAlertResult { Success = false, Error = "Disconnected" };
+            return new MatchAlertResult { Success = false, ErrorCode = "circuit_disconnected", Error = "Disconnected" };
+        }
+        catch (JSException ex)
+        {
+            _logger.LogWarning(ex, "Match alert JavaScript unsubscribe failed for match {MatchId}.", matchId);
+            return new MatchAlertResult { Success = false, ErrorCode = "js_interop_failed", Error = ex.Message };
         }
     }
 
@@ -137,6 +149,11 @@ public sealed class PushInterop
         {
             return new MatchAlertStatus { HasActiveSubscription = false };
         }
+        catch (JSException ex)
+        {
+            _logger.LogWarning(ex, "Match alert JavaScript status read failed for match {MatchId}.", matchId);
+            return new MatchAlertStatus { HasActiveSubscription = false };
+        }
     }
 }
 
@@ -145,6 +162,8 @@ public sealed class MatchAlertResult
     public bool Success { get; set; }
     public long? AlertSubscriptionId { get; set; }
     public string? Error { get; set; }
+    public string? ErrorCode { get; set; }
+    public int? HttpStatus { get; set; }
 }
 
 public sealed class MatchAlertStatus
