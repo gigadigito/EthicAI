@@ -220,6 +220,8 @@ public sealed class SocialController : ControllerBase
 
                     TeamAId = match.TeamAId,
                     TeamBId = match.TeamBId,
+                    CurrencyIdA = teamA?.CurrencyId ?? 0,
+                    CurrencyIdB = teamB?.CurrencyId ?? 0,
 
                     ScoreA = match.ScoreA,
                     ScoreB = match.ScoreB,

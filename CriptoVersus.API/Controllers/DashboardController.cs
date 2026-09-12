@@ -407,6 +407,8 @@ namespace CriptoVersus.API.Controllers
 
                 TeamAId = m.TeamAId,
                 TeamBId = m.TeamBId,
+                CurrencyIdA = a?.CurrencyId ?? 0,
+                CurrencyIdB = b?.CurrencyId ?? 0,
 
                 TeamA = teamA,
                 TeamB = teamB,

@@ -44,6 +44,7 @@ namespace EthicAI.EntityModel
         public DbSet<PushSubscription> PushSubscription { get; set; }
         public DbSet<MatchAlertSubscription> MatchAlertSubscription { get; set; }
         public DbSet<MatchAlertDelivery> MatchAlertDelivery { get; set; }
+        public DbSet<AssetAlertSubscription> AssetAlertSubscription { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -1627,6 +1628,38 @@ namespace EthicAI.EntityModel
                       .WithMany()
                       .HasForeignKey(e => e.MatchScoreEventId)
                       .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<AssetAlertSubscription>(entity =>
+            {
+                entity.HasKey(e => e.AssetAlertSubscriptionId);
+                entity.ToTable("asset_alert_subscription");
+
+                entity.Property(e => e.AssetAlertSubscriptionId).HasColumnName("cd_asset_alert_subscription");
+                entity.Property(e => e.PushSubscriptionId).HasColumnName("cd_push_subscription");
+                entity.Property(e => e.CurrencyId).HasColumnName("cd_currency");
+                entity.Property(e => e.Symbol).HasColumnName("tx_symbol").HasMaxLength(50);
+                entity.Property(e => e.Culture).HasColumnName("tx_culture").HasMaxLength(10);
+                entity.Property(e => e.IsActive).HasColumnName("is_active");
+                entity.Property(e => e.CreatedAt).HasColumnType("timestamp with time zone").HasColumnName("dt_created");
+
+                entity.HasIndex(e => new { e.PushSubscriptionId, e.CurrencyId })
+                    .IsUnique()
+                    .HasDatabaseName("ux_asset_alert_sub_sub_currency");
+
+                entity.HasIndex(e => e.CurrencyId)
+                    .HasDatabaseName("ix_asset_alert_sub_currency")
+                    .HasFilter("is_active = TRUE");
+
+                entity.HasOne(e => e.PushSubscription)
+                      .WithMany()
+                      .HasForeignKey(e => e.PushSubscriptionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Currency)
+                      .WithMany()
+                      .HasForeignKey(e => e.CurrencyId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // var posts = PostSeedDatax.GetPosts();

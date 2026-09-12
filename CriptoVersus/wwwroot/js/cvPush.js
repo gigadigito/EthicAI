@@ -407,6 +407,103 @@ var CvPush = (function () {
         }
     }
 
+    async function subscribeAssetAlert(currencyId, options) {
+        lastFailure = null;
+        if (!Number.isInteger(currencyId) || currencyId <= 0) {
+            recordFailure('invalid_currency_id', 'Asset id is invalid');
+            return { success: false, error: 'Asset id is invalid', errorCode: 'invalid_currency_id' };
+        }
+
+        if (!swRegistration) {
+            var ok = await init();
+            if (!ok) return { success: false, error: 'Service Worker not available', errorCode: 'service_worker_registration_failed' };
+        }
+
+        try {
+            var subscription = await swRegistration.pushManager.getSubscription();
+            if (!subscription) {
+                var sub = await subscribe();
+                if (!sub) return { success: false, error: 'Push subscription required', errorCode: 'push_subscription_failed' };
+                subscription = sub;
+            }
+        } catch (e) {
+            recordFailure('push_subscription_failed', e && e.message ? e.message : 'Unable to read browser push subscription');
+            return { success: false, error: 'Unable to read browser push subscription', errorCode: 'push_subscription_failed' };
+        }
+
+        var subscriptionId = await ensureSubscriptionId();
+        if (!isValidSubscriptionId(subscriptionId)) {
+            if (!lastFailure) {
+                recordFailure('browser_registration_invalid_response', 'Push subscription was not registered with the server');
+            }
+            return { success: false, error: 'Push subscription was not registered with the server', errorCode: 'browser_registration_invalid_response' };
+        }
+
+        var resp;
+        try {
+            resp = await fetch(API_BASE + '/assets/' + currencyId + '/alerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pushSubscriptionId: subscriptionId,
+                    culture: options.culture || 'en'
+                })
+            });
+        } catch (e) {
+            recordFailure('asset_alert_save_failed', e && e.message ? e.message : 'Asset alert request failed');
+            return { success: false, error: 'Asset alert request failed', errorCode: 'asset_alert_save_failed' };
+        }
+
+        if (!resp.ok) {
+            var err = await readJsonSafely(resp);
+            recordFailure('asset_alert_save_failed', err && err.error ? err.error : 'Asset alert request failed', resp.status);
+            return { success: false, error: 'Asset alert request failed', errorCode: 'asset_alert_save_failed' };
+        }
+
+        var result = await readJsonSafely(resp);
+        if (!result || result.success !== true) {
+            recordFailure('asset_alert_invalid_response', 'Asset alert response is invalid', resp.status);
+            return { success: false, error: 'Asset alert response is invalid', errorCode: 'asset_alert_invalid_response' };
+        }
+
+        return result;
+    }
+
+    async function unsubscribeAssetAlert(currencyId) {
+        var subscriptionId = await ensureSubscriptionId();
+        if (!subscriptionId) return { success: false, error: 'No active subscription' };
+
+        try {
+            var resp = await fetch(API_BASE + '/assets/' + currencyId + '/alerts?pushSubscriptionId=' + subscriptionId, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!resp.ok) return { success: false, error: 'Failed to unsubscribe' };
+            return await readJsonSafely(resp) || { success: false, error: 'Invalid response' };
+        } catch (e) {
+            console.warn('[ASSET_ALERT] unsubscribe network error');
+            return { success: false, error: 'Network error' };
+        }
+    }
+
+    async function getAssetAlertStatus(currencyId) {
+        try {
+            var subscriptionId = getSubscriptionId();
+            if (!subscriptionId) {
+                subscriptionId = await recoverSubscriptionId();
+            }
+            if (!subscriptionId) return { hasActiveSubscription: false };
+
+            var resp = await fetch(API_BASE + '/assets/' + currencyId + '/alerts?pushSubscriptionId=' + subscriptionId);
+            if (!resp.ok) return { hasActiveSubscription: false };
+            return await readJsonSafely(resp) || { hasActiveSubscription: false };
+        } catch (e) {
+            console.warn('[ASSET_ALERT] status read failed');
+            return { hasActiveSubscription: false };
+        }
+    }
+
     return {
         init: init,
         subscribe: subscribe,
@@ -418,6 +515,9 @@ var CvPush = (function () {
         getSubscriptionId: getSubscriptionId,
         subscribeMatchAlert: subscribeMatchAlert,
         unsubscribeMatchAlert: unsubscribeMatchAlert,
-        getMatchAlertStatus: getMatchAlertStatus
+        getMatchAlertStatus: getMatchAlertStatus,
+        subscribeAssetAlert: subscribeAssetAlert,
+        unsubscribeAssetAlert: unsubscribeAssetAlert,
+        getAssetAlertStatus: getAssetAlertStatus
     };
 })();

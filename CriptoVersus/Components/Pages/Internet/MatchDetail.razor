@@ -197,7 +197,7 @@
                                 title="@AlertButtonLabel"
                                 aria-label="@AlertButtonLabel"
                                 aria-pressed="@_matchAlertsActive"
-                                @onclick="OpenAlertModal">
+                                @onclick="OpenAlertModalTeamA">
                             <i class="@AlertIconClass" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -246,7 +246,7 @@
                                 title="@AlertButtonLabel"
                                 aria-label="@AlertButtonLabel"
                                 aria-pressed="@_matchAlertsActive"
-                                @onclick="OpenAlertModal">
+                                @onclick="OpenAlertModalTeamB">
                             <i class="@AlertIconClass" aria-hidden="true"></i>
                         </button>
                         <div>
@@ -839,6 +839,18 @@
         color: #081014;
         background: #ffc107;
         box-shadow: 0 0 0 1px rgba(255, 255, 255, .14), 0 0 18px rgba(255, 193, 7, .48);
+    }
+
+    .match-alert-divider {
+        border-top: 1px solid rgba(255, 255, 255, .15);
+    }
+
+    .match-alert-section-label {
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: rgba(245, 247, 251, .65);
+        font-weight: 600;
     }
 
     .match-post-panel {
@@ -4867,6 +4879,8 @@
     private MatchInvestmentModal? _investmentModal;
     private MatchAlertModal? _alertModal;
     private bool _matchAlertsActive;
+    private string? _alertAssetSymbol;
+    private int _alertAssetCurrencyId;
     private string AlertButtonLabel => _matchAlertsActive ? T("matchAlertsActive") : T("configureMatchAlerts");
     private string AlertIconClass => _matchAlertsActive ? "bi bi-bell-fill" : "bi bi-bell";
     private string GetFinalCardHeadline(MatchDto match)
@@ -5750,8 +5764,41 @@
 
     private async Task OpenAlertModal()
     {
+        _alertAssetSymbol = null;
+        _alertAssetCurrencyId = 0;
+
         if (_alertModal is not null)
+        {
+            _alertModal.AssetSymbol = _alertAssetSymbol;
+            _alertModal.AssetCurrencyId = _alertAssetCurrencyId;
             await _alertModal.OpenAsync();
+        }
+    }
+
+    private async Task OpenAlertModalTeamA()
+    {
+        _alertAssetSymbol = _match?.TeamA;
+        _alertAssetCurrencyId = _match?.CurrencyIdA ?? 0;
+
+        if (_alertModal is not null)
+        {
+            _alertModal.AssetSymbol = _alertAssetSymbol;
+            _alertModal.AssetCurrencyId = _alertAssetCurrencyId;
+            await _alertModal.OpenAsync();
+        }
+    }
+
+    private async Task OpenAlertModalTeamB()
+    {
+        _alertAssetSymbol = _match?.TeamB;
+        _alertAssetCurrencyId = _match?.CurrencyIdB ?? 0;
+
+        if (_alertModal is not null)
+        {
+            _alertModal.AssetSymbol = _alertAssetSymbol;
+            _alertModal.AssetCurrencyId = _alertAssetCurrencyId;
+            await _alertModal.OpenAsync();
+        }
     }
 
     private void HandleAlertStateChanged(bool isActive)

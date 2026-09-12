@@ -52,6 +52,15 @@
                         {
                             <div class="alert alert-success small py-2" role="status">@_success</div>
                         }
+
+                        @if (!string.IsNullOrEmpty(AssetSymbol))
+                        {
+                            <div class="match-alert-section-label mb-1">
+                                <i class="bi bi-bell text-info me-1"></i>
+                                @T("matchAlerts")
+                            </div>
+                        }
+
                         <div class="match-alert-options">
                             <label class="match-alert-option">
                                 <input type="checkbox" class="form-check-input" @bind="_notifyScore" disabled="@_saving" />
@@ -75,6 +84,24 @@
                                 </span>
                             </label>
                         </div>
+
+                        @if (!string.IsNullOrEmpty(AssetSymbol) && AssetCurrencyId > 0)
+                        {
+                            <div class="match-alert-divider my-2"></div>
+                            <div class="match-alert-section-label mb-1">
+                                <i class="bi bi-star text-warning me-1"></i>
+                                @T("followAsset")
+                            </div>
+                            <div class="match-alert-options">
+                                <label class="match-alert-option">
+                                    <input type="checkbox" class="form-check-input" @bind="_followAsset" disabled="@_saving" />
+                                    <span class="match-alert-option__label">
+                                        <i class="bi bi-play-circle text-primary"></i>
+                                        @string.Format(T("assetPlayingHint"), AssetSymbol)
+                                    </span>
+                                </label>
+                            </div>
+                        }
                     }
                 </div>
                 <div class="modal-footer border-secondary">
@@ -113,6 +140,8 @@
     [Parameter] public EventCallback OnSubscribed { get; set; }
     [Parameter] public EventCallback OnUnsubscribed { get; set; }
     [Parameter] public EventCallback<bool> AlertStateChanged { get; set; }
+    [Parameter] public string? AssetSymbol { get; set; }
+    [Parameter] public int AssetCurrencyId { get; set; }
 
     private bool _isOpen;
     private bool _loading;
@@ -125,6 +154,9 @@
     private bool _notifyScore = true;
     private bool _notifyComeback = true;
     private bool _notifyFinished = true;
+    private bool _followAsset;
+    private bool _assetStatusLoaded;
+    private bool _isAssetSubscribed;
 
     private string T(string key) => L.T($"matchDetail.{key}", Culture ?? "en");
 
@@ -137,6 +169,9 @@
         _notifyScore = true;
         _notifyComeback = true;
         _notifyFinished = true;
+        _followAsset = false;
+        _assetStatusLoaded = false;
+        _isAssetSubscribed = false;
         _permissionState = "default";
         _error = null;
         _success = null;
@@ -173,6 +208,15 @@
                 }
 
                 _statusLoaded = true;
+
+                if (hasPushSubscription && AssetCurrencyId > 0)
+                {
+                    var assetStatus = await Push.GetAssetAlertStatusAsync(AssetCurrencyId);
+                    _isAssetSubscribed = assetStatus.HasActiveSubscription;
+                    _followAsset = _isAssetSubscribed;
+                }
+
+                _assetStatusLoaded = true;
             }
 
             await AlertStateChanged.InvokeAsync(_isSubscribed);
@@ -226,6 +270,12 @@
 
             _isSubscribed = true;
             _statusLoaded = true;
+
+            if (AssetCurrencyId > 0 && _followAsset)
+            {
+                await SaveAssetAlertAsync();
+            }
+
             _success = T("alertsActivated");
             await OnSubscribed.InvokeAsync();
             await AlertStateChanged.InvokeAsync(true);
@@ -261,6 +311,11 @@
                 return;
             }
 
+            if (AssetCurrencyId > 0)
+            {
+                await SaveAssetAlertAsync();
+            }
+
             await OnSubscribed.InvokeAsync();
             _success = T("alertsUpdated");
             await AlertStateChanged.InvokeAsync(true);
@@ -274,6 +329,46 @@
         {
             _saving = false;
             await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SaveAssetAlertAsync()
+    {
+        if (AssetCurrencyId <= 0) return;
+
+        try
+        {
+            if (_followAsset && !_isAssetSubscribed)
+            {
+                var result = await Push.SubscribeAssetAlertAsync(AssetCurrencyId, Culture ?? "en");
+                if (result.Success)
+                {
+                    _isAssetSubscribed = true;
+                }
+                else
+                {
+                    Logger.LogWarning("Failed to subscribe to asset {CurrencyId} alerts: {Error}", AssetCurrencyId, result.Error);
+                    _error = T("assetAlertError");
+                }
+            }
+            else if (!_followAsset && _isAssetSubscribed)
+            {
+                var result = await Push.UnsubscribeAssetAlertAsync(AssetCurrencyId);
+                if (result.Success)
+                {
+                    _isAssetSubscribed = false;
+                }
+                else
+                {
+                    Logger.LogWarning("Failed to unsubscribe from asset {CurrencyId} alerts: {Error}", AssetCurrencyId, result.Error);
+                    _error = T("assetAlertError");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to save asset alert for currency {CurrencyId}.", AssetCurrencyId);
+            _error = T("assetAlertError");
         }
     }
 

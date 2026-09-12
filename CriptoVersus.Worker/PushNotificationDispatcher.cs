@@ -176,7 +176,46 @@ public sealed class PushNotificationDispatcher
         if (alertSub is not null)
             culture = alertSub.Culture;
 
-        var (title, body) = PushNotificationTexts.Get(
+        if (delivery.AlertType == "asset_playing")
+        {
+            AssetAlertSubscription? assetSub = null;
+
+            if (TryParseAssetEventKey(delivery.EventKey, out var assetSubId, out var eventCurrencyId))
+            {
+                assetSub = _db.AssetAlertSubscription
+                    .FirstOrDefault(s => s.AssetAlertSubscriptionId == assetSubId
+                                       && s.CurrencyId == eventCurrencyId);
+            }
+
+            if (assetSub is null)
+            {
+                _logger.LogWarning(
+                    "[PUSH_DISPATCH] AssetAlertSubscription not found for delivery {DeliveryId} eventKey={EventKey}",
+                    delivery.MatchAlertDeliveryId, delivery.EventKey);
+                delivery.Status = "FAILED";
+                return string.Empty;
+            }
+
+            culture = assetSub.Culture;
+
+            var symbol = assetSub.Symbol;
+            var (title, body) = PushNotificationTexts.GetAssetPlaying(culture, symbol, teamA, teamB);
+            var url = BuildMatchUrl(delivery.MatchId, teamA, teamB, culture, delivery.AlertType);
+
+            return System.Text.Json.JsonSerializer.Serialize(new
+            {
+                title,
+                body,
+                icon = "/android-chrome-192x192.png",
+                badge = "/android-chrome-192x192.png",
+                url,
+                alertType = delivery.AlertType,
+                matchId = delivery.MatchId,
+                tag = $"cv-asset-{delivery.MatchId}-{assetSub.CurrencyId}"
+            });
+        }
+
+        var (matchTitle, matchBody) = PushNotificationTexts.Get(
             culture,
             delivery.AlertType,
             teamA,
@@ -185,15 +224,15 @@ public sealed class PushNotificationDispatcher
             teamB,
             delivery.AlertType == "finished" ? ResolveWinnerName(match) : null);
 
-        var url = BuildMatchUrl(delivery.MatchId, teamA, teamB, culture, delivery.AlertType);
+        var matchUrl = BuildMatchUrl(delivery.MatchId, teamA, teamB, culture, delivery.AlertType);
 
         return System.Text.Json.JsonSerializer.Serialize(new
         {
-            title,
-            body,
+            title = matchTitle,
+            body = matchBody,
             icon = "/android-chrome-192x192.png",
             badge = "/android-chrome-192x192.png",
-            url,
+            url = matchUrl,
             alertType = delivery.AlertType,
             matchId = delivery.MatchId,
             tag = $"cv-match-{delivery.MatchId}-{delivery.AlertType}"
@@ -217,5 +256,21 @@ public sealed class PushNotificationDispatcher
         if (match.ScoreB > match.ScoreA)
             return match.TeamB?.Currency?.Symbol;
         return null;
+    }
+
+    public static bool TryParseAssetEventKey(string eventKey, out long assetAlertSubscriptionId, out int currencyId)
+    {
+        assetAlertSubscriptionId = 0;
+        currencyId = 0;
+
+        if (string.IsNullOrEmpty(eventKey))
+            return false;
+
+        var parts = eventKey.Split(':');
+        if (parts.Length != 4 || parts[0] != "asset-playing")
+            return false;
+
+        return long.TryParse(parts[1], out assetAlertSubscriptionId)
+            && int.TryParse(parts[2], out currencyId);
     }
 }

@@ -155,6 +155,64 @@ public sealed class PushInterop
             return new MatchAlertStatus { HasActiveSubscription = false };
         }
     }
+
+    public async Task<AssetAlertResult> SubscribeAssetAlertAsync(int currencyId, string culture)
+    {
+        try
+        {
+            return await _js.InvokeAsync<AssetAlertResult>(
+                "CvPush.subscribeAssetAlert",
+                currencyId,
+                new { culture });
+        }
+        catch (JSDisconnectedException)
+        {
+            return new AssetAlertResult { Success = false, ErrorCode = "circuit_disconnected", Error = "Disconnected" };
+        }
+        catch (JSException ex)
+        {
+            _logger.LogWarning(ex, "Asset alert JavaScript activation failed for currency {CurrencyId}.", currencyId);
+            return new AssetAlertResult { Success = false, ErrorCode = "js_interop_failed", Error = ex.Message };
+        }
+    }
+
+    public async Task<AssetAlertResult> UnsubscribeAssetAlertAsync(int currencyId)
+    {
+        try
+        {
+            return await _js.InvokeAsync<AssetAlertResult>(
+                "CvPush.unsubscribeAssetAlert",
+                currencyId);
+        }
+        catch (JSDisconnectedException)
+        {
+            return new AssetAlertResult { Success = false, ErrorCode = "circuit_disconnected", Error = "Disconnected" };
+        }
+        catch (JSException ex)
+        {
+            _logger.LogWarning(ex, "Asset alert JavaScript unsubscribe failed for currency {CurrencyId}.", currencyId);
+            return new AssetAlertResult { Success = false, ErrorCode = "js_interop_failed", Error = ex.Message };
+        }
+    }
+
+    public async Task<AssetAlertStatus> GetAssetAlertStatusAsync(int currencyId)
+    {
+        try
+        {
+            return await _js.InvokeAsync<AssetAlertStatus>(
+                "CvPush.getAssetAlertStatus",
+                currencyId);
+        }
+        catch (JSDisconnectedException)
+        {
+            return new AssetAlertStatus { HasActiveSubscription = false };
+        }
+        catch (JSException ex)
+        {
+            _logger.LogWarning(ex, "Asset alert JavaScript status read failed for currency {CurrencyId}.", currencyId);
+            return new AssetAlertStatus { HasActiveSubscription = false };
+        }
+    }
 }
 
 public sealed class MatchAlertResult
@@ -174,4 +232,21 @@ public sealed class MatchAlertStatus
     public bool NotifyComeback { get; set; }
     public bool NotifyFinished { get; set; }
     public long? PushSubscriptionId { get; set; }
+}
+
+public sealed class AssetAlertResult
+{
+    public bool Success { get; set; }
+    public long? AlertSubscriptionId { get; set; }
+    public bool Active { get; set; }
+    public string? Error { get; set; }
+    public string? ErrorCode { get; set; }
+}
+
+public sealed class AssetAlertStatus
+{
+    public int CurrencyId { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public bool HasActiveSubscription { get; set; }
+    public long? AssetAlertSubscriptionId { get; set; }
 }

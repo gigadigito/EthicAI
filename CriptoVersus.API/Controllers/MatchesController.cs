@@ -616,6 +616,8 @@ namespace CriptoVersus.API.Controllers
                 TeamB = b?.Symbol ?? $"Team#{match.TeamBId}",
                 TeamAId = match.TeamAId,
                 TeamBId = match.TeamBId,
+                CurrencyIdA = a?.CurrencyId ?? 0,
+                CurrencyIdB = b?.CurrencyId ?? 0,
                 ScoreA = match.ScoreA,
                 ScoreB = match.ScoreB,
                 ScoreVersion = match.ScoreState?.LastEventSequence ?? 0,

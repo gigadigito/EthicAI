@@ -242,6 +242,7 @@ namespace CriptoVersus.Worker
 
             await ExecuteStageAsync("process-ongoing", cycleStartUtc, true, innerCt => ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, candleBattleScoringService, arenaSentimentService, requiredSnapshot, snapshotUtc, allowedSymbols, nowUtc, innerCt), ct);
             await ExecuteStageAsync("dispatch-push-alerts", cycleStartUtc, true, innerCt => DispatchPushAlertsAsync(db, innerCt), ct);
+            await ExecuteStageAsync("dispatch-asset-playing-alerts", cycleStartUtc, true, innerCt => CreateAssetPlayingAlertDeliveriesAsync(db, innerCt), ct);
             await ExecuteStageAsync("settlements", cycleStartUtc, true, innerCt => ProcessCompletedMatchSettlementsAsync(db, ledgerService, positionService, nowUtc, innerCt), ct);
             await ExecuteStageAsync("sweep-closing-positions", cycleStartUtc, true, innerCt => SweepClosingRequestedPositionsAsync(db, ledgerService, nowUtc, innerCt), ct);
             await ExecuteStageAsync("ensure-ongoing-pool", cycleStartUtc, true, innerCt => EnsureOngoingPoolAsync(db, nowUtc, innerCt), ct);
@@ -2417,6 +2418,106 @@ namespace CriptoVersus.Worker
                 _logger.LogWarning(ex,
                     "[ALERT_DELIVERY] Failed to create finished alert deliveries. MatchId={MatchId}",
                     match.MatchId);
+            }
+        }
+
+        private async Task CreateAssetPlayingAlertDeliveriesAsync(
+            EthicAIDbContext db,
+            CancellationToken ct)
+        {
+            try
+            {
+                var nowUtc = DateTime.UtcNow;
+                var assetAlertService = new BLL.Push.AssetAlertService();
+
+                var ongoingMatches = await db.Match
+                    .Where(m => m.Status == MatchStatus.Ongoing && m.StartTime.HasValue)
+                    .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                    .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                    .ToListAsync(ct);
+
+                if (ongoingMatches.Count == 0)
+                    return;
+
+                var created = 0;
+                var addedDeliveries = new List<MatchAlertDelivery>();
+
+                foreach (var match in ongoingMatches)
+                {
+                    if (match.TeamA?.Currency is null || match.TeamB?.Currency is null)
+                        continue;
+
+                    var currencyIds = new[] { match.TeamA.CurrencyId, match.TeamB.CurrencyId };
+
+                    var assetSubscriptions = await db.AssetAlertSubscription
+                        .Where(s => s.IsActive && currencyIds.Contains(s.CurrencyId))
+                        .ToListAsync(ct);
+
+                    if (assetSubscriptions.Count == 0)
+                        continue;
+
+                    foreach (var assetSub in assetSubscriptions)
+                    {
+                        if (assetSub.CreatedAt >= match.StartTime.Value)
+                            continue;
+
+                        var eventKey = assetAlertService.BuildEventKey(
+                            assetSub.AssetAlertSubscriptionId,
+                            assetSub.CurrencyId,
+                            match.MatchId);
+
+                        var exists = await db.MatchAlertDelivery
+                            .AnyAsync(d => d.PushSubscriptionId == assetSub.PushSubscriptionId
+                                        && d.EventKey == eventKey
+                                        && d.AlertType == "asset_playing", ct);
+                        if (exists)
+                            continue;
+
+                        var delivery = new MatchAlertDelivery
+                        {
+                            PushSubscriptionId = assetSub.PushSubscriptionId,
+                            MatchId = match.MatchId,
+                            EventKey = eventKey,
+                            AlertType = "asset_playing",
+                            Status = "PENDING",
+                            Attempts = 0,
+                            NextAttemptAt = nowUtc,
+                            CreatedAt = nowUtc
+                        };
+
+                        db.MatchAlertDelivery.Add(delivery);
+                        addedDeliveries.Add(delivery);
+                        created++;
+                    }
+                }
+
+                if (created > 0)
+                {
+                    try
+                    {
+                        await db.SaveChangesAsync(ct);
+                    }
+                    catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+                    {
+                        foreach (var d in addedDeliveries)
+                        {
+                            if (db.Entry(d).State != EntityState.Detached)
+                                db.Entry(d).State = EntityState.Detached;
+                        }
+
+                        _logger.LogWarning(ex,
+                            "[ASSET_ALERT_DELIVERY] Unique constraint violation on save (likely concurrent cycle). deliveries={Count}", created);
+                    }
+
+                    _logger.LogInformation(
+                        "[ASSET_ALERT_DELIVERY] Created {Count} asset playing alert deliveries.",
+                        created);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "[ASSET_ALERT_DELIVERY] Failed to create asset playing alert deliveries.");
             }
         }
 

@@ -65,3 +65,25 @@ public sealed class PushNotificationPayloadDto
     public int MatchId { get; set; }
     public string? Tag { get; set; }
 }
+
+public sealed class AssetAlertSubscribeRequestDto
+{
+    public long PushSubscriptionId { get; set; }
+    public string Culture { get; set; } = "en";
+}
+
+public sealed class AssetAlertSubscribeResponseDto
+{
+    public bool Success { get; set; }
+    public long? AlertSubscriptionId { get; set; }
+    public bool Active { get; set; }
+    public string? Error { get; set; }
+}
+
+public sealed class AssetAlertStatusDto
+{
+    public int CurrencyId { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public bool HasActiveSubscription { get; set; }
+    public long? AssetAlertSubscriptionId { get; set; }
+}

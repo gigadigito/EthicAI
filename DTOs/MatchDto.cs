@@ -12,6 +12,8 @@ namespace DTOs
 
         public int TeamAId { get; set; }
         public int TeamBId { get; set; }
+        public int CurrencyIdA { get; set; }
+        public int CurrencyIdB { get; set; }
         public int ScoreA { get; set; }
         public int ScoreB { get; set; }
         public int ScoreVersion { get; set; }
