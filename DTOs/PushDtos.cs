@@ -78,6 +78,7 @@ public sealed class AssetAlertSubscribeResponseDto
     public long? AlertSubscriptionId { get; set; }
     public bool Active { get; set; }
     public string? Error { get; set; }
+    public string? ErrorCode { get; set; }
 }
 
 public sealed class AssetAlertStatusDto

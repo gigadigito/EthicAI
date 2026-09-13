@@ -140,7 +140,7 @@ var CvPush = (function () {
         }
 
         try {
-            swRegistration = await navigator.serviceWorker.register('/js/sw-push.js');
+            swRegistration = await navigator.serviceWorker.register('/js/sw-push.js', { updateViaCache: 'none' });
             if (swRegistration.installing) {
                 await new Promise(function (resolve) {
                     swRegistration.installing.addEventListener('statechange', function (e) {
@@ -455,15 +455,41 @@ var CvPush = (function () {
         }
 
         if (!resp.ok) {
-            var err = await readJsonSafely(resp);
-            recordFailure('asset_alert_save_failed', err && err.error ? err.error : 'Asset alert request failed', resp.status);
-            return { success: false, error: 'Asset alert request failed', errorCode: 'asset_alert_save_failed' };
+            var errBody = await readJsonSafely(resp);
+            var apiErrorCode = errBody && errBody.errorCode ? errBody.errorCode : null;
+            var apiErrorMsg = errBody && errBody.error ? errBody.error : null;
+            var resolvedCode = apiErrorCode || 'asset_alert_save_failed';
+            recordFailure(resolvedCode, apiErrorMsg || 'Asset alert request failed', resp.status);
+
+            if (resolvedCode === 'push_subscription_inactive') {
+                var healed = await reRegisterSubscription();
+                if (healed) {
+                    try {
+                        var retryResp = await fetch(API_BASE + '/assets/' + currencyId + '/alerts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                pushSubscriptionId: healed,
+                                culture: options.culture || 'en'
+                            })
+                        });
+                        if (retryResp.ok) {
+                            var retryResult = await readJsonSafely(retryResp);
+                            if (retryResult && retryResult.success === true) return retryResult;
+                        }
+                    } catch (e) { /* fall through */ }
+                }
+            }
+
+            return { success: false, error: apiErrorMsg || 'Asset alert request failed', errorCode: resolvedCode, httpStatus: resp.status };
         }
 
         var result = await readJsonSafely(resp);
         if (!result || result.success !== true) {
-            recordFailure('asset_alert_invalid_response', 'Asset alert response is invalid', resp.status);
-            return { success: false, error: 'Asset alert response is invalid', errorCode: 'asset_alert_invalid_response' };
+            var resErrCode = result && result.errorCode ? result.errorCode : 'asset_alert_invalid_response';
+            var resErrMsg = result && result.error ? result.error : 'Asset alert response is invalid';
+            recordFailure(resErrCode, resErrMsg, resp.status);
+            return { success: false, error: resErrMsg, errorCode: resErrCode, httpStatus: resp.status };
         }
 
         return result;
@@ -471,7 +497,7 @@ var CvPush = (function () {
 
     async function unsubscribeAssetAlert(currencyId) {
         var subscriptionId = await ensureSubscriptionId();
-        if (!subscriptionId) return { success: false, error: 'No active subscription' };
+        if (!subscriptionId) return { success: false, error: 'No active subscription', errorCode: 'no_subscription' };
 
         try {
             var resp = await fetch(API_BASE + '/assets/' + currencyId + '/alerts?pushSubscriptionId=' + subscriptionId, {
@@ -479,11 +505,17 @@ var CvPush = (function () {
                 headers: { 'Content-Type': 'application/json' }
             });
 
-            if (!resp.ok) return { success: false, error: 'Failed to unsubscribe' };
-            return await readJsonSafely(resp) || { success: false, error: 'Invalid response' };
+            if (!resp.ok) {
+                var errBody = await readJsonSafely(resp);
+                var apiErr = errBody && errBody.errorCode ? errBody.errorCode : 'asset_unsubscribe_failed';
+                var apiMsg = errBody && errBody.error ? errBody.error : 'Failed to unsubscribe';
+                return { success: false, error: apiMsg, errorCode: apiErr, httpStatus: resp.status };
+            }
+            var data = await readJsonSafely(resp);
+            return data || { success: false, error: 'Invalid response', errorCode: 'asset_unsubscribe_invalid_response' };
         } catch (e) {
             console.warn('[ASSET_ALERT] unsubscribe network error');
-            return { success: false, error: 'Network error' };
+            return { success: false, error: 'Network error', errorCode: 'network_error' };
         }
     }
 
@@ -504,7 +536,54 @@ var CvPush = (function () {
         }
     }
 
+    var version = '20260912-asset-alert-2';
+    var capabilities = { matchAlerts: true, assetAlerts: true };
+
+    function getCapabilities() {
+        return { version: version, capabilities: capabilities };
+    }
+
+    async function reRegisterSubscription() {
+        try {
+            if (!swRegistration) {
+                var ok = await init();
+                if (!ok) return null;
+            }
+            var key = await fetchVapidKey();
+            if (!key) return null;
+            var subscription = await swRegistration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(key)
+            });
+            var subscriptionId = await sendSubscriptionToServer(subscription);
+            if (!subscriptionId) return null;
+            return getSubscriptionId();
+        } catch (e) {
+            recordFailure('push_subscription_failed', e && e.message ? e.message : 'Failed to re-register push subscription');
+            return null;
+        }
+    }
+
+    async function ensureSubscriptionId() {
+        var id = getSubscriptionId();
+        if (id) return id;
+
+        if (swRegistration) {
+            var existing = await swRegistration.pushManager.getSubscription();
+            if (existing) {
+                await sendSubscriptionToServer(existing);
+                id = getSubscriptionId();
+                if (id) return id;
+            }
+        }
+
+        return await recoverSubscriptionId();
+    }
+
     return {
+        version: version,
+        capabilities: capabilities,
+        getCapabilities: getCapabilities,
         init: init,
         subscribe: subscribe,
         unsubscribe: unsubscribe,

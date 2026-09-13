@@ -1495,7 +1495,9 @@
     "assetSubscribeSuccess": "Alerta de ativo ativado.",
     "assetUnsubscribeSuccess": "Alerta de ativo removido.",
     "assetAlertError": "Falha ao salvar alerta de ativo.",
-    "loadAssetAlertError": "Não foi possível carregar o status do alerta de ativo.",
+    "loadAssetAlertError": "Nao foi possivel carregar o status do alerta de ativo.",
+    "pushClientOutdated": "A pagina esta usando uma versao antiga dos recursos de notificacao. Atualize a pagina e tente novamente.",
+    "pushSubscriptionInactive": "Sua inscricao de notificacao nao esta mais ativa. Reconectando automaticamente.",
     "saving": "Salvando...",
     "loading": "Carregando..."
   },

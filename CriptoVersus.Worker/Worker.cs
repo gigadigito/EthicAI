@@ -241,8 +241,8 @@ namespace CriptoVersus.Worker
                 await ExecuteStageAsync("cleanup-out-of-snapshot", cycleStartUtc, true, innerCt => CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, innerCt), ct);
 
             await ExecuteStageAsync("process-ongoing", cycleStartUtc, true, innerCt => ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, candleBattleScoringService, arenaSentimentService, requiredSnapshot, snapshotUtc, allowedSymbols, nowUtc, innerCt), ct);
+            await ExecuteStageAsync("create-asset-playing-alerts", cycleStartUtc, true, innerCt => CreateAssetPlayingAlertDeliveriesAsync(db, innerCt), ct);
             await ExecuteStageAsync("dispatch-push-alerts", cycleStartUtc, true, innerCt => DispatchPushAlertsAsync(db, innerCt), ct);
-            await ExecuteStageAsync("dispatch-asset-playing-alerts", cycleStartUtc, true, innerCt => CreateAssetPlayingAlertDeliveriesAsync(db, innerCt), ct);
             await ExecuteStageAsync("settlements", cycleStartUtc, true, innerCt => ProcessCompletedMatchSettlementsAsync(db, ledgerService, positionService, nowUtc, innerCt), ct);
             await ExecuteStageAsync("sweep-closing-positions", cycleStartUtc, true, innerCt => SweepClosingRequestedPositionsAsync(db, ledgerService, nowUtc, innerCt), ct);
             await ExecuteStageAsync("ensure-ongoing-pool", cycleStartUtc, true, innerCt => EnsureOngoingPoolAsync(db, nowUtc, innerCt), ct);

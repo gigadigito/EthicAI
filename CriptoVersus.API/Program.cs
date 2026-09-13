@@ -17,26 +17,42 @@ using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.FileProviders;
 using System.Text;
 using DAL.NftFutebol;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 🔥 LOG DE SEGURANÇA COMPLETO
 var env = builder.Environment.EnvironmentName;
-var db = builder.Configuration.GetConnectionString("Default");
+var rawDb = builder.Configuration.GetConnectionString("Default");
 var workerInterval = builder.Configuration["CriptoVersusWorker:IntervalSeconds"];
 var blockchainMode = builder.Configuration["CriptoVersusBlockchain:Mode"];
 var adminWallet = builder.Configuration["CriptoVersus:AdminWallet"];
 var custodyWallet = builder.Configuration["CriptoVersusBlockchain:CustodyWalletPublicKey"];
 
+string SanitizeDb(string? cs)
+{
+    if (string.IsNullOrWhiteSpace(cs)) return "(not set)";
+    try
+    {
+        var csb = new NpgsqlConnectionStringBuilder(cs);
+        return $"Host={csb.Host};Database={csb.Database}";
+    }
+    catch { return "(parse error)"; }
+}
+
+string SanitizeWallet(string? w)
+{
+    if (string.IsNullOrWhiteSpace(w)) return "(not set)";
+    return w.Length > 12 ? w[..6] + "..." + w[^4..] : w;
+}
 
 Console.ForegroundColor = ConsoleColor.Green;
 Console.WriteLine("=================================");
 Console.WriteLine($"ENV: {env}");
-Console.WriteLine($"DB: {db}");
+Console.WriteLine($"DB: {SanitizeDb(rawDb)}");
 Console.WriteLine($"Worker Interval: {workerInterval}");
 Console.WriteLine($"Blockchain Mode: {blockchainMode}");
-Console.WriteLine($"Admin Wallet: {adminWallet}");
-Console.WriteLine($"Custody Wallet: {custodyWallet}");
+Console.WriteLine($"Admin Wallet: {SanitizeWallet(adminWallet)}");
+Console.WriteLine($"Custody Wallet: {SanitizeWallet(custodyWallet)}");
 Console.WriteLine("=================================");
 Console.ResetColor();
 

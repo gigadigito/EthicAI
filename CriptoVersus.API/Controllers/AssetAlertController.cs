@@ -28,7 +28,7 @@ namespace CriptoVersus.API.Controllers
             CancellationToken ct = default)
         {
             if (request.PushSubscriptionId <= 0)
-                return BadRequest(new AssetAlertSubscribeResponseDto { Success = false, Error = "PushSubscriptionId is required." });
+                return BadRequest(new AssetAlertSubscribeResponseDto { Success = false, Error = "PushSubscriptionId is required.", ErrorCode = "invalid_push_subscription_id" });
 
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
@@ -36,13 +36,13 @@ namespace CriptoVersus.API.Controllers
                 .FirstOrDefaultAsync(s => s.PushSubscriptionId == request.PushSubscriptionId && s.IsActive, ct);
 
             if (subscription is null)
-                return NotFound(new AssetAlertSubscribeResponseDto { Success = false, Error = "Push subscription not found or inactive." });
+                return NotFound(new AssetAlertSubscribeResponseDto { Success = false, Error = "Push subscription not found or inactive.", ErrorCode = "push_subscription_inactive" });
 
             var currency = await db.Currency
                 .FirstOrDefaultAsync(c => c.CurrencyId == currencyId, ct);
 
             if (currency is null)
-                return NotFound(new AssetAlertSubscribeResponseDto { Success = false, Error = "Asset not found." });
+                return NotFound(new AssetAlertSubscribeResponseDto { Success = false, Error = "Asset not found.", ErrorCode = "asset_not_found" });
 
             var existing = await db.AssetAlertSubscription
                 .FirstOrDefaultAsync(s => s.PushSubscriptionId == request.PushSubscriptionId

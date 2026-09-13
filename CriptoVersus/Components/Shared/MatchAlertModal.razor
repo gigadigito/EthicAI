@@ -347,8 +347,10 @@
                 }
                 else
                 {
-                    Logger.LogWarning("Failed to subscribe to asset {CurrencyId} alerts: {Error}", AssetCurrencyId, result.Error);
-                    _error = T("assetAlertError");
+                    Logger.LogWarning(
+                        "Failed to subscribe to asset {CurrencyId} alerts. Code={ErrorCode} Error={Error}",
+                        AssetCurrencyId, result.ErrorCode, result.Error);
+                    _error = T(GetAssetAlertErrorKey(result.ErrorCode));
                 }
             }
             else if (!_followAsset && _isAssetSubscribed)
@@ -360,8 +362,10 @@
                 }
                 else
                 {
-                    Logger.LogWarning("Failed to unsubscribe from asset {CurrencyId} alerts: {Error}", AssetCurrencyId, result.Error);
-                    _error = T("assetAlertError");
+                    Logger.LogWarning(
+                        "Failed to unsubscribe from asset {CurrencyId} alerts. Code={ErrorCode} Error={Error}",
+                        AssetCurrencyId, result.ErrorCode, result.Error);
+                    _error = T(GetAssetAlertErrorKey(result.ErrorCode));
                 }
             }
         }
@@ -425,6 +429,7 @@
     private static string GetActivationErrorKey(string? errorCode)
         => errorCode switch
         {
+            "push_client_outdated" => "pushClientOutdated",
             "push_unsupported" => "pushNotSupported",
             "permission_denied" => "pushPermissionDenied",
             "service_worker_registration_failed" => "pushServiceWorkerError",
@@ -435,5 +440,17 @@
             "match_alert_save_failed" => "matchAlertSaveError",
             "circuit_disconnected" or "js_interop_failed" => "pushConnectionError",
             _ => "subscribeError"
+        };
+
+    private static string GetAssetAlertErrorKey(string? errorCode)
+        => errorCode switch
+        {
+            "push_client_outdated" => "pushClientOutdated",
+            "push_subscription_inactive" => "pushSubscriptionInactive",
+            "asset_not_found" => "assetAlertError",
+            "asset_alert_save_failed" or "asset_alert_invalid_response" => "assetAlertError",
+            "push_subscription_failed" => "pushSubscriptionError",
+            "network_error" => "pushConnectionError",
+            _ => "assetAlertError"
         };
 }

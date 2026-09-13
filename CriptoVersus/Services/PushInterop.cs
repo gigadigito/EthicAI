@@ -156,8 +156,26 @@ public sealed class PushInterop
         }
     }
 
+    private async Task<bool> EnsureCapabilitiesAsync()
+    {
+        try
+        {
+            var caps = await _js.InvokeAsync<object?>("CvPush.getCapabilities");
+            return caps is not null;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<AssetAlertResult> SubscribeAssetAlertAsync(int currencyId, string culture)
     {
+        if (!await EnsureCapabilitiesAsync())
+        {
+            return new AssetAlertResult { Success = false, ErrorCode = "push_client_outdated", Error = "Push client is outdated. Please reload the page." };
+        }
+
         try
         {
             return await _js.InvokeAsync<AssetAlertResult>(
@@ -178,6 +196,11 @@ public sealed class PushInterop
 
     public async Task<AssetAlertResult> UnsubscribeAssetAlertAsync(int currencyId)
     {
+        if (!await EnsureCapabilitiesAsync())
+        {
+            return new AssetAlertResult { Success = false, ErrorCode = "push_client_outdated", Error = "Push client is outdated. Please reload the page." };
+        }
+
         try
         {
             return await _js.InvokeAsync<AssetAlertResult>(
@@ -197,6 +220,11 @@ public sealed class PushInterop
 
     public async Task<AssetAlertStatus> GetAssetAlertStatusAsync(int currencyId)
     {
+        if (!await EnsureCapabilitiesAsync())
+        {
+            return new AssetAlertStatus { HasActiveSubscription = false };
+        }
+
         try
         {
             return await _js.InvokeAsync<AssetAlertStatus>(

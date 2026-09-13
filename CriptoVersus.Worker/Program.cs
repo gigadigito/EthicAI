@@ -31,19 +31,47 @@ CriptoVersus.Worker.EnvironmentIsolationGuard.AssertDevelopmentConfiguration(bui
 
 
 var env = builder.Environment.EnvironmentName;
-var db = builder.Configuration.GetConnectionString("Default");
+var rawDb = builder.Configuration.GetConnectionString("Default");
 var cluster = builder.Configuration["CriptoVersusBlockchain:Cluster"];
 var rpcUrl = builder.Configuration["CriptoVersusBlockchain:RpcUrl"];
 var wallet = builder.Configuration["CriptoVersusBlockchain:CustodyWalletPublicKey"];
 var interval = builder.Configuration["CriptoVersusWorker:IntervalSeconds"];
 
+string SanitizeDb(string? cs)
+{
+    if (string.IsNullOrWhiteSpace(cs)) return "(not set)";
+    try
+    {
+        var csb = new NpgsqlConnectionStringBuilder(cs);
+        return $"Host={csb.Host};Database={csb.Database}";
+    }
+    catch { return "(parse error)"; }
+}
+
+string SanitizeUrl(string? url)
+{
+    if (string.IsNullOrWhiteSpace(url)) return "(not set)";
+    try
+    {
+        var uri = new Uri(url);
+        return $"{uri.Scheme}://{uri.Host}{(uri.Port != 443 && uri.Port != 80 ? ":" + uri.Port : "")}";
+    }
+    catch { return "(parse error)"; }
+}
+
+string SanitizeWallet(string? w)
+{
+    if (string.IsNullOrWhiteSpace(w)) return "(not set)";
+    return w.Length > 12 ? w[..6] + "..." + w[^4..] : w;
+}
+
 Console.ForegroundColor = ConsoleColor.Yellow;
 Console.WriteLine("=================================");
 Console.WriteLine($"WORKER ENV: {env}");
-Console.WriteLine($"DB: {db}");
+Console.WriteLine($"DB: {SanitizeDb(rawDb)}");
 Console.WriteLine($"Cluster: {cluster}");
-Console.WriteLine($"RpcUrl: {rpcUrl}");
-Console.WriteLine($"Custody Wallet: {wallet}");
+Console.WriteLine($"RpcUrl: {SanitizeUrl(rpcUrl)}");
+Console.WriteLine($"Custody Wallet: {SanitizeWallet(wallet)}");
 Console.WriteLine($"Worker Interval: {interval}");
 Console.WriteLine("=================================");
 Console.ResetColor();
