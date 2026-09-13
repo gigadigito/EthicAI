@@ -9,12 +9,12 @@
          tabindex="-1"
          role="dialog"
          aria-modal="true"
-         aria-labelledby="match-alert-modal-title"
+         aria-labelledby="@_titleId"
          @onkeydown="HandleKeyDown">
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content bg-dark text-light border border-secondary" aria-busy="@(_loading || _saving)">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title" id="match-alert-modal-title">
+                    <h5 class="modal-title" id="@_titleId">
                         <i class="bi bi-bell-fill me-2" aria-hidden="true"></i>@T("matchAlerts")
                     </h5>
                     <button type="button" class="btn-close btn-close-white" aria-label="@T("close")" @onclick="Close" autofocus></button>
@@ -157,6 +157,7 @@
     private bool _followAsset;
     private bool _assetStatusLoaded;
     private bool _isAssetSubscribed;
+    private readonly string _titleId = $"match-alert-modal-title-{Guid.NewGuid():N}";
 
     private string T(string key) => L.T($"matchDetail.{key}", Culture ?? "en");
 

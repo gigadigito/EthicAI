@@ -1,154 +1,25 @@
-@inject CriptoVersus.Web.Services.PushInterop Push
 @inject LocalizationService L
-@inject ILogger<TvAssetAlertButton> Logger
 
-@if (CurrencyId > 0 && _pushSupported)
-{
-    <button type="button"
-            class="tv-asset-alert-btn @(_isSubscribed ? "tv-asset-alert-btn--active" : string.Empty) @(_loading ? "tv-asset-alert-btn--loading" : string.Empty)"
-            title="@(_isSubscribed ? T("tvAssetAlertRemove") : T("tvAssetAlertFollow"))"
-            aria-label="@(_isSubscribed ? T("tvAssetAlertRemove") : T("tvAssetAlertFollow"))"
-            disabled="@_loading"
-            @onclick="ToggleAsync">
-        @if (_loading)
-        {
-            <span class="tv-asset-alert-btn__spinner"></span>
-        }
-        else
-        {
-            <i class="bi @(_isSubscribed ? "bi-bell-fill" : "bi-bell")" aria-hidden="true"></i>
-        }
-    </button>
-}
+<button type="button"
+        class="tv-alert-btn @(IsSubscribed ? "tv-alert-btn--active" : string.Empty)"
+        title="@T(IsSubscribed ? "tvAssetAlertRemove" : "tvAssetAlertFollow")"
+        aria-label="@T(IsSubscribed ? "tvAssetAlertRemove" : "tvAssetAlertFollow")"
+        @onclick="HandleClickAsync">
+    <i class="bi @(IsSubscribed ? "bi-bell-fill" : "bi-bell")" aria-hidden="true"></i>
+</button>
 
 @code {
     [Parameter, EditorRequired] public int CurrencyId { get; set; }
     [Parameter] public string? Symbol { get; set; }
     [Parameter] public string? Culture { get; set; }
-    [Parameter] public EventCallback<bool> OnStateChanged { get; set; }
-
-    private bool _pushSupported;
-    private bool _isSubscribed;
-    private bool _loading;
-    private bool _initialized;
+    [Parameter] public bool IsSubscribed { get; set; }
+    [Parameter] public EventCallback OnClicked { get; set; }
 
     private string T(string key) => L.T($"matchDetail.{key}", Culture ?? "en");
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task HandleClickAsync()
     {
-        if (!firstRender || CurrencyId <= 0 || _initialized)
-            return;
-
-        _initialized = true;
-
-        try
-        {
-            _pushSupported = await Push.IsPushSupportedAsync();
-            if (!_pushSupported)
-            {
-                await InvokeAsync(StateHasChanged);
-                return;
-            }
-
-            var permission = await Push.GetPermissionStateAsync();
-            if (permission != "granted")
-            {
-                await InvokeAsync(StateHasChanged);
-                return;
-            }
-
-            await Push.InitializeAsync();
-            var hasSubscription = await Push.IsSubscribedAsync();
-            if (hasSubscription)
-            {
-                var status = await Push.GetAssetAlertStatusAsync(CurrencyId);
-                _isSubscribed = status.HasActiveSubscription;
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Failed to load asset alert state for currency {CurrencyId}.", CurrencyId);
-        }
-        finally
-        {
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
-    private async Task ToggleAsync()
-    {
-        if (_loading || CurrencyId <= 0) return;
-
-        _loading = true;
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            var permission = await Push.GetPermissionStateAsync();
-
-            if (permission == "default")
-            {
-                var granted = await Push.SubscribeAsync();
-                if (!granted)
-                {
-                    permission = await Push.GetPermissionStateAsync();
-                    if (permission != "granted")
-                    {
-                        _loading = false;
-                        await InvokeAsync(StateHasChanged);
-                        return;
-                    }
-                }
-
-                await Push.InitializeAsync();
-            }
-
-            if (permission != "granted")
-            {
-                _loading = false;
-                await InvokeAsync(StateHasChanged);
-                return;
-            }
-
-            if (_isSubscribed)
-            {
-                var result = await Push.UnsubscribeAssetAlertAsync(CurrencyId);
-                if (result.Success)
-                {
-                    _isSubscribed = false;
-                    await OnStateChanged.InvokeAsync(false);
-                }
-                else
-                {
-                    Logger.LogWarning(
-                        "Failed to unsubscribe from asset {CurrencyId} alerts. Code={ErrorCode} Error={Error}",
-                        CurrencyId, result.ErrorCode, result.Error);
-                }
-            }
-            else
-            {
-                var result = await Push.SubscribeAssetAlertAsync(CurrencyId, Culture ?? "en");
-                if (result.Success)
-                {
-                    _isSubscribed = true;
-                    await OnStateChanged.InvokeAsync(true);
-                }
-                else
-                {
-                    Logger.LogWarning(
-                        "Failed to subscribe to asset {CurrencyId} alerts. Code={ErrorCode} Error={Error}",
-                        CurrencyId, result.ErrorCode, result.Error);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Failed to toggle asset alert for currency {CurrencyId}.", CurrencyId);
-        }
-        finally
-        {
-            _loading = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        if (CurrencyId <= 0) return;
+        await OnClicked.InvokeAsync();
     }
 }

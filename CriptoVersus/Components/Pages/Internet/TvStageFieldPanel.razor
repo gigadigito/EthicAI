@@ -1,4 +1,6 @@
 @using DTOs
+@inject CriptoVersus.Web.Services.PushInterop Push
+@inject ILogger<TvStageFieldPanel> Logger
 @namespace CriptoVersus.Components.Pages.Internet
 
 <article class="tv-stage-field-panel">
@@ -32,13 +34,17 @@
                     <div class="tv-football-side__logo">
                         <img src="@Model.LeftLogoUrl" alt="" />
                     </div>
-                    <span class="tv-football-side__symbol">@Model.LeftTickerLabel</span>
+                    <div class="tv-football-side__identity">
+                        <span class="tv-football-side__symbol">@Model.LeftTickerLabel</span>
+                        <TvAssetAlertButton CurrencyId="@Model.LeftCurrencyId"
+                                            Symbol="@Model.LeftSymbol"
+                                            Culture="@Model.Culture"
+                                            IsSubscribed="@_leftAlertActive"
+                                            OnClicked="OpenLeftAlertModalAsync" />
+                    </div>
                     <strong>@Model.LeftHeroLabel</strong>
                     <small>@Model.LeftName</small>
                     <span class="tv-football-side__change @Model.LeftChangeClass">@Model.LeftChangeDisplay</span>
-                    <TvAssetAlertButton CurrencyId="@Model.LeftCurrencyId"
-                                        Symbol="@Model.LeftSymbol"
-                                        Culture="@Model.Culture" />
                 </section>
 
                 <section class="tv-football-center">
@@ -104,13 +110,17 @@
                     <div class="tv-football-side__logo">
                         <img src="@Model.RightLogoUrl" alt="" />
                     </div>
-                    <span class="tv-football-side__symbol">@Model.RightTickerLabel</span>
+                    <div class="tv-football-side__identity">
+                        <span class="tv-football-side__symbol">@Model.RightTickerLabel</span>
+                        <TvAssetAlertButton CurrencyId="@Model.RightCurrencyId"
+                                            Symbol="@Model.RightSymbol"
+                                            Culture="@Model.Culture"
+                                            IsSubscribed="@_rightAlertActive"
+                                            OnClicked="OpenRightAlertModalAsync" />
+                    </div>
                     <strong>@Model.RightHeroLabel</strong>
                     <small>@Model.RightName</small>
                     <span class="tv-football-side__change @Model.RightChangeClass">@Model.RightChangeDisplay</span>
-                    <TvAssetAlertButton CurrencyId="@Model.RightCurrencyId"
-                                        Symbol="@Model.RightSymbol"
-                                        Culture="@Model.Culture" />
                 </section>
             </div>
         }
@@ -132,12 +142,16 @@
                     <div class="tv-team__logo-shell">
                         <img src="@Model.LeftLogoUrl" alt="" />
                     </div>
-                    <span class="tv-team__symbol">@Model.LeftTickerLabel</span>
+                    <div class="tv-team__identity">
+                        <span class="tv-team__symbol">@Model.LeftTickerLabel</span>
+                        <TvAssetAlertButton CurrencyId="@Model.LeftCurrencyId"
+                                            Symbol="@Model.LeftSymbol"
+                                            Culture="@Model.Culture"
+                                            IsSubscribed="@_leftAlertActive"
+                                            OnClicked="OpenLeftAlertModalAsync" />
+                    </div>
                     <strong>@Model.LeftName</strong>
                     <span class="@Model.LeftChangeClass">@Model.LeftChangeDisplay</span>
-                    <TvAssetAlertButton CurrencyId="@Model.LeftCurrencyId"
-                                        Symbol="@Model.LeftSymbol"
-                                        Culture="@Model.Culture" />
                 </div>
 
                 <div class="tv-center-hud">
@@ -183,12 +197,16 @@
                     <div class="tv-team__logo-shell">
                         <img src="@Model.RightLogoUrl" alt="" />
                     </div>
-                    <span class="tv-team__symbol">@Model.RightTickerLabel</span>
+                    <div class="tv-team__identity">
+                        <span class="tv-team__symbol">@Model.RightTickerLabel</span>
+                        <TvAssetAlertButton CurrencyId="@Model.RightCurrencyId"
+                                            Symbol="@Model.RightSymbol"
+                                            Culture="@Model.Culture"
+                                            IsSubscribed="@_rightAlertActive"
+                                            OnClicked="OpenRightAlertModalAsync" />
+                    </div>
                     <strong>@Model.RightName</strong>
                     <span class="@Model.RightChangeClass">@Model.RightChangeDisplay</span>
-                    <TvAssetAlertButton CurrencyId="@Model.RightCurrencyId"
-                                        Symbol="@Model.RightSymbol"
-                                        Culture="@Model.Culture" />
                 </div>
             </div>
         }
@@ -231,6 +249,16 @@
     </div>
 </article>
 
+<MatchAlertModal @ref="_leftAlertModal"
+                 MatchId="@Model.CurrentStageMatchId"
+                 Culture="@Model.Culture"
+                 AlertStateChanged="@HandleLeftAlertStateChanged" />
+
+<MatchAlertModal @ref="_rightAlertModal"
+                 MatchId="@Model.CurrentStageMatchId"
+                 Culture="@Model.Culture"
+                 AlertStateChanged="@HandleRightAlertStateChanged" />
+
 <style>
     .tv-stage-field-panel {
         min-width: 0;
@@ -250,11 +278,22 @@
         min-width: 0;
     }
 
+    .tv-football-side__identity,
+    .tv-team__identity {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+    }
 
+    .tv-football-side__identity .tv-football-side__symbol,
+    .tv-team__identity .tv-team__symbol {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 
-    /* v32 - desktop field height recovery: keep the desktop field filling the left arena column.
-       These selectors intentionally include the TvStage parent because TvStage.razor still has old
-       broadcast overrides with !important that force some children back to height:auto. */
+    /* v32 - desktop field height recovery */
     @@media (min-width: 1181px) {
         .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel {
             height: 100% !important;
@@ -358,6 +397,10 @@
             width: 100% !important;
             max-width: none !important;
             min-width: 0 !important;
+        }
+
+        .tv-team__identity {
+            justify-content: center;
         }
     }
 
@@ -466,6 +509,129 @@
     [Parameter] public EventCallback<TvStageCommentaryEntryModel> OnCommentaryClick { get; set; }
     [Parameter] public EventCallback<TvStageInvestmentSide> OnInvestmentRequested { get; set; }
 
+    private MatchAlertModal? _leftAlertModal;
+    private MatchAlertModal? _rightAlertModal;
+    private bool _leftAlertActive;
+    private bool _rightAlertActive;
+    private int _loadedLeftCurrencyId;
+    private int _loadedRightCurrencyId;
+    private bool _alertStateLoading;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var leftId = Model.LeftCurrencyId;
+        var rightId = Model.RightCurrencyId;
+
+        if (leftId == _loadedLeftCurrencyId && rightId == _loadedRightCurrencyId)
+            return;
+
+        if (_alertStateLoading) return;
+        _alertStateLoading = true;
+
+        try
+        {
+            if (leftId <= 0) _leftAlertActive = false;
+            if (rightId <= 0) _rightAlertActive = false;
+
+            if (leftId <= 0 && rightId <= 0)
+            {
+                _loadedLeftCurrencyId = leftId;
+                _loadedRightCurrencyId = rightId;
+                return;
+            }
+
+            var supported = await Push.IsPushSupportedAsync();
+            if (!supported)
+            {
+                _leftAlertActive = false;
+                _rightAlertActive = false;
+                _loadedLeftCurrencyId = leftId;
+                _loadedRightCurrencyId = rightId;
+                return;
+            }
+
+            var permission = await Push.GetPermissionStateAsync();
+            if (permission != "granted")
+            {
+                _leftAlertActive = false;
+                _rightAlertActive = false;
+                _loadedLeftCurrencyId = leftId;
+                _loadedRightCurrencyId = rightId;
+                return;
+            }
+
+            await Push.InitializeAsync();
+            var hasSubscription = await Push.IsSubscribedAsync();
+            if (!hasSubscription)
+            {
+                _leftAlertActive = false;
+                _rightAlertActive = false;
+                _loadedLeftCurrencyId = leftId;
+                _loadedRightCurrencyId = rightId;
+                return;
+            }
+
+            var sameCurrency = leftId > 0 && rightId > 0 && leftId == rightId;
+
+            if (leftId > 0)
+            {
+                var left = await Push.GetAssetAlertStatusAsync(leftId);
+                _leftAlertActive = left.HasActiveSubscription;
+            }
+
+            if (rightId > 0 && !sameCurrency)
+            {
+                var right = await Push.GetAssetAlertStatusAsync(rightId);
+                _rightAlertActive = right.HasActiveSubscription;
+            }
+            else if (sameCurrency)
+            {
+                _rightAlertActive = _leftAlertActive;
+            }
+
+            _loadedLeftCurrencyId = leftId;
+            _loadedRightCurrencyId = rightId;
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load asset alert state for TV panel.");
+            _loadedLeftCurrencyId = 0;
+            _loadedRightCurrencyId = 0;
+        }
+        finally
+        {
+            _alertStateLoading = false;
+        }
+    }
+
     private string ResolveCommentaryClickTitle(TvStageCommentaryEntryModel commentary)
         => GetArenaCommentaryClickTitle?.Invoke(commentary) ?? string.Empty;
+
+    private async Task OpenLeftAlertModalAsync()
+    {
+        if (_leftAlertModal is null || Model.LeftCurrencyId <= 0) return;
+        _leftAlertModal.AssetSymbol = Model.LeftSymbol;
+        _leftAlertModal.AssetCurrencyId = Model.LeftCurrencyId;
+        await _leftAlertModal.OpenAsync();
+    }
+
+    private async Task OpenRightAlertModalAsync()
+    {
+        if (_rightAlertModal is null || Model.RightCurrencyId <= 0) return;
+        _rightAlertModal.AssetSymbol = Model.RightSymbol;
+        _rightAlertModal.AssetCurrencyId = Model.RightCurrencyId;
+        await _rightAlertModal.OpenAsync();
+    }
+
+    private void HandleLeftAlertStateChanged(bool isActive)
+    {
+        _leftAlertActive = isActive;
+    }
+
+    private void HandleRightAlertStateChanged(bool isActive)
+    {
+        _rightAlertActive = isActive;
+    }
 }
