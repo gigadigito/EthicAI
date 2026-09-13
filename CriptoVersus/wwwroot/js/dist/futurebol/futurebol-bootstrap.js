@@ -42,10 +42,25 @@ export async function initialize(canvasId, options, dotNetReference) {
         const canvas = document.getElementById(canvasId);
         if (!(canvas instanceof HTMLCanvasElement))
             throw new Error("Canvas do Futurebol não foi encontrado.");
+        const canvasRect = readCanvasRect(canvas);
         console.info("[FUTUREBOL-TV] canvas found", {
             canvasId,
-            rect: readCanvasRect(canvas)
+            rect: canvasRect
         });
+        if (canvasRect.width === 0 || canvasRect.height === 0) {
+            console.warn("[FUTUREBOL-TV] canvas has zero dimensions, waiting for layout...", {
+                canvasId,
+                rect: canvasRect
+            });
+            await waitForCanvasDimensions(canvas, 3000);
+            const retryRect = readCanvasRect(canvas);
+            console.info("[FUTUREBOL-TV] canvas dimensions after wait", {
+                canvasId,
+                rect: retryRect
+            });
+            if (retryRect.width === 0 || retryRect.height === 0)
+                throw new Error(`Canvas do Futurebol com dimensões zero após layout: ${retryRect.width}x${retryRect.height}.`);
+        }
         stage = "load-babylon";
         const babylonStarted = performance.now();
         const B = await acquireBabylon();
@@ -165,6 +180,26 @@ export async function dispose(canvasId) {
     instances.delete(canvasId);
     await instance.dispose();
     releaseBabylon();
+}
+function waitForCanvasDimensions(canvas, timeoutMs) {
+    return new Promise(resolve => {
+        if (canvas.clientWidth > 0 && canvas.clientHeight > 0) {
+            resolve();
+            return;
+        }
+        const observer = new ResizeObserver(() => {
+            if (canvas.clientWidth > 0 && canvas.clientHeight > 0) {
+                observer.disconnect();
+                clearTimeout(timer);
+                resolve();
+            }
+        });
+        observer.observe(canvas);
+        const timer = setTimeout(() => {
+            observer.disconnect();
+            resolve();
+        }, timeoutMs);
+    });
 }
 function readCanvasRect(canvas) {
     const rect = canvas.getBoundingClientRect();

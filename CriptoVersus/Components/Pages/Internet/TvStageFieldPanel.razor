@@ -299,6 +299,7 @@
             height: 100% !important;
             min-height: 0 !important;
             display: grid !important;
+            grid-template-rows: auto minmax(0, 1fr) auto !important;
         }
 
         .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-match-card,
@@ -330,7 +331,7 @@
         }
 
         .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport {
-            min-height: 0 !important;
+            min-height: clamp(180px, 28vh, 420px) !important;
             align-self: stretch !important;
             justify-self: stretch !important;
             overflow: hidden !important;

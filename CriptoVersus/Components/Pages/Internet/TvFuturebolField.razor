@@ -290,7 +290,6 @@
         _error = T("errorBody");
         _initialized = false;
         _initializedFuturebolMatchId = 0;
-        _initRetryCount = 0;
         _isReady = false;
         Logger.LogWarning("[TvFuturebolField] JS reported init failure. matchId={MatchId} Detail={Detail}", _presentation?.MatchId, message);
         return InvokeAsync(StateHasChanged);

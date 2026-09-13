@@ -12520,11 +12520,16 @@ private sealed record TvArenaCommentaryEntry(
 
         .tv-stage--broadcast .tv-football-layout,
         .tv-stage--broadcast .tv-football-center,
-        .tv-stage--broadcast .tv-football-field-viewport,
         .tv-stage--broadcast .tv-field,
         .tv-stage--broadcast .tv-field__broadcast-shell,
         .tv-stage--broadcast .tv-camera-viewport {
             min-height: 0 !important;
+            height: 100% !important;
+            max-height: 100% !important;
+        }
+
+        .tv-stage--broadcast .tv-football-field-viewport {
+            min-height: clamp(180px, 28vh, 420px) !important;
             height: 100% !important;
             max-height: 100% !important;
         }
