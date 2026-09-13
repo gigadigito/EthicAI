@@ -2531,16 +2531,97 @@
         height: auto;
     }
 
-    .arena-match-grid,
-    .arena-top-battle-grid {
+    .arena-match-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: .75rem;
         align-content: start;
     }
 
     .arena-top-battle-grid {
+        display: grid;
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1rem;
+        align-content: start;
+    }
+
+    .arena-match-grid .arena-match-card {
+        padding: .75rem;
+        gap: .6rem;
+        border-radius: 22px;
+    }
+
+    .arena-match-grid .arena-match-card__logo {
+        width: 36px;
+        height: 36px;
+        padding: .25rem;
+        border-radius: 14px;
+    }
+
+    .arena-match-grid .arena-match-card__team {
+        gap: .4rem;
+    }
+
+    .arena-match-grid .arena-match-card__team-copy strong {
+        font-size: .88rem;
+    }
+
+    .arena-match-grid .arena-match-card__team-copy span {
+        font-size: .78rem;
+        margin-top: .15rem;
+    }
+
+    .arena-match-grid .arena-match-card__center {
+        gap: .35rem;
+    }
+
+    .arena-match-grid .arena-scoreboard--card {
+        gap: .3rem;
+        font-size: 1.2rem;
+    }
+
+    .arena-match-grid .arena-scoreboard--card strong {
+        font-size: 1.4rem;
+    }
+
+    .arena-match-grid .arena-vs-badge--compact {
+        min-width: 2rem;
+        padding: .28rem .5rem;
+        font-size: .58rem;
+    }
+
+    .arena-match-grid .arena-live-pill--small {
+        padding: .3rem .55rem;
+        font-size: .6rem;
+    }
+
+    .arena-match-grid .arena-meta {
+        font-size: .68rem;
+    }
+
+    .arena-match-grid .arena-match-card__header,
+    .arena-match-grid .arena-match-card__footer {
+        gap: .5rem;
+    }
+
+    .arena-match-grid .arena-status-subtext {
+        font-size: .68rem;
+    }
+
+    .arena-match-grid .arena-energy-bar {
+        height: 8px;
+    }
+
+    .arena-match-grid .arena-cta-button,
+    .arena-match-grid .arena-cta-link {
+        min-height: 2.4rem;
+        padding: 0 .7rem;
+        border-radius: 14px;
+        font-size: .7rem;
+    }
+
+    .arena-match-grid .arena-match-card__actions {
+        gap: .4rem;
     }
 
     .arena-featured-battle,
@@ -3076,9 +3157,12 @@
             grid-template-columns: 1fr;
         }
 
-        .arena-featured-battle__body,
-        .arena-match-grid {
+        .arena-featured-battle__body {
             grid-template-columns: 1fr;
+        }
+
+        .arena-match-grid {
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         }
 
         .arena-featured-battle {
@@ -3168,7 +3252,20 @@
             text-align: left;
         }
 
-        .arena-featured-battle__scoreboard,
+        .arena-featured-battle__scoreboard {
+            grid-template-columns: 1fr;
+            justify-items: stretch;
+        }
+
+        .arena-match-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .arena-match-grid .arena-match-card__body {
+            grid-template-columns: 1fr;
+            justify-items: stretch;
+        }
+
         .arena-match-card__body {
             grid-template-columns: 1fr;
             justify-items: stretch;
@@ -3229,6 +3326,30 @@
         .arena-featured-battle,
         .arena-match-card {
             padding: .7rem .55rem;
+        }
+
+        .arena-match-grid .arena-match-card {
+            padding: .6rem .5rem;
+            gap: .5rem;
+        }
+
+        .arena-match-grid .arena-match-card__logo {
+            width: 30px;
+            height: 30px;
+            padding: .2rem;
+            border-radius: 10px;
+        }
+
+        .arena-match-grid .arena-match-card__team-copy strong {
+            font-size: .8rem;
+        }
+
+        .arena-match-grid .arena-scoreboard--card {
+            font-size: 1.05rem;
+        }
+
+        .arena-match-grid .arena-scoreboard--card strong {
+            font-size: 1.2rem;
         }
 
         .home-hero__field-slot .crypto-arena-field-card {
