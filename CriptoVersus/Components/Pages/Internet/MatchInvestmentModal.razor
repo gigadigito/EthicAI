@@ -303,8 +303,8 @@
 
     private string CurrentCulture => AppCulture.NormalizeRouteCulture(Culture);
     private bool IsEnglish => CurrentCulture == "en";
-    private string T(string key, params object?[] args) => L.T(key, CurrentCulture, args);
-    private string LoggedUserDisplay => _loggedUserId is int userId && userId > 0 ? $"Usuario #{userId}" : "Faça login para escolher";
+    private string T(string key, params object?[] args) => L.T($"matchDetail.{key}", CurrentCulture, args);
+    private string LoggedUserDisplay => _loggedUserId is int userId && userId > 0 ? T("loggedUserLabel", userId) : T("loginRequired");
     private bool CanSeeInvestmentDebug
         => IsConfiguredWallet(_loggedWalletPublicKey, Config["CriptoVersus:AdminWallet"])
             || IsConfiguredWallet(_loggedWalletPublicKey, Config["OnChainBetting:AuthorityWallet"]);
@@ -314,11 +314,11 @@
             : 0m;
     private string WalletBalanceText
         => _walletBalanceLoading
-            ? (IsEnglish ? "Loading..." : "Carregando...")
+            ? T("loading")
             : _walletBalanceSol.HasValue ? FmtSolAmount((decimal)_walletBalanceSol.Value) : "-";
     private string WalletMaxSpendableText
         => _walletBalanceLoading
-            ? (IsEnglish ? "Loading..." : "Carregando...")
+            ? T("loading")
             : _walletMaxSpendableSol.HasValue ? FmtSolAmount((decimal)_walletMaxSpendableSol.Value) : "-";
     private bool IsInvestmentAmountInsufficient
         => _walletMaxSpendableSol.HasValue && _investmentAmount > 0m && _investmentAmount > WalletMaxSpendableAmount;
