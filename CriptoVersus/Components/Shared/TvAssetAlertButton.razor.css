@@ -3,58 +3,63 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     padding: 0;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 100%),
-                rgba(255, 255, 255, 0.03);
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 0.78rem;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%),
+                rgba(12, 16, 28, 0.7);
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.85rem;
     cursor: pointer;
     flex-shrink: 0;
     line-height: 1;
     position: relative;
     z-index: 1;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06),
-                inset 0 -4px 8px rgba(0, 0, 0, 0.08),
-                0 0 0 1px rgba(0, 0, 0, 0.12);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                inset 0 -2px 6px rgba(0, 0, 0, 0.12),
+                0 2px 8px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(0, 0, 0, 0.18);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
 
 .tv-alert-btn:hover {
-    transform: scale(1.1);
-    border-color: rgba(255, 180, 0, 0.4);
-    color: #ffb400;
+    transform: translateY(-1px) scale(1.06);
+    border-color: rgba(255, 180, 0, 0.45);
+    color: #ffc233;
+    background: linear-gradient(180deg, rgba(255, 180, 0, 0.14) 0%, rgba(255, 180, 0, 0.03) 100%),
+                rgba(18, 14, 8, 0.75);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
-                inset 0 -4px 8px rgba(0, 0, 0, 0.08),
-                0 0 0 1px rgba(255, 180, 0, 0.15),
-                0 0 12px rgba(255, 180, 0, 0.15);
+                inset 0 -2px 6px rgba(0, 0, 0, 0.1),
+                0 4px 14px rgba(255, 180, 0, 0.18),
+                0 0 0 1px rgba(255, 180, 0, 0.2);
 }
 
 .tv-alert-btn--active {
     border-color: rgba(255, 180, 0, 0.5);
-    color: #ffb400;
-    background: linear-gradient(180deg, rgba(255, 180, 0, 0.12) 0%, rgba(255, 180, 0, 0.02) 100%),
-                rgba(255, 180, 0, 0.06);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
-                inset 0 -4px 8px rgba(0, 0, 0, 0.08),
-                0 0 0 1px rgba(255, 180, 0, 0.2),
-                0 0 10px rgba(255, 180, 0, 0.2),
-                0 0 24px rgba(255, 180, 0, 0.06);
+    color: #ffc233;
+    background: linear-gradient(180deg, rgba(255, 180, 0, 0.18) 0%, rgba(255, 180, 0, 0.04) 100%),
+                rgba(18, 14, 8, 0.8);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12),
+                inset 0 -2px 6px rgba(0, 0, 0, 0.1),
+                0 4px 16px rgba(255, 180, 0, 0.22),
+                0 0 20px rgba(255, 180, 0, 0.1),
+                0 0 0 1px rgba(255, 180, 0, 0.25);
 }
 
 .tv-alert-btn--active:hover {
-    transform: scale(1.1);
+    transform: translateY(-1px) scale(1.06);
     border-color: rgba(255, 145, 0, 0.6);
-    color: #ff9100;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12),
-                inset 0 -4px 8px rgba(0, 0, 0, 0.08),
-                0 0 0 1px rgba(255, 145, 0, 0.25),
-                0 0 14px rgba(255, 145, 0, 0.3),
-                0 0 32px rgba(255, 145, 0, 0.08);
+    color: #ffb020;
+    background: linear-gradient(180deg, rgba(255, 145, 0, 0.22) 0%, rgba(255, 145, 0, 0.05) 100%),
+                rgba(20, 12, 6, 0.82);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14),
+                inset 0 -2px 6px rgba(0, 0, 0, 0.08),
+                0 6px 20px rgba(255, 145, 0, 0.3),
+                0 0 28px rgba(255, 145, 0, 0.12),
+                0 0 0 1px rgba(255, 145, 0, 0.3);
 }
 
 .tv-alert-btn:focus-visible {
@@ -63,13 +68,23 @@
 }
 
 .tv-alert-btn:active {
-    transform: scale(0.95);
+    transform: scale(0.94);
+    transition-duration: 0.08s;
+}
+
+.tv-alert-btn i {
+    font-size: 0.88rem;
+    line-height: 1;
 }
 
 @media (max-width: 720px) {
     .tv-alert-btn {
-        width: 26px;
-        height: 26px;
-        font-size: 0.68rem;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+    }
+
+    .tv-alert-btn i {
+        font-size: 0.76rem;
     }
 }
