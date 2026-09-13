@@ -1413,7 +1413,6 @@
     "walletBalanceGuardFeeReserve": "Voce precisa manter uma pequena reserva para a taxa da rede Solana.",
     "loggedUserLabel": "Usuario #{0}",
     "loginRequired": "Faca login para escolher",
-    "loading": "Carregando...",
     "cancel": "Cancelar",
     "sending": "Enviando...",
     "gotIt": "Entendi",

@@ -1612,7 +1612,6 @@
     "walletBalanceGuardFeeReserve": "你需要保留少量余额用于 Solana 网络手续费。",
     "loggedUserLabel": "用户 #{0}",
     "loginRequired": "请登录以进行选择",
-    "loading": "加载中...",
     "cancel": "取消",
     "sending": "发送中...",
     "gotIt": "知道了",

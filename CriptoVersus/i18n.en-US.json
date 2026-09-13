@@ -1611,7 +1611,6 @@
     "walletBalanceGuardFeeReserve": "You need to keep a small reserve for the Solana network fee.",
     "loggedUserLabel": "User #{0}",
     "loginRequired": "Log in to pick",
-    "loading": "Loading...",
     "cancel": "Cancel",
     "sending": "Sending...",
     "gotIt": "Got it",
