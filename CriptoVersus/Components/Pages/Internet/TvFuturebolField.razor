@@ -57,6 +57,12 @@
     private int _loggedMatchId;
     private string? _error;
 
+    private int _initializedFuturebolMatchId;
+    private bool _futurebolInitializing;
+    private bool _needsDispose;
+    private int _initRetryCount;
+    private const int MaxInitRetries = 5;
+
     [Parameter, EditorRequired] public MatchDto? Match { get; set; }
     [Parameter] public string? Culture { get; set; }
     [Parameter] public TvHotMatchDto? HotMatch { get; set; }
@@ -88,6 +94,19 @@
         {
             _loggedMatchId = match.MatchId;
             Logger.LogInformation("[TvFuturebolField] matchId={MatchId}", match.MatchId);
+        }
+
+        var matchChanged = _initializedFuturebolMatchId > 0 && _initializedFuturebolMatchId != match.MatchId;
+        if (matchChanged)
+        {
+            Logger.LogInformation("[TvFuturebolField] matchId changed from {OldMatchId} to {NewMatchId} — scheduling dispose and reinit",
+                _initializedFuturebolMatchId, match.MatchId);
+            _needsDispose = _initialized;
+            _initialized = false;
+            _isReady = false;
+            _initializedFuturebolMatchId = 0;
+            _initRetryCount = 0;
+            _appliedSignature = string.Empty;
         }
 
         _presentation = MatchAdapter.Build(match, HotMatch, Snapshots, ScoreEvents, initialHistoryReady: InitialHistoryReady);
@@ -126,30 +145,57 @@
         if (_disposed || _presentation is null || _pendingSignature == _appliedSignature)
             return;
 
+        if (_futurebolInitializing)
+        {
+            Logger.LogDebug("[TvFuturebolField] init already in progress, skipping render matchId={MatchId}", _presentation?.MatchId);
+            return;
+        }
+
         await _interopGate.WaitAsync();
         try
         {
             if (_disposed || _presentation is null || _pendingSignature == _appliedSignature)
                 return;
 
+            _futurebolInitializing = true;
+
+            if (_needsDispose && _module is not null)
+            {
+                try
+                {
+                    Logger.LogInformation("[TvFuturebolField] disposing previous engine for matchId swap");
+                    await _module.InvokeVoidAsync("dispose", _canvasId);
+                }
+                catch (JSDisconnectedException)
+                {
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "[TvFuturebolField] dispose during match swap failed");
+                }
+                _needsDispose = false;
+            }
+
             if (_module is null)
             {
                 var importTimer = Stopwatch.StartNew();
+                Logger.LogInformation("[TvFuturebolField] importing JS module canvasId={CanvasId}", _canvasId);
                 _module = await JS.InvokeAsync<IJSObjectReference>(
                     "import",
                     "/js/dist/futurebol/futurebol-bootstrap.js?v=20260907-led-v2");
                 await _module.InvokeVoidAsync("reportBootstrapImport", importTimer.Elapsed.TotalMilliseconds);
+                Logger.LogInformation("[TvFuturebolField] JS module imported in {ElapsedMs}ms", importTimer.ElapsedMilliseconds);
             }
             _dotNetReference ??= DotNetObjectReference.Create(this);
             var presentation = _presentation;
             var signature = _pendingSignature;
 
-        if (!_initialized)
-        {
-            Logger.LogInformation(
-                "[Futurebol][Bootstrap][Blazor] initialize matchId={MatchId} historyReady={HistoryReady} scoreEvents={ScoreEvents}",
-                presentation.MatchId, presentation.Official.IsInitialHistoryReady, presentation.Official.ScoreEvents.Count);
-            _initialized = await _module.InvokeAsync<bool>(
+            if (!_initialized)
+            {
+                Logger.LogInformation(
+                    "[TvFuturebolField] init requested matchId={MatchId} historyReady={HistoryReady} scoreEvents={ScoreEvents} retry={RetryCount}",
+                    presentation.MatchId, presentation.Official.IsInitialHistoryReady, presentation.Official.ScoreEvents.Count, _initRetryCount);
+                _initialized = await _module.InvokeAsync<bool>(
                     "initialize",
                     _canvasId,
                     new
@@ -176,9 +222,23 @@
                     _dotNetReference);
                 if (!_initialized)
                 {
-                    _appliedSignature = signature;
+                    _initRetryCount++;
+                    if (_initRetryCount >= MaxInitRetries)
+                    {
+                        Logger.LogWarning("[TvFuturebolField] init failed after {RetryCount} retries for matchId={MatchId} — showing error",
+                            _initRetryCount, presentation.MatchId);
+                        _error = T("errorBody");
+                        await InvokeAsync(StateHasChanged);
+                    }
+                    else
+                    {
+                        Logger.LogWarning("[TvFuturebolField] init returned false, retry {RetryCount}/{MaxRetries} matchId={MatchId}",
+                            _initRetryCount, MaxInitRetries, presentation.MatchId);
+                    }
                     return;
                 }
+                _initializedFuturebolMatchId = presentation.MatchId;
+                _initRetryCount = 0;
                 Logger.LogInformation(
                     "Futurebol TV initialized. MatchId={MatchId} Quality={Quality}",
                     presentation.MatchId,
@@ -188,8 +248,8 @@
             }
             else
             {
-                Logger.LogInformation(
-                    "[Futurebol][Bootstrap][Blazor] update matchId={MatchId} historyReady={HistoryReady} scoreEvents={ScoreEvents}",
+                Logger.LogDebug(
+                    "[TvFuturebolField] updating presentation matchId={MatchId} historyReady={HistoryReady} scoreEvents={ScoreEvents}",
                     presentation.MatchId, presentation.Official.IsInitialHistoryReady, presentation.Official.ScoreEvents.Count);
                 await _module.InvokeVoidAsync("updatePresentation", _canvasId, presentation);
             }
@@ -202,13 +262,24 @@
         }
         catch (Exception ex)
         {
-            _error = T("errorBody");
-            _isReady = false;
-            Logger.LogWarning(ex, "Futurebol TV lifecycle failure. MatchId={MatchId}", _presentation?.MatchId);
+            _initRetryCount++;
+            if (_initRetryCount >= MaxInitRetries)
+            {
+                Logger.LogWarning(ex, "[TvFuturebolField] lifecycle failure after {RetryCount} retries matchId={MatchId} — showing error",
+                    _initRetryCount, _presentation?.MatchId);
+                _error = T("errorBody");
+                _isReady = false;
+            }
+            else
+            {
+                Logger.LogWarning(ex, "[TvFuturebolField] lifecycle failure, retry {RetryCount}/{MaxRetries} matchId={MatchId}",
+                    _initRetryCount, MaxInitRetries, _presentation?.MatchId);
+            }
             await InvokeAsync(StateHasChanged);
         }
         finally
         {
+            _futurebolInitializing = false;
             _interopGate.Release();
         }
     }
@@ -218,8 +289,10 @@
     {
         _error = T("errorBody");
         _initialized = false;
+        _initializedFuturebolMatchId = 0;
+        _initRetryCount = 0;
         _isReady = false;
-        Logger.LogWarning("Futurebol TV reported an initialization failure. Detail={Detail}", message);
+        Logger.LogWarning("[TvFuturebolField] JS reported init failure. matchId={MatchId} Detail={Detail}", _presentation?.MatchId, message);
         return InvokeAsync(StateHasChanged);
     }
 
@@ -279,7 +352,7 @@
                 try
                 {
                     await _module.InvokeVoidAsync("dispose", _canvasId);
-                    Logger.LogInformation("[FUTUREBOL-TV] dispose canvasId={CanvasId}", _canvasId);
+                    Logger.LogInformation("[TvFuturebolField] disposed canvasId={CanvasId} matchId={MatchId}", _canvasId, _initializedFuturebolMatchId);
                 }
                 catch (JSDisconnectedException)
                 {
