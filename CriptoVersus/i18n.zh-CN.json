@@ -1695,6 +1695,8 @@
     "assetUnsubscribeSuccess": "资产提醒已移除。",
     "assetAlertError": "保存资产提醒失败。",
     "loadAssetAlertError": "无法加载资产提醒状态。",
+    "tvAssetAlertFollow": "关注此资产",
+    "tvAssetAlertRemove": "取消关注此资产",
     "pushClientOutdated": "页面使用了过时的通知版本。请刷新页面后重试。",
     "pushSubscriptionInactive": "您的推送订阅已失效。正在自动重新连接。",
     "saving": "保存中...",

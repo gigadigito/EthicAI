@@ -6,6 +6,8 @@ public sealed class HotMatchDto
     public string Slug { get; set; } = string.Empty;
     public string HomeSymbol { get; set; } = string.Empty;
     public string AwaySymbol { get; set; } = string.Empty;
+    public int CurrencyIdA { get; set; }
+    public int CurrencyIdB { get; set; }
     public string TeamA
     {
         get => HomeSymbol;

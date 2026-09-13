@@ -7,6 +7,8 @@ var CvPush = (function () {
     var lastFailure = null;
     var CLIENT_ID_KEY = 'cv_push_client_id';
     var SUBSCRIPTION_ID_KEY = 'cv_push_subscription_id';
+    var MIGRATION_KEY = 'cv_push_sw_migrated';
+    var LEGACY_SW_PATH = '/js/sw-push.js';
 
     function resolveApiBase() {
         var meta = document.querySelector('meta[name="cv-api-base-url"]');
@@ -133,6 +135,85 @@ var CvPush = (function () {
         return Notification.permission;
     }
 
+    async function migrateLegacyServiceWorker() {
+        try {
+            if (localStorage.getItem(MIGRATION_KEY) === '1') return;
+        } catch (e) { }
+
+        if (!navigator.serviceWorker || !navigator.serviceWorker.getRegistrations) return;
+
+        var allUnregistered = true;
+        var foundLegacy = false;
+
+        try {
+            var registrations = await navigator.serviceWorker.getRegistrations();
+
+            for (var i = 0; i < registrations.length; i++) {
+                var reg = registrations[i];
+                var scriptUrl = reg.active && reg.active.scriptURL
+                    ? reg.active.scriptURL
+                    : (reg.installing && reg.installing.scriptURL
+                        ? reg.installing.scriptURL
+                        : (reg.waiting && reg.waiting.scriptURL ? reg.waiting.scriptURL : ''));
+
+                if (!scriptUrl || !scriptUrl.endsWith(LEGACY_SW_PATH)) continue;
+
+                if (swRegistration && scriptUrl === swRegistration.active?.scriptURL) continue;
+
+                foundLegacy = true;
+                console.warn('[CvPush] Detected legacy service worker:', scriptUrl);
+
+                var oldSubscription = null;
+                try {
+                    if (reg.pushManager) {
+                        oldSubscription = await reg.pushManager.getSubscription();
+                    }
+                } catch (e) { }
+
+                var unregistered = false;
+                try {
+                    unregistered = await reg.unregister();
+                } catch (e) {
+                    console.warn('[CvPush] Failed to unregister legacy SW:', e);
+                }
+
+                if (!unregistered) {
+                    allUnregistered = false;
+                    console.warn('[CvPush] Legacy SW unregister returned false, migration pending');
+                    continue;
+                }
+
+                console.warn('[CvPush] Unregistered legacy service worker');
+
+                if (oldSubscription) {
+                    try {
+                        await fetch(API_BASE + '/push/subscribe', {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                endpoint: oldSubscription.endpoint,
+                                clientId: getClientId()
+                            })
+                        });
+                        console.warn('[CvPush] Cleaned up legacy push subscription from API');
+                    } catch (e) {
+                        console.warn('[CvPush] Failed to clean up legacy subscription:', e);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[CvPush] Legacy SW migration error:', e);
+            allUnregistered = false;
+        }
+
+        if (!foundLegacy || allUnregistered) {
+            setSubscriptionId(null);
+            try {
+                localStorage.setItem(MIGRATION_KEY, '1');
+            } catch (e) { }
+        }
+    }
+
     async function init() {
         if (!isPushSupported()) {
             recordFailure('push_unsupported', 'Push notifications are not supported');
@@ -140,7 +221,7 @@ var CvPush = (function () {
         }
 
         try {
-            swRegistration = await navigator.serviceWorker.register('/js/sw-push.js', { updateViaCache: 'none' });
+            swRegistration = await navigator.serviceWorker.register('/sw-push.js', { updateViaCache: 'none' });
             if (swRegistration.installing) {
                 await new Promise(function (resolve) {
                     swRegistration.installing.addEventListener('statechange', function (e) {
@@ -148,6 +229,9 @@ var CvPush = (function () {
                     });
                 });
             }
+
+            await migrateLegacyServiceWorker();
+
             return true;
         } catch (e) {
             recordFailure('service_worker_registration_failed', e && e.message ? e.message : 'Service Worker registration failed');
@@ -536,7 +620,7 @@ var CvPush = (function () {
         }
     }
 
-    var version = '20260912-asset-alert-2';
+    var version = '20260913-sw-migration';
     var capabilities = { matchAlerts: true, assetAlerts: true };
 
     function getCapabilities() {
@@ -562,22 +646,6 @@ var CvPush = (function () {
             recordFailure('push_subscription_failed', e && e.message ? e.message : 'Failed to re-register push subscription');
             return null;
         }
-    }
-
-    async function ensureSubscriptionId() {
-        var id = getSubscriptionId();
-        if (id) return id;
-
-        if (swRegistration) {
-            var existing = await swRegistration.pushManager.getSubscription();
-            if (existing) {
-                await sendSubscriptionToServer(existing);
-                id = getSubscriptionId();
-                if (id) return id;
-            }
-        }
-
-        return await recoverSubscriptionId();
     }
 
     return {

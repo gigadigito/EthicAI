@@ -15,7 +15,7 @@ function response(status, body) {
     };
 }
 
-function createHarness({ apiBase = 'https://api.example.test/', fetchHandler }) {
+function createHarness({ apiBase = 'https://api.example.test/', fetchHandler, legacyRegistrations = [] }) {
     const calls = [];
     const storage = new Map();
     const subscription = {
@@ -31,6 +31,7 @@ function createHarness({ apiBase = 'https://api.example.test/', fetchHandler }) 
     let currentSubscription = null;
     const registration = {
         installing: null,
+        active: { scriptURL: '/sw-push.js' },
         pushManager: {
             async getSubscription() { return currentSubscription; },
             async subscribe(options) {
@@ -42,6 +43,7 @@ function createHarness({ apiBase = 'https://api.example.test/', fetchHandler }) 
         }
     };
 
+    const unregisteredUrls = [];
     const context = vm.createContext({
         Uint8Array,
         Number,
@@ -57,8 +59,11 @@ function createHarness({ apiBase = 'https://api.example.test/', fetchHandler }) 
         navigator: {
             serviceWorker: {
                 async register(url) {
-                    assert.equal(url, '/js/sw-push.js');
+                    assert.equal(url, '/sw-push.js');
                     return registration;
+                },
+                async getRegistrations() {
+                    return [...legacyRegistrations, registration];
                 }
             }
         },
@@ -85,7 +90,7 @@ function createHarness({ apiBase = 'https://api.example.test/', fetchHandler }) 
     });
 
     vm.runInContext(script, context, { filename: scriptPath });
-    return { CvPush: context.CvPush, calls, storage };
+    return { CvPush: context.CvPush, calls, storage, unregisteredUrls };
 }
 
 {
@@ -297,3 +302,292 @@ console.log('cvPush contract tests passed');
 }
 
 console.log('cvPush asset-alert tests passed');
+
+// --- SW Migration Tests ---
+
+// Helper to create a mock legacy registration
+function createLegacyRegistration({ scriptURL = 'https://example.test/js/sw-push.js', hasSubscription = false, unregisterResult = true, unregisterThrows = false } = {}) {
+    const legacySub = hasSubscription ? {
+        endpoint: 'https://legacy.push.test/old-endpoint',
+        toJSON() {
+            return {
+                endpoint: this.endpoint,
+                keys: { p256dh: 'legacy-key', auth: 'legacy-auth' }
+            };
+        },
+        async unsubscribe() { return true; }
+    } : null;
+
+    let unregistered = false;
+    return {
+        active: { scriptURL },
+        installing: null,
+        waiting: null,
+        get unregistered() { return unregistered; },
+        pushManager: {
+            async getSubscription() { return legacySub; }
+        },
+        async unregister() {
+            if (unregisterThrows) throw new Error('unregister failed');
+            unregistered = unregisterResult;
+            return unregisterResult;
+        }
+    };
+}
+
+// Helper to create a third-party (non-legacy) registration
+function createThirdPartyRegistration(scriptURL = 'https://example.test/sw-analytics.js') {
+    let unregistered = false;
+    return {
+        active: { scriptURL },
+        installing: null,
+        waiting: null,
+        get unregistered() { return unregistered; },
+        pushManager: {
+            async getSubscription() { return null; }
+        },
+        async unregister() {
+            unregistered = true;
+            return true;
+        }
+    };
+}
+
+// Test 1: New user - no legacy SW, no migration needed
+{
+    const harness = createHarness({
+        fetchHandler(url) {
+            if (url.endsWith('/push/vapid-public-key')) return response(200, { publicKey: 'AQIDBA' });
+            if (url.endsWith('/push/subscribe')) return response(200, { success: true, subscriptionId: 100 });
+            throw new Error(`Unexpected URL: ${url}`);
+        }
+    });
+
+    await harness.CvPush.init();
+
+    assert.equal(harness.storage.get('cv_push_sw_migrated'), '1', 'migration flag set');
+    assert.equal(harness.calls.filter(c => c.url.includes('/push/subscribe') && c.options?.method === 'DELETE').length, 0, 'no legacy cleanup API call');
+    console.log('SW migration test 1 (new user) passed');
+}
+
+// Test 2: Only legacy SW - migration removes it
+{
+    const legacyReg = createLegacyRegistration({ hasSubscription: false });
+    const harness = createHarness({
+        legacyRegistrations: [legacyReg],
+        fetchHandler(url) {
+            if (url.endsWith('/push/vapid-public-key')) return response(200, { publicKey: 'AQIDBA' });
+            if (url.endsWith('/push/subscribe')) return response(200, { success: true, subscriptionId: 101 });
+            throw new Error(`Unexpected URL: ${url}`);
+        }
+    });
+
+    await harness.CvPush.init();
+
+    assert.equal(legacyReg.unregistered, true, 'legacy SW was unregistered');
+    assert.equal(harness.storage.get('cv_push_sw_migrated'), '1', 'migration flag set');
+    const deleteCalls = harness.calls.filter(c => c.url.includes('/push/subscribe') && c.options?.method === 'DELETE');
+    assert.equal(deleteCalls.length, 0, 'no DELETE call when legacy had no subscription');
+    console.log('SW migration test 2 (only legacy) passed');
+}
+
+// Test 3: Only new SW - no migration needed
+{
+    const harness = createHarness({
+        fetchHandler(url) {
+            if (url.endsWith('/push/vapid-public-key')) return response(200, { publicKey: 'AQIDBA' });
+            if (url.endsWith('/push/subscribe')) return response(200, { success: true, subscriptionId: 102 });
+            throw new Error(`Unexpected URL: ${url}`);
+        }
+    });
+
+    await harness.CvPush.init();
+
+    assert.equal(harness.storage.get('cv_push_sw_migrated'), '1', 'migration flag set');
+    const deleteCalls = harness.calls.filter(c => c.url.includes('/push/subscribe') && c.options?.method === 'DELETE');
+    assert.equal(deleteCalls.length, 0, 'no cleanup needed');
+    console.log('SW migration test 3 (only new SW) passed');
+}
+
+// Test 4: Legacy + new SW coexisting - migration removes legacy only
+{
+    const legacyReg = createLegacyRegistration({ hasSubscription: false });
+    const harness = createHarness({
+        legacyRegistrations: [legacyReg],
+        fetchHandler(url) {
+            if (url.endsWith('/push/vapid-public-key')) return response(200, { publicKey: 'AQIDBA' });
+            if (url.endsWith('/push/subscribe')) return response(200, { success: true, subscriptionId: 103 });
+            throw new Error(`Unexpected URL: ${url}`);
+        }
+    });
+
+    await harness.CvPush.init();
+
+    assert.equal(legacyReg.unregistered, true, 'legacy SW was unregistered');
+    assert.equal(harness.storage.get('cv_push_sw_migrated'), '1');
+    console.log('SW migration test 4 (legacy + new coexisting) passed');
+}
+
+// Test 5: Legacy subscription exists - migration cleans up API
+{
+    const legacyReg = createLegacyRegistration({ hasSubscription: true });
+    const harness = createHarness({
+        legacyRegistrations: [legacyReg],
+        fetchHandler(url, options) {
+            if (url.endsWith('/push/vapid-public-key')) return response(200, { publicKey: 'AQIDBA' });
+            if (url.endsWith('/push/subscribe') && options?.method === 'DELETE') {
+                const body = JSON.parse(options.body);
+                assert.equal(body.endpoint, 'https://legacy.push.test/old-endpoint', 'legacy endpoint sent in DELETE');
+                assert.ok(body.clientId, 'clientId included');
+                return response(200, { success: true });
+            }
+            if (url.endsWith('/push/subscribe')) return response(200, { success: true, subscriptionId: 104 });
+            throw new Error(`Unexpected URL: ${url}`);
+        }
+    });
+
+    await harness.CvPush.init();
+
+    assert.equal(legacyReg.unregistered, true, 'legacy SW was unregistered');
+    const deleteCalls = harness.calls.filter(c => c.url.includes('/push/subscribe') && c.options?.method === 'DELETE');
+    assert.equal(deleteCalls.length, 1, 'DELETE call made for legacy subscription');
+    assert.equal(harness.storage.get('cv_push_sw_migrated'), '1');
+    console.log('SW migration test 5 (legacy subscription exists) passed');
+}
+
+// Test 6: Repeated migration - flag prevents re-execution
+{
+    const legacyReg = createLegacyRegistration({ hasSubscription: false });
+    const harness = createHarness({
+        legacyRegistrations: [legacyReg],
+        fetchHandler(url) {
+            if (url.endsWith('/push/vapid-public-key')) return response(200, { publicKey: 'AQIDBA' });
+            if (url.endsWith('/push/subscribe')) return response(200, { success: true, subscriptionId: 105 });
+            throw new Error(`Unexpected URL: ${url}`);
+        }
+    });
+
+    harness.storage.set('cv_push_sw_migrated', '1');
+
+    await harness.CvPush.init();
+
+    assert.equal(legacyReg.unregistered, false, 'legacy SW NOT unregistered (migration skipped)');
+    const deleteCalls = harness.calls.filter(c => c.url.includes('/push/subscribe') && c.options?.method === 'DELETE');
+    assert.equal(deleteCalls.length, 0, 'no cleanup on repeated run');
+    console.log('SW migration test 6 (repeated migration) passed');
+}
+
+// Test 7: Third-party SW not removed
+{
+    const thirdParty = createThirdPartyRegistration('https://analytics.example.test/sw.js');
+    const legacyReg = createLegacyRegistration({ hasSubscription: false });
+    const harness = createHarness({
+        legacyRegistrations: [thirdParty, legacyReg],
+        fetchHandler(url) {
+            if (url.endsWith('/push/vapid-public-key')) return response(200, { publicKey: 'AQIDBA' });
+            if (url.endsWith('/push/subscribe')) return response(200, { success: true, subscriptionId: 106 });
+            throw new Error(`Unexpected URL: ${url}`);
+        }
+    });
+
+    await harness.CvPush.init();
+
+    assert.equal(thirdParty.unregistered, false, 'third-party SW was NOT unregistered');
+    assert.equal(legacyReg.unregistered, true, 'legacy SW was unregistered');
+    assert.equal(harness.storage.get('cv_push_sw_migrated'), '1');
+    console.log('SW migration test 7 (third-party SW preserved) passed');
+}
+
+console.log('cvPush SW migration tests passed');
+
+// --- SW Migration Failure Edge Cases ---
+
+// Test 8: unregister() returns false — flag should NOT be set
+{
+    const legacyReg = createLegacyRegistration({ unregisterResult: false });
+    const harness = createHarness({
+        legacyRegistrations: [legacyReg],
+        fetchHandler(url) {
+            if (url.endsWith('/push/vapid-public-key')) return response(200, { publicKey: 'AQIDBA' });
+            if (url.endsWith('/push/subscribe')) return response(200, { success: true, subscriptionId: 200 });
+            throw new Error(`Unexpected URL: ${url}`);
+        }
+    });
+
+    await harness.CvPush.init();
+
+    assert.equal(legacyReg.unregistered, false, 'unregister returned false, SW not removed');
+    assert.notEqual(harness.storage.get('cv_push_sw_migrated'), '1', 'flag NOT set when unregister fails');
+    console.log('SW migration test 8 (unregister returns false) passed');
+}
+
+// Test 9: unregister() throws — flag should NOT be set
+{
+    const legacyReg = createLegacyRegistration({ unregisterThrows: true });
+    const harness = createHarness({
+        legacyRegistrations: [legacyReg],
+        fetchHandler(url) {
+            if (url.endsWith('/push/vapid-public-key')) return response(200, { publicKey: 'AQIDBA' });
+            if (url.endsWith('/push/subscribe')) return response(200, { success: true, subscriptionId: 201 });
+            throw new Error(`Unexpected URL: ${url}`);
+        }
+    });
+
+    await harness.CvPush.init();
+
+    assert.equal(legacyReg.unregistered, false, 'unregister threw, SW not removed');
+    assert.notEqual(harness.storage.get('cv_push_sw_migrated'), '1', 'flag NOT set when unregister throws');
+    console.log('SW migration test 9 (unregister throws) passed');
+}
+
+// Test 10: unregister succeeds — flag IS set
+{
+    const legacyReg = createLegacyRegistration({ unregisterResult: true });
+    const harness = createHarness({
+        legacyRegistrations: [legacyReg],
+        fetchHandler(url) {
+            if (url.endsWith('/push/vapid-public-key')) return response(200, { publicKey: 'AQIDBA' });
+            if (url.endsWith('/push/subscribe')) return response(200, { success: true, subscriptionId: 202 });
+            throw new Error(`Unexpected URL: ${url}`);
+        }
+    });
+
+    await harness.CvPush.init();
+
+    assert.equal(legacyReg.unregistered, true, 'unregister succeeded');
+    assert.equal(harness.storage.get('cv_push_sw_migrated'), '1', 'flag IS set on success');
+    console.log('SW migration test 10 (unregister succeeds) passed');
+}
+
+// Test 11: mix of success + failure — flag NOT set (partial migration pending)
+{
+    const failReg = createLegacyRegistration({
+        scriptURL: 'https://example.test/js/sw-push.js',
+        unregisterResult: false
+    });
+    const successReg = createLegacyRegistration({
+        scriptURL: 'https://example.test/js/sw-push.js',
+        hasSubscription: true,
+        unregisterResult: true
+    });
+    const harness = createHarness({
+        legacyRegistrations: [failReg, successReg],
+        fetchHandler(url, options) {
+            if (url.endsWith('/push/vapid-public-key')) return response(200, { publicKey: 'AQIDBA' });
+            if (url.endsWith('/push/subscribe') && options?.method === 'DELETE') {
+                return response(200, { success: true });
+            }
+            if (url.endsWith('/push/subscribe')) return response(200, { success: true, subscriptionId: 203 });
+            throw new Error(`Unexpected URL: ${url}`);
+        }
+    });
+
+    await harness.CvPush.init();
+
+    assert.equal(failReg.unregistered, false, 'first legacy NOT unregistered');
+    assert.equal(successReg.unregistered, true, 'second legacy unregistered');
+    assert.notEqual(harness.storage.get('cv_push_sw_migrated'), '1', 'flag NOT set when any unregister fails');
+    console.log('SW migration test 11 (partial failure) passed');
+}
+
+console.log('cvPush SW migration edge case tests passed');

@@ -246,6 +246,8 @@ public sealed class TvHotMatchService : ITvHotMatchService
             Slug = slug,
             LeftSymbol = match.TeamA.Currency.Symbol,
             RightSymbol = match.TeamB.Currency.Symbol,
+            CurrencyIdA = match.TeamA.CurrencyId,
+            CurrencyIdB = match.TeamB.CurrencyId,
             LeftName = match.TeamA.Currency.Name,
             RightName = match.TeamB.Currency.Name,
             LeftScore = match.ScoreA,

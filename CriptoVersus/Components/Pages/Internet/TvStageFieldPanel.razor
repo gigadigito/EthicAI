@@ -36,6 +36,9 @@
                     <strong>@Model.LeftHeroLabel</strong>
                     <small>@Model.LeftName</small>
                     <span class="tv-football-side__change @Model.LeftChangeClass">@Model.LeftChangeDisplay</span>
+                    <TvAssetAlertButton CurrencyId="@Model.LeftCurrencyId"
+                                        Symbol="@Model.LeftSymbol"
+                                        Culture="@Model.Culture" />
                 </section>
 
                 <section class="tv-football-center">
@@ -105,6 +108,9 @@
                     <strong>@Model.RightHeroLabel</strong>
                     <small>@Model.RightName</small>
                     <span class="tv-football-side__change @Model.RightChangeClass">@Model.RightChangeDisplay</span>
+                    <TvAssetAlertButton CurrencyId="@Model.RightCurrencyId"
+                                        Symbol="@Model.RightSymbol"
+                                        Culture="@Model.Culture" />
                 </section>
             </div>
         }
@@ -129,6 +135,9 @@
                     <span class="tv-team__symbol">@Model.LeftTickerLabel</span>
                     <strong>@Model.LeftName</strong>
                     <span class="@Model.LeftChangeClass">@Model.LeftChangeDisplay</span>
+                    <TvAssetAlertButton CurrencyId="@Model.LeftCurrencyId"
+                                        Symbol="@Model.LeftSymbol"
+                                        Culture="@Model.Culture" />
                 </div>
 
                 <div class="tv-center-hud">
@@ -177,6 +186,9 @@
                     <span class="tv-team__symbol">@Model.RightTickerLabel</span>
                     <strong>@Model.RightName</strong>
                     <span class="@Model.RightChangeClass">@Model.RightChangeDisplay</span>
+                    <TvAssetAlertButton CurrencyId="@Model.RightCurrencyId"
+                                        Symbol="@Model.RightSymbol"
+                                        Culture="@Model.Culture" />
                 </div>
             </div>
         }

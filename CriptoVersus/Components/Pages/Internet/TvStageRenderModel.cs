@@ -19,6 +19,8 @@ public sealed class TvStageRenderModel
 
     public string LeftSymbol { get; init; } = string.Empty;
     public string RightSymbol { get; init; } = string.Empty;
+    public int LeftCurrencyId { get; init; }
+    public int RightCurrencyId { get; init; }
     public string LeftTickerLabel { get; init; } = string.Empty;
     public string RightTickerLabel { get; init; } = string.Empty;
     public string LeftHeroLabel { get; init; } = string.Empty;

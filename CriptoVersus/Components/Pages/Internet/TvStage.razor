@@ -948,6 +948,8 @@ else
         CurrentRealMatchUrl = CurrentRealMatchUrl,
         LeftSymbol = DisplayLeftSymbol(),
         RightSymbol = DisplayRightSymbol(),
+        LeftCurrencyId = Match?.CurrencyIdA ?? HotMatch?.CurrencyIdA ?? 0,
+        RightCurrencyId = Match?.CurrencyIdB ?? HotMatch?.CurrencyIdB ?? 0,
         LeftTickerLabel = DisplayLeftTickerLabel(),
         RightTickerLabel = DisplayRightTickerLabel(),
         LeftHeroLabel = DisplayLeftHeroLabel(),

@@ -148,7 +148,8 @@ app.Use(async (context, next) =>
 {
     var path = context.Request.Path.Value ?? "";
     if (path.Equals("/js/cvPush.js", StringComparison.OrdinalIgnoreCase) ||
-        path.Equals("/js/sw-push.js", StringComparison.OrdinalIgnoreCase))
+        path.Equals("/js/sw-push.js", StringComparison.OrdinalIgnoreCase) ||
+        path.Equals("/sw-push.js", StringComparison.OrdinalIgnoreCase))
     {
         context.Response.Headers.CacheControl = "no-cache, must-revalidate";
         context.Response.Headers.Append("Pragma", "no-cache");

@@ -7,6 +7,8 @@ public sealed class TvHotMatchDto
     public string Slug { get; set; } = string.Empty;
     public string LeftSymbol { get; set; } = string.Empty;
     public string RightSymbol { get; set; } = string.Empty;
+    public int CurrencyIdA { get; set; }
+    public int CurrencyIdB { get; set; }
     public string LeftName { get; set; } = string.Empty;
     public string RightName { get; set; } = string.Empty;
     public int LeftScore { get; set; }

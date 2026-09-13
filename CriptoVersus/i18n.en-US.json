@@ -1694,6 +1694,8 @@
     "assetUnsubscribeSuccess": "Asset alert removed.",
     "assetAlertError": "Failed to save asset alert.",
     "loadAssetAlertError": "Unable to load asset alert status.",
+    "tvAssetAlertFollow": "Follow this asset",
+    "tvAssetAlertRemove": "Stop following this asset",
     "pushClientOutdated": "The page is using an outdated notification version. Please reload and try again.",
     "pushSubscriptionInactive": "Your push subscription is no longer active. Reconnecting automatically.",
     "saving": "Saving...",

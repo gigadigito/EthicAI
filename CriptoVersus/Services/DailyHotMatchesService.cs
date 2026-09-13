@@ -210,6 +210,8 @@ public sealed class DailyHotMatchesService
 
             HomeSymbol = match.TeamA,
             AwaySymbol = match.TeamB,
+            CurrencyIdA = match.CurrencyIdA,
+            CurrencyIdB = match.CurrencyIdB,
             HomeScore = match.ScoreA,
             AwayScore = match.ScoreB,
 
