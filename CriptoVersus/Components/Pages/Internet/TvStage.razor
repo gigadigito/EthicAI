@@ -26,7 +26,7 @@
 @implements IAsyncDisposable
 
 <HeadContent>
-    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260822-official-goal-field-1" />
+    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260907-led-v2" />
     <link rel="preload" href="/js/futurebol/vendor/babylon.js?v=8.19.0" as="script" />
     <link rel="preload" href="/js/futurebol/vendor/babylonjs.loaders.min.js?v=8.19.0" as="script" />
     <link rel="preload" href="/assets/futurebol/players/futurebol-humanoid.glb" as="fetch" type="model/gltf-binary" crossorigin="anonymous" />
@@ -199,14 +199,14 @@ else if (HasLiveMatch)
             {
                 <TvStageMobile Model="@StageModel"
                                LiveArenaLabel='@T("labels.liveArena")'
-                               AutomaticBroadcastLabel='@T("labels.automaticBroadcast")'
+                               AutomaticBroadcastLabel='@(IsBroadcastMode ? T("labels.automaticBroadcast") : string.Empty)'
                                SignalBadgeClass="@SignalBadgeClass"
                                SignalBadgeLabel="@SignalBadgeLabel"
                                HotScoreLabel='@T("labels.hotScore")'
                                HotScoreValue="@DisplayHotScore()"
                                PulseHotScore="@_pulseHotScore"
-                               KnownArenaAudioButtonTitle="@KnownArenaAudioButtonTitle"
-                               KnownArenaAudioButtonLabel="@KnownArenaAudioButtonLabel"
+                               KnownArenaAudioButtonTitle="@(Environment.IsDevelopment() ? KnownArenaAudioButtonTitle : string.Empty)"
+                               KnownArenaAudioButtonLabel="@(Environment.IsDevelopment() ? KnownArenaAudioButtonLabel : string.Empty)"
                                ShouldRenderCrowdAudio="@ShouldRenderCrowdAudio"
                                ShouldShowAudioUnlockButton="@ShouldShowAudioUnlockButton"
                                CrowdAudioLabel="@DisplayCrowdAudioLabel()"
@@ -243,14 +243,14 @@ else if (HasLiveMatch)
             {
                 <TvStageTablet Model="@StageModel"
                                LiveArenaLabel='@T("labels.liveArena")'
-                               AutomaticBroadcastLabel='@T("labels.automaticBroadcast")'
+                               AutomaticBroadcastLabel='@(IsBroadcastMode ? T("labels.automaticBroadcast") : string.Empty)'
                                SignalBadgeClass="@SignalBadgeClass"
                                SignalBadgeLabel="@SignalBadgeLabel"
                                HotScoreLabel='@T("labels.hotScore")'
                                HotScoreValue="@DisplayHotScore()"
                                PulseHotScore="@_pulseHotScore"
-                               KnownArenaAudioButtonTitle="@KnownArenaAudioButtonTitle"
-                               KnownArenaAudioButtonLabel="@KnownArenaAudioButtonLabel"
+                               KnownArenaAudioButtonTitle="@(Environment.IsDevelopment() ? KnownArenaAudioButtonTitle : string.Empty)"
+                               KnownArenaAudioButtonLabel="@(Environment.IsDevelopment() ? KnownArenaAudioButtonLabel : string.Empty)"
                                ShouldRenderCrowdAudio="@ShouldRenderCrowdAudio"
                                ShouldShowAudioUnlockButton="@ShouldShowAudioUnlockButton"
                                CrowdAudioLabel="@DisplayCrowdAudioLabel()"
@@ -287,14 +287,14 @@ else if (HasLiveMatch)
             {
                 <TvStageDesktop Model="@StageModel"
                                 LiveArenaLabel='@T("labels.liveArena")'
-                                AutomaticBroadcastLabel='@T("labels.automaticBroadcast")'
+                                AutomaticBroadcastLabel='@(IsBroadcastMode ? T("labels.automaticBroadcast") : string.Empty)'
                                 SignalBadgeClass="@SignalBadgeClass"
                                 SignalBadgeLabel="@SignalBadgeLabel"
                                 HotScoreLabel='@T("labels.hotScore")'
                                 HotScoreValue="@DisplayHotScore()"
                                 PulseHotScore="@_pulseHotScore"
-                                KnownArenaAudioButtonTitle="@KnownArenaAudioButtonTitle"
-                                KnownArenaAudioButtonLabel="@KnownArenaAudioButtonLabel"
+                                KnownArenaAudioButtonTitle="@(Environment.IsDevelopment() ? KnownArenaAudioButtonTitle : string.Empty)"
+                                KnownArenaAudioButtonLabel="@(Environment.IsDevelopment() ? KnownArenaAudioButtonLabel : string.Empty)"
                                 ShouldRenderCrowdAudio="@ShouldRenderCrowdAudio"
                                 ShouldShowAudioUnlockButton="@ShouldShowAudioUnlockButton"
                                 CrowdAudioLabel="@DisplayCrowdAudioLabel()"
@@ -360,10 +360,13 @@ else
             <div class="tv-stage__badges">
                 <span class="tv-pill">@T("labels.automaticBroadcast")</span>
                 <span class="tv-pill tv-pill--signal">@T("states.noHotMatchRightNow")</span>
-                <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-test" @onclick="PlayKnownArenaAudioAsync" title="@KnownArenaAudioButtonTitle">
-                    <span class="tv-pill__audio-icon tv-pill__audio-icon--test" aria-hidden="true"></span>
-                    <span>@KnownArenaAudioButtonLabel</span>
-                </button>
+                @if (Environment.IsDevelopment())
+                {
+                    <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-test" @onclick="PlayKnownArenaAudioAsync" title="@KnownArenaAudioButtonTitle">
+                        <span class="tv-pill__audio-icon tv-pill__audio-icon--test" aria-hidden="true"></span>
+                        <span>@KnownArenaAudioButtonLabel</span>
+                    </button>
+                }
                 @if (ShouldRenderCrowdAudio)
                 {
                     <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync" title="@DisplayCrowdAudioLabel()">
@@ -536,13 +539,16 @@ else
     </aside>
 }
 
-<button type="button"
-        class="tv-fixed-audio-test"
-        @onclick="PlayKnownArenaAudioAsync"
-        title="@KnownArenaAudioButtonTitle">
-    <span class="tv-fixed-audio-test__icon" aria-hidden="true"></span>
-    <span>@KnownArenaAudioButtonLabel</span>
-</button>
+@if (Environment.IsDevelopment())
+{
+    <button type="button"
+            class="tv-fixed-audio-test"
+            @onclick="PlayKnownArenaAudioAsync"
+            title="@KnownArenaAudioButtonTitle">
+        <span class="tv-fixed-audio-test__icon" aria-hidden="true"></span>
+        <span>@KnownArenaAudioButtonLabel</span>
+    </button>
+}
 
 @code {
     private enum TvStageViewportMode
@@ -1301,7 +1307,7 @@ private async Task PreloadFuturebolRuntimeAsync()
     {
         _futurebolPreloadModule = await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260822-official-goal-field-1");
+            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260907-led-v2");
         await _futurebolPreloadModule.InvokeVoidAsync("preload");
     }
     catch (JSDisconnectedException)

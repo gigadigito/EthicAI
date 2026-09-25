@@ -35,9 +35,15 @@
     }
     @if (!string.IsNullOrWhiteSpace(_error))
     {
-        <div class="tv-futurebol-field__fallback" role="status">
+        <div class="tv-futurebol-field__fallback" role="alert">
             <strong>@T("error")</strong>
             <span>@T("errorBody")</span>
+            <button type="button"
+                    class="tv-futurebol-field__retry"
+                    disabled="@_futurebolInitializing"
+                    @onclick="RetryFuturebolAsync">
+                @T("retry")
+            </button>
         </div>
     }
 </div>
@@ -293,6 +299,23 @@
         _isReady = false;
         Logger.LogWarning("[TvFuturebolField] JS reported init failure. matchId={MatchId} Detail={Detail}", _presentation?.MatchId, message);
         return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RetryFuturebolAsync()
+    {
+        if (_disposed || _presentation is null || _futurebolInitializing)
+            return;
+
+        _error = null;
+        _initialized = false;
+        _isReady = false;
+        _initializedFuturebolMatchId = 0;
+        _initRetryCount = 0;
+        _appliedSignature = string.Empty;
+        _needsDispose = _module is not null;
+
+        Logger.LogInformation("[TvFuturebolField] user requested a fresh Futurebol initialization for matchId={MatchId}", _presentation.MatchId);
+        await InvokeAsync(StateHasChanged);
     }
 
     [JSInvokable]

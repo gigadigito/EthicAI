@@ -120,4 +120,34 @@
     font-size: .78rem;
 }
 
+.tv-futurebol-field__retry {
+    min-height: 2.35rem;
+    margin-top: .45rem;
+    padding: .45rem .9rem;
+    border: 1px solid rgba(78, 220, 255, .75);
+    border-radius: .45rem;
+    color: #eef6ff;
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    cursor: pointer;
+    background: rgba(10, 31, 60, .82);
+}
+
+.tv-futurebol-field__retry:hover:not(:disabled),
+.tv-futurebol-field__retry:focus-visible {
+    border-color: #4edcff;
+    background: rgba(20, 66, 108, .92);
+}
+
+.tv-futurebol-field__retry:focus-visible {
+    outline: 2px solid #ff9f1a;
+    outline-offset: 3px;
+}
+
+.tv-futurebol-field__retry:disabled {
+    cursor: wait;
+    opacity: .6;
+}
 

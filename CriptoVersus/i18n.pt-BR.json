@@ -1193,6 +1193,10 @@
     "trackedCoins": "Moedas monitoradas",
     "homeSections": "Seções da página inicial",
     "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "Acompanhe as batalhas cripto em andamento com páginas públicas indexáveis que mostram placar, momentum e contexto da partida.",
+    "onlyLiveBattleTitle": "Esta é a única batalha ao vivo agora.",
+    "onlyLiveBattleBody": "A arena é atualizada automaticamente quando novos confrontos de mercado começam. Explore as principais batalhas enquanto espera.",
+    "noLiveBattlesTitle": "Não há batalhas ao vivo agora.",
+    "noLiveBattlesBody": "A arena está preparando os próximos confrontos de mercado. Explore as principais batalhas e volte em breve.",
     "roadmap": "Roteiro",
     "liveBattle": "Batalha ao vivo",
     "arena": {
@@ -1251,11 +1255,11 @@
     "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explore partidas cripto ao vivo, placares públicos, moedas em alta e batalhas de mercado no CriptoVersus com páginas públicas prontas para SEO.",
     "seoDescription": "CriptoVersus e uma plataforma gamificada de visualizacao de dados de mercado onde sinais publicos de cripto viram simulacoes em estilo futebol para analise educacional.",
     "heroTitle": "Batalhas cripto ao vivo em uma arena visual gamificada.",
-    "heroDescription": "CriptoVersus transforma a performance publica do mercado em simulacoes cripto em estilo futebol onde ativos competem como times. Cada ciclo cria novos confrontos, placares publicos, rankings e uma narrativa educacional guiada pelo movimento real do mercado.",
+    "heroDescription": "Dados públicos de mercado viram batalhas cripto em estilo futebol: os ativos competem, o placar muda e você acompanha a arena ao vivo.",
     "heroSemanticLabel": "Destaques da mec?nica da arena",
-    "heroSemantic1": "Escolha um lado em batalhas cripto ao vivo",
-    "heroSemantic2": "Acompanhe match pools e mudancas de placar",
-    "heroSemantic3": "Selecione um lado para analise educacional",
+    "heroSemantic1": "Ativos competem com movimento real de mercado",
+    "heroSemantic2": "Placar e momentum atualizam ao vivo",
+    "heroSemantic3": "Assista à arena ou abra a partida",
     "heroSemantic4": "Simulacoes cripto em tempo real com placar gamificado",
     "heroSemantic5": "Analise competitiva da arena baseada em desempenho real de mercado",
     "marketDataDisclaimer": "O CriptoVersus e uma plataforma gamificada de visualizacao de dados de mercado. Os placares sao gerados a partir de sinais publicos de mercado e nao devem ser interpretados como recomendacao financeira, indicacao de investimento ou garantia de resultado.",
@@ -1338,6 +1342,11 @@
     "loadingMatch": "Carregando partida...",
     "error": "Erro:",
     "matchNotFound": "Partida nao encontrada.",
+    "matchNotFoundBody": "Esta partida pode ter sido encerrada ou nao estar mais disponivel.",
+    "loadUnavailableTitle": "Nao foi possivel abrir esta partida.",
+    "loadUnavailableBody": "Tente novamente. Enquanto isso, voce pode voltar para as partidas ao vivo.",
+    "retry": "Tentar novamente",
+    "returnHome": "Ver partidas ao vivo",
     "live": "AO VIVO",
     "marketDataDisclaimer": "Os dados de mercado são exibidos apenas para fins informativos e de entretenimento. Isso não é recomendação financeira.",
     "invest": "Escolha",
@@ -1652,7 +1661,8 @@
       "loading": "Carregando arena...",
       "loadingSlow": "A arena esta demorando um pouco mais para carregar...",
       "error": "Nao foi possivel carregar a arena 3D.",
-      "errorBody": "Tente atualizar a pagina."
+      "errorBody": "Tente novamente ou atualize a pagina.",
+      "retry": "Tentar novamente"
     },
     "hero": {
       "eyebrow": "Transmissao automatica",
@@ -2794,6 +2804,9 @@
     "officialScore": "Placar oficial do servidor",
     "blockLegend": "1 bloco quadrado = 1 ponto",
     "blocksFor": "{1} blocos de ponto para {0}",
+    "navigationLabel": "Navegação do Candle Battle",
+    "backToMatch": "Voltar para a partida",
+    "watchOnTv": "Assistir na TV",
     "seoTitle": "Candle Battle V2 | CriptoVersus",
     "seoDescription": "Acompanhe pontos oficiais de partidas cripto virarem blocos em uma arena competitiva de candles ao vivo."
   }

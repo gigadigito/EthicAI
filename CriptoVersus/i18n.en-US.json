@@ -1131,6 +1131,10 @@
     "trackedCoins": "Tracked coins",
     "homeSections": "Home sections",
     "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "Follow ongoing crypto battles with crawlable public pages that show score, momentum and match context.",
+    "onlyLiveBattleTitle": "This is the only live battle right now.",
+    "onlyLiveBattleBody": "The arena updates automatically as new market matchups begin. Explore the top battles while you wait.",
+    "noLiveBattlesTitle": "No live battles right now.",
+    "noLiveBattlesBody": "The arena is preparing its next market matchups. Explore the top battles and check back shortly.",
     "roadmap": "Roadmap",
     "liveBattle": "Live battle",
     "arena": {
@@ -1189,11 +1193,11 @@
     "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explore live crypto matches, public scoreboards, trending coins and market battles on CriptoVersus with SEO-ready public pages.",
     "seoDescription": "CriptoVersus is a gamified market-data visualization platform where public crypto signals become football-style simulations for educational analysis.",
     "heroTitle": "Live crypto market battles in a gamified visual arena.",
-    "heroDescription": "CriptoVersus transforms public market performance into football-style crypto simulations where assets compete like teams. Each cycle creates new matchups, public scoreboards, rankings and educational storytelling powered by real market movement.",
+    "heroDescription": "Public market data becomes football-style crypto battles: assets compete, the score changes, and you can follow the arena live.",
     "heroSemanticLabel": "Arena mechanics highlights",
-    "heroSemantic1": "Choose a side in live crypto battles",
-    "heroSemantic2": "Follow match pools and score changes",
-    "heroSemantic3": "Select a side for educational analysis",
+    "heroSemantic1": "Assets compete on real market movement",
+    "heroSemantic2": "Score and momentum update live",
+    "heroSemantic3": "Watch the arena or open the match",
     "heroSemantic4": "Real-time crypto simulations with gamified scoring",
     "heroSemantic5": "Competitive arena analysis driven by real market performance",
     "marketDataDisclaimer": "CriptoVersus is a gamified market-data visualization platform. Match scores are generated from public market signals and should not be interpreted as financial advice, investment recommendations, or guaranteed outcomes.",
@@ -1536,6 +1540,11 @@
     "loadingMatch": "Loading match...",
     "error": "Error:",
     "matchNotFound": "Match not found.",
+    "matchNotFoundBody": "This match may have ended or is no longer available.",
+    "loadUnavailableTitle": "We could not open this match.",
+    "loadUnavailableBody": "Try again. In the meantime, you can return to live matches.",
+    "retry": "Try again",
+    "returnHome": "View live matches",
     "matchLeader": "Match leader",
     "wonTheMatch": "won the match",
     "noLeaderDefined": "No leader defined",
@@ -1850,7 +1859,8 @@
       "loading": "Loading arena...",
       "loadingSlow": "The arena is taking a little longer to load...",
       "error": "Unable to load the 3D arena.",
-      "errorBody": "Try refreshing the page."
+      "errorBody": "Try again or refresh the page.",
+      "retry": "Try again"
     },
     "hero": {
       "eyebrow": "Automatic broadcast",
@@ -2794,6 +2804,9 @@
     "officialScore": "Official server score",
     "blockLegend": "1 square block = 1 point",
     "blocksFor": "{1} point blocks for {0}",
+    "navigationLabel": "Candle Battle navigation",
+    "backToMatch": "Back to match",
+    "watchOnTv": "Watch on TV",
     "seoTitle": "Candle Battle V2 | CriptoVersus",
     "seoDescription": "Watch official crypto match points become blocks in a live competitive candle arena."
   }

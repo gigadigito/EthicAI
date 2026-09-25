@@ -14,17 +14,23 @@
                 <span class="tv-pill__dot"></span>
                 @LiveArenaLabel
             </span>
-            <span class="tv-pill">@AutomaticBroadcastLabel</span>
+            @if (!string.IsNullOrWhiteSpace(AutomaticBroadcastLabel))
+            {
+                <span class="tv-pill">@AutomaticBroadcastLabel</span>
+            }
             @if (!string.IsNullOrWhiteSpace(Model.CurrentRealMatchUrl))
             {
-                <a target="_blank" class="tv-pill tv-pill--nav" href="@Model.CurrentRealMatchUrl">Match</a>
+                <a class="tv-pill tv-pill--nav" href="@Model.CurrentRealMatchUrl">Match</a>
             }
             <span class="@SignalBadgeClass">@SignalBadgeLabel</span>
             <span class="tv-pill tv-pill--score @(PulseHotScore ? "is-pulsing" : string.Empty)">@HotScoreLabel @HotScoreValue</span>
-            <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-test" @onclick="PlayKnownArenaAudioAsync" title="@KnownArenaAudioButtonTitle">
-                <span class="tv-pill__audio-icon tv-pill__audio-icon--test" aria-hidden="true"></span>
-                <span>@KnownArenaAudioButtonLabel</span>
-            </button>
+            @if (!string.IsNullOrWhiteSpace(KnownArenaAudioButtonLabel))
+            {
+                <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-test" @onclick="PlayKnownArenaAudioAsync" title="@KnownArenaAudioButtonTitle">
+                    <span class="tv-pill__audio-icon tv-pill__audio-icon--test" aria-hidden="true"></span>
+                    <span>@KnownArenaAudioButtonLabel</span>
+                </button>
+            }
             @if (ShouldRenderCrowdAudio)
             {
                 <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync" title="@CrowdAudioLabel">

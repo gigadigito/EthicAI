@@ -55,13 +55,13 @@
                 <div class="candle-v2__scoreboard" aria-label="@T("score")">
                     <div class="candle-v2__score candle-v2__score--left @LeaderClass(true)">
                         <span>@LeftSymbol</span>
-                        <strong>@(_match?.CandleBattleLeftWins ?? 0)</strong>
+                        <strong>@_state.DisplayScoreLeft</strong>
                         @if (IsPointFor(CandleBattleV2Side.Left)) { <em>+1</em> }
                     </div>
                     <div class="candle-v2__score-divider">:</div>
                     <div class="candle-v2__score candle-v2__score--right @LeaderClass(false)">
                         <span>@RightSymbol</span>
-                        <strong>@(_match?.CandleBattleRightWins ?? 0)</strong>
+                        <strong>@_state.DisplayScoreRight</strong>
                         @if (IsPointFor(CandleBattleV2Side.Right)) { <em>+1</em> }
                     </div>
                 </div>
@@ -528,8 +528,8 @@
 
     private string LeaderClass(bool left)
     {
-        var leftWins = _match?.CandleBattleLeftWins ?? 0;
-        var rightWins = _match?.CandleBattleRightWins ?? 0;
+        var leftWins = _state.DisplayScoreLeft;
+        var rightWins = _state.DisplayScoreRight;
         if (leftWins == rightWins)
             return string.Empty;
         return (left && leftWins > rightWins)

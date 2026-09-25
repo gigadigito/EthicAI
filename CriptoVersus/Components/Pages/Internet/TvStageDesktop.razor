@@ -92,7 +92,7 @@
     @@media (min-width: 1181px) {
         .tv-stage.tv-stage--broadcast .tv-stage-desktop {
             height: calc(100svh - 42px) !important;
-            min-height: 640px !important;
+            min-height: min(640px, calc(100svh - 42px)) !important;
             max-height: calc(100svh - 42px) !important;
             grid-template-rows: auto minmax(0, 1fr) auto !important;
             overflow: hidden !important;

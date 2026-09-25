@@ -21,6 +21,16 @@
 </HeadContent>
 
 <main class="candle-v2-page">
+    <nav class="candle-v2-page__journey" aria-label="@L.T("candleBattleV2.navigationLabel", NormalizedCulture)">
+        <a class="candle-v2-page__journey-link"
+           href="@RouteLocalization.BuildLocalizedPath(NormalizedCulture, MatchId, Slug)">
+            @L.T("candleBattleV2.backToMatch", NormalizedCulture)
+        </a>
+        <a class="candle-v2-page__journey-link candle-v2-page__journey-link--primary"
+           href="@RouteLocalization.BuildTvMatchPath(NormalizedCulture, MatchId, Slug)">
+            @L.T("candleBattleV2.watchOnTv", NormalizedCulture)
+        </a>
+    </nav>
     <CandleBattleV2 MatchId="@MatchId" Culture="@NormalizedCulture" />
 </main>
 

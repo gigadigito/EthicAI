@@ -114,36 +114,9 @@
                    href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">
                     @T("howItWorks")
                 </a>
-
-                <a class="home-cta home-cta--secondary"
-                   href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">
-                    @T("roadmap")
-                </a>
             </div>
 
             <p class="small text-muted mt-3 mb-0">@T("marketDataDisclaimer")</p>
-
-            @if (HeroArenaFieldMatch is not null)
-            {
-                var heroField = HeroArenaFieldMatch!;
-                var heroFieldHot = HeroArenaFieldHotMatch;
-                var heroFieldEnergyA = GetEnergyPercentA(heroField);
-
-                <div class="home-hero__field-slot" aria-label="@ArenaText("featuredBattle")">
-                    <CryptoArenaFieldVisual MatchId="@heroField.MatchId"
-                                            LeftSymbol="@heroField.TeamA"
-                                            RightSymbol="@heroField.TeamB"
-                                            LeftScore="@heroField.ScoreA"
-                                            RightScore="@heroField.ScoreB"
-                                            LeftChangePercent="@heroField.PctA"
-                                            RightChangePercent="@heroField.PctB"
-                                            PressurePercentA="@heroFieldEnergyA"
-                                            ArenaPressure="@GetHeroFieldArenaPressure(heroField, heroFieldHot, heroFieldEnergyA)"
-                                            HotScore="@GetHeroFieldHotScore(heroField, heroFieldHot)"
-                                            ClockLabel="@GetMatchClockLabel(heroField)"
-                                            IsLive="@(!heroField.IsFinished)" />
-                </div>
-            }
         </div>
 
         <div class="home-hero__visual">
@@ -234,8 +207,6 @@
                     <div class="home-hot-hero__cta-group">
                         <a class="arena-cta-button home-hot-hero__cta"
                            href="@GetTvWatchUrl(hero)"
-                           target="_blank"
-                           rel="noopener noreferrer"
                            aria-label="@ArenaText("openArenaAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
                             @ArenaText("openArena")
                         </a>
@@ -326,8 +297,6 @@
                     <div class="home-hot-hero__cta-group">
                         <a class="arena-cta-button home-hot-hero__cta"
                            href="@GetTvMatchUrl(hero)"
-                           target="_blank"
-                           rel="noopener noreferrer"
                            aria-label="@ArenaText("openArenaAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
                             @ArenaText("openArena")
                         </a>
@@ -371,124 +340,8 @@
             <p>@T("followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext")</p>
         </div>
         <div class="public-home-arena__deck">
-            @if (FeaturedBattle is not null)
-            {
-                var featured = FeaturedBattle!;
-                var featuredEnergyA = GetEnergyPercentA(featured);
-                var featuredEnergyB = 100 - featuredEnergyA;
-
-                <article class="arena-featured-battle @GetArenaLeaderClass(featured) @GetArenaHeatClass(featured)">
-                    <div class="arena-featured-battle__glow" aria-hidden="true"></div>
-
-                    <div class="arena-featured-battle__hud">
-                        <div class="arena-featured-battle__chips">
-                            <span class="arena-live-pill">
-                                <span class="arena-live-pill__dot" aria-hidden="true"></span>
-                                @ArenaText("live")
-                            </span>
-
-                            @foreach (var badge in GetBattleBadges(featured, isFeatured: true))
-                            {
-                                <span class="arena-chip @GetArenaChipClass(badge.Tone)">@badge.Text</span>
-                            }
-                        </div>
-
-                        <span class="arena-meta">@ArenaText("arenaMatchId", featured.MatchId)</span>
-                    </div>
-
-                    <div class="arena-featured-battle__body">
-                        <div class="arena-featured-battle__main">
-                            <span class="arena-overline">@ArenaText("featuredBattle")</span>
-
-                            <div class="arena-featured-battle__scoreboard">
-                                <div class="arena-team-panel @(GetLeaderSide(featured) == BattleLeader.TeamA ? "is-leading" : null)">
-                                    <div class="arena-team-panel__identity">
-                                        <img class="arena-team-panel__logo"
-                                             src="@GetCoinIconUrl(featured.TeamA)"
-                                             width="72"
-                                             height="72"
-                                             alt="@featured.TeamA"
-                                             loading="lazy"
-                                             onerror="this.remove();" />
-                                        <div>
-                                            <strong>@GetBaseSymbol(featured.TeamA)</strong>
-                                            <span>@featured.TeamA</span>
-                                        </div>
-                                    </div>
-
-                                    <span class="arena-team-panel__change @(GetSignedChangeClass(featured.PctA))">@FormatPct(featured.PctA)</span>
-                                </div>
-
-                                <div class="arena-featured-battle__center">
-                                    <span class="arena-status-text">@GetMatchStateLabel(featured)</span>
-                                    <div class="arena-scoreboard arena-scoreboard--featured">
-                                        <strong class="arena-score-number arena-score-number--left">@featured.ScoreA</strong>
-                                        <span class="arena-vs-badge">@T("vs")</span>
-                                        <strong class="arena-score-number arena-score-number--right">@featured.ScoreB</strong>
-                                    </div>
-                                    <span class="arena-status-subtext">@GetMatchClockLabel(featured)</span>
-                                </div>
-
-                                <div class="arena-team-panel @(GetLeaderSide(featured) == BattleLeader.TeamB ? "is-leading" : null)">
-                                    <div class="arena-team-panel__identity">
-                                        <img class="arena-team-panel__logo"
-                                             src="@GetCoinIconUrl(featured.TeamB)"
-                                             width="72"
-                                             height="72"
-                                             alt="@featured.TeamB"
-                                             loading="lazy"
-                                             onerror="this.remove();" />
-                                        <div>
-                                            <strong>@GetBaseSymbol(featured.TeamB)</strong>
-                                            <span>@featured.TeamB</span>
-                                        </div>
-                                    </div>
-
-                                    <span class="arena-team-panel__change @(GetSignedChangeClass(featured.PctB))">@FormatPct(featured.PctB)</span>
-                                </div>
-                            </div>
-
-                            <div class="arena-energy-bar arena-energy-bar--featured" aria-label="@ArenaText("momentumBar")">
-                                <span class="arena-energy-bar__side arena-energy-bar__side--left" style="@BuildEnergyWidthStyle(featuredEnergyA)"></span>
-                                <span class="arena-energy-bar__side arena-energy-bar__side--right" style="@BuildEnergyWidthStyle(featuredEnergyB)"></span>
-                            </div>
-                        </div>
-
-                        <aside class="arena-featured-battle__insights">
-                            <div class="arena-stat-chip">
-                                <span>@ArenaText("momentum")</span>
-                                <strong>@GetMomentumLabel(featuredEnergyA)</strong>
-                            </div>
-                            <div class="arena-stat-chip">
-                                <span>@ArenaText("scoreLine")</span>
-                                <strong>@featured.ScoreA x @featured.ScoreB</strong>
-                            </div>
-                            <div class="arena-stat-chip">
-                                <span>@ArenaText("volatility")</span>
-                                <strong>@GetVolatilityLabel(featured)</strong>
-                            </div>
-
-                            <div class="arena-featured-battle__actions">
-                                <a class="arena-cta-button"
-                                   href="@GetTvMatchUrl(featured)"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   aria-label="@ArenaText("openArenaAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)">
-                                    @ArenaText("openArena")
-                                </a>
-                                <a class="arena-cta-link"
-                                   href="@GetPublicMatchUrl(featured)"
-                                   aria-label="@ArenaText("openMatchAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)">
-                                    @ArenaText("openMatch")
-                                </a>
-                            </div>
-                        </aside>
-                    </div>
-                </article>
-            }
-
             <div class="arena-match-grid">
-                @if (_hotMatchesLoading && ArenaLiveMatches.Count == 0)
+                @if (_hotMatchesLoading && AdditionalLiveMatches.Count == 0)
                 {
                     @for (var i = 0; i < 4; i++)
                     {
@@ -499,7 +352,16 @@
                         </article>
                     }
                 }
-                @foreach (var match in ArenaLiveMatches)
+                else if (AdditionalLiveMatches.Count == 0)
+                {
+                    <article class="home-live-empty" role="status">
+                        <span class="home-live-empty__eyebrow">@ArenaText("live")</span>
+                        <strong>@T(HasPrimaryLiveBattle ? "onlyLiveBattleTitle" : "noLiveBattlesTitle")</strong>
+                        <p>@T(HasPrimaryLiveBattle ? "onlyLiveBattleBody" : "noLiveBattlesBody")</p>
+                        <a class="home-inline-link" href="#top-battles">@T("topCryptoBattles")</a>
+                    </article>
+                }
+                @foreach (var match in AdditionalLiveMatches)
                 {
                     var energyA = GetEnergyPercentA(match);
                     var energyB = 100 - energyA;
@@ -563,8 +425,6 @@
                             <div class="arena-match-card__actions">
                                 <a class="arena-cta-button"
                                    href="@GetTvMatchUrl(match)"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
                                    aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
                                     @ArenaText("openArena")
                                 </a>
@@ -648,8 +508,6 @@
                         <div class="arena-match-card__actions">
                             <a class="arena-cta-button"
                                href="@GetTvMatchUrl(match)"
-                               target="_blank"
-                               rel="noopener noreferrer"
                                aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
                                 @ArenaText("openArena")
                             </a>
@@ -806,9 +664,7 @@
     {
         T("heroSemantic1"),
         T("heroSemantic2"),
-        T("heroSemantic3"),
-        T("heroSemantic4"),
-        T("heroSemantic5")
+        T("heroSemantic3")
     };
 
     private IReadOnlyList<FaqItem> FaqItems => new[]
@@ -827,13 +683,6 @@
     private List<HotMatchDto> HotMatchFeed => _hotMatches.Take(HomeMatchLimit).ToList();
     private HotMatchDto? HeroHotMatch => HotMatchFeed.FirstOrDefault();
     private MatchDto? HeroFallbackMatch => HeroHotMatch is null ? FeaturedBattle : null;
-
-    private MatchDto? HeroArenaFieldMatch => HeroHotMatch is not null
-        ? ToMatchCard(HeroHotMatch)
-        : HeroFallbackMatch;
-
-    private HotMatchDto? HeroArenaFieldHotMatch => HeroHotMatch
-        ?? (HeroArenaFieldMatch is not null ? FindHotMatch(HeroArenaFieldMatch.MatchId) : null);
 
     private List<MatchDto> SnapshotLiveMatches => RankHomeMatches(_snapshot?.Matches.OngoingList ?? [])
         .Take(HomeMatchLimit)
@@ -863,8 +712,16 @@
     private MatchDto? FeaturedBattle => SelectFeaturedBattle();
 
     private List<MatchDto> ArenaLiveMatches => LiveMatches
-        .Where(x => x.MatchId != FeaturedBattle?.MatchId)
-        .Take(HomeMatchLimit - 1)
+        .Take(HomeMatchLimit)
+        .ToList();
+
+    private int? HeroMatchId => HeroHotMatch?.MatchId ?? HeroFallbackMatch?.MatchId;
+
+    private bool HasPrimaryLiveBattle => HeroHotMatch is { IsFinished: false }
+        || HeroFallbackMatch is { IsFinished: false };
+
+    private List<MatchDto> AdditionalLiveMatches => ArenaLiveMatches
+        .Where(x => x.MatchId != HeroMatchId)
         .ToList();
 
     private List<MatchDto> TopBattleMatches => FeaturedMatches
@@ -1342,55 +1199,6 @@
             : match.IsTrending
                 ? "is-trending"
                 : string.Empty;
-
-    private decimal GetHeroFieldArenaPressure(MatchDto match, HotMatchDto? hotMatch, double energyA)
-    {
-        var hotArenaPressure = TryReadDecimalProperty(hotMatch, "ArenaPressure");
-        if (hotArenaPressure.HasValue)
-            return hotArenaPressure.Value;
-
-        var matchArenaPressure = TryReadDecimalProperty(match, "ArenaPressure");
-        if (matchArenaPressure.HasValue)
-            return matchArenaPressure.Value;
-
-        return Convert.ToDecimal(Math.Round(energyA));
-    }
-
-    private decimal GetHeroFieldHotScore(MatchDto match, HotMatchDto? hotMatch)
-    {
-        var hotScore = TryReadDecimalProperty(hotMatch, "HotScore");
-        if (hotScore.HasValue)
-            return hotScore.Value;
-
-        var matchHotScore = TryReadDecimalProperty(match, "HotScore");
-        if (matchHotScore.HasValue)
-            return matchHotScore.Value;
-
-        return 0m;
-    }
-
-    private static decimal? TryReadDecimalProperty(object? source, string propertyName)
-    {
-        if (source is null)
-            return null;
-
-        var property = source.GetType().GetProperty(propertyName);
-        if (property is null)
-            return null;
-
-        var value = property.GetValue(source);
-        if (value is null)
-            return null;
-
-        try
-        {
-            return Convert.ToDecimal(value, CultureInfo.InvariantCulture);
-        }
-        catch
-        {
-            return null;
-        }
-    }
 
     private sealed record ArenaBadge(string Text, string Tone);
     private sealed record FaqItem(string Question, string Answer);
@@ -2183,27 +1991,6 @@
             color: #eef5ff;
         }
 
-    .home-hero__field-slot {
-        margin-top: clamp(1.4rem, 5vw, 5rem);
-        width: min(100%, 900px);
-        opacity: .92;
-    }
-
-        .home-hero__field-slot .crypto-arena-field-card {
-            padding: .7rem;
-            border-radius: 24px;
-            background: radial-gradient(circle at 12% 32%, rgba(255,145,0,.13), transparent 36%), radial-gradient(circle at 88% 34%, rgba(24,216,210,.13), transparent 38%), linear-gradient(180deg, rgba(5,9,17,.82), rgba(3,7,14,.88));
-            box-shadow: 0 18px 42px rgba(0,0,0,.22);
-        }
-
-        .home-hero__field-slot .crypto-arena-field-card__actions {
-            display: none;
-        }
-
-        .home-hero__field-slot .crypto-arena-field-svg {
-            max-height: 310px;
-        }
-
     .home-hero__stats {
         display: grid;
         gap: 1px;
@@ -2536,6 +2323,37 @@
         grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
         gap: .75rem;
         align-content: start;
+    }
+
+    .home-live-empty {
+        grid-column: 1 / -1;
+        display: grid;
+        justify-items: start;
+        gap: .55rem;
+        padding: clamp(1.1rem, 3vw, 1.75rem);
+        border: 1px dashed rgba(var(--team-b-rgb), .3);
+        border-radius: 22px;
+        background: linear-gradient(135deg, rgba(var(--team-b-rgb), .08), rgba(255,255,255,.025));
+    }
+
+    .home-live-empty__eyebrow {
+        color: var(--team-b-color);
+        font-size: .7rem;
+        font-weight: 900;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+    }
+
+    .home-live-empty strong {
+        color: #f3f8ff;
+        font-size: clamp(1.05rem, 2vw, 1.3rem);
+    }
+
+    .home-live-empty p {
+        max-width: 58ch;
+        margin: 0;
+        color: #afbed2;
+        line-height: 1.55;
     }
 
     .arena-top-battle-grid {
@@ -3212,16 +3030,6 @@
             padding: .85rem .7rem;
         }
 
-        .home-hero__field-slot {
-            width: 100%;
-            margin-top: 1rem;
-        }
-
-            .home-hero__field-slot .crypto-arena-field-card {
-                padding: .45rem;
-                border-radius: 18px;
-            }
-
         .home-hot-hero__cta-group,
         .arena-featured-battle__actions,
         .arena-match-card__actions {
@@ -3353,10 +3161,6 @@
 
         .arena-match-grid .arena-scoreboard--card strong {
             font-size: 1.2rem;
-        }
-
-        .home-hero__field-slot .crypto-arena-field-card {
-            padding: .35rem;
         }
 
         .home-hot-hero__cta-group,

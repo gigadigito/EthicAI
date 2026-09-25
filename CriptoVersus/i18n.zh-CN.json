@@ -1132,6 +1132,10 @@
     "trackedCoins": "追踪币种",
     "homeSections": "首页栏目",
     "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "通过可抓取的公开页面关注正在进行的加密货币对战，查看比分、动量和对战背景。",
+    "onlyLiveBattleTitle": "这场是当前唯一的实时对战。",
+    "onlyLiveBattleBody": "新的市场对战开始时，竞技场会自动更新。等待期间可以浏览热门对战。",
+    "noLiveBattlesTitle": "当前没有实时对战。",
+    "noLiveBattlesBody": "竞技场正在准备下一组市场对战。你可以先浏览热门对战，稍后再回来查看。",
     "roadmap": "路线图",
     "liveBattle": "实时对战",
     "arena": {
@@ -1190,11 +1194,11 @@
     "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "通过 SEO 就绪的公开页面，在 CriptoVersus 探索实时加密货币对战、公开比分板、热门币种和市场竞技。",
     "seoDescription": "CriptoVersus 是一个游戏化市场数据可视化平台，将公开加密货币信号转化为足球风格模拟，用于教育性分析。",
     "heroTitle": "在游戏化视觉竞技场中观看实时加密货币市场对战。",
-    "heroDescription": "CriptoVersus 将公开市场表现转化为足球风格的加密货币模拟对战，让不同资产像球队一样竞争。每个周期都会生成新的对战、公开比分、排名，以及由真实市场波动驱动的教育型叙事。",
+    "heroDescription": "公开市场数据变成足球风格的加密货币对战：资产竞争、比分变化，你可以实时关注竞技场。",
     "heroSemanticLabel": "竞技场机制亮点",
-    "heroSemantic1": "在实时加密货币对战中选择一方",
-    "heroSemantic2": "关注对战池与比分变化",
-    "heroSemantic3": "选择一方进行教育性分析",
+    "heroSemantic1": "资产依据真实市场波动竞争",
+    "heroSemantic2": "比分和动能实时更新",
+    "heroSemantic3": "观看竞技场或打开对战",
     "heroSemantic4": "带有游戏化计分的实时加密货币模拟",
     "heroSemantic5": "由真实市场表现驱动的竞技场分析",
     "marketDataDisclaimer": "CriptoVersus 是一个游戏化的市场数据可视化平台。对战比分由公开市场信号生成，不应被视为金融建议、投资推荐或结果保证。",
@@ -1537,6 +1541,11 @@
     "loadingMatch": "加密货币竞技场信息",
     "error": "错误：",
     "matchNotFound": "加密货币竞技场信息",
+    "matchNotFoundBody": "该对战可能已结束或暂不可用。",
+    "loadUnavailableTitle": "暂时无法打开此对战。",
+    "loadUnavailableBody": "请重试，或先返回直播对战列表。",
+    "retry": "重试",
+    "returnHome": "查看直播对战",
     "matchLeader": "对战领先方",
     "wonTheMatch": "加密货币竞技场信息",
     "noLeaderDefined": "加密货币竞技场信息",
@@ -1851,7 +1860,8 @@
       "loading": "正在加载竞技场...",
       "loadingSlow": "竞技场加载时间比预期稍长...",
       "error": "无法加载 3D 竞技场。",
-      "errorBody": "请尝试刷新页面。"
+      "errorBody": "请重试或刷新页面。",
+      "retry": "重试"
     },
     "hero": {
       "eyebrow": "自动直播",
@@ -2795,6 +2805,9 @@
     "officialScore": "服务器官方比分",
     "blockLegend": "1个方块 = 1分",
     "blocksFor": "{0} 的 {1} 个得分方块",
+    "navigationLabel": "K线对战导航",
+    "backToMatch": "返回对战",
+    "watchOnTv": "在 TV 观看",
     "seoTitle": "K线对战 V2 | CriptoVersus",
     "seoDescription": "在实时竞技K线赛场中观看官方加密资产比赛积分变成方块。"
   }

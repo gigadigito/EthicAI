@@ -13,6 +13,7 @@ const broadcastPage = readFileSync(`${projectRoot}/Components/Pages/Internet/TvP
 const desktop = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageDesktop.razor`, "utf8");
 const tablet = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageTablet.razor`, "utf8");
 const mobile = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageMobile.razor`, "utf8");
+const topbar = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageTopbar.razor`, "utf8");
 const fieldPanel = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageFieldPanel.razor`, "utf8");
 const matchDetail = readFileSync(`${projectRoot}/Components/Pages/Internet/MatchDetail.razor`, "utf8");
 const investmentModal = readFileSync(`${projectRoot}/Components/Pages/Internet/MatchInvestmentModal.razor`, "utf8");
@@ -55,8 +56,10 @@ assert.ok(matchDetail.includes('<MatchInvestmentModal @ref="_investmentModal"'),
 assert.ok(investmentModal.includes('prepareInvestment') && investmentModal.includes('/api/match/{matchId}/bet'), "the shared modal must own the existing validated investment flow");
 assert.ok(fieldPanel.includes("@if (Model.CanInvestInArena)"), "Choose availability must continue following the investment business rule");
 assert.ok(fieldPanel.includes("disabled>@Model.InvestLabel</button>"), "closed investment windows must continue rendering a genuinely disabled button");
-assert.ok(stage.includes("@@media (max-width: 1080px)") && stage.includes(".tv-fixed-audio-test {\n            display: none;"), "the redundant fixed audio test must not cover Choose on tablet or mobile");
-assert.ok(mobile.includes('PlayKnownArenaAudioAsync="@PlayKnownArenaAudioAsync"'), "mobile must retain the audio test in its regular topbar");
+assert.match(stage, /@@media\s*\(max-width:\s*1080px\)[\s\S]*?\.tv-fixed-audio-test\s*\{[\s\S]*?display:\s*none;/, "the redundant fixed audio test must not cover Choose on tablet or mobile");
+assert.ok(stage.includes("Environment.IsDevelopment()"), "technical audio diagnostics must not compete with the public broadcast");
+assert.ok(topbar.includes('!string.IsNullOrWhiteSpace(KnownArenaAudioButtonLabel)'), "the public topbar must hide the audio diagnostic when no diagnostic label is supplied");
+assert.ok(desktop.includes('min-height: min(640px, calc(100svh - 42px))'), "the fixed desktop broadcast must not force a taller scene than a short viewport can display");
 assert.ok(matchDetail.includes('"scrollToCurrentFragment"'), "the asynchronously rendered investment panel must resolve its URL fragment");
 assert.ok(matchDetail.includes('"match-investment"'), "the external deep link destination must remain available on the match page");
 
@@ -113,9 +116,9 @@ assert.ok(logoUrlResolver.includes('ProxyRoutePrefix = "/futurebol/team-logo/"')
 assert.ok(webProgram.includes('app.MapGet("/futurebol/team-logo/{symbol}"'), "the Web host must expose the same-origin logo proxy");
 
 assert.ok(bootstrap.includes("const instances = new Map<string, FuturebolEngineContract>()"));
-assert.ok(bootstrap.includes('futurebol-engine.js?v=20260907-led-v1'), "the cache-busted entry must also version its engine dependency");
+assert.ok(bootstrap.includes('futurebol-engine.js?v=20260907-led-v2'), "the cache-busted entry must also version its engine dependency");
 assert.ok(engine.includes('futurebol-match-state.js?v=20260907-camera-market-bubble-v1'), "the unchanged replay state machine must retain its current cache boundary");
-assert.ok(engine.includes('futurebol-renderer.js?v=20260907-led-v1'), "the engine must force the current renderer through stale module caches");
+assert.ok(engine.includes('futurebol-renderer.js?v=20260907-led-v2'), "the engine must force the current renderer through stale module caches");
 assert.ok(renderer.includes('futurebol-arena.js?v=20260907-camera-market-bubble-v1'), "the unchanged arena builder must retain its current cache boundary");
 assert.ok(bootstrap.includes("[FUTUREBOL-TV] canvas found"));
 assert.ok(bootstrap.includes("[FUTUREBOL-TV][READY] initialize success"));

@@ -6,6 +6,9 @@
 @inject CriptoVersus.Web.Services.MatchSeoService MatchSeo
 @inject CriptoVersus.Web.Services.MatchSlugHelper MatchSlugHelper
 @inject CriptoVersus.Web.Services.RouteLocalizationService RouteLocalization
+@inject CriptoVersus.Web.Services.AppCultureService AppCulture
+@inject CriptoVersus.Web.Services.LocalizationService L
+@inject Microsoft.Extensions.Logging.ILogger<MatchDetailRoute> Logger
 @inject NavigationManager Nav
 
 <PageTitle>@_metaTitle</PageTitle>
@@ -95,11 +98,41 @@
     }
 </HeadContent>
 
-@if (!string.IsNullOrWhiteSpace(_error))
+@if (_loading)
 {
-    <div class="container py-3">
-        <div class="alert alert-danger">
-            <strong>Erro:</strong> @_error
+    <div class="container py-3" role="status" aria-live="polite" aria-busy="true">
+        <div class="alert alert-secondary d-flex align-items-center gap-2 mb-0">
+            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            <span>@L.T("matchDetail.loadingMatch", RouteCulture)</span>
+        </div>
+    </div>
+}
+else if (_loadFailed)
+{
+    <div class="container py-3" role="alert">
+        <div class="alert alert-danger mb-0">
+            <strong>@L.T("matchDetail.loadUnavailableTitle", RouteCulture)</strong>
+            <p class="mb-3 mt-2">@L.T("matchDetail.loadUnavailableBody", RouteCulture)</p>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-sm btn-danger" @onclick="RetryLoadAsync">
+                    @L.T("matchDetail.retry", RouteCulture)
+                </button>
+                <a class="btn btn-sm btn-outline-secondary" href="@HomeUrl">
+                    @L.T("matchDetail.returnHome", RouteCulture)
+                </a>
+            </div>
+        </div>
+    </div>
+}
+else if (_matchNotFound)
+{
+    <div class="container py-3" role="status">
+        <div class="alert alert-warning mb-0">
+            <strong>@L.T("matchDetail.matchNotFound", RouteCulture)</strong>
+            <p class="mb-3 mt-2">@L.T("matchDetail.matchNotFoundBody", RouteCulture)</p>
+            <a class="btn btn-sm btn-outline-secondary" href="@HomeUrl">
+                @L.T("matchDetail.returnHome", RouteCulture)
+            </a>
         </div>
     </div>
 }
@@ -135,12 +168,28 @@ else if (_resolvedMatchId > 0)
     private string _structuredDataMarkup = string.Empty;
     private string _slugA = string.Empty;
     private string _slugB = string.Empty;
-    private string? _error;
+    private bool _loading;
+    private bool _loadFailed;
+    private bool _matchNotFound;
     private int _resolvedMatchId;
+    private string RouteCulture => AppCulture.NormalizeRouteCulture(Culture);
+    private string HomeUrl => RouteCulture == AppCultureService.DefaultRouteCulture ? "/" : $"/{RouteCulture}";
 
     protected override async Task OnParametersSetAsync()
     {
-        _error = null;
+        await ResolveMatchAsync();
+    }
+
+    private async Task RetryLoadAsync()
+    {
+        await ResolveMatchAsync();
+    }
+
+    private async Task ResolveMatchAsync()
+    {
+        _loading = true;
+        _loadFailed = false;
+        _matchNotFound = false;
         _resolvedMatchId = 0;
         _slugA = string.Empty;
         _slugB = string.Empty;
@@ -166,14 +215,14 @@ else if (_resolvedMatchId > 0)
         {
             if (MatchId <= 0)
             {
-                _error = "Partida invalida.";
+                _matchNotFound = true;
                 return;
             }
 
             var match = await Api.GetMatchByIdAsync(MatchId);
             if (match is null)
             {
-                _error = $"Nenhuma partida encontrada para o match #{MatchId}.";
+                _matchNotFound = true;
                 return;
             }
 
@@ -210,7 +259,12 @@ else if (_resolvedMatchId > 0)
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            Logger.LogWarning(ex, "MATCH_ROUTE_RESOLUTION_FAILED MatchId={MatchId} Culture={Culture}", MatchId, RouteCulture);
+            _loadFailed = true;
+        }
+        finally
+        {
+            _loading = false;
         }
     }
 

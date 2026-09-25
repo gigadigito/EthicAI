@@ -158,6 +158,21 @@
         z-index: 1000001;
     }
 
+    .match-investment-modal .modal-dialog {
+        width: calc(100% - 1.5rem);
+        max-width: 500px;
+        margin: .75rem auto;
+    }
+
+    .match-investment-modal .modal-content {
+        max-height: calc(100dvh - 1.5rem);
+    }
+
+    .match-investment-modal .modal-body {
+        min-height: 0;
+        overflow-y: auto;
+    }
+
     .amount-modal-team {
         display: grid;
         gap: .25rem;
@@ -267,8 +282,18 @@
     }
 
     @@media (max-width: 480px) {
-        .match-investment-modal .modal-dialog {
-            margin: .75rem;
+        .match-investment-modal .modal-header,
+        .match-investment-modal .modal-body,
+        .match-investment-modal .modal-footer {
+            padding-left: .85rem;
+            padding-right: .85rem;
+        }
+    }
+
+    @@media (max-width: 380px) {
+        .wallet-guard-summary {
+            grid-template-columns: 1fr;
+            gap: .45rem;
         }
     }
 </style>
