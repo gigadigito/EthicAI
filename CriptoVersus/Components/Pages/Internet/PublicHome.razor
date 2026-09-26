@@ -106,7 +106,7 @@
             </ul>
 
             <div class="home-hero__actions">
-                <a class="home-cta home-cta--primary" href="#live-matches">
+                <a class="home-cta home-cta--tertiary" href="#live-matches">
                     @T("exploreLiveMatches")
                 </a>
 
@@ -205,12 +205,12 @@
                     </div>
 
                     <div class="home-hot-hero__cta-group">
-                        <a class="arena-cta-button home-hot-hero__cta"
+                        <a class="arena-cta-button home-hot-hero__cta home-hot-hero__cta--secondary"
                            href="@GetTvWatchUrl(hero)"
                            aria-label="@ArenaText("openArenaAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
                             @ArenaText("openArena")
                         </a>
-                        <a class="arena-cta-link home-hot-hero__cta-link"
+                        <a class="arena-cta-link home-hot-hero__cta-link home-hot-hero__cta--primary"
                            href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
                            aria-label="@ArenaText("openMatchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
                             @ArenaText("openMatch")
@@ -295,12 +295,12 @@
                     </div>
 
                     <div class="home-hot-hero__cta-group">
-                        <a class="arena-cta-button home-hot-hero__cta"
+                        <a class="arena-cta-button home-hot-hero__cta home-hot-hero__cta--secondary"
                            href="@GetTvMatchUrl(hero)"
                            aria-label="@ArenaText("openArenaAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
                             @ArenaText("openArena")
                         </a>
-                        <a class="arena-cta-link home-hot-hero__cta-link"
+                        <a class="arena-cta-link home-hot-hero__cta-link home-hot-hero__cta--primary"
                            href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
                            aria-label="@ArenaText("openMatchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
                             @ArenaText("openMatch")
@@ -1868,13 +1868,6 @@
 }
 
 <style>
-    .public-home-arena {
-        --team-a-color: #ff9100;
-        --team-a-rgb: 255, 145, 0;
-        --team-b-color: #18d8d2;
-        --team-b-rgb: 24, 216, 210;
-    }
-
         .public-home-arena img[class*="__logo"] {
             box-sizing: border-box;
         }
@@ -1971,12 +1964,29 @@
     }
 
     .home-cta--primary {
-        background: linear-gradient(90deg, var(--team-a-color), var(--team-b-color));
-        color: #03150f;
+        background: var(--cv-action);
+        color: var(--cv-action-text);
+        box-shadow: var(--cv-glow-sm);
     }
 
         .home-cta--primary:hover {
-            color: #03150f;
+            background: var(--cv-action-hover);
+            color: var(--cv-action-text);
+            box-shadow: var(--cv-glow-md);
+        }
+
+    .home-cta--tertiary {
+        min-height: auto;
+        padding: .45rem 0;
+        border-bottom: 1px solid rgba(var(--team-b-rgb), .42);
+        border-radius: 0;
+        color: var(--cv-brand-secondary);
+    }
+
+        .home-cta--tertiary:hover,
+        .home-cta--tertiary:focus-visible {
+            border-bottom-color: var(--cv-brand-secondary);
+            color: #7ffaf6;
         }
 
     .home-cta--secondary,
@@ -2168,6 +2178,42 @@
         display: inline-flex;
         align-items: center;
     }
+
+    .home-hot-hero__cta--primary,
+    .home-hot-hero__cta--primary:visited {
+        color: var(--cv-action-text);
+        background: var(--cv-action);
+        border-color: var(--cv-action);
+        box-shadow: var(--cv-glow-sm);
+    }
+
+        .home-hot-hero__cta--primary:hover,
+        .home-hot-hero__cta--primary:focus-visible,
+        .home-hot-hero__cta--primary:active {
+            color: var(--cv-action-text);
+            background: var(--cv-action-hover);
+            border-color: var(--cv-action-hover);
+            box-shadow: var(--cv-glow-md);
+            filter: none;
+        }
+
+    .home-hot-hero__cta--secondary,
+    .home-hot-hero__cta--secondary:visited {
+        color: var(--cv-text);
+        background: rgba(var(--team-b-rgb), .045);
+        border-color: rgba(var(--team-b-rgb), .46);
+        box-shadow: none;
+    }
+
+        .home-hot-hero__cta--secondary:hover,
+        .home-hot-hero__cta--secondary:focus-visible,
+        .home-hot-hero__cta--secondary:active {
+            color: var(--cv-text);
+            background: rgba(var(--team-b-rgb), .1);
+            border-color: rgba(var(--team-b-rgb), .72);
+            box-shadow: 0 0 0 1px rgba(var(--team-b-rgb), .12);
+            filter: none;
+        }
 
     .home-hot-hero--skeleton,
     .arena-match-card--skeleton {

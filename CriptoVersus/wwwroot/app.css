@@ -7,9 +7,9 @@ a, .btn-link {
 }
 
 .btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    color: var(--cv-action-text, #160900);
+    background-color: var(--cv-action, #ff9100);
+    border-color: var(--cv-action, #ff9100);
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
@@ -57,6 +57,7 @@ h1:focus {
     --cv-bg: #0f1115;
     --cv-surface: #181b21;
     --cv-surface-elevated: #1e2229;
+    --cv-surface-soft: #14171d;
 
     /* === BORDER === */
     --cv-border: rgba(255,255,255,.08);
@@ -65,7 +66,9 @@ h1:focus {
     /* === TEXT === */
     --cv-text: #f3f4f6;
     --cv-text-muted: #b0b8c4;
-    --cv-text-secondary: #6b7280;
+    --cv-text-soft: #8f99a7;
+    --cv-text-disabled: #69717d;
+    --cv-text-secondary: var(--cv-text-soft);
 
     /* === BRAND === */
     --cv-brand: #ff9100;
@@ -76,6 +79,7 @@ h1:focus {
     --cv-action: #ff9100;
     --cv-action-hover: #ff7b00;
     --cv-action-text: #160900;
+    --cv-action-rgb: 255, 145, 0;
 
     /* === SUCCESS === */
     --cv-success: #4cf38d;
@@ -83,6 +87,7 @@ h1:focus {
 
     /* === DANGER === */
     --cv-danger: #ef4444;
+    --cv-danger-text: #f87171;
     --cv-danger-soft: rgba(239,68,68,.15);
 
     /* === WARNING === */
@@ -93,17 +98,30 @@ h1:focus {
     --cv-info: #53c8ff;
     --cv-info-soft: rgba(83,200,255,.12);
 
+    /* === MARKET SEMANTICS === */
+    --cv-market-positive: #4cf38d;
+    --cv-market-positive-soft: rgba(76,243,141,.12);
+    --cv-market-negative: #f87171;
+    --cv-market-negative-soft: rgba(248,113,113,.12);
+
     /* === DYNAMIC (team context) === */
     --team-a-color: #ff9100;
     --team-a-rgb: 255, 145, 0;
     --team-b-color: #18d8d2;
     --team-b-rgb: 24, 216, 210;
+
+    /* === ELEVATION / GLOW SCALE === */
+    --cv-shadow-sm: 0 8px 22px rgba(0,0,0,.24);
+    --cv-shadow-md: 0 18px 42px rgba(0,0,0,.32);
+    --cv-glow-sm: 0 0 14px rgba(var(--cv-action-rgb),.14);
+    --cv-glow-md: 0 0 24px rgba(var(--cv-action-rgb),.2);
+    --cv-glow-lg: 0 0 40px rgba(var(--cv-action-rgb),.26);
 }
 
 html,
 body {
-    background: #0f1115;
-    color: #f3f4f6;
+    background: var(--cv-bg);
+    color: var(--cv-text);
 }
 
 body {
@@ -126,16 +144,18 @@ a:hover,
 }
 
 .btn-primary {
-    background: linear-gradient(180deg, #4b146b 0%, #2e0943 100%);
-    border-color: #a78bfa;
-    color: #f8fafc;
+    background: var(--cv-action);
+    border-color: var(--cv-action);
+    color: var(--cv-action-text);
+    box-shadow: var(--cv-glow-sm);
 }
 
 .btn-primary:hover,
 .btn-primary:focus {
-    background: linear-gradient(180deg, #5b1a82 0%, #3a0c56 100%);
-    border-color: #c4b5fd;
-    color: #f8fafc;
+    background: var(--cv-action-hover);
+    border-color: var(--cv-action-hover);
+    color: var(--cv-action-text);
+    box-shadow: var(--cv-glow-md);
 }
 
 .btn:focus,
@@ -144,20 +164,20 @@ a:hover,
 .form-control:focus,
 .form-select:focus,
 .form-check-input:focus {
-    box-shadow: 0 0 0 .2rem rgba(167, 139, 250, .28);
+    box-shadow: 0 0 0 .2rem rgba(var(--cv-action-rgb), .28);
 }
 
 .card {
-    background: #181b21;
-    border: 1px solid #303741;
+    background: var(--cv-surface);
+    border: 1px solid var(--cv-border-strong);
     border-radius: 8px;
-    color: #f3f4f6;
+    color: var(--cv-text);
 }
 
 .card-header {
-    background: #14171d;
-    border-bottom: 1px solid #303741;
-    color: #f9fafb;
+    background: var(--cv-surface-soft);
+    border-bottom: 1px solid var(--cv-border-strong);
+    color: var(--cv-text);
 }
 
 .text-muted {
@@ -166,17 +186,25 @@ a:hover,
 
 .form-select,
 .form-control {
-    background-color: #111318;
-    border-color: #374151;
+    background-color: var(--cv-surface-soft);
+    border-color: var(--cv-border-strong);
     border-radius: 8px;
-    color: #f3f4f6;
+    color: var(--cv-text);
 }
 
 .form-select:focus,
 .form-control:focus {
-    background-color: #111318;
-    border-color: #2dd4bf;
-    color: #f3f4f6;
+    background-color: var(--cv-surface-soft);
+    border-color: var(--cv-action);
+    color: var(--cv-text);
+}
+
+.text-success {
+    color: var(--cv-success) !important;
+}
+
+.text-danger {
+    color: var(--cv-danger-text) !important;
 }
 
 .toast-message {
