@@ -52,6 +52,52 @@ h1:focus {
 
 :root {
     color-scheme: dark;
+
+    /* === BACKGROUND === */
+    --cv-bg: #0f1115;
+    --cv-surface: #181b21;
+    --cv-surface-elevated: #1e2229;
+
+    /* === BORDER === */
+    --cv-border: rgba(255,255,255,.08);
+    --cv-border-strong: rgba(255,255,255,.14);
+
+    /* === TEXT === */
+    --cv-text: #f3f4f6;
+    --cv-text-muted: #b0b8c4;
+    --cv-text-secondary: #6b7280;
+
+    /* === BRAND === */
+    --cv-brand: #ff9100;
+    --cv-brand-hover: #ff7b00;
+    --cv-brand-secondary: #18d8d2;
+
+    /* === ACTION (CTA) === */
+    --cv-action: #ff9100;
+    --cv-action-hover: #ff7b00;
+    --cv-action-text: #160900;
+
+    /* === SUCCESS === */
+    --cv-success: #4cf38d;
+    --cv-success-soft: rgba(76,243,141,.15);
+
+    /* === DANGER === */
+    --cv-danger: #ef4444;
+    --cv-danger-soft: rgba(239,68,68,.15);
+
+    /* === WARNING === */
+    --cv-warning: #f59e0b;
+    --cv-warning-soft: rgba(245,158,11,.12);
+
+    /* === INFO === */
+    --cv-info: #53c8ff;
+    --cv-info-soft: rgba(83,200,255,.12);
+
+    /* === DYNAMIC (team context) === */
+    --team-a-color: #ff9100;
+    --team-a-rgb: 255, 145, 0;
+    --team-b-color: #18d8d2;
+    --team-b-rgb: 24, 216, 210;
 }
 
 html,
@@ -115,7 +161,7 @@ a:hover,
 }
 
 .text-muted {
-    color: #9ca3af !important;
+    color: var(--cv-text-muted) !important;
 }
 
 .form-select,

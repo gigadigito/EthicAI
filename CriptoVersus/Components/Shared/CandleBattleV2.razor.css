@@ -106,8 +106,8 @@
 .is-right .candle-v2__team-copy div { justify-content: flex-end; }
 .candle-v2__team-copy b { color: #d9ecf3; }
 .candle-v2__team-copy em { font-style: normal; font-weight: 800; }
-.is-positive { color: #57ef9d; }
-.is-negative { color: #ff6684; }
+.is-positive { color: var(--cv-success); }
+.is-negative { color: var(--cv-danger); }
 .is-neutral { color: #7f99a8; }
 
 .candle-v2__versus {
