@@ -310,6 +310,23 @@ main {
 }
 
 @media (max-width: 576px) {
+    .topbar-tools {
+        flex-wrap: wrap;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .language-switcher {
+        flex: 0 1 auto;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .wallet-button {
+        flex: 1 0 100%;
+        min-width: 0;
+    }
+
     .app-content {
         padding: .85rem !important;
     }
