@@ -14,55 +14,54 @@ public sealed class AppCultureService
     public const string TertiaryCultureCode = "zh-CN";
     public const string PreferenceCookieName = "cv_culture";
 
-    public string NormalizeRouteCulture(string? culture)
-    {
-        if (string.IsNullOrWhiteSpace(culture))
-            return DefaultRouteCulture;
+    private readonly SupportedLanguageCatalog _languages;
 
-        var normalized = culture.Trim().ToLowerInvariant();
-        return normalized switch
-        {
-            "en" or "en-us" => DefaultRouteCulture,
-            "pt" or "pt-br" => SecondaryRouteCulture,
-            "zh" or "zh-cn" or "zh-hans" or "zh-hans-cn" => TertiaryRouteCulture,
-            _ => DefaultRouteCulture
-        };
+    public AppCultureService()
+        : this(new SupportedLanguageCatalog())
+    {
     }
 
-    public string ToCultureCode(string? culture)
-        => NormalizeRouteCulture(culture) switch
+    public AppCultureService(SupportedLanguageCatalog languages)
+    {
+        _languages = languages;
+    }
+
+    public IReadOnlyList<SupportedLanguage> SupportedLanguages => _languages.EnabledLanguages;
+
+    public string NormalizeRouteCulture(string? culture)
+        => _languages.GetOrDefault(culture).RouteCulture;
+
+    public bool TryNormalizeRouteCulture(string? culture, out string normalizedCulture)
+    {
+        if (_languages.TryGet(culture, out var language))
         {
-            SecondaryRouteCulture => SecondaryCultureCode,
-            TertiaryRouteCulture => TertiaryCultureCode,
-            _ => DefaultCultureCode
-        };
+            normalizedCulture = language.RouteCulture;
+            return true;
+        }
+
+        normalizedCulture = DefaultRouteCulture;
+        return false;
+    }
+
+    public bool IsSupportedCulture(string? culture)
+        => _languages.TryGet(culture, out _);
+
+    public string ToCultureCode(string? culture)
+        => _languages.GetOrDefault(culture).Culture;
 
     public string ToHtmlLang(string? culture)
         => ToCultureCode(culture);
 
     public string ToHrefLang(string? culture)
-        => NormalizeRouteCulture(culture) switch
-        {
-            SecondaryRouteCulture => "pt-BR",
-            TertiaryRouteCulture => "zh-CN",
-            _ => "en-US"
-        };
+        => ToCultureCode(culture);
 
     public string ToOgLocale(string? culture)
-        => NormalizeRouteCulture(culture) switch
-        {
-            SecondaryRouteCulture => "pt_BR",
-            TertiaryRouteCulture => "zh_CN",
-            _ => "en_US"
-        };
+        => _languages.GetOrDefault(culture).OgLocale;
 
+    // Kept for existing metadata consumers. New code should enumerate SupportedLanguages when it needs every alternate.
     public string GetAlternateOgLocale(string? culture)
-        => NormalizeRouteCulture(culture) switch
-        {
-            SecondaryRouteCulture => "en_US",
-            TertiaryRouteCulture => "en_US",
-            _ => "pt_BR"
-        };
+        => SupportedLanguages.FirstOrDefault(language => !language.RouteCulture.Equals(NormalizeRouteCulture(culture), StringComparison.OrdinalIgnoreCase))?.OgLocale
+           ?? _languages.DefaultLanguage.OgLocale;
 
     public string GetCurrentRouteCulture(NavigationManager navigationManager)
         => GetRouteCultureFromRelativePath(navigationManager.ToBaseRelativePath(navigationManager.Uri));
@@ -107,16 +106,7 @@ public sealed class AppCultureService
             .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .FirstOrDefault();
 
-        return firstSegment is null
-            ? null
-            : firstSegment.Equals("en", StringComparison.OrdinalIgnoreCase)
-               || firstSegment.Equals("pt", StringComparison.OrdinalIgnoreCase)
-               || firstSegment.Equals("zh", StringComparison.OrdinalIgnoreCase)
-               || firstSegment.Equals("zh-cn", StringComparison.OrdinalIgnoreCase)
-               || firstSegment.Equals("zh-hans", StringComparison.OrdinalIgnoreCase)
-               || firstSegment.Equals("zh-hans-cn", StringComparison.OrdinalIgnoreCase)
-                ? NormalizeRouteCulture(firstSegment)
-                : null;
+        return TryNormalizeRouteCulture(firstSegment, out var culture) ? culture : null;
     }
 
     private string? NormalizeCookieCulture(string? rawCulture)
@@ -124,7 +114,7 @@ public sealed class AppCultureService
         if (string.IsNullOrWhiteSpace(rawCulture))
             return null;
 
-        return NormalizeRouteCulture(rawCulture);
+        return TryNormalizeRouteCulture(rawCulture, out var culture) ? culture : null;
     }
 
     private string? NormalizeAcceptLanguage(string? rawHeader)
@@ -135,18 +125,14 @@ public sealed class AppCultureService
         foreach (var item in rawHeader.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             var language = item.Split(';', StringSplitOptions.TrimEntries)[0];
-            if (language.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-                return TertiaryRouteCulture;
+            if (TryNormalizeRouteCulture(language, out var exact))
+                return exact;
 
-            if (language.StartsWith("pt", StringComparison.OrdinalIgnoreCase))
-                return SecondaryRouteCulture;
-
-            if (language.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-                return DefaultRouteCulture;
+            var neutralLanguage = language.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+            if (TryNormalizeRouteCulture(neutralLanguage, out var neutral))
+                return neutral;
         }
 
         return null;
     }
 }
-
-

@@ -2,6 +2,13 @@
 @page "/en"
 @page "/pt"
 @page "/zh"
+@page "/es"
+@page "/fr"
+@page "/de"
+@page "/it"
+@page "/ja"
+
+
 @using Microsoft.AspNetCore.Components
 @using System.Diagnostics
 @using System.Globalization
@@ -612,6 +619,7 @@
 </section>
 
 @code {
+    [Parameter] public string? Culture { get; set; }
     private DashboardSnapshotDto? _snapshot;
     private bool _disposed;
     private readonly SemaphoreSlim _reloadLock = new(1, 1);

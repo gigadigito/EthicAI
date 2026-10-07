@@ -47,6 +47,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddSingleton<SupportedLanguageCatalog>();
 builder.Services.AddSingleton<AppCultureService>();
 builder.Services.AddSingleton<LocalizationService>();
 builder.Services.AddSingleton<LocalizedMediaPathResolver>();
@@ -269,6 +270,26 @@ app.MapMethods("/sitemap-matches-pt.xml", ["GET", "HEAD"], async (HttpContext ht
 app.MapMethods("/sitemap-matches-zh.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
 {
     var xml = await sitemapService.GetMatchSitemapXmlAsync("zh", ct);
+    httpContext.Response.ContentType = "application/xml; charset=utf-8";
+    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
+
+    if (HttpMethods.IsHead(httpContext.Request.Method))
+        return Results.Empty;
+
+    return Results.Content(xml, "application/xml; charset=utf-8");
+});
+
+app.MapMethods("/sitemap-matches-{culture}.xml", ["GET", "HEAD"], async (
+    HttpContext httpContext,
+    string culture,
+    AppCultureService cultures,
+    SitemapService sitemapService,
+    CancellationToken ct) =>
+{
+    if (!cultures.TryNormalizeRouteCulture(culture, out var normalizedCulture))
+        return Results.NotFound();
+
+    var xml = await sitemapService.GetMatchSitemapXmlAsync(normalizedCulture, ct);
     httpContext.Response.ContentType = "application/xml; charset=utf-8";
     httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
 

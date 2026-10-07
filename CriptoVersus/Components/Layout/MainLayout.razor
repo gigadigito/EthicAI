@@ -46,18 +46,9 @@ else
                                     Variant="header" />
                 </div>
 
-                <div class="language-switcher" role="group" aria-label="@L.T("layout.topbar.language", CurrentCulture)">
-                    @foreach (var option in LanguageOptions)
-                    {
-                        <button type="button"
-                                class="language-switcher__btn @(CurrentCulture == option.Culture ? "language-switcher__btn--active" : string.Empty)"
-                                title="@option.Label"
-                                aria-pressed="@(CurrentCulture == option.Culture)"
-                                @onclick='() => ChangeLanguageAsync(option.Culture)'>
-                            @option.Label
-                        </button>
-                    }
-                </div>
+                <LanguageSelector CurrentCulture="@CurrentCulture"
+                                  AriaLabel="@L.T("layout.topbar.language", CurrentCulture)"
+                                  OnCultureSelected="ChangeLanguageAsync" />
 
                 @if (ShowWalletUi)
                 {
@@ -111,6 +102,11 @@ else
     <SolanaWalletModal @ref="loginModal"
                        OnLoginSucceeded="HandleLoginSucceededAsync"
                        OnSessionChanged="HandleSessionChangedAsync" />
+}
+
+@if (IsPublicSeoRoute)
+{
+    <LocalizedSeoAlternates />
 }
 
 @if (_showPostLoginPrompt)
@@ -171,32 +167,6 @@ else
 
     .topbar-community {
         display: flex;
-    }
-
-    .language-switcher {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .language-switcher__btn {
-        border: 0;
-        background: transparent;
-        color: rgba(255,255,255,.72);
-        border-radius: 999px;
-        padding: .45rem .8rem;
-        font-size: .78rem;
-        font-weight: 800;
-        letter-spacing: .04em;
-    }
-
-    .language-switcher__btn--active {
-        color: #fff;
-        background: rgba(255,255,255,.1);
     }
 
     .post-login-overlay {
@@ -369,12 +339,6 @@ else
     private IJSObjectReference? _appVersionModule;
     private DotNetObjectReference<MainLayout>? _walletObserverRef;
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
-    private IReadOnlyList<LanguageOption> LanguageOptions => new[]
-    {
-        new LanguageOption("en", L.T("layout.topbar.english", CurrentCulture)),
-        new LanguageOption("pt", L.T("layout.topbar.portuguese", CurrentCulture)),
-        new LanguageOption("zh", "中文")
-    };
     private bool _interactiveChromeReady;
     private bool _showPostLoginPrompt;
     private bool IsPublicSeoRoute => IsPublicRoute(Nav.Uri);
@@ -643,8 +607,6 @@ else
 
         _walletObserverRef?.Dispose();
     }
-
-    private sealed record LanguageOption(string Culture, string Label);
 
     public sealed class WalletProviderStateChange
     {

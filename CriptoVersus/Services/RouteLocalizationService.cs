@@ -253,6 +253,36 @@ public sealed class RouteLocalizationService
 
         var segments = cleanPath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
+        // New cultures share the stable English route shapes. Portuguese keeps its established translated slugs.
+        // Keeping this translation here lets the language selector work for future cultures without another list.
+        if (normalizedCurrent is not null && segments.Length >= 2)
+        {
+            var localizedTail = string.Join('/', segments.Skip(1));
+            switch (localizedTail.ToLowerInvariant())
+            {
+                case "roadmap": return BuildRoadmapPath(normalizedTarget) + querySuffix;
+                case "faq": return BuildFaqPath(normalizedTarget) + querySuffix;
+                case "about": return BuildAboutPath(normalizedTarget) + querySuffix;
+                case "scoring-rules": return BuildScoringRulesPath(normalizedTarget) + querySuffix;
+                case "risk-disclaimer": return BuildRiskDisclaimerPath(normalizedTarget) + querySuffix;
+                case "social/hot-matches": return BuildHotMatchesSocialPath(normalizedTarget) + querySuffix;
+                case "social/win-rate-24h": return BuildWinRate24hSocialPath(normalizedTarget) + querySuffix;
+                case "how-it-works": return BuildHowItWorksPath(normalizedTarget) + querySuffix;
+                case "stats": return BuildStatsPath(normalizedTarget) + querySuffix;
+                case "stats/matches": return BuildStatsMatchesPath(normalizedTarget) + querySuffix;
+                case "stats/teams": return BuildStatsTeamsPath(normalizedTarget) + querySuffix;
+                case "stats/rankings": return BuildStatsRankingsPath(normalizedTarget) + querySuffix;
+                case "stats/records": return BuildStatsRecordsPath(normalizedTarget) + querySuffix;
+                case "token": return BuildTokenPath(normalizedTarget) + querySuffix;
+            }
+
+            if (localizedTail.StartsWith("stats/teams/", StringComparison.OrdinalIgnoreCase))
+                return BuildStatsTeamDetailPath(normalizedTarget, segments[^1]) + querySuffix;
+
+            if (TryExtractConverterPair(cleanPath, out var localizedFromSymbol, out var localizedToSymbol))
+                return BuildConverterPath(normalizedTarget, localizedFromSymbol, localizedToSymbol) + querySuffix;
+        }
+
         if (cleanPath.Equals("/tv", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/tv", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/pt/tv", StringComparison.OrdinalIgnoreCase)
@@ -339,6 +369,31 @@ public sealed class RouteLocalizationService
         {
             return Uri.EscapeDataString(trimmed);
         }
+    }
+
+    private static string BuildConverterPath(string culture, string fromSymbol, string toSymbol)
+        => string.Equals(culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase)
+            ? $"/pt/stats/{fromSymbol}-para-{toSymbol}"
+            : $"/{culture}/stats/{fromSymbol}-to-{toSymbol}";
+
+    private bool TryExtractConverterPair(string path, out string fromSymbol, out string toSymbol)
+    {
+        fromSymbol = string.Empty;
+        toSymbol = string.Empty;
+        var segments = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (segments.Length != 3
+            || _appCultureService.TryGetExplicitCultureFromPath(path) is null
+            || !segments[1].Equals("stats", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var separator = NormalizeCulture(segments[0]) == AppCultureService.SecondaryRouteCulture ? "-para-" : "-to-";
+        var pair = segments[2].Split(new[] { separator }, 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (pair.Length != 2 || string.Equals(pair[0], pair[1], StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        fromSymbol = pair[0].Trim().ToLowerInvariant();
+        toSymbol = pair[1].Trim().ToLowerInvariant();
+        return !string.IsNullOrWhiteSpace(fromSymbol) && !string.IsNullOrWhiteSpace(toSymbol);
     }
 }
 

@@ -1,0 +1,2812 @@
+{
+  "layout": {
+    "topbar": {
+      "eyebrow": "Arène CriptoVersus",
+      "title": "Marché des matchs",
+      "login": "Se connecter",
+      "connectWallet": "Connecter le portefeuille",
+      "language": "Langue",
+      "english": "Anglais",
+      "portuguese": "Portugais"
+    },
+    "postLogin": {
+      "eyebrow": "Portefeuille connecté",
+      "title": "Voulez-vous ouvrir votre portefeuille maintenant ?",
+      "body": "Votre portefeuille a été connecté avec succès. Vous pouvez ouvrir Mon portefeuille maintenant ou rester sur la page actuelle.",
+      "stay": "Rester sur cette page",
+      "goToWallet": "Aller à Mon portefeuille"
+    },
+    "footer": {
+      "semanticDescription": "CriptoVersus est une arène gamifiée de données de marché crypto où les utilisateurs choisissent un camp dans des simulations publiques et consultent les performances du marché via un système de notation inspiré du sport.",
+      "institutionalTitle": "Pages institutionnelles",
+      "about": "À propos",
+      "scoringRules": "Règles de notation",
+      "riskDisclaimer": "Avertissement sur les risques"
+    }
+  },
+  "nav": {
+    "brandSubtitle": "Arène de trading",
+    "home": "Accueil",
+    "howItWorks": "Fonctionnement",
+    "token": "Token",
+    "stats": "Statistiques",
+    "roadmap": "Feuille de route",
+    "faq": "FAQ",
+    "tvBroadcast": "Diffusion TV",
+    "wallet": "Mon portefeuille",
+    "admin": "Admin",
+    "connected": "Environnement connecté"
+  },
+  "community": {
+    "title": "Communauté",
+    "kicker": "Réseau de l'Arène",
+    "joinArena": "Rejoindre l'Arène",
+    "description": "Restez proche de la foule en direct, du rythme de diffusion et des mises à jour des matchs sur les canaux officiels de CriptoVersus.",
+    "youtube": {
+      "name": "YouTube",
+      "action": "Regarder la chaîne",
+      "cta": "Ouvrir YouTube",
+      "aria": "Ouvrir la chaîne YouTube officielle de CriptoVersus"
+    },
+    "pump": {
+      "name": "Pump.fun",
+      "action": "Voir le token",
+      "cta": "Ouvrir Pump.fun",
+      "aria": "Ouvrir la page officielle du token CriptoVersus sur Pump.fun"
+    },
+    "x": {
+      "name": "X",
+      "action": "Suivre les mises à jour",
+      "cta": "Suivre sur X",
+      "aria": "Ouvrir le profil officiel de CriptoVersus sur X"
+    },
+    "telegram": {
+      "name": "Telegram",
+      "action": "Rejoindre la communauté",
+      "cta": "Rejoindre Telegram",
+      "aria": "Ouvrir la communauté Telegram officielle de CriptoVersus"
+    }
+  },
+  "home": {
+    "seo": {
+      "title": "CriptoVersus | Arène de matchs crypto en direct",
+      "description": "Suivez les matchs crypto en direct sur CriptoVersus avec le score, les performances du marché, les statistiques et les pages de matchs publiques conçues pour un public mondial.",
+      "ogTitle": "CriptoVersus | Arène de matchs crypto en direct",
+      "ogDescription": "Regardez les matchs crypto en direct, les tableaux de score et les batailles de marché sur CriptoVersus."
+    },
+    "page": {
+      "title": "Tableau de bord",
+      "loading": "Chargement...",
+      "emptySnapshot": "Aucune donnée de snapshot disponible."
+    },
+    "dashboard": {
+      "pending": "En attente",
+      "ongoing": "En direct",
+      "completed24h": "Terminés (24h)",
+      "investments": "Sélections",
+      "openMarkets": "Matchs avec sélection ouverte",
+      "noOpenMarkets": "Aucun match actuellement disponible pour la sélection.",
+      "matchId": "Match #{0}",
+      "invest": "Choisir",
+      "investIn": "Choisir {0}",
+      "closedInvestments": "Sélections fermées",
+      "follow": "Suivre",
+      "liveEyebrow": "En direct",
+      "liveMatches": "Matchs en direct",
+      "noLiveMatches": "Aucun match en direct pour le moment.",
+      "liveTracking": "Couverture en direct",
+      "openMatchPanel": "Ouvrir le panneau du match",
+      "marketRealtime": "Le marché suit les mouvements de prix en temps réel",
+      "details": "Détails",
+      "completedEyebrow": "Terminé",
+      "completedMatches": "Matchs terminés",
+      "noCompletedMatches": "Aucun match terminé au cours des dernières 24 heures.",
+      "matchCompleted": "Match terminé",
+      "internalStatus": "Statut interne",
+      "historyAvailable": "Historique du match et journal disponibles",
+      "marketEyebrow": "Marché",
+      "noData": "Aucune donnée.",
+      "awaitingStart": "En attente de début",
+      "liveClock": "{0}' joué · -{1}'",
+      "elapsedOnly": "{0}' joué",
+      "statusOpen": "OUVERT",
+      "statusClosed": "FERMÉ"
+    }
+  },
+  "match": {
+    "seo": {
+      "live": {
+        "title": "{0} vs {1} Match en direct | CriptoVersus",
+        "description": "Regardez le match crypto en direct entre {0} et {1} sur CriptoVersus. Explorez la sélection de côté, les changements de score publics, les pools de match et les performances du marché en temps réel."
+      },
+      "completed": {
+        "title": "{0} vs {1} Match terminé | CriptoVersus",
+        "description": "Consultez le match crypto terminé entre {0} et {1} sur CriptoVersus. Score final, contexte du marché, performance des côtés et historique de l'arène présentés pour une analyse éducative."
+      },
+      "pending": {
+        "title": "{0} vs {1} Match à venir | CriptoVersus",
+        "description": "Prévisualisez le match crypto à venir entre {0} et {1} sur CriptoVersus, où les utilisateurs peuvent choisir un côté pour le prochain cycle de l'arène et suivre les signaux publics du marché."
+      },
+      "fallback": {
+        "title": "{0} vs {1} Match | CriptoVersus",
+        "description": "Consultez les détails du match {0} vs {1} sur CriptoVersus, y compris le contexte de sélection de côté, les pools de match, la pression du marché et l'historique du score."
+      }
+    },
+    "status": {
+      "ongoing": "En direct",
+      "completed": "Terminé",
+      "pending": "En attente"
+    }
+  },
+  "roadmap": {
+    "pageTitle": "Feuille de route CriptoVersus | Évolution de la plateforme",
+    "metaDescription": "Suivez la feuille de route publique de CriptoVersus : matchs crypto, historique public des matchs, règles de notation, transparence, internationalisation et futures intégrations blockchain.",
+    "openGraph": {
+      "title": "Feuille de route CriptoVersus",
+      "description": "Découvrez l'évolution prévue de CriptoVersus, y compris les matchs crypto, l'historique public des matchs, les règles avancées, l'i18n et les intégrations blockchain.",
+      "type": "website"
+    },
+    "hero": {
+      "eyebrow": "Aperçu public du produit",
+      "title": "Feuille de route CriptoVersus",
+      "subtitle": "Suivez l'évolution de la plateforme, les nouvelles règles de match, les améliorations de transparence et les intégrations futures.",
+      "primaryCtaLabel": "Voir les matchs en direct",
+      "secondaryCtaLabel": "Lire les règles"
+    },
+    "labels": {
+      "phasesMapped": "Phases cartographiées",
+      "workstreamsActive": "Flux de travail actifs",
+      "workstreamsDescription": "Cartes de statut, principes et jalons visibles de la feuille de route.",
+      "publicEvolution": "Évolution publique de la fondation au commentaire IA.",
+      "currentFocus": "Focus actuel",
+      "nextMilestone": "Prochain jalon",
+      "brandPillars": "Piliers de la marque",
+      "statusSummary": "Feuille de route de la plateforme expérimentale",
+      "currentFocusFallback": "Exécution active de la feuille de route",
+      "nextMilestoneFallback": "Feuille de route en expansion",
+      "nextMilestoneFallbackItem": "Les détails de la prochaine livraison seront publiés bientôt."
+    },
+    "section": {
+      "roadmap": "Feuille de route",
+      "projectStatus": "Statut du projet",
+      "currentPlatformDirection": "Direction actuelle de la plateforme",
+      "plannedEvolutionByPhase": "Évolution prévue par phase",
+      "guidingPrinciples": "Principes directeurs",
+      "howProductDecisionsAreFramed": "Comment les décisions produit sont structurées"
+    },
+    "status": {
+      "completed": "Terminé",
+      "inProgress": "En cours",
+      "planned": "Planifié",
+      "future": "Futur",
+      "experimental": "Expérimental"
+    },
+    "pillars": {
+      "competition": {
+        "title": "Compétition",
+        "subtitle": "Entre actifs numériques"
+      },
+      "strategy": {
+        "title": "Stratégie",
+        "subtitle": "Performance et timing"
+      },
+      "technology": {
+        "title": "Technologie",
+        "subtitle": "Infrastructure blockchain"
+      },
+      "ranking": {
+        "title": "Classement",
+        "subtitle": "Notation et progression"
+      },
+      "global": {
+        "title": "Mondial",
+        "subtitle": "Arène décentralisée"
+      }
+    },
+    "brandPillars": [
+      {
+        "icon": "✦",
+        "accent": "purple",
+        "title": "Compétition",
+        "subtitle": "Entre actifs numériques"
+      },
+      {
+        "icon": "↗",
+        "accent": "green",
+        "title": "Stratégie",
+        "subtitle": "Performance et timing"
+      },
+      {
+        "icon": "⬢",
+        "accent": "cyan",
+        "title": "Technologie",
+        "subtitle": "Infrastructure blockchain"
+      },
+      {
+        "icon": "ðŸ†",
+        "accent": "gold",
+        "title": "Classement",
+        "subtitle": "Notation et progression"
+      },
+      {
+        "icon": "◎",
+        "accent": "purple",
+        "title": "Mondial",
+        "subtitle": "Arène décentralisée"
+      }
+    ],
+    "statusCards": [
+      {
+        "title": "Développement actif",
+        "description": "La plateforme évolue continuellement avec des publications publiques et des raffinements opérationnels.",
+        "tag": "Actif"
+      },
+      {
+        "title": "Matchs crypto automatisés",
+        "description": "Cycles basés sur le marché entre actifs avec suivi du score et mises à jour continues.",
+        "tag": "Automatisation"
+      },
+      {
+        "title": "Historique public",
+        "description": "Les résultats et le contexte des matchs deviennent de plus en plus visibles pour l'audit et la revue.",
+        "tag": "Transparence"
+      },
+      {
+        "title": "Règles en évolution",
+        "description": "Les modèles de notation et les dynamiques économiques sont encore testés et raffinés.",
+        "tag": "Itération"
+      },
+      {
+        "title": "Prêt pour l'expansion internationale",
+        "description": "Le routage, le SEO et le support des fuseaux horaires locaux sont en cours de construction pour plusieurs régions.",
+        "tag": "i18n-ready"
+      }
+    ],
+    "phases": [
+      {
+        "phaseLabel": "Phase 1",
+        "title": "Fondation de la plateforme",
+        "status": "InProgress",
+        "description": "Fondation opérationnelle pour les matchs publics, les premiers cycles et le flux de jeu basé sur le marché.",
+        "items": [
+          "Création de matchs entre tokens",
+          "Intégration des données de marché",
+          "Vue des matchs en direct",
+          "Historique des matchs terminés",
+          "Enregistrement des résultats et du score"
+        ],
+        "sortOrder": 1
+      },
+      {
+        "phaseLabel": "Phase 2",
+        "title": "Transparence et auditabilité",
+        "status": "InProgress",
+        "description": "Surfaces publiques qui expliquent comment chaque match évolue et comment les résultats peuvent être revus.",
+        "items": [
+          "Page d'historique publique",
+          "Page de détail des matchs publique",
+          "Affichage clair du score, de la performance et du résultat",
+          "Améliorations SEO",
+          "Métadonnées publiques par match",
+          "Enregistrements des événements de match pour une future auditabilité"
+        ],
+        "sortOrder": 2
+      },
+      {
+        "phaseLabel": "Phase 3",
+        "title": "Règles de notation avancées",
+        "status": "Planifié",
+        "description": "Logique de match plus riche conçue pour rester explicable et basée sur les données.",
+        "items": [
+          "Notation par différence de pourcentage",
+          "Notation par croisements de graphique",
+          "Notation par fenêtres de volume",
+          "Journaux des événements de match",
+          "Fondation pour un futur commentateur IA"
+        ],
+        "sortOrder": 3
+      },
+      {
+        "phaseLabel": "Phase 4",
+        "title": "Économie cyclique",
+        "status": "Planifié",
+        "description": "Évolution vers un modèle de pool compétitif plus expérimental.",
+        "items": [
+          "Participation automatique aux cycles futurs",
+          "Meilleur contrôle de l'équilibre",
+          "Réduction des pertes abruptes",
+          "Un modèle plus proche d'un pool compétitif que d'un pari traditionnel",
+          "Simulations et réglages avant une production plus large"
+        ],
+        "sortOrder": 4
+      },
+      {
+        "phaseLabel": "Phase 5",
+        "title": "Internationalisation",
+        "status": "Planifié",
+        "description": "Routage et structure de contenu préparés pour l'expansion multilingue.",
+        "items": [
+          "Routes i18n",
+          "Contenu en portugais et anglais",
+          "Hreflang",
+          "SEO international",
+          "Fuseau horaire local par région"
+        ],
+        "sortOrder": 5
+      },
+      {
+        "phaseLabel": "Phase 6",
+        "title": "Intégration blockchain",
+        "status": "Expérimental",
+        "description": "Une couche on-chain expérimentale axée sur l'auditabilité et l'infrastructure là où c'est pertinent.",
+        "items": [
+          "Intégration Solana Devnet/Mainnet",
+          "Sélections et soldes on-chain le cas échéant",
+          "Séparation entre la logique off-chain et le règlement on-chain",
+          "Meilleure auditabilité publique"
+        ],
+        "sortOrder": 6
+      },
+      {
+        "phaseLabel": "Phase 7",
+        "title": "Commentaire IA et expérience",
+        "status": "Futur",
+        "description": "Améliorations de l'expérience construites sur des données de match vérifiables et un historique public.",
+        "items": [
+          "Commentateur de match automatisé",
+          "Résumés post-match",
+          "Moments forts des matchs",
+          "Explications des événements décisifs",
+          "Partage sur les réseaux sociaux"
+        ],
+        "sortOrder": 7
+      }
+    ],
+    "principles": [
+      {
+        "title": "Transparence avant l'échelle",
+        "description": "Expliquer comment le système fonctionne avant d'essayer d'accélérer la distribution.",
+        "tag": "Principe"
+      },
+      {
+        "title": "Règles claires avant la monétisation",
+        "description": "L'évolution du produit doit rester lisible avant de devenir plus large.",
+        "tag": "Principe"
+      },
+      {
+        "title": "Sécurité avant l'automatisation",
+        "description": "N'automatiser les flux qu'après validation suffisante.",
+        "tag": "Principe"
+      },
+      {
+        "title": "Historique public avant les classements",
+        "description": "Rendre les résultats observables avant d'ajouter des couches compétitives plus importantes.",
+        "tag": "Principe"
+      },
+      {
+        "title": "Données vérifiables avant le récit",
+        "description": "Toute future couche narrative doit être fondée sur des journaux, des événements et des résultats.",
+        "tag": "Principe"
+      }
+    ],
+    "noticeTitle": "Avis important",
+    "noticeText": "CriptoVersus est une plateforme expérimentale de simulations de marché crypto basée sur des données publiques. Les règles, les modèles économiques et les intégrations peuvent évoluer au fil du temps. Rien sur cette page ne représente une promesse de gain financier."
+  },
+  "howItWorks": {
+    "seo": {
+      "title": "Fonctionnement | CriptoVersus",
+      "description": "Découvrez comment fonctionne CriptoVersus : sélection de côté, notation des matchs, compétition basée sur le marché, logique de règlement et analyse éducative des cryptos."
+    }
+  },
+  "social": {
+    "match": {
+      "live": {
+        "text": "{0} et {1} se livrent bataille sur CriptoVersus. Score actuel : {2}. Suivez en direct : {3}"
+      }
+    },
+    "hotMatches": {
+      "title": "🔥 Matchs chauds du jour",
+      "subtitle": "Les 5 batailles les plus chaudes des dernières 24 heures",
+      "last24Hours": "Dernières 24h",
+      "updatedAt": "Mis à jour à {0} UTC",
+      "listAriaLabel": "Top 5 des matchs chauds des dernières 24 heures",
+      "openMatchAria": "Ouvrir le match {0} contre {1}, match {2}",
+      "scoreAria": "{0} à {1}",
+      "hotScore": "HotScore {0}",
+      "waiting": "En attente de la prochaine bataille chaude",
+      "disclaimer": "Divertissement + données de marché. Pas un conseil financier.",
+      "noLastGoal": "Dernier but : aucun",
+      "lastGoal": "Dernier but il y a {0}",
+      "status": {
+        "live": "EN DIRECT",
+        "followedMatch": "En suivi",
+        "continue": "Continuer",
+        "seeResult": "Voir le résultat",
+        "wins": "gagne",
+        "draw": "Match nul",
+        "closing": "CLÔTURE",
+        "final": "FINAL",
+        "scheduled": "PROGRAMMÉ",
+        "cancelled": "ANNULÉ"
+      },
+      "temperature": {
+        "cold": "Froid",
+        "warm": "Tiède",
+        "hot": "Chaud",
+        "explosive": "Explosif",
+        "historic": "Historique"
+      },
+      "balance": {
+        "tied": "Égalité totale",
+        "veryClose": "Très serré",
+        "close": "Serré",
+        "clearLead": "Avance claire"
+      }
+    },
+    "winRate24h": {
+      "seo": {
+        "title": "Taux de victoire - Dernières 24h | CriptoVersus",
+        "description": "Top 10 des actifs par taux de victoire parmi les matchs clôturés au cours des dernières 24 heures sur CriptoVersus."
+      },
+      "hero": {
+        "period": "Fenêtre de 24h",
+        "utcNote": "Matchs clôturés uniquement",
+        "generatedAt": "Généré à {0} UTC",
+        "generatedAtPending": "Génération du classement en UTC"
+      },
+      "states": {
+        "loadingTitle": "Chargement du classement des taux de victoire",
+        "loadingBody": "Récupération des derniers résultats des matchs clôturés des dernières 24 heures.",
+        "errorTitle": "Classement temporairement indisponible",
+        "errorBody": "Nous n'avons pas pu charger le tableau des taux de victoire pour le moment. Affichage d'un état vide stable.",
+        "emptyTitle": "Pas assez de matchs éligibles pour le moment",
+        "emptyBody": "Les dernières 24 heures ne contiennent pas assez de matchs terminés pour construire un classement fiable."
+      },
+      "chart": {
+        "ariaLabel": "Top des actifs par taux de victoire au cours des dernières 24 heures",
+        "decisions": "{0} décisions",
+        "matches": "{0} matchs"
+      },
+      "footer": {
+        "disclaimer": "Matchs clôturés uniquement. Pas un conseil financier.",
+        "generatedAt": "Heure de génération UTC : {0}"
+      }
+    }
+  },
+  "stats": {
+    "seo": {
+      "title": "Statistiques CriptoVersus - Classements publics des batailles crypto",
+      "description": "Explorez les statistiques publiques de CriptoVersus, les classements des matchs crypto, les tendances de performance, les scores, l'historique des matchs et les analyses des batailles de marché."
+    },
+    "hero": {
+      "eyebrow": "Intelligence publique de l'arène",
+      "title": "Statistiques CriptoVersus",
+      "subtitle": "Données publiques des batailles crypto, classements et analyses de performance du marché de l'arène CriptoVersus.",
+      "seoCopy": "Cette page de statistiques publiques agrège des données indexables sur les matchs crypto, les classements de l'arène, les actifs suivis, les tableaux de score et les performances historiques sur l'arène CriptoVersus.",
+      "liveNote": "Mis à jour toutes les 5 minutes",
+      "backToArena": "Retour à l'arène",
+      "backToArenaAria": "Retour à la page d'accueil de l'arène CriptoVersus",
+      "howScoringWorks": "Comment fonctionne la notation",
+      "howScoringWorksAria": "Lire comment fonctionne la notation de l'arène CriptoVersus",
+      "coverage": "Couverture de l'arène",
+      "coverageHint": "matchs publics indexés",
+      "finishedBattles": "Batailles terminées",
+      "finishedBattlesHint": "tableaux de score clôturés",
+      "lastUpdate": "Dernière mise à jour"
+    },
+    "states": {
+      "loadingTitle": "Chargement des statistiques publiques",
+      "loadingBody": "Récupération du dernier aperçu de l'arène et des données de classement.",
+      "errorTitle": "Statistiques temporairement indisponibles",
+      "errorBody": "Nous n'avons pas pu charger les statistiques publiques pour le moment. Affichage d'un tableau vide stable.",
+      "emptyTitle": "Aucune donnée publique pour le moment",
+      "emptyBody": "L'arène n'a pas encore publié assez de matchs terminés ou suivis pour remplir le tableau des statistiques. La page reste en ligne et se remplira automatiquement à mesure que les données publiques des matchs augmenteront.",
+      "noData": "Aucune donnée pour le moment"
+    },
+    "search": {
+      "eyebrow": "Recherche d'actif",
+      "title": "Trouver rapidement un token",
+      "description": "Recherchez dans le classement public par symbole ou nom d'actif sans quitter l'écran des statistiques.",
+      "label": "Rechercher un token",
+      "placeholder": "BTC, ETH, STRAX, TON...",
+      "ariaLabel": "Rechercher un token par symbole ou nom",
+      "clear": "Effacer",
+      "noResultsTitle": "Aucun actif trouvé pour cette recherche.",
+      "noResultsBody": "Essayez un autre symbole ou nom d'actif pour revenir au classement public."
+    },
+    "summary": {
+      "ariaLabel": "Résumé des statistiques publiques",
+      "totalMatches": {
+        "label": "Total des matchs",
+        "hint": "pages de matchs publics de l'arène"
+      },
+      "finishedMatches": {
+        "label": "Matchs terminés",
+        "hint": "tableaux de score clôturés indexés"
+      },
+      "activeAssets": {
+        "label": "Actifs actifs",
+        "hint": "symboles vus dans les matchs publics"
+      },
+      "averageScore": {
+        "label": "Score moyen",
+        "hint": "score combiné de l'arène par match"
+      },
+      "highestScore": {
+        "label": "Score le plus élevé",
+        "hint": "meilleur score unilatéral enregistré"
+      },
+      "lastUpdated": {
+        "label": "Dernière mise à jour",
+        "hint": "heure de rafraîchissement de l'arène publique"
+      }
+    },
+    "charts": {
+      "winRate": {
+        "eyebrow": "Tableau des taux de victoire",
+        "title": "Top des actifs crypto par taux de victoire",
+        "description": "Meilleurs bilans de clôture publics de l'arène parmi les actifs les plus visibles.",
+        "ariaLabel": "Graphique du top des actifs crypto par taux de victoire"
+      },
+      "activity": {
+        "eyebrow": "Rythme des matchs",
+        "title": "Activité des matchs dans le temps",
+        "description": "Cadence récente de publication des matchs publics sur la chronologie de l'arène.",
+        "ariaLabel": "Graphique de l'activité des matchs dans le temps"
+      }
+    },
+    "trending": {
+      "eyebrow": "Panneau de l'arène",
+      "title": "Actifs tendance",
+      "description": "Actifs les plus actifs basés sur le volume récent des matchs publics de l'arène et la visibilité.",
+      "emptyTitle": "Aucun actif tendance pour le moment",
+      "emptyBody": "Les actifs tendance apparaîtront ici une fois que l'arène aura enregistré assez d'activité de matchs publics.",
+      "matchesHint": "{0} matchs récents",
+      "assetAria": "Ouvrir la future page de statistiques pour {0}"
+    },
+    "ranking": {
+      "eyebrow": "Tableau de classement HTML",
+      "title": "Top des actifs crypto par performance de l'arène",
+      "description": "Actifs crypto les plus performants basés sur les batailles publiques de l'arène CriptoVersus et les performances historiques des matchs.",
+      "empty": "Aucun actif classé pour le moment.",
+      "assetAria": "Ouvrir la future page de statistiques pour l'actif {0}",
+      "columns": {
+        "rank": "Rang",
+        "asset": "Actif",
+        "matches": "Matchs",
+        "wins": "Victoires",
+        "losses": "Défaites",
+        "winRate": "Taux de victoire",
+        "averageScore": "Score moyen",
+        "totalScore": "Score total",
+        "lastMatch": "Dernier match"
+      }
+    },
+    "latest": {
+      "eyebrow": "Derniers tableaux de score",
+      "title": "Derniers matchs publics",
+      "description": "Pages de matchs publics les plus récentes disponibles pour la découverte et l'audit.",
+      "empty": "Aucun match public disponible pour le moment.",
+      "vs": "vs",
+      "openMatch": "Ouvrir le match",
+      "openMatchAria": "Ouvrir la page du match public pour {0} contre {1}",
+      "homeAssetAria": "Ouvrir la future page de statistiques pour l'actif {0}",
+      "awayAssetAria": "Ouvrir la future page de statistiques pour l'actif {0}",
+      "unavailable": "Indisponible",
+      "columns": {
+        "match": "Match",
+        "score": "Score",
+        "status": "Statut",
+        "startedAt": "Début",
+        "finishedAt": "Fin",
+        "publicPage": "Page publique"
+      }
+    },
+    "future": {
+      "eyebrow": "Connecteurs de feuille de route",
+      "title": "Prochains hubs de statistiques publiques",
+      "description": "Explorez les hubs publics dédiés construits sur les données en direct de l'arène CriptoVersus.",
+      "availableNow": "Disponible maintenant",
+      "comingSoon": "Bientôt disponible",
+      "openAria": "Ouvrir {0}",
+      "links": {
+        "teams": {
+          "title": "Équipes",
+          "description": "Classements publics dédiés équipe contre équipe."
+        },
+        "matches": {
+          "title": "Matchs",
+          "description": "Archive de matchs élargie avec des filtres historiques plus profonds."
+        },
+        "rankings": {
+          "title": "Classements",
+          "description": "Tableaux de classement multi-métriques à travers les catégories publiques de l'arène."
+        },
+        "records": {
+          "title": "Records",
+          "description": "Records publics de l'arène, séries et jalons statistiques."
+        }
+      }
+    },
+    "status": {
+      "completed": "Terminé",
+      "ongoing": "En direct",
+      "pending": "En attente",
+      "cancelled": "Annulé"
+    },
+    "structuredData": {
+      "breadcrumbStats": "Statistiques"
+    },
+    "footnote": {
+      "title": "Contexte des données publiques de l'arène",
+      "body": "Les statistiques publiques de CriptoVersus suivent les performances des matchs crypto, les batailles historiques de l'arène, les tendances de performance, les tableaux de score et la compétition publique du marché entre actifs numériques."
+    }
+  },
+  "statsMatches": {
+    "seo": {
+      "title": "Statistiques des matchs CriptoVersus",
+      "description": "Parcourez les matchs crypto publics, filtrez par statut et consultez les résultats des actifs dans l'arène."
+    },
+    "hero": {
+      "eyebrow": "Hub public des matchs",
+      "title": "Matchs - Statistiques",
+      "subtitle": "Recherchez les batailles publiques, inspectez les tableaux de score récents et comparez les résultats par actif.",
+      "backToStats": "Retour aux statistiques",
+      "openTeams": "Ouvrir les équipes"
+    },
+    "filters": {
+      "searchLabel": "Rechercher par token ou équipe",
+      "searchPlaceholder": "BTC, ETH, STRAX, TON...",
+      "statusLabel": "Statut",
+      "status": {
+        "all": "Tous",
+        "ongoing": "En direct",
+        "completed": "Terminé",
+        "pending": "En attente",
+        "cancelled": "Annulé"
+      }
+    },
+    "states": {
+      "loadingTitle": "Chargement des matchs publics",
+      "loadingBody": "Collecte des tableaux de score publics et de l'historique récent des batailles.",
+      "errorTitle": "Matchs temporairement indisponibles",
+      "errorBody": "Nous n'avons pas pu charger l'archive des matchs publics pour le moment.",
+      "emptyTitle": "Aucun match trouvé",
+      "emptyBody": "Essayez un autre actif, équipe ou filtre de statut."
+    },
+    "summary": {
+      "totalMatches": "Total des matchs",
+      "completed": "Terminé",
+      "live": "En direct",
+      "assets": "Actifs suivis"
+    },
+    "matches": {
+      "eyebrow": "Archive récente",
+      "title": "Derniers matchs publics",
+      "description": "Ouvrez n'importe quelle page de match et consultez les derniers tableaux de score publics.",
+      "openMatch": "Ouvrir le match",
+      "columns": {
+        "match": "Match",
+        "score": "Score",
+        "status": "Statut",
+        "date": "Date",
+        "link": "Lien"
+      }
+    },
+    "teams": {
+      "eyebrow": "Performance des actifs",
+      "title": "Victoires, défaites et matchs nuls par actif",
+      "description": "Résumés publics des actifs dérivés de l'ensemble de matchs filtrés actuel.",
+      "columns": {
+        "asset": "Actif",
+        "matches": "Matchs",
+        "wins": "Victoires",
+        "draws": "Nuls",
+        "losses": "Défaites",
+        "goals": "Buts",
+        "winRate": "Taux de victoire"
+      }
+    },
+    "status": {
+      "completed": "Terminé",
+      "ongoing": "En direct",
+      "pending": "En attente",
+      "cancelled": "Annulé",
+      "unknown": "Inconnu"
+    }
+  },
+  "statsRankings": {
+    "seo": {
+      "title": "Classements CriptoVersus",
+      "description": "Comparez les classements publics par victoires, efficacité, buts et séries d'invincibilité."
+    },
+    "hero": {
+      "eyebrow": "Hub public des classements",
+      "title": "Classements - Statistiques",
+      "subtitle": "Tableaux de classement publics multi-métriques pour l'arène CriptoVersus.",
+      "backToStats": "Retour aux statistiques",
+      "openMatches": "Ouvrir les matchs"
+    },
+    "filters": {
+      "searchLabel": "Rechercher par actif",
+      "searchPlaceholder": "BTC, ETH, STRAX, TON..."
+    },
+    "states": {
+      "loadingTitle": "Chargement des classements publics",
+      "loadingBody": "Calcul des tableaux de classement à partir des dernières données publiques des matchs.",
+      "errorTitle": "Classements temporairement indisponibles",
+      "errorBody": "Nous n'avons pas pu charger les tableaux de classement publics pour le moment.",
+      "emptyTitle": "Aucun classement disponible pour le moment",
+      "emptyBody": "L'arène a encore besoin de plus de matchs publics terminés pour classer les actifs ici."
+    },
+    "summary": {
+      "assets": "Actifs classés",
+      "topWins": "Plus de victoires",
+      "topEfficiency": "Meilleure efficacité",
+      "topStreak": "Meilleure série d'invincibilité"
+    },
+    "boards": {
+      "columns": {
+        "rank": "Rang",
+        "asset": "Actif",
+        "matches": "Matchs",
+        "winRate": "Taux de victoire"
+      },
+      "wins": {
+        "eyebrow": "Tableau des victoires",
+        "title": "Classement par victoires",
+        "description": "Actifs classés par nombre total de victoires dans les matchs publics terminés.",
+        "metric": "Victoires"
+      },
+      "efficiency": {
+        "eyebrow": "Tableau d'efficacité",
+        "title": "Classement par efficacité",
+        "description": "Taux d'efficacité à trois points dans les batailles publiques terminées.",
+        "metric": "Efficacité"
+      },
+      "goals": {
+        "eyebrow": "Tableau d'attaque",
+        "title": "Classement par buts",
+        "description": "Actifs avec le plus grand nombre de points marqués publiquement.",
+        "metric": "Buts"
+      },
+      "streak": {
+        "eyebrow": "Tableau de Momentum",
+        "title": "Classement par série d'invincibilité",
+        "description": "Séries d'invincibilité actuelles basées sur le dernier historique des matchs terminés.",
+        "metric": "Série"
+      }
+    }
+  },
+  "statsRecords": {
+    "seo": {
+      "title": "Records CriptoVersus",
+      "description": "Consultez les plus grands records publics, les écrasements et les matchs historiques exceptionnels de l'arène."
+    },
+    "hero": {
+      "eyebrow": "Hub public des records",
+      "title": "Records - Statistiques",
+      "subtitle": "Jalons publics et tableaux de score historiques de l'arène CriptoVersus.",
+      "backToStats": "Retour aux statistiques",
+      "openRankings": "Ouvrir les classements"
+    },
+    "states": {
+      "loadingTitle": "Chargement des records publics",
+      "loadingBody": "Analyse des matchs publics terminés pour trouver des records exceptionnels et des jalons.",
+      "errorTitle": "Records temporairement indisponibles",
+      "errorBody": "Nous n'avons pas pu charger le tableau des records publics pour le moment.",
+      "emptyTitle": "Aucun record disponible pour le moment",
+      "emptyBody": "L'arène a encore besoin de plus de matchs publics terminés avant que les records puissent être mis en avant."
+    },
+    "summary": {
+      "longestWinStreak": "Plus longue série de victoires",
+      "biggestBlowout": "Plus gros écrasement",
+      "mostGoals": "Plus de buts en un match",
+      "bestCampaign": "Meilleure campagne"
+    },
+    "records": {
+      "eyebrow": "Jalons",
+      "title": "Tableau des records de l'arène",
+      "description": "Records temporaires calculés par le frontend basés sur les données publiques existantes des matchs.",
+      "openMatch": "Ouvrir le match",
+      "cards": {
+        "longestWinStreak": "Plus longue série de victoires",
+        "longestWinStreakDetail": "Meilleures victoires consécutives par un actif public de l'arène.",
+        "biggestBlowout": "Plus gros écrasement",
+        "biggestBlowoutDetail": "Plus grande différence de buts enregistrée dans un match public.",
+        "mostGoals": "Plus de buts dans un match",
+        "mostGoalsDetail": "Score combiné le plus élevé publié sur un tableau de score public.",
+        "bestCampaign": "Meilleure campagne",
+        "bestCampaignDetail": "Meilleur taux d'efficacité parmi les actifs avec un échantillon public significatif.",
+        "worstCampaign": "Pire campagne",
+        "worstCampaignDetail": "Taux d'efficacité le plus bas parmi les actifs publics indexés."
+      }
+    },
+    "history": {
+      "eyebrow": "Matchs historiques",
+      "title": "Matchs historiques pertinents",
+      "description": "Tableaux de score à fort impact méritant d'être revus depuis l'archive publique.",
+      "openMatch": "Ouvrir le match",
+      "columns": {
+        "match": "Match",
+        "score": "Score",
+        "note": "Pourquoi c'est important",
+        "link": "Lien"
+      },
+      "notes": {
+        "blowout": "Plus gros écrasement public enregistré.",
+        "mostGoals": "Match public avec le plus de points à ce jour.",
+        "closeClassic": "Bataille serrée à score élevé avec une énergie classique.",
+        "highImpact": "Match public à fort impact de l'archive historique."
+      }
+    }
+  },
+  "statsTeams": {
+    "seo": {
+      "title": "Équipes de l'arène crypto - Classements CriptoVersus",
+      "description": "Explorez les équipes publiques de l'arène crypto, les tendances de performance historique, les classements et les statistiques de bataille dans l'écosystème CriptoVersus."
+    },
+    "hero": {
+      "eyebrow": "Répertoire des équipes de l'arène",
+      "title": "Équipes de l'arène crypto",
+      "subtitle": "Explorez les performances publiques des actifs crypto à travers les batailles historiques de l'arène CriptoVersus.",
+      "seoCopy": "CriptoVersus transforme les actifs crypto en équipes publiques de l'arène avec des classements historiques, des performances relatives, des statistiques publiques et des enregistrements de bataille indexables dans l'écosystème.",
+      "backToStats": "Retour aux statistiques",
+      "backToStatsAria": "Retour à la page des statistiques CriptoVersus",
+      "howArenaWorks": "Comment fonctionne l'arène",
+      "howArenaWorksAria": "Lire comment fonctionne l'arène CriptoVersus",
+      "liveDirectory": "Répertoire en direct",
+      "liveDirectoryHint": "équipes d'actifs publics indexées",
+      "totalIndexedBattles": "Total des batailles indexées",
+      "totalIndexedBattlesHint": "enregistrements de matchs publics terminés",
+      "updatedStatus": "État en direct de l'arène",
+      "updatedStatusValue": "Statistiques publiques des équipes",
+      "updatedStatusHint": "rafraîchi avec le dernier historique public"
+    },
+    "states": {
+      "loadingTitle": "Chargement des équipes de l'arène",
+      "loadingBody": "Récupération du dernier répertoire public des équipes et des données de classement.",
+      "errorTitle": "Équipes temporairement indisponibles",
+      "errorBody": "Nous n'avons pas pu charger les équipes publiques de l'arène pour le moment. Affichage d'un tableau vide stable.",
+      "emptyTitle": "Aucune équipe publique pour le moment",
+      "emptyBody": "L'arène n'a pas encore indexé assez de batailles publiques terminées pour construire le répertoire des équipes."
+    },
+    "summary": {
+      "ariaLabel": "Résumé des équipes de l'arène",
+      "totalAssets": {
+        "label": "Total des actifs",
+        "hint": "équipes crypto publiques suivies"
+      },
+      "mostDominantAsset": {
+        "label": "Actif le plus dominant",
+        "hint": "leader actuel le mieux classé de l'arène"
+      },
+      "highestWinRate": {
+        "label": "Taux de victoire le plus élevé",
+        "hint": "meilleur pourcentage de clôture public"
+      },
+      "mostActiveTeam": {
+        "label": "Équipe la plus active",
+        "hint": "plus grand échantillon de matchs publics"
+      },
+      "totalBattlesIndexed": {
+        "label": "Total des batailles indexées",
+        "hint": "batailles publiques terminées de l'arène"
+      }
+    },
+    "search": {
+      "eyebrow": "Rechercher dans le répertoire",
+      "title": "Trouver une équipe crypto",
+      "description": "Filtrez instantanément le tableau public de l'arène par symbole ou nom d'actif.",
+      "label": "Rechercher des équipes crypto",
+      "placeholder": "Search crypto teams...",
+      "ariaLabel": "Rechercher des équipes crypto",
+      "noResultsTitle": "Aucune équipe correspondante",
+      "noResultsBody": "Essayez un autre symbole ou un terme de recherche plus large."
+    },
+    "grid": {
+      "eyebrow": "Tableau compétitif",
+      "title": "Répertoire des équipes de l'arène",
+      "description": "Cartes publiques premium pour les équipes crypto les plus fortes basées sur les performances historiques des batailles de CriptoVersus.",
+      "rankValue": "Rang de l'arène #{0}",
+      "viewTeam": "Voir l'équipe",
+      "viewTeamAria": "Ouvrir la future page d'équipe pour {0}",
+      "metrics": {
+        "winRate": "Taux de victoire",
+        "matches": "Matchs",
+        "goals": "Buts",
+        "averageScore": "Score moyen"
+      },
+      "details": {
+        "wins": "Victoires",
+        "losses": "Défaites",
+        "totalScore": "Score total",
+        "momentum": "Momentum"
+      }
+    },
+    "table": {
+      "eyebrow": "Tableau de classement HTML",
+      "title": "Top des équipes de l'arène",
+      "description": "Tableau de classement indexable pour les équipes publiques de l'arène crypto, les tendances de performance historique et les statistiques de bataille.",
+      "empty": "Aucune équipe de l'arène disponible pour le moment.",
+      "assetAria": "Ouvrir la future page d'équipe pour {0}",
+      "columns": {
+        "rank": "Rang",
+        "asset": "Actif",
+        "matches": "Matchs",
+        "wins": "Victoires",
+        "losses": "Défaites",
+        "winRate": "Taux de victoire",
+        "averageScore": "Score moyen",
+        "totalScore": "Score total",
+        "momentum": "Momentum"
+      }
+    },
+    "rivalries": {
+      "eyebrow": "Histoires de l'arène",
+      "title": "Top des rivalités",
+      "description": "Affrontements compétitifs en vedette construits à partir des équipes publiques les plus fortes de l'arène.",
+      "emptyTitle": "Aucune rivalité pour le moment",
+      "emptyBody": "Les rivalités apparaîtront ici une fois que le tableau public des équipes aura assez de données.",
+      "teamAria": "Ouvrir la future page d'équipe pour {0}"
+    },
+    "momentum": {
+      "dominant": "Dominant",
+      "hot": "Chaud",
+      "rising": "En hausse",
+      "aggressive": "Agressif",
+      "veteran": "Vétéran",
+      "struggling": "En difficulté",
+      "volatile": "Volatil"
+    },
+    "structuredData": {
+      "breadcrumbStats": "Statistiques",
+      "breadcrumbTeams": "Équipes"
+    }
+  },
+  "statsTeamDetail": {
+    "seo": {
+      "title": "Profil de l'équipe {0} - Statistiques de l'arène CriptoVersus",
+      "description": "Explorez les statistiques publiques de l'arène CriptoVersus, les batailles récentes, les rivaux et les performances historiques pour {0}."
+    },
+    "hero": {
+      "eyebrow": "Profil d'équipe de l'arène",
+      "title": "Profil de l'équipe {0}",
+      "subtitle": "Historique des batailles publiques, rivaux et analyses de performance de l'arène pour {0}.",
+      "seoCopy": "{0} concurrence en tant qu'équipe publique de l'arène dans CriptoVersus, avec des résultats de matchs historiques, des classements, des tendances de performance et des performances relatives visibles pour la recherche et la découverte.",
+      "backToTeams": "Retour aux équipes",
+      "backToStats": "Retour aux statistiques",
+      "rank": "Rang dans l'arène",
+      "rankHint": "rang public actuel",
+      "momentum": "Momentum",
+      "momentumHint": "label de forme actuelle de l'arène",
+      "lastMatch": "Dernier match",
+      "lastMatchHint": "date de la dernière bataille publique",
+      "winRate": "Taux de victoire",
+      "winRateHint": "pourcentage de clôture dans les batailles terminées",
+      "matchesPlayed": "Matchs joués",
+      "matchesPlayedHint": "échantillon de batailles publiques indexées",
+      "streak": "Série",
+      "streakHint": "série actuelle de résultats terminés",
+      "quickStatsEyebrow": "Statistiques rapides",
+      "quickStatsTitle": "Performance de l'arène en un coup d'œil",
+      "quickStatsDescription": "Indicateurs publics clés pour {0}, séparés du héros visuel pour une lecture plus rapide.",
+      "marketCapHint": "classement de capitalisation boursière du dernier profil social",
+      "historicalRecord": "Bilan historique",
+      "historicalRecordHint": "victoires, défaites et matchs nuls dans l'arène",
+      "historicalRecordValue": "{0}V • {1}D • {2}N",
+      "historicalRecordLegend": "Victoires • Défaites • Nuls",
+      "streakWinValue": "{0} victoires",
+      "streakLossValue": "{0} défaites",
+      "streakDrawValue": "{0} nuls"
+    },
+    "social": {
+      "imageAlt": "Illustration premium du profil {0}",
+      "identity": {
+        "name": "Nom",
+        "coinGeckoId": "ID CoinGecko",
+        "contract": "Contrat",
+        "marketCapRank": "Rang de capitalisation",
+        "visualStyle": "Style visuel",
+        "category": "Catégorie",
+        "memeCoin": "Meme coin"
+      },
+      "links": {
+        "website": "Site web",
+        "twitter": "X / Twitter",
+        "telegram": "Telegram"
+      },
+      "reference": {
+        "title": "Profil de référence",
+        "subtitle": "Métadonnées officielles et références du profil social",
+        "source": "Source",
+        "lastChecked": "Dernière vérification UTC",
+        "marketCapRank": "Rang de capitalisation",
+        "memeCoin": "Meme coin"
+      }
+    },
+    "investment": {
+      "eyebrow": "Sélection en direct",
+      "title": "Choisir {0}",
+      "cta": "Choisir {0}",
+      "loadingCta": "Chargement du marché",
+      "openMatch": "Ouvrir le match",
+      "states": {
+        "loading": "Chargement",
+        "available": "Disponible",
+        "positionAvailable": "Sélection disponible",
+        "blocked": "Bloqué",
+        "walletRequired": "Connecter le portefeuille",
+        "unavailable": "Indisponible"
+      },
+      "messages": {
+        "loading": "Recherche du dernier match sélectionnable ou cycle pour cette équipe.",
+        "available": "Sélection persistante disponible pour {0}.",
+        "positionAvailable": "Sélection persistante disponible pour {0}.",
+        "positionAvailableNoMatch": "Vous pouvez choisir un côté persistant dans cet actif. Il peut participer automatiquement aux cycles futurs.",
+        "walletRequired": "Connectez votre portefeuille pour choisir ou augmenter un côté persistant dans {0}.",
+        "unavailable": "Cette équipe n'a pas de marché de sélection public pour le moment.",
+        "noMatch": "Nous n'avons pas encore trouvé de match public actif pour cette équipe.",
+        "closed": "Les matchs récents de cette équipe ne sont plus dans la fenêtre de sélection.",
+        "advancedLive": "Cet actif est actuellement dans un match avancé en direct. Attendez le prochain cycle pour augmenter votre exposition.",
+        "blockedAdvancedLive": "Cet actif est actuellement dans un match avancé en direct. Attendez le prochain cycle pour augmenter votre exposition.",
+        "error": "Nous n'avons pas pu valider le contexte sélectionnable pour le moment. Veuillez réessayer sous peu.",
+        "success": "Soumission de la sélection pour {0}.",
+        "submitError": "Nous n'avons pas pu soumettre la sélection pour {0} pour le moment."
+      }
+    },
+    "states": {
+      "loadingTitle": "Chargement du profil d'équipe",
+      "loadingBody": "Récupération du dernier détail public de l'arène pour cette équipe crypto.",
+      "errorTitle": "Profil d'équipe indisponible",
+      "errorBody": "Nous n'avons pas pu charger ce profil d'équipe public pour le moment.",
+      "notFoundBody": "Cette équipe de l'arène n'a pas pu être trouvée dans le répertoire public actuel.",
+      "noData": "Aucune donnée"
+    },
+    "summary": {
+      "matches": "Matchs",
+      "wins": "Victoires",
+      "losses": "Défaites",
+      "winRate": "Taux de victoire",
+      "averageScore": "Score moyen",
+      "totalScore": "Score total"
+    },
+    "activity": {
+      "eyebrow": "Rythme de l'arène",
+      "title": "Activité des matchs dans le temps",
+      "description": "Cadence récente des batailles publiques pour {0} sur la chronologie de l'arène CriptoVersus.",
+      "ariaLabel": "Graphique de l'activité des matchs de {0} dans le temps"
+    },
+    "rivals": {
+      "eyebrow": "Adversaires clés",
+      "title": "Top des rivaux",
+      "description": "Rivaux publics qui ont affronté cette équipe le plus souvent dans les batailles terminées de l'arène.",
+      "empty": "Aucune donnée de rivalité pour le moment.",
+      "openAria": "Ouvrir le profil de l'équipe pour {0}",
+      "record": "{0} victoires · {1} défaites · {2} matchs"
+    },
+    "latest": {
+      "eyebrow": "Derniers tableaux de score",
+      "title": "Derniers matchs publics",
+      "description": "Batailles publiques récentes mettant en vedette {0} dans l'arène CriptoVersus.",
+      "empty": "Aucun match public disponible pour le moment.",
+      "openMatch": "Ouvrir le match",
+      "unavailable": "Indisponible",
+      "columns": {
+        "match": "Match",
+        "score": "Score",
+        "status": "Statut",
+        "startedAt": "Début",
+        "finishedAt": "Fin",
+        "publicPage": "Page publique"
+      }
+    },
+    "momentum": {
+      "dominant": "Dominant",
+      "hot": "Chaud",
+      "rising": "En hausse",
+      "aggressive": "Agressif",
+      "veteran": "Vétéran",
+      "struggling": "En difficulté",
+      "volatile": "Volatil"
+    },
+    "status": {
+      "completed": "Terminé",
+      "ongoing": "En direct",
+      "pending": "En attente",
+      "cancelled": "Annulé"
+    },
+    "structuredData": {
+      "breadcrumbStats": "Statistiques",
+      "breadcrumbTeams": "Équipes"
+    }
+  },
+  "publicHome": {
+    "globalCryptoArena": "Arène crypto mondiale",
+    "exploreLiveMatches": "Explorer les matchs en direct",
+    "howItWorks": "Comment ça fonctionne",
+    "platformHighlights": "Points forts de la plateforme",
+    "liveMatches": "Matchs en direct",
+    "completedIn24h": "Terminés en 24h",
+    "trackedCoins": "Tokens suivis",
+    "homeSections": "Sections d'accueil",
+    "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "Suivez les batailles crypto en cours avec des pages publiques indexables qui affichent le score, le momentum et le contexte du match.",
+    "onlyLiveBattleTitle": "C'est la seule bataille en direct pour le moment.",
+    "onlyLiveBattleBody": "L'arène se met à jour automatiquement à mesure que de nouveaux affrontements de marché commencent. Explorez les meilleures batailles pendant que vous attendez.",
+    "noLiveBattlesTitle": "Aucune bataille en direct pour le moment.",
+    "noLiveBattlesBody": "L'arène prépare ses prochains affrontements de marché. Explorez les meilleures batailles et revenez bientôt.",
+    "roadmap": "Feuille de route",
+    "liveBattle": "Bataille en direct",
+    "arena": {
+      "live": "EN DIRECT",
+      "liveNow": "EN DIRECT MAINTENANT",
+      "featuredBattle": "Bataille en vedette",
+      "openArena": "Ouvrir l'arène",
+      "openBattle": "Ouvrir la bataille",
+      "openMatch": "Ouvrir le match",
+      "openMatchAria": "Ouvrir le match {0} contre {1}, match {2}",
+      "hotMatch": "MATCH CHAUD",
+      "trending": "TENDANCE",
+      "momentum": "MOMENTUM",
+      "fear": "PEUR",
+      "hotScore": "Hot score",
+      "arenaPressure": "Arena Pressure",
+      "highVolatility": "HAUTE VOLATILITÉ",
+      "volatility": "Volatilité",
+      "scoreLine": "Score",
+      "arenaMatchId": "Match de l'arène #{0}",
+      "openArenaAria": "Ouvrir le match de l'arène {0} contre {1}, match {2}",
+      "momentumBar": "Équilibre du momentum",
+      "finalResultShort": "Résultat final",
+      "elapsedMinutes": "{0}' écoulées",
+      "startingSoon": "Début imminent",
+      "marketLive": "Pouls du marché en direct",
+      "momentumEdgeA": "{0}% de pression côté gauche",
+      "momentumEdgeB": "{0}% de pression côté droit",
+      "tiePressure": "Pression de l'arène équilibrée",
+      "momentumEdgeNeutral": "Pression de l'arène équilibrée",
+      "volatilityHigh": "Élevée",
+      "volatilityMedium": "Moyenne"
+    },
+    "vs": "vs",
+    "openMatch": "Ouvrir le match",
+    "topCryptoBattles": "Top des batailles crypto",
+    "featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext": "Les pages de matchs publiques en vedette relient les performances du marché, les règles de notation et le contexte historique transparent.",
+    "criptoversusTracksMarketVariationBetweenAssetsConvertsConfiguredRulesIntoScoreEventsAndPublishesMatchPagesThatCanBeIndexedSharedAndAudited": "CriptoVersus suit les variations du marché entre actifs, convertit les règles configurées en événements de score et publie des pages de matchs qui peuvent être indexées, partagées et auditées.",
+    "readTheFullRules": "Lire les règles complètes",
+    "publicMatchLogic": "Logique des matchs publics",
+    "eachMatchHasScoreStatusVolumePriceVariationAndRuleBasedEventsVisibleOnThePublicPage": "Chaque match a un score, un statut, un volume, une variation de prix et des événements basés sur des règles visibles sur la page publique.",
+    "arenaStyleExperience": "Expérience de style arène",
+    "theProductBlendsCryptoDataLiveConfrontationAndSocialReadyStorytelling": "Le produit mêle données crypto, confrontation en direct et narration prête pour les réseaux sociaux.",
+    "globalSeoReadyRouting": "Routage SEO mondial prêt",
+    "localizedPublicRoutesCanonicalUrlsAndHreflangSupportKeepInternationalDiscoveryClean": "Les routes publiques localisées, les URL canoniques et le support hreflang maintiennent une découverte internationale propre.",
+    "aQuickPulseOfTheAssetsCurrentlyDrawingTheStrongestAttentionInsideTheArena": "Un aperçu rapide des actifs qui attirent actuellement l'attention la plus forte dans l'arène.",
+    "trackedMarketAsset": "Actif de marché suivi",
+    "trendingCoins": "Tokens tendance",
+    "cryptoArenaRankings": "Classements de l'arène crypto",
+    "rankings": "Classements",
+    "trendingAssetsFeaturedBattlesAndPublicMatchPagesBuildTheCompetitiveRankingLayerOfTheArena": "Les actifs tendance, les batailles en vedette et les pages de matchs publiques construisent la couche de classement compétitif de l'arène.",
+    "exploreTheProduct": "Explorer le produit",
+    "howItWorks2": "Fonctionnement",
+    "featuredMatch": "Match en vedette",
+    "criptoversusLiveCryptoMatchArena": "CriptoVersus | Arène de matchs crypto en direct",
+    "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explorez les matchs crypto en direct, les tableaux de score publics, les tokens tendance et les batailles de marché sur CriptoVersus avec des pages publiques prêtes pour le SEO.",
+    "seoDescription": "CriptoVersus est une plateforme gamifiée de visualisation de données de marché où les signaux crypto publics deviennent des simulations de style football pour une analyse éducative.",
+    "heroTitle": "Batailles de marché crypto en direct dans une arène visuelle gamifiée.",
+    "heroDescription": "Les données publiques du marché deviennent des batailles crypto de style football : les actifs s'affrontent, le score change, et vous pouvez suivre l'arène en direct.",
+    "heroSemanticLabel": "Points forts des mécaniques de l'arène",
+    "heroSemantic1": "Les actifs s'affrontent sur des mouvements réels du marché",
+    "heroSemantic2": "Le score et le momentum se mettent à jour en direct",
+    "heroSemantic3": "Regardez l'arène ou ouvrez le match",
+    "heroSemantic4": "Simulations crypto en temps réel avec notation gamifiée",
+    "heroSemantic5": "Analyse compétitive de l'arène alimentée par les performances réelles du marché",
+    "marketDataDisclaimer": "CriptoVersus est une plateforme gamifiée de visualisation de données de marché. Les scores des matchs sont générés à partir de signaux publics du marché et ne doivent pas être interprétés comme un conseil financier, des recommandations d'investissement ou des résultats garantis.",
+    "sections": {
+      "basics": {
+        "eyebrow": "À propos de CriptoVersus",
+        "title": "À propos de CriptoVersus",
+        "description": "Ce qu'est la plateforme, ce qu'elle n'est pas, et comment l'arène publique est encadrée."
+      },
+      "analysis": {
+        "eyebrow": "Fonctionnement",
+        "title": "Comment fonctionne CriptoVersus",
+        "description": "Sélection de côté, notation des matchs publics et simulations de données de marché expliquées clairement."
+      },
+      "score": {
+        "eyebrow": "Règles de notation",
+        "title": "Règles de notation",
+        "description": "Comment les signaux publics se transforment en changements de score, états de match et historique de l'arène."
+      },
+      "wallet": {
+        "eyebrow": "Utilisation responsable",
+        "title": "Utilisation responsable",
+        "description": "Guide pratique pour utiliser la plateforme avec précaution et des attentes réalistes."
+      },
+      "risk": {
+        "eyebrow": "Avertissement sur les risques",
+        "title": "Avertissement sur les risques",
+        "description": "Le site n'est ni une promesse de rendement, ni un produit de jeu, ni une recommandation d'investissement."
+      },
+      "tv": {
+        "eyebrow": "Diffusion en direct",
+        "title": "Diffusion TV",
+        "description": "Comment la diffusion automatisée présente le contexte des matchs publics et l'état en direct de l'arène."
+      },
+      "stats": {
+        "eyebrow": "Sources de données",
+        "title": "Sources de données",
+        "description": "D'où viennent les signaux publics, les tableaux de score et les métriques de l'arène."
+      },
+      "deep": {
+        "eyebrow": "Pas de conseil financier",
+        "title": "Pas de conseil financier",
+        "description": "CriptoVersus ne doit pas être lu comme un conseil financier, un plan d'investissement ou une stratégie garantie."
+      }
+    },
+    "faqTitle": "FAQ CriptoVersus",
+    "faqSubtitle": "Réponses directes pour les moteurs de recherche, les systèmes IA et les utilisateurs qui veulent comprendre la simulation éducative et le modèle de notation derrière chaque bataille.",
+    "structuredDataAbstract": "CriptoVersus est une arène gamifiée de visualisation de données de marché avec sélection de côté, notation des matchs, simulations publiques et analyse éducative du marché alimentée par les performances réelles du marché.",
+    "faq": {
+      "onlyScoreboard": {
+        "question": "CriptoVersus n'est-il qu'un tableau de score crypto ?",
+        "answer": "Non. CriptoVersus est une arène gamifiée de visualisation de données de marché pour l'analyse, l'éducation et le divertissement. Les utilisateurs choisissent un côté dans des simulations en direct, suivent les pools de match et consultent les signaux publics du marché. Ce n'est pas un conseil financier ni une prédiction des prix futurs des tokens."
+      },
+      "openPositions": {
+        "question": "Les utilisateurs peuvent-ils choisir un côté dans les batailles crypto ?",
+        "answer": "Oui. Les utilisateurs peuvent choisir un côté dans une simulation en direct de l'arène pendant que le cycle basé sur le marché est actif. Ce choix est pour la participation et l'analyse, pas pour un conseil financier."
+      },
+      "arenaPools": {
+        "question": "Comment fonctionnent les pools de match CriptoVersus ?",
+        "answer": "Chaque côté concentre les participants dans un pool de match. Ces pools évoluent pendant l'arène en direct, répondent aux performances réelles du marché et alimentent la logique de notation utilisée lors du règlement. Ce sont des outils visuels et éducatifs, pas des produits d'investissement."
+      },
+      "cyclicalPools": {
+        "question": "Que sont les pools de match cycliques ?",
+        "answer": "Les pools cycliques sont des couches de participation récurrentes à l'arène qui reconnectent la sélection de côté à travers plusieurs cycles de bataille au lieu de traiter chaque match comme un tableau de score isolé."
+      },
+      "rewardDistribution": {
+        "question": "Comment les scores et les résultats sont-ils distribués ?",
+        "answer": "Les scores et les résultats sont déterminés selon la règle active du match, la performance du côté, la composition du pool et la logique de règlement qui transforme les résultats du marché en direct en résultats compétitifs de l'arène. Ils ne garantissent aucun mouvement futur du prix du token ni aucun profit."
+      },
+      "battleCycle": {
+        "question": "Comment fonctionne un cycle de bataille crypto ?",
+        "answer": "Un cycle de bataille ouvre une fenêtre d'entrée, permet la sélection de côté, suit la performance du marché en temps réel, met à jour l'arène en direct et se termine par le règlement du pool plus les mises à jour du score pour le prochain cycle."
+      }
+    },
+    "liveMatchRealtimeSummary": "Score actuel {0} x {1}. Les mouvements de prix et les signaux publics du match se mettent à jour en temps réel.",
+    "featuredMatchScoreSummary": "Match #{0} • score {1} x {2}",
+    "structuredDataDescription": "Simulation publique de données de marché crypto entre {0} et {1} sur CriptoVersus."
+  },
+  "public": {
+    "about": {
+      "seo": {
+        "title": "À propos de CriptoVersus | Arène de données de marché publiques",
+        "description": "Découvrez comment CriptoVersus transforme les données publiques du marché crypto en simulations de style football pour l'analyse, l'éducation et le divertissement."
+      },
+      "hero": {
+        "eyebrow": "À propos",
+        "title": "Données publiques du marché, visualisées comme des simulations d'arène en direct.",
+        "lead": "CriptoVersus est une plateforme gamifiée de visualisation de données de marché. Elle aide les utilisateurs à explorer les signaux crypto publics, la sélection de côté et les tableaux de score de style match sans se présenter comme un produit financier.",
+        "backToArena": "Retour à l'arène",
+        "viewScoringRules": "Voir les règles de notation",
+        "panelLabel": "Aperçu de CriptoVersus",
+        "panel": {
+          "publicDataLabel": "Données publiques",
+          "publicDataTitle": "Signaux de marché ouverts",
+          "publicDataBody": "L'arène est construite à partir de signaux publics du marché crypto, pas d'un accès privé au marché.",
+          "simulationLabel": "Simulation",
+          "simulationTitle": "Visuels de style football",
+          "simulationBody": "Les tableaux de score de style match aident les gens à lire l'action des prix et le momentum en un coup d'œil.",
+          "useLabel": "Utilisation responsable",
+          "useTitle": "L'analyse d'abord",
+          "useBody": "Utilisez le site pour l'éducation, le divertissement et la visualisation du marché."
+        }
+      },
+      "sections": {
+        "overviewLabel": "Sections à propos de CriptoVersus"
+      },
+      "cards": {
+        "platform": {
+          "label": "Ce que c'est",
+          "title": "Une couche d'analyse publique",
+          "body": "CriptoVersus est conçu pour l'éducation, le divertissement et la visualisation du marché autour des données crypto publiques."
+        },
+        "how": {
+          "label": "Comment ça fonctionne",
+          "title": "Les signaux deviennent des simulations",
+          "body": "Les signaux publics sont regroupés en vues de match de style football pour que les utilisateurs puissent inspecter le momentum, la pression et le contexte du match."
+        },
+        "responsible": {
+          "label": "Utilisation responsable",
+          "title": "Information, pas conseil",
+          "body": "La plateforme ne promet pas de profit, ne prédit pas les prix futurs et ne remplace pas le jugement indépendant."
+        }
+      },
+      "dataSources": {
+        "title": "Sources de données",
+        "description": "CriptoVersus utilise des données publiques du marché crypto et des signaux de marché, y compris les paires négociées sur Binance lorsqu'elles sont disponibles. Ces signaux peuvent inclure les mouvements de prix, les variations en pourcentage, le comportement des chandeliers, l'activité de trading et d'autres indicateurs dérivés du marché utilisés pour générer des matchs simulés de style football. CriptoVersus n'est pas affilié à Binance, n'est pas approuvé par Binance, n'est pas sponsorisé par Binance et n'est pas officiellement lié à Binance.",
+        "binanceNotice": "Lorsque les paires négociées sur Binance sont disponibles, elles sont incluses comme une source de marché publique parmi d'autres et n'impliquent pas une approbation ou un partenariat.",
+        "notAffiliated": "La présence d'une paire négociée sur Binance ne signifie pas l'approbation, la recommandation ou la validation de l'actif sous-jacent.",
+        "usage": "Les données sont utilisées pour la visualisation, l'analyse, la simulation et le divertissement.",
+        "reliability": "Les signaux peuvent être en retard, échouer, diverger ou devenir temporairement indisponibles."
+      }
+    },
+    "scoringRules": {
+      "seo": {
+        "title": "Règles de notation CriptoVersus | Signaux publics du marché",
+        "description": "Découvrez comment les signaux publics du marché deviennent des événements de notation dans CriptoVersus via les règles de pourcentage, de croisement, de volume et de Candle Battle."
+      },
+      "hero": {
+        "eyebrow": "Règles de notation",
+        "title": "Les signaux publics du marché se transforment en notation de match.",
+        "lead": "CriptoVersus utilise des indicateurs dérivés du marché pour créer des matchs simulés. Le score publié suit l'ensemble de règles actif et doit être lu comme une analyse, pas comme un conseil financier ou une prévision de prix.",
+        "backToAbout": "En savoir plus sur CriptoVersus",
+        "backToArena": "Retour à l'arène",
+        "panelLabel": "Aperçu de la notation",
+        "panel": {
+          "signalsLabel": "Signaux",
+          "signalsTitle": "Entrées publiques d'abord",
+          "signalsBody": "Les mouvements de prix, les variations en pourcentage, le comportement des chandeliers, le volume en devises et l'activité de trading alimentent l'arène, y compris les paires négociées sur Binance lorsqu'elles sont disponibles.",
+          "leftTeam": "Côté A",
+          "versus": "vs",
+          "simulated": "Match simulé",
+          "rightTeam": "Côté B",
+          "scoringLabel": "Notation",
+          "scoringTitle": "Événements de match",
+          "scoringBody": "Ces entrées publiques peuvent créer des événements de notation via des seuils de pourcentage, des croisements, des fenêtres de volume, des croisements de volume et la dominance de Candle Battle.",
+          "resultLabel": "Résultats",
+          "resultTitle": "Leader final ou aucun",
+          "resultBody": "Un cycle peut se terminer avec un leader final ou sans leader final, et le score ne prédit pas les prix futurs des tokens."
+        }
+      },
+      "sections": {
+        "overviewLabel": "Aperçu des règles de notation",
+        "overviewEyebrow": "Comment l'arène est lue",
+        "overviewTitle": "Signaux publics, règles claires, cycles visibles.",
+        "overviewLead": "Cette page explique comment les signaux publics du marché deviennent des événements de notation, comment le match simulé progresse et comment le tableau de score public doit être interprété.",
+        "realRulesLabel": "Règles réelles",
+        "realRulesEyebrow": "Ce qui attribue réellement des points",
+        "realRulesTitle": "Seules les règles de notation documentées créent des événements de score.",
+        "realRulesLead": "L'arène publique utilise des règles spécifiques pour la notation par pourcentage, croisement, volume et Candle Battle. Les widgets visuels peuvent aider à lire le match, mais ne remplacent pas le moteur de règles.",
+        "simulationsLabel": "Simulations",
+        "simulationsEyebrow": "Comment le cycle est présenté",
+        "simulationsTitle": "Chaque cycle est montré comme un match simulé.",
+        "simulationsLead": "La page publique utilise une chronologie de style match pour que les gens puissent comprendre le flux des signaux sans confondre l'arène avec un produit de trading.",
+        "simulationsTimelineLabel": "Chronologie de la simulation",
+        "visualIndicatorsLabel": "Indicateurs visuels",
+        "visualIndicatorsEyebrow": "Contexte utile",
+        "visualIndicatorsTitle": "Certains panneaux sont uniquement visuels.",
+        "visualIndicatorsLead": "Arena Pressure, Momentum et le flux du marché aident à expliquer l'état du match. Ce sont des indicateurs visuels, pas des déclencheurs de score par eux-mêmes.",
+        "meaningLabel": "Ce que le score signifie"
+      },
+      "cards": {
+        "signals": {
+          "label": "Collecte de signaux",
+          "title": "Les données publiques du marché sont lues",
+          "body": "La plateforme lit les mouvements du marché, les variations en pourcentage, le comportement des chandeliers, le volume en devises et l'activité de trading à partir de sources publiques, y compris les paires négociées sur Binance lorsqu'elles sont disponibles."
+        },
+        "scoring": {
+          "label": "Événements de score",
+          "title": "Les signaux deviennent des événements de score",
+          "body": "Les règles de seuil de pourcentage attribuent des points lorsque l'écart atteint les niveaux configurés. Les règles de croisement attribuent des points uniquement lorsqu'un côté passe de sous à au-dessus de l'adversaire. Les règles de fenêtre de volume et de croisement de volume suivent la même logique de signal public sur le volume en devises, tandis que la dominance de Candle Battle ajoute un chemin de notation séparé."
+        },
+        "settlement": {
+          "label": "Résultat du cycle",
+          "title": "Le cycle se ferme proprement",
+          "body": "Le score publié est une visualisation éducative du comportement du marché. Ce n'est pas un conseil d'investissement, un signal de trading ou un résultat garanti."
+        }
+      },
+      "rules": {
+        "percentage": {
+          "label": "Règle de pourcentage",
+          "title": "Seuils de pourcentage",
+          "body": "Des points peuvent être attribués lorsque l'écart relatif en pourcentage atteint les seuils configurés.",
+          "point1": "La variation en pourcentage la plus grande dirige la règle.",
+          "point2": "Chaque seuil configuré peut être compté une fois par côté.",
+          "point3": "Le score reflète le mouvement public du marché, pas la performance future."
+        },
+        "crossover": {
+          "label": "Règle de croisement",
+          "title": "Croisement de pourcentage",
+          "body": "Des points peuvent être attribués lorsqu'un côté passe de sous à au-dessus de l'autre côté sur le mouvement en pourcentage.",
+          "point1": "Le croisement doit se déplacer vers le haut à travers l'adversaire.",
+          "point2": "Toucher la ligne ne suffit pas si aucun croisement ne se produit.",
+          "point3": "C'est une règle de signal de marché, pas un conseil financier."
+        },
+        "candleBattle": {
+          "label": "Règle Candle Battle",
+          "title": "Dominance Candle Battle",
+          "body": "Des points peuvent être attribués lorsque la dominance de Candle Battle devient claire à partir de la séquence de chandeliers.",
+          "point1": "La règle compare le mouvement relatif chandelier par chandelier.",
+          "point2": "Une séquence plus forte peut créer un événement de notation.",
+          "point3": "C'est un match simulé basé sur des données publiques du marché."
+        },
+        "dominance": {
+          "label": "Règle de dominance",
+          "title": "Dominance continue",
+          "body": "La dominance soutenue peut maintenir le leader du match stable et rendre le résultat plus facile à lire.",
+          "point1": "La règle suit l'état de dominance actif.",
+          "point2": "Elle reflète le contrôle du match, pas un résultat garanti.",
+          "point3": "Le classement reste une visualisation éducative."
+        }
+      },
+      "simulations": {
+        "step1": {
+          "title": "1. Les signaux sont collectés",
+          "body": "Les données publiques du marché sont collectées à partir des sources disponibles et normalisées pour le match."
+        },
+        "step2": {
+          "title": "2. Les règles créent des événements de score",
+          "body": "L'ensemble de règles actif transforme les mouvements du marché éligibles en événements de notation."
+        },
+        "step3": {
+          "title": "3. Le cycle se ferme",
+          "body": "Le match simulé se termine avec un leader final ou sans leader final."
+        }
+      },
+      "indicators": {
+        "arenaPressure": {
+          "label": "Arena Pressure",
+          "title": "Jauge de pression visuelle",
+          "body": "Affiche le contexte de pression de l'arène comme indicateur de l'intensité du match. N'attribue pas de points par elle-même."
+        },
+        "momentum": {
+          "label": "Momentum",
+          "title": "Équilibre du momentum",
+          "body": "Affiche quel côté a actuellement un momentum de marché plus fort. C'est un indicateur visuel, pas une règle de notation à part entière."
+        },
+        "marketFlow": {
+          "label": "Flux du marché",
+          "title": "Résumé du flux récent",
+          "body": "Résume la direction récente des signaux publics du marché pour que le match soit plus facile à interpréter."
+        }
+      },
+      "meaning": {
+        "notAdvice": {
+          "label": "Pas de conseil financier",
+          "title": "Pas de conseil financier",
+          "body": "CriptoVersus est pour l'analyse, l'éducation et le divertissement. Il ne dit pas aux utilisateurs quoi acheter, vendre ou conserver."
+        },
+        "notPrediction": {
+          "label": "Pas de prédiction",
+          "title": "Pas de prédiction",
+          "body": "Le score n'est pas une prévision des prix futurs des tokens ni de la direction du marché."
+        },
+        "notGuarantee": {
+          "label": "Pas de garantie",
+          "title": "Pas de garantie",
+          "body": "Les scores et les résultats simulés ne sont pas des promesses de performance future."
+        }
+      },
+      "dataSourcesNoticeLabel": "Note sur la source de données",
+      "dataSourcesNoticeTitle": "Sources de données",
+      "dataSourcesNotice": "Les événements de notation sont générés à partir de signaux publics du marché, y compris les paires négociées sur Binance lorsqu'elles sont disponibles. CriptoVersus n'est pas affilié à Binance ni approuvé par Binance.",
+      "noPrediction": {
+        "label": "Signification",
+        "title": "Pas de couche de prédiction",
+        "body": "Le score d'un match est une visualisation éducative du comportement du marché. Ce n'est pas un conseil d'investissement, un signal de trading ou un résultat garanti."
+      }
+    },
+    "riskDisclaimer": {
+      "seo": {
+        "title": "Avertissement sur les risques | CriptoVersus",
+        "description": "Lisez l'avertissement sur les risques, les données et l'utilisation de CriptoVersus avant d'interpréter les scores de match ou les simulations de marché."
+      },
+      "hero": {
+        "eyebrow": "Avertissement sur les risques",
+        "title": "Utilisez l'arène comme une visualisation, pas comme un conseil.",
+        "lead": "CriptoVersus est pour l'analyse, l'éducation et le divertissement. Il ne fournit pas de conseil financier, de recommandations d'investissement ni de résultats garantis.",
+        "backToAbout": "À propos de CriptoVersus",
+        "backToScoringRules": "Règles de notation",
+        "panelLabel": "Résumé des risques",
+        "panel": {
+          "adviceLabel": "Conseil",
+          "adviceTitle": "Pas de conseil financier",
+          "adviceBody": "Le site ne vous dit pas quoi acheter, vendre ou conserver.",
+          "dataLabel": "Qualité des données",
+          "dataTitle": "Les données publiques peuvent changer",
+          "dataBody": "Les sources publiques peuvent être en retard, échouer, diverger ou devenir temporairement indisponibles.",
+          "outcomeLabel": "Résultat",
+          "outcomeTitle": "Pas de résultat garanti",
+          "outcomeBody": "Les scores et les résultats simulés ne sont pas des promesses de performance future."
+        }
+      },
+      "sections": {
+        "overviewLabel": "Sections de l'avertissement sur les risques"
+      },
+      "cards": {
+        "noAdvice": {
+          "label": "Conseil",
+          "title": "Pas de conseil financier",
+          "body": "The platform does not tell you what to buy, sell or hold."
+        },
+        "data": {
+          "label": "Data",
+          "title": "Les signaux peuvent changer",
+          "body": "Les sources publiques peuvent être en retard, échouer, diverger ou devenir temporairement indisponibles."
+        },
+        "outcome": {
+          "label": "Résultat",
+          "title": "Pas de résultat garanti",
+          "body": "Les scores et les résultats simulés ne sont pas des promesses de performance future."
+        }
+      },
+      "dataProviderNoticeLabel": "Avis du fournisseur de données",
+      "dataProviderNotice": "CriptoVersus utilise des données publiques du marché crypto et des signaux de marché. Lorsque les paires négociées sur Binance sont disponibles, elles peuvent faire partie du mix. La plateforme n'est pas affiliée à Binance ni approuvée par Binance.",
+      "dataProviderNote": "La présence d'une paire négociée sur Binance ne signifie pas l'approbation, la recommandation ou la validation de l'actif sous-jacent.",
+      "dataProviderNoGuarantee": "La plateforme est construite pour la visualisation, l'analyse, la simulation et le divertissement, pas comme un produit d'investissement ou un service de rendement garanti."
+    }
+  },
+  "matchDetail": {
+    "loadingMatch": "Chargement du match...",
+    "error": "Erreur :",
+    "matchNotFound": "Match non trouvé.",
+    "matchNotFoundBody": "Ce match est peut-être terminé ou n'est plus disponible.",
+    "loadUnavailableTitle": "Nous n'avons pas pu ouvrir ce match.",
+    "loadUnavailableBody": "Essayez à nouveau. En attendant, vous pouvez retourner aux matchs en direct.",
+    "retry": "Réessayer",
+    "returnHome": "Voir les matchs en direct",
+    "matchLeader": "Leader du match",
+    "wonTheMatch": "a remporté le match",
+    "noLeaderDefined": "Aucun leader défini",
+    "live": "EN DIRECT",
+    "marketDataDisclaimer": "Les données de marché sont à titre informatif et de divertissement uniquement. Ce n'est pas un conseil financier.",
+    "invest": "Choisir",
+    "bets": "Sélections",
+    "finalResult": "RÉSULTAT FINAL",
+    "finalScore": "Score final",
+    "matchClock": "CHRONOMÈTRE DU MATCH",
+    "remaining": "Restant",
+    "scoringLog": "Journal de notation",
+    "mostRelevantMomentByMomentEventsFromTheMatch": "Événements les plus pertinents moment par moment du match",
+    "eventS": "événement(s)",
+    "noScoringEventsHaveBeenRecordedForThisMatchYet": "Aucun événement de notation n'a encore été enregistré pour ce match.",
+    "investmentResponse": "Réponse de sélection",
+    "matchPanel": "Panneau du match",
+    "elapsed": "Écoulé",
+    "score": "Score",
+    "match": "Match",
+    "activeRule": "Règle active",
+    "winner": "Leader du match",
+    "noWinner": "Pas de leader final",
+    "settlementReason": "Raison du règlement",
+    "validFinancialDispute": "Litige financier valide ?",
+    "yes": "Oui",
+    "no": "Non",
+    "betsOnBothSides": "Sélections des deux côtés ?",
+    "walletsOnTeamA": "Portefeuilles sur l'équipe A",
+    "walletsOnTeamB": "Portefeuilles sur l'équipe B",
+    "betsOnTeamA": "Sélections sur l'équipe A",
+    "betsOnTeamB": "Sélections sur l'équipe B",
+    "totalOnTeamA": "Total sur l'équipe A",
+    "totalOnTeamB": "Total sur l'équipe B",
+    "winningPool": "Pool gagnant",
+    "losingPool": "Pool perdant",
+    "totalPool": "Pool total",
+    "houseFee": "Commission de la maison",
+    "totalDistributed": "Total distribué",
+    "settlementSummary": "Résumé du règlement",
+    "finished": "Terminé",
+    "finishedAtUtc": "Terminé en UTC : {0}",
+    "actions": "Actions",
+    "copyLink": "Copier le lien",
+    "back": "Retour",
+    "tipShareTheLinkToOpenTheMatchDirectlyInArenaMode": "Astuce : partagez le lien pour ouvrir le match directement en mode arène.",
+    "matchParticipants": "Participants au match",
+    "participantS": "participant(s)",
+    "bet": "Choix :",
+    "result": "Résultat :",
+    "received": "Reçu :",
+    "securePosition": "position sécurisée",
+    "investmentsOpen": "Sélections ouvertes",
+    "investmentsClosed": "Sélections fermées",
+    "investmentsAreUnavailableForThisMatch": "Les sélections ne sont pas disponibles pour ce match.",
+    "status": "Statut :",
+    "elapsedTime": "temps écoulé :",
+    "investIn": "Choisir",
+    "chooseTheAmountInSol": "Choisissez le montant en SOL",
+    "chooseTheTeamToInvest": "Choisissez une équipe dans laquelle investir",
+    "close": "Serré",
+    "followMatch": "Suivre le match",
+    "unfollow": "Ne plus suivre",
+    "investmentIn": "Choisir",
+    "quickValuesInSol": "Valeurs rapides en SOL",
+    "quickAdjustment": "Ajustement rapide :",
+    "orEnterAnyAmountInSol": "Ou entrez un montant en SOL",
+    "walletBalanceGuardWalletBalance": "Solde du portefeuille",
+    "walletBalanceGuardMaximumAvailable": "Maximum disponible",
+    "walletBalanceGuardUseMax": "Utiliser le max",
+    "walletBalanceGuardInsufficient": "Solde insuffisant",
+    "walletBalanceGuardInsufficientMessage": "Solde du portefeuille insuffisant. Vous avez {0} disponible pour cette opération.",
+    "walletBalanceGuardFeeReserve": "Vous devez conserver une petite réserve pour les frais de réseau Solana.",
+    "loggedUserLabel": "Utilisateur #{0}",
+    "loginRequired": "Connectez-vous pour choisir",
+    "cancel": "Annuler",
+    "sending": "Envoi...",
+    "gotIt": "Compris",
+    "completed": "Terminé",
+    "closing": "Clôture",
+    "live2": "En direct",
+    "pending": "En attente",
+    "noWinner2": "PAS DE LEADER FINAL",
+    "scoringEvent": "Événement de notation",
+    "theMatchEndedWithoutAWinnerNoFeeWasChargedAndAllBetsMustBeFullyRefunded": "Le match s'est terminé sans leader final. Aucune commission n'a été prélevée et toutes les sélections doivent être intégralement remboursées.",
+    "thereWasATechnicalWinnerOnTheScoreboardButThereWasNoValidOpposingPoolNoFinancialGainOrHouseFeeWasApplied": "Il y avait un leader technique sur le tableau de score, mais il n'y avait pas de pool adverse valide. Aucun gain financier ni commission de maison n'a été appliqué.",
+    "thereWasNoValidFinancialCounterpartyNoFinancialLossOrHouseFeeWasApplied": "Il n'y avait pas de contrepartie valide. Aucune perte financière ni commission de maison n'a été appliquée.",
+    "matchCanceledNoHouseFeeAndFullRefundOfBets": "Match annulé. Pas de commission de maison et remboursement complet des sélections.",
+    "matchFinishedWithoutAValidFinancialWinnerBetsMustBeRefunded": "Match terminé sans leader final valide. Les sélections doivent être remboursées.",
+    "settlementCompletedAccordingToTheMatchRule": "Règlement effectué selon la règle du match.",
+    "chooseACoinToInvestIn": "Choisissez un token à suivre.",
+    "enterAnAmountGreaterThanZero": "Entrez un montant supérieur à zéro.",
+    "theMatchHasNotBeenCreatedOnChainOnDevnetYetPleaseTryAgainShortly": "Le match n'a pas encore été créé on-chain sur devnet. Veuillez réessayer sous peu.",
+    "itWasNotPossibleToPrepareThisCoinSOnChainPositionRightNowPleaseTryAgainShortly": "Il n'a pas été possible de préparer la position on-chain de ce token pour le moment. Veuillez réessayer sous peu.",
+    "itWasNotPossibleToCompleteTheInvestmentRightNowPleaseTryAgainShortly": "Il n'a pas été possible de compléter l'investissement pour le moment. Veuillez réessayer sous peu.",
+    "percentageHistoryThresholdCrossover": "Historique de pourcentage (seuil + croisement)",
+    "percentageHistoryCrossover": "Historique de pourcentage (croisement)",
+    "percentageHistory": "Historique de pourcentage",
+    "crossoverS": "croisement(s)",
+    "scoringBasedOnPercentageCrossoverAPointOnlyAppearsWhenOneTeamSLineCrossesTheOtherSFromBottomToTop": "Notation basée sur le croisement de pourcentage : un point n'apparaît que lorsque la ligne d'une équipe croise celle de l'autre de bas en haut.",
+    "percentageDisplayedForMatchTracking": "Pourcentage affiché pour le suivi du match.",
+    "volumeHistoryWindowCrossover": "Historique de volume (fenêtre + croisement)",
+    "volumeHistoryCrossover": "Historique de volume (croisement)",
+    "volumeHistory": "Historique de volume",
+    "comparisonBasedOnVolumeCrossoverAPointOnlyAppearsWhenOneTeamSLineCrossesTheOtherSFromBottomToTop": "Comparaison basée sur le croisement de volume : un point n'apparaît que lorsque la ligne d'une équipe croise celle de l'autre de bas en haut.",
+    "candleBattleDominance": "Dominance Candle Battle",
+    "candleBattleLeadChange": "Dominance Candle Battle",
+    "volumeDisplayedForMatchTracking": "Volume affiché pour le suivi du match.",
+    "crossoverPercent": "Croisement %",
+    "volumeWindow": "Fenêtre de volume",
+    "volumeCrossover": "Croisement de volume",
+    "chartsWillBeDisplayedWhenTheMatchIsLoaded": "Les graphiques seront affichés lorsque le match sera chargé.",
+    "thereAreNoPersistedSnapshotsForThisMatchYetAfterTheWorkerRunsAndRecordsTheCapturesTheChartsWillAppearHere": "Il n'y a pas encore de snapshots persistés pour ce match. Après que le worker ait exécuté et enregistré les captures, les graphiques apparaîtront ici.",
+    "percentageThresholdCardDescription": "Les badges ci-dessus montrent uniquement les croisements vers le haut sur le graphique. Les points de seuil comptent toujours dans le score et le journal : {0} {1} | {2} {3}.",
+    "volumeWindowCardDescription": "Les badges ci-dessus montrent uniquement les croisements vers le haut sur le graphique. Les points de la fenêtre de 15 minutes comptent toujours dans le score et le journal : {0} {1} | {2} {3}.",
+    "notEnoughPointsToDrawLines": "Il n'y a pas encore assez de points pour tracer les lignes. Au moins 2 captures par équipe sont requises. {0} : {1}. {2} : {3}.",
+    "arenaPressureTitle": "Arena Pressure",
+    "arenaPressureSubtitle": "Jauge de pression et de sentiment propriétaire calculée uniquement à partir des données de marché Binance.",
+    "marketPulse": "Pouls du marché",
+    "arenaPressureLabel": "Arena Pressure",
+    "arenaExtremeFear": "Peur extrême",
+    "arenaFear": "Peur",
+    "arenaNeutral": "Neutre",
+    "arenaGreed": "Avidité",
+    "arenaExtremeGreed": "Avidité extrême",
+    "arenaInsufficientData": "Données insuffisantes",
+    "matchAlerts": "Alertes de match",
+    "configureMatchAlerts": "Configurer les alertes de match",
+    "matchAlertsActive": "Alertes de match actives",
+    "alertScore": "Changement de score",
+    "alertComeback": "Retour",
+    "alertFinished": "Match terminé",
+    "activateAlerts": "Activer les alertes",
+    "updateAlerts": "Mettre à jour",
+    "removeAlerts": "Supprimer les alertes",
+    "pushNotSupported": "Les notifications push ne sont pas prises en charge dans ce navigateur.",
+    "pushNotificationsBlocked": "Les notifications push sont bloquées. Activez-les dans les paramètres de votre navigateur.",
+    "pushPermissionDenied": "La permission de notification a été refusée.",
+    "pushServiceWorkerError": "Impossible de démarrer le service de notification.",
+    "pushVapidError": "Impossible de récupérer la configuration sécurisée des notifications.",
+    "pushSubscriptionError": "Impossible de créer un abonnement aux notifications dans ce navigateur.",
+    "pushRegistrationError": "Impossible d'enregistrer ce navigateur pour les notifications.",
+    "pushResponseInvalid": "Le service de notification a retourné une réponse invalide.",
+    "matchAlertSaveError": "Le navigateur a été enregistré, mais l'alerte de match n'a pas pu être sauvegardée.",
+    "pushConnectionError": "La connexion au service de notification a été interrompue.",
+    "loadAlertsError": "Impossible de charger les alertes de match.",
+    "subscribeError": "Échec de l'activation des alertes.",
+    "updateAlertsError": "Échec de la mise à jour des alertes.",
+    "unsubscribeError": "Échec de la suppression des alertes.",
+    "alertsActivated": "Alertes de match activées.",
+    "alertsUpdated": "Alertes de match mises à jour.",
+    "alertsRemoved": "Alertes de match supprimées.",
+    "assetAlertTitle": "Alerte d'actif",
+    "followAsset": "Suivre",
+    "unfollowAsset": "Ne plus suivre",
+    "assetPlayingHint": "Soyez notifié quand {0} joue à nouveau.",
+    "assetSubscribeSuccess": "Alerte d'actif activée.",
+    "assetUnsubscribeSuccess": "Alerte d'actif supprimée.",
+    "assetAlertError": "Échec de la sauvegarde de l'alerte d'actif.",
+    "loadAssetAlertError": "Impossible de charger le statut de l'alerte d'actif.",
+    "tvAssetAlertFollow": "Suivre cet actif",
+    "tvAssetAlertRemove": "Arrêter de suivre cet actif",
+    "pushClientOutdated": "La page utilise une version obsolète des notifications. Veuillez recharger et réessayer.",
+    "pushSubscriptionInactive": "Votre abonnement push n'est plus actif. Reconnexion automatique.",
+    "saving": "Sauvegarde...",
+    "loading": "Chargement..."
+  },
+  "cryptoConverterStats": {
+    "seo": {
+      "title": "{0} vers {1} Convertisseur | CriptoVersus",
+      "description": "Estimez combien {0} vaut en {1}, puis consultez la couche de bataille, la variation de prix en direct et le contexte public de l'arène pour la paire.",
+      "unavailableDescription": "La conversion en direct est temporairement indisponible pour cette paire. CriptoVersus garde la page accessible avec une réponse noindex sûre jusqu'à ce que les données publiques de prix reviennent."
+    },
+    "hero": {
+      "eyebrow": "Convertisseur crypto public",
+      "title": "Convertisseur {0} vers {1} et statistiques de bataille",
+      "subtitle": "Conversion estimée d'abord, puis le contexte de bataille de l'arène pour la même paire.",
+      "seoCopy": "Recherchez la paire, estimez la valeur et inspectez la couche de bataille sans quitter CriptoVersus.",
+      "watchCta": "Regarder {0} vs {1} Bataille en direct",
+      "exploreCta": "Explorer les batailles crypto",
+      "backToStats": "Retour aux statistiques",
+      "panelHint": "derniers snapshots publics des actifs",
+      "resultLabel": "Résultat estimé",
+      "unavailableTitle": "Conversion indisponible pour cette paire",
+      "unavailableBody": "La conversion en direct est temporairement indisponible pour cette paire.",
+      "diagnostics": {
+        "title": "Diagnostics temporaires",
+        "fromSymbol": "fromSymbol",
+        "toSymbol": "toSymbol",
+        "fromPriceFound": "fromPriceFound",
+        "toPriceFound": "toPriceFound",
+        "fromStatus": "fromEndpointStatus",
+        "toStatus": "toEndpointStatus",
+        "fromReason": "fromReason",
+        "toReason": "toReason",
+        "fromSource": "fromSource",
+        "toSource": "toSource",
+        "reason": "reason"
+      },
+      "disclaimerEyebrow": "Note importante",
+      "disclaimerTitle": "Avertissement",
+      "disclaimerBody": "CriptoVersus est une plateforme gamifiée de visualisation de données de marché. Les scores des matchs sont générés à partir de signaux publics du marché et ne doivent pas être interprétés comme un conseil financier, des recommandations d'investissement ou des résultats garantis."
+    },
+    "labels": {
+      "to": "vers",
+      "approx": "≈",
+      "vs": "vs",
+      "directRate": "Taux direct",
+      "priceUpdated": "Prix mis à jour",
+      "momentum": "Momentum",
+      "notAvailableYet": "Pas encore disponible"
+    },
+    "table": {
+      "amount": "Montant",
+      "estimate": "Résultat estimé",
+      "direct": {
+        "eyebrow": "Conversion directe",
+        "title": "Tableau de conversion directe",
+        "description": "Montants courants de {0} estimés en {1} en utilisant la dernière source de prix publique disponible dans CriptoVersus."
+      },
+      "inverse": {
+        "eyebrow": "Conversion inverse",
+        "title": "Tableau de conversion inverse",
+        "description": "Montants courants de {0} estimés en retour vers {1} en utilisant la même source de prix publique."
+      }
+    },
+    "battle": {
+      "eyebrow": "Performance de bataille",
+      "title": "Performance de bataille",
+      "description": "Comportement public des prix et contexte de l'arène pour cette paire.",
+      "unavailableTitle": "Les données de bataille ne sont pas encore disponibles",
+      "unavailableBody": "CriptoVersus n'a pas encore publié de bataille d'arène correspondante pour cette paire.",
+      "priceVariation": "Variation de prix",
+      "priceVariationHint": "Dernière variation observée à partir de la série de snapshots publics.",
+      "candleBattle": "Candle Battle",
+      "candleBattleHint": "Capturé à partir des snapshots de match publics disponibles.",
+      "arenaPressure": "Arena Pressure",
+      "momentum": "Momentum",
+      "momentumHint": "Symbole leader par variation observée.",
+      "recentWinner": "Leader récent",
+      "recentWinnerHint": "Leader du match public le plus récent s'il existe.",
+      "watchCta": "Regarder {0} vs {1} Bataille en direct",
+      "exploreCta": "Explorer les batailles crypto",
+      "snapshotCount": "{0} snapshots suivis",
+      "matchId": "Match #{0}"
+    },
+    "breadcrumbs": {
+      "home": "Accueil",
+      "stats": "Statistiques"
+    },
+    "faq": {
+      "questions": {
+        "conversion": "Comment la conversion est-elle estimée ?",
+        "prices": "D'où viennent les prix ?",
+        "watch": "Puis-je regarder la bataille en direct ?"
+      },
+      "answers": {
+        "conversion": "La page multiplie le montant source par le prix de l'actif d'origine et divise par le prix de l'actif de destination en utilisant des données publiques du marché déjà existantes dans CriptoVersus.",
+        "prices": "La page résout chaque actif indépendamment à partir des derniers snapshots de prix publics déjà stockés dans CriptoVersus, puis revient à un état sûr indisponible si l'un des symboles ne peut pas être résolu.",
+        "watch": "Lorsqu'une vraie bataille publique existe pour la paire, le lien de bataille en direct pointe vers ce contexte d'arène. Sinon, la page offre un chemin d'exploration sûr."
+      }
+    }
+  },
+  "tv": {
+    "seo": {
+      "title": "CriptoVersus TV | Diffusion de données de marché crypto en direct",
+      "description": "Diffusion automatique sans connexion pour OBS Studio avec des simulations de marché en direct, des tableaux de score publics et des statistiques de marché de CriptoVersus.",
+      "broadcastTitle": "Diffusion TV CriptoVersus | Flux de données de marché prêt pour OBS",
+      "broadcastDescription": "Scène TV CriptoVersus prête pour la diffusion sur YouTube et OBS avec des simulations de marché en direct rotatives, un commentaire déterministe, un ticker et un support audio de foule d'ambiance.",
+      "matchTitle": "{0} vs {1} | CriptoVersus TV",
+      "matchDescription": "Regardez {0} vs {1} sur CriptoVersus TV avec l'overlay de l'arène en direct, le commentaire de l'arène et la télémétrie publique du marché.",
+      "matchDescriptionFallback": "Scène de marché en direct CriptoVersus TV optimisée pour la diffusion en source navigateur dans OBS Studio."
+    },
+    "disclaimer": "CriptoVersus est une plateforme gamifiée de visualisation de données de marché. Les scores des matchs sont générés à partir de signaux publics du marché et ne doivent pas être interprétés comme un conseil financier, des recommandations d'investissement, des résultats de jeu ou des résultats garantis.",
+    "title": "CriptoVersus TV",
+    "subtitle": "Diffusion automatique de l'arène crypto en direct",
+    "liveNow": "En direct maintenant",
+    "startingSoon": "Début imminent",
+    "ended": "Terminé",
+    "watchMatch": "Regarder le match",
+    "watchLive": "Regarder en direct",
+    "openMatch": "Ouvrir le match",
+    "matchNotFound": "Match non trouvé sur CriptoVersus TV.",
+    "loading": "Chargement de la diffusion TV...",
+    "offline": "Diffusion hors ligne",
+    "vs": "VS",
+    "score": "Score",
+    "momentum": "Momentum",
+    "goals": "Buts",
+    "refreshing": "Rafraîchissement",
+    "liveArena": "Arène en direct",
+    "poweredBy": "Propulsé par CriptoVersus",
+    "noMatches": "Aucun match disponible pour le moment.",
+    "matchPage": {
+      "eyebrow": "Match TV",
+      "loading": "Chargement du match...",
+      "loadingBody": "L'arène prépare l'affrontement en direct.",
+      "notFound": "Match non trouvé.",
+      "notFoundBody": "Nous n'avons pas pu localiser le match demandé. Choisissez une autre arène ou retournez à la chaîne TV.",
+      "unavailable": "Ce match est terminé",
+      "unavailableBody": "Continuez à regarder avec le prochain match disponible, parcourez la liste des matchs ou retournez à la chaîne TV automatique.",
+      "error": "Impossible de charger l'arène pour le moment.",
+      "errorBody": "Veuillez réessayer dans un instant. Si le problème persiste, la diffusion est peut-être encore en cours de rafraîchissement.",
+      "watchNext": "Regarder le prochain match",
+      "viewMatches": "Voir les autres matchs",
+      "returnToTv": "Retour à la TV",
+      "returnHome": "Retour à l'accueil",
+      "retry": "Réessayer"
+    },
+    "futurebol": {
+      "canvasAriaLabel": "Terrain 3D Futurebol",
+      "loading": "Chargement de l'arène...",
+      "loadingSlow": "L'arène prend un peu plus de temps à charger...",
+      "error": "Impossible de charger l'arène 3D.",
+      "errorBody": "Essayez à nouveau ou rafraîchissez la page.",
+      "retry": "Réessayer"
+    },
+    "hero": {
+      "eyebrow": "Diffusion automatique",
+      "title": "CriptoVersus TV"
+    },
+    "states": {
+      "waitingForNextHotBattle": "En attente de la prochaine bataille chaude",
+      "proceduralSearchTitle": "Recherche de la prochaine bataille procédurale...",
+      "proceduralSearchSubtitle": "Analyse du pouls du marché, des classements et des prétendants possibles",
+      "noHotMatchRightNow": "Aucun match chaud pour le moment",
+      "availableInOtherLanguage": "Également disponible dans une autre langue : {0}",
+      "aiCalibrating": "Le narrateur IA calibre le flux de l'arène.",
+      "aiTracking": "Le narrateur IA suit le flux en direct pour le prochain appel.",
+      "commentaryLoading": "Le commentaire de l'arène se rafraîchit à partir du dernier état du marché.",
+      "commentaryStandby": "Le commentaire de l'arène attend le prochain mouvement pertinent.",
+      "scanMarketPulse": "Synchronisation du pouls du marché...",
+      "scanArenaRanking": "Lecture du classement de l'arène...",
+      "scanCandidates": "Recherche de tokens candidats...",
+      "awaitingKickoff": "En attente de l'événement de coup d'envoi...",
+      "initialLoadingTitle": "Chargement de l'arène...",
+      "initialLoadingSubtitle": "Veuillez patienter pendant que la diffusion confirme les données du match.",
+      "initialLoadingStepOne": "Synchronisation du match",
+      "initialLoadingStepTwo": "Préparation des graphiques et du tableau de score",
+      "initialLoadingStepThree": "Activation de la diffusion"
+    },
+    "activity": {
+      "eyebrow": "Activité en direct",
+      "title": "Activité du match",
+      "description": "Événements, pression, momentum et changements tactiques se produisant en temps réel.",
+      "ariaLabel": "Graphique de l'activité du match dans le temps"
+    },
+    "labels": {
+      "liveArena": "Arène en direct",
+      "automaticBroadcast": "Diffusion automatique",
+      "hotMatch": "Match chaud",
+      "volume": "Volume",
+      "realMatch": "Match réel",
+      "matchIdValue": "Match #{0}",
+      "momentum": "Momentum",
+      "reversalDetected": "Renversement détecté",
+      "nextBattle": "Prochaine bataille",
+      "hotScore": "HotScore",
+      "matchClock": "Chronomètre du match",
+      "remaining": "Restant",
+      "live": "En direct",
+      "firstHalf": "1ÈRE MI-TEMPS",
+      "halfTime": "MI-TEMPS",
+      "secondHalf": "2NDE MI-TEMPS",
+      "final": "FINAL",
+      "change": "Changement",
+      "remainingTime": "Temps restant",
+      "reason": "Raison",
+      "competitivePool": "Pool de match",
+      "arenaCycle": "Cycle de l'arène",
+      "leader": "Leader",
+      "pressure": "Pression",
+      "assetPerformance": "Performance des actifs",
+      "candleBattle": "Candle Battle",
+      "candlesWon": "Chandeliers gagnés",
+      "momentumCurrent": "Momentum actuel",
+      "tacticalPanel": "Panneau tactique",
+      "tacticalPanelA11y": "Panneau tactique de Candle Battle",
+      "leadership": "Leadership",
+      "candlesAnalyzed": "Chandeliers analysés",
+      "currentStreak": "Série actuelle",
+      "lastCandle": "Dernier chandelier",
+      "lastVariation": "Dernière variation",
+      "waitingCandleHistory": "En attente de l'historique des chandeliers",
+      "chartForAsset": "Chandeliers pour {0}",
+      "candleBattleA11y": "Arène de Candle Battle {0} vs {1}",
+      "controlsCandlesBy": "{0} contrôle les chandeliers",
+      "pressureAdvantageBy": "Avantage de pression de {0}",
+      "momentumNeutral": "Momentum neutre",
+      "leftAssetChange": "Variation de l'actif gauche",
+      "rightAssetChange": "Variation de l'actif droit",
+      "assetVariationA": "Variation de l'actif A",
+      "assetVariationB": "Variation de l'actif B",
+      "assetA": "Actif A",
+      "assetB": "Actif B",
+      "comparisonChart": "Graphique de comparaison normalisé pour {0} et {1}",
+      "normalizedSharedScale": "Base 1,000 · échelle partagée",
+      "won": "gagné",
+      "tie": "Égalité",
+      "winnerPerCandle": "Leader par chandelier",
+      "competitiveness": "Compétitivité",
+      "poolStatus": "État du pool",
+      "poolStatusActiveFlow": "Flux en direct actif",
+      "poolStatusIdle": "Faible activité du match",
+      "poolStatusBalanced": "Pool de match équilibré",
+      "poolStatusOpen": "Pool de match ouvert",
+      "eventZone": "Zone d'événements",
+      "marketDrivenArena": "Arène pilotée par le marché",
+      "liveRewardDynamics": "Dynamique de notation en direct",
+      "sideCompetition": "Compétition latérale",
+      "tiePressure": "Pression de l'arène équilibrée",
+      "onePointBattle": "Bataille en direct à un point",
+      "completed": "Terminé",
+      "pressureRising": "Pression de {0} en hausse",
+      "signalStable": "Signal stable",
+      "matchArena": "Arène du match",
+      "broadcastTicker": "Ticker de diffusion",
+      "aiCommentary": "Commentaire IA",
+      "remainingWithClock": "Restant ({0})",
+      "pressureSummary": "Pool de match | {0} | {1}",
+      "marketBattleFlow": "Flux de bataille du marché",
+      "assetVariationSplit": "Répartition de la variation des actifs",
+      "testCommentary": "Commentaire de test",
+      "liveNarrator": "Narrateur en direct",
+      "aiMetaTimestamp": "{0} | {1} UTC",
+      "commentaryMetaTimestamp": "{0} | {1} UTC",
+      "activity": {
+        "eyebrow": "Activité en direct",
+        "title": "Activité du match",
+        "description": "Événements, pression, momentum et changements tactiques se produisant en temps réel.",
+        "ariaLabel": "Graphique de l'activité du match dans le temps"
+      }
+    },
+    "priceBattle": {
+      "eyebrow": "Comparaison des prix",
+      "title": "Bataille de prix en direct",
+      "subtitle": "Snapshot du marché pour les deux côtés du match.",
+      "centerHint": "Comparaison du marché en temps réel",
+      "currentPrice": "Prix actuel",
+      "change": "Changement",
+      "competitiveness": "Compétitivité",
+      "chartAria": "Graphique de comparaison des prix en direct",
+      "noData": "En attente des données de prix",
+      "waitingHistory": "En attente de l'historique des prix",
+      "logoAlt": "Logo de {0}",
+      "ariaLabel": "{0} contre {1}, compétitivité {2}."
+    },
+    "broadcast": {
+      "switchingArena": "Passage à la prochaine arène chaude...",
+      "nextHotArena": "La rotation en direct se déplace vers une fenêtre d'arène plus forte.",
+      "rotationGaugeLabel": "Rotation des matchs",
+      "focusGaugeLabel": "Focus de la caméra",
+      "rotationGaugeTitle": "Prochain changement d'arène dans {0} min",
+      "goalLogEmpty": "Aucun but récent dans ce match.",
+      "mainMatchEyebrow": "Match de diffusion en vedette",
+      "mainMatchDescription": "Ouvrez la version fixe de ce match pour regarder la diffusion complète sans perdre le contexte en direct.",
+      "mainMatchCta": "Entrer dans la diffusion",
+      "openBroadcastAria": "Ouvrir la diffusion fixe pour {0}",
+      "overlayTitle": "Regarder la diffusion",
+      "overlaySubtitle": "En direct maintenant",
+      "signalDegraded": "Signal dégradé",
+      "dataStatusTitle": "Flux fonctionnant sur des données de récupération",
+      "dataStatusFallback": "La diffusion reste en ligne avec le dernier snapshot valide pendant que l'arène reconstruit le flux en direct.",
+      "dataStatusWorkerHeartbeat": "Le worker a manqué les derniers battements de cœur. La diffusion reste en ligne avec des données stables jusqu'à ce que le pipeline reprenne.",
+      "dataStatusWorkerDegraded": "Le worker est entré en mode dégradé. L'arène a maintenu le signal en ligne avec des données de secours au lieu de vider les panneaux.",
+      "dataStatusCurrencyMissing": "Le snapshot de devise publique est manquant pour le moment. L'écran conserve la dernière image fiable.",
+      "dataStatusCurrencyStale": "Le snapshot du marché est devenu obsolète. La diffusion affiche toujours le dernier classement utile pendant que l'ingestion récupère.",
+      "dataStatusStatsStale": "Les statistiques publiques sont temporairement obsolètes. L'arène reste en ligne avec les données les plus récentes disponibles."
+    },
+    "pressureGauge": {
+      "title": "ARENA PRESSURE",
+      "subtitle": "POSSESSION DU BALLON EN DISPUTE",
+      "pressureLabel": "PRESSION",
+      "currentPressureLabel": "PRESSION ACTUELLE",
+      "momentumLabel": "MOMENTUM",
+      "pressureTooltip": "{0} {1} - {2}% de pression",
+      "logoAlt": "Logo de {0}",
+      "ariaLabel": "{0} avec {1}% de pression, {2} avec {3}% de pression. État actuel : {4}.",
+      "statusCritical": "{0} PRESSION CRITIQUE",
+      "statusControlsArena": "{0} CONTRÔLE L'ARÈNE",
+      "statusBalanced": "DUEL ÉQUILIBRÉ",
+      "statusTransition": "POSSESSION EN TRANSITION",
+      "footerInDispute": "EN DISPUTE",
+      "footerPressuring": "{0} PRESSE",
+      "footerNeutralPossession": "POSSESSION NEUTRE",
+      "footerLeftDominant": "CÔTÉ GAUCHE DOMINANT",
+      "footerRightDominant": "CÔTÉ DROIT DOMINANT",
+      "momentumStrong": "MOMENTUM FORT",
+      "momentumRising": "PRESSION EN HAUSSE",
+      "momentumNeutral": "RYTHME NEUTRE",
+      "momentumRecovering": "RÉCUPÉRATION",
+      "description": "La pression de l'arène montre le contrôle territorial et l'intensité de chaque côté. Au-dessus de 60% signifie une forte dominance. En dessous de 40% signifie une perte de contrôle."
+    },
+    "modes": {
+      "kicker": "Navigation TV",
+      "title": "Choisissez comment regarder",
+      "description": "Restez sur la chaîne rotative ou ouvrez un match en direct fixe.",
+      "rotativeEyebrow": "TV Rotative",
+      "rotativeTitle": "Rotation automatique en direct",
+      "rotativeDescription": "La chaîne continue de tourner entre les arènes éligibles les plus fortes.",
+      "rotativeCta": "Regarder en direct",
+      "matchEyebrow": "Match disponible",
+      "openMatchCta": "Ouvrir le match",
+      "watchLiveCta": "TV Rotative"
+    },
+    "promo": {
+      "chooseSide": "CHOISISSEZ UN CÔTÉ !",
+      "site": "CRIPTOVERSUS.COM"
+    },
+    "audio": {
+      "crowdEnabled": "Audio de la foule activé",
+      "crowdMuted": "Audio de la foule en sourdine",
+      "startBroadcast": "Démarrer l'audio de la diffusion"
+    },
+    "field": {
+      "scoreboard": "Tableau de score de l'arène",
+      "remainingTime": "Temps restant",
+      "possession": "Possession",
+      "liveArena": "Arène en direct",
+      "automaticBroadcast": "Diffusion automatique",
+      "stableSignal": "Signal stable",
+      "volume": "Volume",
+      "momentum": "Momentum",
+      "reason": "Raison",
+      "leader": "Leader",
+      "pressure": "Pression",
+      "assetVariationA": "Asset A variation",
+      "assetVariationB": "Asset B variation",
+      "competitiveness": "Compétitivité",
+      "poolStatus": "État du pool",
+      "recentEvents": "Événements récents",
+      "goalFor": "{0} a marqué un point !",
+      "reducedScore": "{0} a réduit l'écart",
+      "openedScore": "{0} a ouvert le score",
+      "marketGuidedArena": "Arène guidée par le marché",
+      "eventZone": "Zone d'événements",
+      "arenaCommentary": "Commentaire de l'arène",
+      "recentEventsFallbackTight": "L'arène est toujours verrouillée au milieu du terrain.",
+      "recentEventsFallbackLead": "Le leader continue de pousser l'arène vers l'avant."
+    },
+    "grid": {
+      "metrics": {
+        "goals": "Buts"
+      }
+    },
+    "commentary": {
+      "title": "Commentaire de l'arène",
+      "fallback": "{0} et {1} restent actifs sur le tableau en direct pendant que l'arène attend le prochain mouvement.",
+      "source": {
+        "template": "Moteur de templates",
+        "aiDisabled": "IA désactivée"
+      },
+      "momentumEven": "Momentum équilibré",
+      "momentumFor": "Momentum pour {0}",
+      "templates": {
+        "balanced": [
+          "{2} et {3} sont toujours au coude à coude, mais le momentum commence à pencher en faveur de {0}.",
+          "Le tableau de score est serré et l'arène est toujours ouverte, avec {0} qui n'a qu'un léger avantage.",
+          "Ce match est verrouillé pour l'instant, mais un mouvement propre peut basculer la pression vers {0}.",
+          "{2} contre {3} reste équilibré, et la prochaine poussée du marché pourrait complètement relire la situation.",
+          "Aucun côté n'a ouvert l'arène, ce qui maintient {0} sous pression constante.",
+          "Un tableau de score serré et des pourcentages proches maintiennent cette arène vivante à chaque tick.",
+          "Il n'y a presque rien entre ces deux côtés en ce moment, ce qui rend le prochain basculement critique.",
+          "{0} a l'avantage sur le papier, mais cette arène se négocie toujours comme une bataille à un mouvement."
+        ],
+        "comeback": [
+          "Le leadership a changé de côté et {0} possède soudainement le momentum de l'arène.",
+          "{0} a retourné le match, et la diffusion ressemble maintenant à une histoire de retour en direct.",
+          "Ce qui semblait stable il y a un instant est maintenant un renversement, avec {0} qui prend la première ligne.",
+          "{0} vient de transformer la pression en contrôle et a changé le ton du match.",
+          "L'arène a un nouveau leader, et {0} oblige maintenant {1} à réagir.",
+          "{0} a repris l'avantage, donnant à cette bataille la forme d'un retour.",
+          "Un basculement de leadership vient de se produire, et {0} porte maintenant le récit le plus fort.",
+          "{1} avait le contrôle, mais {0} a riposté et volé le leadership."
+        ],
+        "pressureRising": [
+          "{0} commence à presser vers l'avant, et l'arène commence à suivre ce rythme.",
+          "Le pouls du marché penche davantage vers {0}, même si le tableau de score est toujours sous pression.",
+          "{0} construit une meilleure séquence et oblige l'arène à respecter cette montée.",
+          "Ce match se resserre autour de {0}, qui pousse maintenant le rythme du tableau.",
+          "La pression augmente du côté de {0}, et le prochain mouvement pourrait transformer cela en dommage au tableau de score.",
+          "{0} empile les réactions les plus fortes en ce moment et attire le match dans sa voie.",
+          "Le rythme se déplace vers {0}, et {1} a besoin d'une réponse rapidement.",
+          "{0} accélère au bon moment, ce qui change le sentiment de l'arène."
+        ],
+        "dominance": [
+          "{0} joue depuis l'avant et maintient cette arène sous contrôle clair.",
+          "L'écart au tableau de score grandit, et {0} transforme maintenant la pression en commandement.",
+          "{0} a ouvert une vraie distance dans ce match et dicte le rythme.",
+          "C'est une arène contrôlée en ce moment, avec {0} qui maintient une avance solide.",
+          "{1} a encore du temps, mais {0} rend ce tableau unilatéral.",
+          "{0} ne mène pas seulement ; il contrôle la structure du match.",
+          "L'avantage devient substantiel, et {0} opère maintenant depuis une position de confort.",
+          "{0} maintient l'avantage suffisamment large pour rendre cette arène de plus en plus contrôlée."
+        ],
+        "quietPool": [
+          "{2} et {3} attendent toujours un vrai volume de pool, donc une entrée peut réinitialiser le rythme instantanément.",
+          "L'arène est techniquement en direct, mais le pool reste calme et le prochain signal compte plus que jamais.",
+          "La faible activité maintient ce match sobre pour l'instant, même si le tableau peut se réveiller rapidement.",
+          "Il n'y a pas encore beaucoup d'agressivité dans le pool, ce qui laisse cette arène ouverte à un changement soudain.",
+          "Cette bataille respire encore légèrement, avec un volume limité et un rythme prudent.",
+          "Le pool est lent, le tableau est patient, et un mouvement décisif peut soudainement changer le ton.",
+          "Le volume ne s'est pas encore ouvert, donc l'arène attend toujours un déclencheur plus fort.",
+          "Le tableau en direct est calme pour l'instant, mais cela signifie souvent que la prochaine poussée frappe plus fort."
+        ],
+        "heatedPool": [
+          "Cette arène chauffe rapidement, avec un HotScore à {8} et une vraie pression qui se construit des deux côtés.",
+          "L'intensité du pool augmente, et ce match commence à ressembler à l'une des fenêtres les plus chaudes à l'antenne.",
+          "L'arène a maintenant une vraie chaleur, avec la pression, le volume et la compétitivité qui montent ensemble.",
+          "Avec un HotScore à {8}, ce match mérite une attention premium de diffusion.",
+          "Ce n'est plus un tableau calme ; l'arène négocie maintenant avec une chaleur visible.",
+          "Le volume et la tension montent ensemble, transformant cela en une rotation en direct plus chaude.",
+          "La salle devient plus bruyante autour de ce match, et les métriques le confirment.",
+          "Ce tableau chauffe pour devenir un spot de diffusion majeur, avec l'arène complètement éveillée."
+        ],
+        "finalThriller": [
+          "Le chronomètre est à {10}, l'écart est minime, et cette arène est vivante jusqu'au dernier basculement.",
+          "Il ne reste que {10}, et un mouvement propre peut encore retourner tout le tableau.",
+          "La phase finale est là, et la marge étroite rend chaque seconde dangereuse.",
+          "Cette arène entre dans le temps de pression avec presque rien qui sépare les deux côtés.",
+          "Fin de match, court écart, tension en direct : ce match refuse toujours de se décider.",
+          "La fin devient dramatique, parce que ce tableau est encore suffisamment proche pour basculer.",
+          "Il n'y a plus d'espace pour respirer dans cette arène, seulement {10} et un dernier basculement.",
+          "Le match atteint sa phase la plus aiguë, et le prochain mouvement peut réécrire la fin."
+        ],
+        "finalControlled": [
+          "Le chronomètre est court à {10}, mais {0} conserve assez d'espace pour gérer la fin.",
+          "{0} entre dans la phase finale avec le contrôle, obligeant {1} à poursuivre tardivement.",
+          "Le temps s'écoule et {0} a construit le type d'avance qui change le script final.",
+          "Cette arène tardive appartient toujours à {0}, qui protège un coussin significatif.",
+          "{1} a besoin de quelque chose d'immédiat, car {0} porte de la structure dans les dernières minutes.",
+          "La fin de partie est lancée, et {0} reste en commandement de la fenêtre de clôture.",
+          "{0} prend une avance régulière dans la phase finale, rendant le chemin du retour plus étroit.",
+          "Avec seulement {10} restants, {0} a le type de contrôle qui peut fermer un tableau en direct."
+        ],
+        "opening": [
+          "Le match est encore jeune, et les deux côtés explorent le premier rythme de l'arène.",
+          "En début de cycle, {2} et {3} écrivent encore le premier chapitre de ce tableau.",
+          "Cette arène ne fait que commencer, avec assez de temps pour plusieurs basculements de récit.",
+          "La phase d'ouverture reste prudente, et les deux actifs testent encore le rythme en direct.",
+          "Il reste beaucoup de temps, ce qui maintient ce tableau précoce grand ouvert.",
+          "Le premier tronçon est en cours, et aucun côté ne s'est encore imposé pleinement.",
+          "Cette fenêtre d'ouverture est plus une question de positionnement que de séparation, au moins pour l'instant.",
+          "L'arène est encore dans sa lecture initiale, et la carte de pression peut changer rapidement."
+        ],
+        "bothDown": [
+          "Les deux actifs sont sous pression, mais {0} chute moins et transforme la résistance en avantage.",
+          "C'est une bataille défensive en ce moment, et {0} absorbe mieux le coup du marché.",
+          "Aucun côté n'est dans le vert, mais {0} survit à la baisse avec plus de contrôle.",
+          "Cette arène se décide dans le rouge, où {0} tient mieux.",
+          "Les deux graphiques glissent, mais {0} résiste mieux à cette glissade que {1}.",
+          "Le marché penche négativement des deux côtés, et {0} tire le meilleur parti de la situation.",
+          "Même sous pression conjointe, {0} protège plus de valeur sur le tableau.",
+          "C'est une bataille de maîtrise des dégâts, et {0} fait actuellement mieux ce travail."
+        ],
+        "bothUp": [
+          "Les deux actifs montent, mais {0} accélère davantage et transforme la croissance en pression.",
+          "C'est un tableau agressif avec les deux côtés dans le vert, et {0} trouve encore plus d'élévation.",
+          "L'arène a une progression des deux côtés en ce moment, mais {0} en extrait davantage.",
+          "Les deux graphiques sont positifs, mais {0} pousse la meilleure ligne d'expansion.",
+          "Cette bataille en direct a de la force aux deux extrémités, et {0} convertit actuellement plus de cette force.",
+          "Le tableau est vert sur l'ensemble de l'affrontement, avec {0} qui prend toujours la route la plus forte vers le haut.",
+          "C'est un duel de marché en hausse, et {0} gagne la course à l'accélération pour l'instant.",
+          "Les deux côtés montent, mais {0} conduit la montée la plus marquée."
+        ],
+        "relativeLead": [
+          "Même avec la pression des deux côtés, {0} gère mieux le marché et reste en tête.",
+          "{0} n'a pas besoin d'un rallye propre ici ; mieux résister suffit pour maintenir le leadership.",
+          "Cette arène se gagne par la performance relative en ce moment, et {0} est le meilleur survivant.",
+          "{0} rend la résilience semblable à du contrôle sur ce tableau.",
+          "Le marché n'offre pas de conditions faciles, mais {0} défend toujours le leadership avec un meilleur équilibre.",
+          "La force relative porte ce match, et {0} possède actuellement cet avantage.",
+          "{0} ne s'échappe pas ; il endure simplement mieux que {1}.",
+          "L'avantage appartient à {0}, qui transforme une résistance plus régulière en pression au tableau de score."
+        ],
+        "goalRecent": [
+          "{0} vient de frapper le tableau de score et a injecté de l'énergie fraîche dans l'arène.",
+          "Un nouveau point pour {0}, et tout le ton de cette diffusion change immédiatement.",
+          "{0} convertit le dernier basculement en impact au tableau de score, obligeant {1} à répondre.",
+          "Ce point change la texture en direct du match, et {0} a maintenant le pouls.",
+          "{0} vient de faire réagir l'arène avec un coup propre au tableau de score.",
+          "Le tableau bouge à nouveau, et {0} est le côté qui célèbre le dernier impact.",
+          "{0} profite du moment avec un point qui augmente la pression sur {1}.",
+          "Dégâts frais au tableau de score pour {0}, et l'arène devient plus bruyante autour de ce match."
+        ],
+        "cycleEnding": [
+          "Cette arène approche de son cycle de clôture, et la forme actuelle du tableau devient finale.",
+          "Le match touche à sa fin, avec le récit en direct qui commence à se stabiliser autour de {0}.",
+          "L'arène ferme sa dernière fenêtre maintenant, et chaque signal restant porte un poids supplémentaire.",
+          "Ce cycle touche à sa fin, ce qui rend l'avantage actuel encore plus significatif.",
+          "Le tableau se dirige vers sa fin, avec peu de temps pour réécrire le script.",
+          "Le cycle en direct est presque fermé, et l'arène prépare la prochaine transition.",
+          "Ce match atteint son dernier souffle, avec le tableau de score qui fait maintenant la plupart du discours.",
+          "La fin du cycle est en vue, et la carte de pression actuelle est presque verrouillée."
+        ]
+      }
+    },
+    "waiting": {
+      "topCoinsEyebrow": "Classement de l'arène",
+      "topCoins": "Top des tokens",
+      "statsEyebrow": "Flux de l'arène",
+      "latestBattles": "Dernières batailles",
+      "gainersEyebrow": "Pouls du marché",
+      "marketPulse": "Top des mouvements",
+      "loadingRanking": "Chargement du classement...",
+      "loadingFeed": "Chargement du flux de l'arène...",
+      "loadingMarketPulse": "Chargement du pouls du marché...",
+      "errorRanking": "Échec du chargement du classement, nouvelle tentative...",
+      "errorFeed": "Échec du chargement du flux, nouvelle tentative...",
+      "errorMarketPulse": "Échec du chargement du pouls du marché, nouvelle tentative...",
+      "emptyRanking": "Aucune donnée de classement pour le moment",
+      "emptyFeed": "Aucune donnée récente pour le moment",
+      "emptyMarketPulse": "Aucun mouvement majeur du marché pour le moment"
+    },
+    "fallback": {
+      "closeMatchReason": "Bataille crypto en direct serrée avec pression active de l'arène.",
+      "liveArenaReason": "Bataille d'arène pilotée par le marché sélectionnée pour la diffusion en direct."
+    },
+    "ticker": {
+      "hotMatchDetected": "MATCH CHAUD DÉTECTÉ",
+      "momentumShift": "CHANGEMENT DE MOMENTUM",
+      "fearSurge": "PICS DE PEUR",
+      "arenaPressureRising": "PRESSION DE L'ARÈNE EN HAUSSE",
+      "liveCryptoBattle": "BATAILLE CRYPTO EN DIRECT",
+      "marketVolatilityIncreasing": "VOLATILITÉ DU MARCHÉ EN AUGMENTATION",
+      "visitSite": "VISITEZ CRIPTOVERSUS.COM",
+      "liveBattles": "BATAILLE CRYPTO EN DIRECT SUR CRIPTOVERSUS.COM",
+      "rankings": "CLASSEMENTS ET ARÈNES EN DIRECT SUR CRIPTOVERSUS.COM",
+      "matchMarkets": "REGARDEZ LES ARÈNES EN DIRECT, CLASSEMENTS ET MARCHÉS DE MATCHS SUR CRIPTOVERSUS.COM",
+      "dominating": "{0} DOMINANT",
+      "recovering": "{0} EN RÉCUPÉRATION",
+      "finalMinutes": "DERNIÈRES MINUTES",
+      "crowdEnergySpike": "PICS D'ÉNERGIE DE LA FOULE",
+      "nextBattleAround": "PROCHAINE BATAILLE AUTOUR DE {0}",
+      "marketPulseAround": "POULS DU MARCHÉ AUTOUR DE {0}"
+    },
+    "events": {
+      "goalKicker": "Événement de but",
+      "goalTitle": "BUT {0}",
+      "leaderChangeKicker": "Changement de leader",
+      "leaderChangeTitle": "{0} PREND LE LEADERSHIP",
+      "leaderChangeBody": "Le tableau de score de l'arène vient de changer de côté.",
+      "hotMatchKicker": "Curation en direct",
+      "hotMatchTitle": "MATCH CHAUD DÉTECTÉ",
+      "hotMatchBody": "La diffusion s'est verrouillée sur la bataille d'arène en direct la plus forte.",
+      "momentumReversalKicker": "Signal de momentum",
+      "momentumReversalTitle": "RENVERSEMENT DE MOMENTUM",
+      "momentumReversalBody": "La pression a basculé et le flux de l'arène est en train de changer.",
+      "fearSurgeKicker": "Signal de risque",
+      "fearSurgeTitle": "PICS DE PEUR DÉTECTÉ",
+      "fearSurgeBody": "La volatilité et la prudence viennent de grimper sur le tableau en direct.",
+      "hotScoreSpikeKicker": "Signal de chaleur",
+      "hotScoreSpikeTitle": "PICS DE HOT SCORE",
+      "hotScoreSpikeBody": "L'intensité de l'arène a accéléré vers une fenêtre de diffusion plus forte.",
+      "finalMomentsKicker": "Alerte de chronomètre",
+      "finalMomentsTitle": "DERNIÈRES MINUTES",
+      "finalMomentsBody": "La bataille entre dans sa phase finale."
+    },
+    "narration": {
+      "goalText": "{0} BRIS LA DÉFENSE",
+      "goalSubtitle": "{0} contre {1}",
+      "leaderText": "{0} DOMINANT",
+      "leaderSubtitle": "Le leader a changé après un nouveau basculement de l'arène",
+      "devGrowText": "PRESSION EN HAUSSE",
+      "devGrowSubtitle": "Démo de diffusion pour l'animation de croissance",
+      "devZoomBurstText": "CERF-VOLANT DE BUT",
+      "devZoomBurstSubtitle": "Pression de l'arène convertie en score",
+      "devGlitchText": "CHANGEMENT DE MOMENTUM",
+      "devGlitchSubtitle": "La pression de renversement monte rapidement",
+      "devNeonFlashText": "VAGUE DE LIQUIDITÉ",
+      "devNeonFlashSubtitle": "Événement de diagnostic de flash néon",
+      "devShockwaveText": "DERNIÈRES MINUTES",
+      "devShockwaveSubtitle": "L'arène entre dans le temps de pression",
+      "devScreenImpactText": "PERCÉE MASSIVE",
+      "devScreenImpactSubtitle": "Test de stress cinématique à impact complet",
+      "devMassiveBreakoutSubtitle": "L'arène explose dans le temps de pression",
+      "devDiagonalSwipeText": "BTC BRIS LA DÉFENSE",
+      "devDiagonalSwipeSubtitle": "Test d'entrée diagonale",
+      "devSplitRevealText": "RETOUR COMMENCÉ",
+      "devSplitRevealSubtitle": "Événement de diagnostic de révélation séparée",
+      "devHologramRevealText": "MATCH CHAUD DÉTECTÉ",
+      "devHologramRevealSubtitle": "Événement de diagnostic de révélation hologramme",
+      "devPulseText": "ARÈNE INSTABLE",
+      "devPulseSubtitle": "Événement de diagnostic de pouls",
+      "hotMatchDetectedText": "MATCH CHAUD DÉTECTÉ",
+      "hotMatchDetectedSubtitle": "{0} vs {1} viennent d'allumer l'arène",
+      "momentumShiftText": "CHANGEMENT DE MOMENTUM",
+      "momentumShiftSubtitle": "Le retour de {0} a commencé",
+      "fearSpikeText": "ARÈNE INSTABLE",
+      "fearSpikeSubtitle": "Pic de peur détecté à travers le flux d'ordres en direct",
+      "hotScoreSpikeText": "VAGUE DE LIQUIDITÉ",
+      "hotScoreSpikeSubtitle": "Hot score en hausse à {0}",
+      "finalMinutePushText": "POSSÉE DE LA DERNIÈRE MINUTE",
+      "finalMinutePushSubtitle": "{0} restant dans le cycle en direct"
+    }
+  },
+  "walletPage": {
+    "heading": {
+      "eyebrow": "Mon portefeuille",
+      "title": "Mon portefeuille",
+      "body": "Suivez le solde du système, les sélections et les performances des actifs sans quitter l'arène."
+    },
+    "states": {
+      "loading": "Chargement de votre portefeuille...",
+      "loadingShort": "Chargement...",
+      "walletRequired": "Connectez-vous avec votre portefeuille Solana pour voir vos sélections."
+    },
+    "fallbackUser": "Utilisateur #{0}",
+    "walletNetworkBalance": "Solde on-chain",
+    "onChainBalanceTitle": "Solde en direct sur {0}",
+    "openPosition": {
+      "cta": "Choisir un côté",
+      "modalTitle": "Choisir un côté",
+      "amountTitle": "Choisir le montant de la sélection",
+      "back": "Retour",
+      "close": "Serré",
+      "searchLabel": "Choisir l'actif",
+      "searchPlaceholder": "Rechercher par symbole ou nom",
+      "loadingAssets": "Chargement des actifs éligibles...",
+      "emptyAssets": "Aucun actif trouvé pour cette recherche.",
+      "loadAssetsError": "Impossible de charger les actifs.",
+      "priceUnavailable": "Prix indisponible",
+      "openingOn": "Vous choisissez un côté sur {0}",
+      "investmentIn": "Choisir {0}",
+      "valueInSol": "Valeur en SOL",
+      "chooseAmount": "Choisir le montant de la sélection",
+      "quickValues": "Valeurs rapides en SOL",
+      "sliderLabel": "Quick adjustment",
+      "amountInputLabel": "Montant manuel",
+      "walletBalanceLabel": "Solde du portefeuille",
+      "maximumAvailableLabel": "Maximum disponible",
+      "useMax": "Utiliser le max",
+      "insufficientBalance": "Solde insuffisant",
+      "insufficientBalanceMessage": "Solde du portefeuille insuffisant. Vous avez {0} disponible pour cette opération.",
+      "networkFeeReserve": "Vous devez conserver une petite réserve pour les frais de réseau Solana.",
+      "custodyWalletLabel": "Portefeuille de garde",
+      "directFundingTitle": "Paiement on-chain via Phantom.",
+      "directFundingLine1": "Votre sélection sera envoyée directement depuis votre portefeuille vers l'arène.",
+      "directFundingLine2": "Les fonds seront envoyés au portefeuille de garde de CriptoVersus.",
+      "cancel": "Annuler",
+      "investing": "Soumission de la sélection...",
+      "investCta": "Choisir {0}",
+      "invalidAmount": "Entrez un montant supérieur à zéro.",
+      "assetBlocked": "Cet actif n'est pas ouvert à une nouvelle exposition pour le moment.",
+      "availableNow": "Entrée ouverte",
+      "blockedNow": "Entrée bloquée",
+      "walletFundingRequired": "Connectez et approuvez le portefeuille pour utiliser le solde on-chain dans cette sélection.",
+      "walletMismatch": "Le portefeuille connecté ne correspond pas au compte authentifié.",
+      "phantomRejected": "La signature ou la transaction Phantom a été annulée.",
+      "duplicateSignature": "Cette transaction a déjà été utilisée. Rafraîchissez le portefeuille avant de réessayer si la sélection n'est pas apparue.",
+      "statusAwaitingSignature": "En attente de la signature Phantom.",
+      "statusConfirmingBlockchain": "Confirmation du transfert on-chain.",
+      "statusOpeningPosition": "Ouverture de la sélection dans le backend.",
+      "statusPositionOpened": "Sélection ouverte avec paiement confirmé.",
+      "transactionHash": "Hash de transaction : {0}",
+      "successInline": "Sélection ouverte sur {0} avec {1}.",
+      "successToast": "Sélection ouverte sur {0} avec {1}."
+    },
+    "openPositions": {
+      "title": "Sélections ouvertes",
+      "count": "{0} actif(s)",
+      "empty": "Vous n'avez pas encore de sélections ouvertes. Ouvrez une sélection de côté et votre capital commencera à suivre cet actif dans l'arène.",
+      "invested": "Investi",
+      "entry": "Entrée",
+      "pnl": "PnL simple",
+      "time": "Heure de la sélection",
+      "action": "Action",
+      "exitRequested": "Sortie demandée",
+      "closeNow": "Fermer la sélection",
+      "requestExit": "Demander la sortie"
+    },
+    "seo": {
+      "title": "Mon portefeuille CriptoVersus",
+      "description": "Page interne du portefeuille CriptoVersus pour les soldes, les positions, les détails de garde et l'historique du compte.",
+      "imageAlt": "Page du portefeuille CriptoVersus"
+    },
+    "profile": {
+      "connectedWallet": "Portefeuille connecté",
+      "user": "Utilisateur",
+      "lastAccess": "Dernier accès"
+    },
+    "mode": {
+      "operationalMode": "Mode opérationnel",
+      "offChainCustodyMode": "Mode de garde off-chain"
+    },
+    "custody": {
+      "wallet": "Portefeuille de garde",
+      "publicAddress": "Adresse publique",
+      "copyWallet": "Copier le portefeuille",
+      "explanation": "Dans ce mode, les paris utilisent uniquement le solde interne de la banque. Les transferts SOL vers le portefeuille de garde doivent être réconciliés pour devenir un solde interne avant de parier.",
+      "withdrawalsDisabled": "Les retraits automatiques vers le portefeuille connecté sont désactivés dans ce mode pour éviter les débits sans transfert on-chain confirmé.",
+      "copied": "Portefeuille de garde copié.",
+      "copyFailed": "Impossible de copier le portefeuille : {0}"
+    },
+    "metrics": {
+      "systemBalance": "Solde du système",
+      "allocatedCapital": "Capital alloué",
+      "open": "Ouvert",
+      "exitPositions": "Positions de sortie",
+      "realizedProfit": "Profit réalisé",
+      "realizedLoss": "Perte réalisée",
+      "realizedNetResult": "Résultat net réalisé"
+    },
+    "withdraw": {
+      "releaseExplanation": "Pour libérer un solde pour retrait, finalisez une position en dehors du jeu. Si elle est toujours liée à un match en cours, la sortie est demandée et le solde retourne automatiquement au système lorsque ce match est réglé."
+    },
+    "actions": {
+      "withdrawToWallet": "Retirer vers mon portefeuille",
+      "walletChanged": "Le portefeuille connecté a été changé ou déconnecté. Veuillez vous reconnecter avec le portefeuille actuel.",
+      "sessionExpired": "Votre session a expiré. Veuillez vous reconnecter avec votre portefeuille Solana.",
+      "walletLoadFailed": "Impossible de charger votre portefeuille : {0}",
+      "modeUnsupported": "Le mode {0} ne supporte pas encore les retraits automatiques on-chain. Votre solde reste disponible dans le système pour une future tentative.",
+      "walletNotConnected": "Portefeuille non connecté.",
+      "walletMismatch": "Le portefeuille connecté est différent du compte connecté.",
+      "custodyWithdrawAuthorized": "Le portefeuille a autorisé le retrait. Envoi du vrai retrait de garde vers votre portefeuille...",
+      "confirmWithdrawError": "Impossible de confirmer le retrait dans le portefeuille.",
+      "withdrawCompleted": "Retrait terminé.",
+      "transactionSent": "Transaction envoyée : {0}",
+      "transactionConfirmed": "Transaction confirmée : {0}",
+      "positionClosed": "La position {0} a été fermée et le solde est retourné au système.",
+      "positionCloseFailed": "Impossible de fermer la position {0} : {1}",
+      "balanceLookupFailed": "Impossible de consulter le solde on-chain : {0}",
+      "closeRequestedOngoing": "La position {0} a été marquée pour sortie. Parce qu'elle fait toujours partie d'un match en cours, le solde sera libéré au système dès que ce match sera réglé.",
+      "closeRequestedPending": "La position {0} a été marquée pour sortie. Elle est déjà liée à un match ouvert et le solde sera libéré au système lorsque ce match se terminera.",
+      "closeRequestedDefault": "La position {0} a été marquée pour sortie. Le solde sera libéré au système lorsque le match lié se terminera.",
+      "insufficientBalance": "Solde insuffisant.",
+      "walletLoadUnavailable": "La route Mon portefeuille n'est pas encore disponible dans l'API en cours. Redémarrez le projet local CriptoVersus.API ou publiez l'API mise à jour.",
+      "validatingConnectedWallet": "Validation du portefeuille connecté...",
+      "programIdMissing": "L'identifiant du programme CriptoVersusBlockchain n'est pas configuré pour le flux de position du portefeuille."
+    },
+    "openSelections": {
+      "title": "Sélections ouvertes",
+      "countOne": "{0} actif(s)",
+      "countOther": "{0} actif(s)",
+      "empty": "Vous n'avez pas encore de sélections ouvertes. Ouvrez une sélection d'arène et vos fonds commenceront à suivre cet actif dans l'arène."
+    },
+    "elapsed": {
+      "days": "{0}j ouvert",
+      "hours": "{0}h ouvert",
+      "minutes": "{0}m ouvert"
+    },
+    "history": {
+      "title": "Historique par token/équipe",
+      "summary": "{0} ouvert | {1} réglé",
+      "summaryText": "{0} matchs enregistrés : {1} gagnés, {2} perdus, {3} ouverts.",
+      "loadError": "Impossible de charger les matchs : {0}",
+      "loading": "Chargement des matchs...",
+      "emptyResults": "Aucun match trouvé pour ce filtre.",
+      "hideMatches": "Masquer les matchs",
+      "showMatches": "Afficher les matchs",
+      "pageInfo": "Page {0} sur {1} | {2} matchs",
+      "pageSummary": "Page {0} sur {1}",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "vs": "vs",
+      "matchNumber": "Match #{0}",
+      "myTeam": "Mon équipe : {0}",
+      "winner": "Gagnant : {0}",
+      "betAmount": "Misé",
+      "receivedAmount": "Reçu",
+      "netResult": "Résultat net",
+      "refund": "Remboursement",
+      "houseFee": "Commission de la maison",
+      "financialStatus": "Statut financier",
+      "showMatchDetails": "Afficher les détails du match",
+      "hideMatchDetails": "Masquer les détails du match",
+      "start": "Début",
+      "end": "Fin",
+      "matchStatus": "Statut du match",
+      "teamAWallets": "Portefeuilles sur l'équipe A",
+      "teamBWallets": "Portefeuilles sur l'équipe B",
+      "teamABets": "Paris sur l'équipe A",
+      "teamBBets": "Paris sur l'équipe B",
+      "totalTeamA": "Total sur l'équipe A",
+      "totalTeamB": "Total sur l'équipe B",
+      "totalPool": "Pool total",
+      "winningPool": "Pool gagnant",
+      "losingPool": "Pool perdant",
+      "totalDistributed": "Total distribué",
+      "validDispute": "Litige financier valide ?",
+      "yes": "Oui",
+      "no": "Non",
+      "settlementReason": "Raison du règlement",
+      "unknown": "Inconnu",
+      "matchStatusPending": "En attente",
+      "matchStatusOngoing": "Ongoing",
+      "matchStatusCompleted": "Terminé",
+      "matchStatusCancelled": "Annulé",
+      "betPrefix": "Betted: {0}",
+      "resultPrefix": "Result: {0}",
+      "receivedPrefix": "Received: {0}",
+      "metrics": {
+        "allocatedCapital": "Capital alloué",
+        "open": "Ouvert",
+        "refundedMatches": "Matchs remboursés",
+        "realizedNetResult": "Résultat net réalisé",
+        "wonMatches": "Matchs gagnés",
+        "lostMatches": "Matchs perdus",
+        "lastEntry": "Dernière entrée"
+      },
+      "filters": {
+        "all": "Tous",
+        "won": "Gagné",
+        "lost": "Perdu",
+        "open": "Ouvert",
+        "finalized": "Finalisé"
+      },
+      "groupCount": "{0} groupes",
+      "emptyGroups": "Vous n'avez pas encore de groupes d'investissement."
+    },
+    "modal": {
+      "kicker": "ARÈNE CRYPTO"
+    },
+    "solana": {
+      "close": "Serré",
+      "connectTitle": "Connectez un portefeuille sur Solana pour continuer",
+      "connectDescription": "Choisissez un portefeuille supporté pour vous connecter et vous connecter sans changer le flux API actuel.",
+      "connectedWalletGeneric": "Portefeuille connecté",
+      "connectedWalletNamed": "{0} connecté",
+      "availableInBrowser": "Disponible dans ce navigateur",
+      "openInstallPage": "Ouvrir la page d'installation officielle",
+      "detected": "Détecté",
+      "install": "Installer",
+      "disconnect": "Déconnecter",
+      "installRequiredTitle": "Installation requise",
+      "installRequiredMessage": "Ouvrez la page officielle de {0} et installez le portefeuille pour continuer.",
+      "connectingTitle": "Connexion du portefeuille",
+      "connectingMessage": "En attente de l'approbation de {0} dans votre navigateur.",
+      "connectionFailedTitle": "Échec de la connexion",
+      "missingPublicKeyTitle": "Clé publique manquante",
+      "missingPublicKeyMessage": "Le portefeuille s'est connecté, mais aucune clé publique n'a été retournée.",
+      "walletConnectedTitle": "Portefeuille connecté",
+      "walletConnectedMessage": "Portefeuille connecté. Finalisation de l'authentification...",
+      "walletDisconnectedTitle": "Portefeuille déconnecté",
+      "walletDisconnectedMessage": "Vous pouvez reconnecter n'importe quel portefeuille Solana supporté à tout moment.",
+      "disconnectFailedTitle": "Échec de la déconnexion",
+      "connectWalletTitle": "Connecter un portefeuille",
+      "connectWalletMessage": "Choisissez un portefeuille Solana avant de continuer.",
+      "loginUnavailableTitle": "Connexion indisponible",
+      "loginUnavailableMessage": "Impossible de préparer la signature de connexion pour le moment. Veuillez réessayer.",
+      "awaitingSignatureTitle": "En attente de signature",
+      "awaitingSignatureMessage": "Approuvez la demande de signature dans votre portefeuille pour terminer la connexion.",
+      "loginRejectedTitle": "Connexion rejetée",
+      "loginRejectedMessage": "Impossible de valider la signature de votre portefeuille. Veuillez réessayer.",
+      "incompleteLoginTitle": "Connexion incomplète",
+      "incompleteLoginMessage": "L'API a confirmé la connexion, mais aucun jeton de session n'a été retourné.",
+      "loginCompleteTitle": "Connexion terminée",
+      "loginCompleteMessage": "Votre portefeuille a été authentifié avec succès.",
+      "loginCompleteOnChainMessage": "Votre portefeuille a été authentifié et le compte on-chain a été validé.",
+      "loginFailedTitle": "Impossible de terminer la connexion",
+      "onChainProgramMissing": "L'identifiant du programme CriptoVersusBlockchain n'est pas configuré pour le mode actuel.",
+      "preparingOnChainTitle": "Préparation du compte on-chain",
+      "preparingOnChainMessage": "Validation du compte du portefeuille actuel dans le programme Solana actif.",
+      "onChainReadyTitle": "Compte on-chain prêt",
+      "onChainReadyMessage": "PDA : {0}",
+      "unexpectedError": "Quelque chose d'inattendu s'est produit. Veuillez réessayer.",
+      "errorCanceled": "La connexion a été annulée dans le portefeuille.",
+      "errorProviderNotFound": "Fournisseur de portefeuille non trouvé dans ce navigateur.",
+      "errorMissingPublicKey": "Le portefeuille n'a pas retourné de clé publique valide."
+    }
+  },
+  "token": {
+    "seo": {
+      "title": "Arène du token CriptoVersus | Token communautaire officiel",
+      "description": "Explorez la page officielle du token CriptoVersus, les détails du contrat, le snapshot du marché et l'accès Pump.fun pour le token communautaire de l'arène de batailles crypto en direct."
+    },
+    "hero": {
+      "badge": "Token officiel de CriptoVersus",
+      "title": "Arène du token CriptoVersus",
+      "subtitle": "Le token qui alimente l'Arène.",
+      "description": "Rejoignez la première arène de batailles crypto en direct. Regardez les batailles de marché, choisissez votre camp et devenez partie de l'écosystème CriptoVersus."
+    },
+    "visual": {
+      "bulls": "Bulls",
+      "bears": "Bears"
+    },
+    "action": {
+      "buy": "Acheter sur Pump.fun",
+      "watch": "Regarder l'arène en direct",
+      "copyContract": "Copier le contrat",
+      "copied": "Copié !",
+      "viewPump": "Voir sur Pump.fun"
+    },
+    "contract": {
+      "kicker": "Contrat du token",
+      "title": "Adresse du contrat",
+      "network": "Réseau",
+      "buyTax": "Taxe d'achat",
+      "sellTax": "Taxe de vente",
+      "qrKicker": "Accès Pump.fun",
+      "qrAlt": "Code QR pour ouvrir le token CriptoVersus sur Pump.fun",
+      "qrDescription": "Scannez ce code pour ouvrir la page officielle du token CriptoVersus sur Pump.fun depuis votre téléphone.",
+      "qrAction": "Ouvrir Pump.fun"
+    },
+    "stats": {
+      "price": "Prix actuel",
+      "marketCap": "Capitalisation boursière",
+      "holders": "Détenteurs",
+      "volume24h": "Volume 24h",
+      "liquidity": "Liquidité"
+    },
+    "market": {
+      "loadingTitle": "Chargement du snapshot du token",
+      "loadingBody": "Préparation du dernier panneau de marché du token pour la vue de l'arène.",
+      "liveTitle": "Panneau de marché en direct",
+      "liveBody": "Snapshot du marché mis à jour : {0}",
+      "fallbackTitle": "Panneau de marché de secours",
+      "fallbackBody": "Les fournisseurs de marché n'ont pas encore entièrement indexé ce token. L'arène maintient la page stable pendant que les nouvelles données de marché deviennent disponibles.",
+      "errorTitle": "Panneau de marché récupéré avec secours",
+      "errorBody": "La requête de marché en direct a échoué, donc l'arène a maintenu la page en ligne avec des valeurs de secours au lieu de casser l'expérience.",
+      "unavailableTitle": "Indexation du marché en cours",
+      "unavailableBody": "Ce token est encore en cours d'indexation par les fournisseurs de données publiques du marché. Les statistiques en direct apparaîtront automatiquement une fois l'indexation disponible.",
+      "notIndexedYet": "Données de marché pas encore indexées",
+      "unavailableValue": "Indisponible",
+      "supporting": {
+        "updated": "Mis à jour : {0}",
+        "contract": "Token officiel de l'arène",
+        "community": "Nombre de côtés de la communauté",
+        "window24h": "Fenêtre glissante de 24h",
+        "depth": "Profondeur visible du pool"
+      }
+    },
+    "utility": {
+      "kicker": "Utilité de l'arène",
+      "title": "À quoi sert le token ?",
+      "items": {
+        "participate": {
+          "title": "Participer à l'Arène",
+          "description": "Rapprochez-vous des batailles en direct, suivez l'identité du match et soutenez la couche de divertissement de l'écosystème."
+        },
+        "community": {
+          "title": "Accès communautaire",
+          "description": "Restez connecté à la foule, aux canaux sociaux et aux futures activations communautaires autour de CriptoVersus."
+        },
+        "utility": {
+          "title": "Utilité future de l'écosystème",
+          "description": "Préparez la structure de la page pour les futures utilités liées à l'expérience évolutive de l'arène."
+        },
+        "identity": {
+          "title": "Identité de bataille crypto en direct",
+          "description": "Portez le symbole d'une arène de divertissement Web3 construite autour des côtés, de la la volatilité et du spectacle du marché en direct."
+        }
+      }
+    },
+    "about": {
+      "kicker": "À propos du token",
+      "title": "À propos du token",
+      "description": "Ce token est un token communautaire expérimental créé pour soutenir l'écosystème CriptoVersus. Ce n'est pas une promesse de profit, pas un conseil financier et pas une recommandation d'investissement."
+    },
+    "notice": {
+      "title": "Avis important",
+      "description": "C'est un token de divertissement/communautaire expérimental. Les actifs crypto sont risqués. Faites toujours vos propres recherches et n'investissez jamais plus que ce que vous pouvez vous permettre de perdre."
+    },
+    "schema": {
+      "name": "Token CriptoVersus",
+      "category": "Token communautaire",
+      "properties": {
+        "network": "Réseau",
+        "contractAddress": "Adresse du contrat",
+        "buyTax": "Taxe d'achat",
+        "sellTax": "Taxe de vente"
+      }
+    },
+    "footer": {
+      "kicker": "Dernier appel",
+      "cta": "Choisissez votre camp. Entrez dans l'Arène.",
+      "button": "Acheter le token maintenant"
+    }
+  },
+  "title": "Marché des matchs",
+  "postLogin": {
+    "eyebrow": "Portefeuille connecté",
+    "title": "Voulez-vous ouvrir votre portefeuille maintenant ?",
+    "body": "Votre portefeuille a été connecté avec succès. Vous pouvez ouvrir Mon portefeuille maintenant ou rester sur la page actuelle.",
+    "stay": "Rester sur cette page",
+    "goToWallet": "Aller à Mon portefeuille"
+  },
+  "reconnect": {
+    "eyebrow": "ARÈNE CRIPTO VERSUS",
+    "title": "Reconnexion à l'arène...",
+    "connectionLost": "La connexion au serveur a été perdue. Nous restaurons le signal de l'arène pour que vous puissiez continuer à suivre le match.",
+    "attempt": "Tentative",
+    "of": "sur",
+    "retrying": "Reconnexion automatique en cours",
+    "failed": "Impossible de se reconnecter automatiquement.",
+    "rejected": "La session a été rejetée par le serveur. Rechargez pour entrer à nouveau.",
+    "paused": "La reconnexion a été temporairement mise en pause.",
+    "reload": "Recharger maintenant"
+  },
+  "communityMatch": {
+    "eyebrow": "Création publique",
+    "title": "Vous avez un meilleur affrontement en tête ?",
+    "body": "Créez votre propre bataille et défiez la communauté.",
+    "button": "Créer ma propre bataille",
+    "errors": {
+      "unavailable": "La création de bataille publique est temporairement indisponible.",
+      "invalidAsset": "Choisissez deux actifs valides.",
+      "sameAsset": "Choisissez deux actifs différents.",
+      "duplicate": "Il existe déjà une bataille active pour cet affrontement.",
+      "captchaInvalid": "Nous n'avons pas pu valider le CAPTCHA. Veuillez réessayer.",
+      "captchaExpired": "Le CAPTCHA a expiré. Veuillez le confirmer à nouveau pour continuer.",
+      "rateLimited": "Réessayez dans {0} secondes.",
+      "network": "Nous n'avons pas pu nous connecter au serveur. Veuillez réessayer.",
+      "generic": "Nous n'avons pas pu créer la bataille pour le moment."
+    },
+    "modal": {
+      "eyebrow": "Bataille publique",
+      "title": "Créer une bataille",
+      "close": "Serré",
+      "orange": "Côté orange",
+      "cyan": "Côté bleu",
+      "searchPlaceholder": "Rechercher par symbole ou nom",
+      "loading": "Chargement des actifs...",
+      "empty": "Aucun actif disponible",
+      "selectLeft": "Sélectionnez le côté orange",
+      "selectRight": "Sélectionnez le côté bleu",
+      "previewLeft": "Aperçu du côté orange",
+      "previewRight": "Aperçu du côté bleu",
+      "submit": "CRÉER UNE BATAILLE",
+      "submitting": "Création de la bataille...",
+      "footnote": "Bataille créée par la communauté",
+      "captchaRequired": "Veuillez confirmer le CAPTCHA pour continuer.",
+      "captchaError": "Nous n'avons pas pu valider le CAPTCHA. Veuillez réessayer.",
+      "created": "Bataille créée avec succès !",
+      "existing": "Il existe déjà une bataille active pour cet affrontement.",
+      "fallbackError": "Nous n'avons pas pu créer la bataille pour le moment.",
+      "unavailable": "La création de bataille publique est temporairement indisponible.",
+      "sameAsset": "Choisissez deux actifs différents.",
+      "assetUnavailable": "L'un des actifs sélectionnés n'est pas disponible pour le moment.",
+      "invalidAsset": "Choisissez deux actifs valides.",
+      "tooManyRequests": "Réessayez dans {0} secondes."
+    }
+  },
+  "candleBattleV2": {
+    "title": "Candle Battle",
+    "ariaLabel": "Candle Battle entre {0} et {1}",
+    "loading": "Chargement du Candle Battle...",
+    "error": "Bataille indisponible",
+    "errorBody": "Nous n'avons pas pu charger l'état officiel du match. Veuillez réessayer.",
+    "notFound": "Match non trouvé.",
+    "retry": "Réessayer",
+    "live": "En direct",
+    "reconnecting": "Reconnexion",
+    "finished": "Match terminé",
+    "waitingMarket": "En attente du marché",
+    "waitingNext": "En attente du prochain chandelier",
+    "nextCandles": "Prochains chandeliers",
+    "nextCandle": "Prochain chandelier",
+    "forming": "En formation",
+    "score": "Score",
+    "points": "points",
+    "point": "Point",
+    "pointFor": "Point pour {0}",
+    "draw": "Match nul",
+    "champion": "Champion",
+    "officialScore": "Score officiel du serveur",
+    "blockLegend": "1 bloc carré = 1 point",
+    "blocksFor": "Blocs de {1} point pour {0}",
+    "navigationLabel": "Navigation Candle Battle",
+    "backToMatch": "Retour au match",
+    "watchOnTv": "Regarder à la TV",
+    "seoTitle": "Candle Battle V2 | CriptoVersus",
+    "seoDescription": "Regardez les points officiels des matchs crypto devenir des blocs dans une arène compétitive de chandeliers en direct."
+  }
+}

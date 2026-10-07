@@ -1,0 +1,21 @@
+@using CriptoVersus.Web.Services
+@inject NavigationManager Nav
+@inject IConfiguration Config
+@inject SupportedLanguageCatalog Languages
+@inject RouteLocalizationService RouteLocalization
+
+<HeadContent>
+    @foreach (var language in Languages.AdditionalLanguages)
+    {
+        <link rel="alternate" hreflang="@language.Culture" href="@GetAlternateUrl(language)" />
+    }
+</HeadContent>
+
+@code {
+    private string GetAlternateUrl(SupportedLanguage language)
+    {
+        var currentPath = Nav.ToBaseRelativePath(Nav.Uri);
+        var targetPath = RouteLocalization.BuildLocalizedPathForCurrentPage(language.RouteCulture, currentPath);
+        return SeoDefaults.BuildPublicAbsoluteUrl(Config, targetPath);
+    }
+}

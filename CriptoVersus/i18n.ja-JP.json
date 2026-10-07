@@ -1,0 +1,2812 @@
+{
+  "layout": {
+    "topbar": {
+      "eyebrow": "CriptoVersus アリーナ",
+      "title": "マッチ市場",
+      "login": "接続",
+      "connectWallet": "ウォレットを接続",
+      "language": "言語",
+      "english": "英語",
+      "portuguese": "ポルトガル語"
+    },
+    "postLogin": {
+      "eyebrow": "ウォレット接続完了",
+      "title": "今すぐウォレットを開きますか？",
+      "body": "ウォレットの接続に成功しました。今すぐマイウォレットを開くか、現在のページに留まることもできます。",
+      "stay": "このページに留まる",
+      "goToWallet": "マイウォレットへ"
+    },
+    "footer": {
+      "semanticDescription": "CriptoVersusは、ユーザーが公開シミュレーションでサイドを選択し、スポーツスタイルのスコアリングを通じて市場パフォーマンスを振り返るゲーミファイド暗号資産市場データアリーナです。",
+      "institutionalTitle": "インスティテューショナルページ",
+      "about": "概要",
+      "scoringRules": "スコアリングルール",
+      "riskDisclaimer": "リスク免責事項"
+    }
+  },
+  "nav": {
+    "brandSubtitle": "トレーディングアリーナ",
+    "home": "ホーム",
+    "howItWorks": "仕組み",
+    "token": "トークン",
+    "stats": "統計",
+    "roadmap": "ロードマップ",
+    "faq": "FAQ",
+    "tvBroadcast": "TVブロードキャスト",
+    "wallet": "マイウォレット",
+    "admin": "管理",
+    "connected": "接続済み環境"
+  },
+  "community": {
+    "title": "コミュニティ",
+    "kicker": "アリーナネットワーク",
+    "joinArena": "アリーナに参加",
+    "description": "ライブの群衆、ブロードキャストのリズム、マッチの更新を公式CriptoVersusチャンネルでフォローしましょう。",
+    "youtube": {
+      "name": "YouTube",
+      "action": "チャンネルを見る",
+      "cta": "YouTubeを開く",
+      "aria": "CriptoVersus公式YouTubeチャンネルを開く"
+    },
+    "pump": {
+      "name": "Pump.fun",
+      "action": "コインを見る",
+      "cta": "Pump.funを開く",
+      "aria": "CriptoVersus公式Pump.funコインページを開く"
+    },
+    "x": {
+      "name": "X",
+      "action": "更新をフォロー",
+      "cta": "Xでフォロー",
+      "aria": "CriptoVersus公式Xプロフィールを開く"
+    },
+    "telegram": {
+      "name": "Telegram",
+      "action": "コミュニティに参加",
+      "cta": "Telegramに参加",
+      "aria": "CriptoVersus公式Telegramコミュニティを開く"
+    }
+  },
+  "home": {
+    "seo": {
+      "title": "CriptoVersus | ライブ暗号資産マッチアリーナ",
+      "description": "CriptoVersusでライブ暗号資産マッチをフォロー。スコア、市場パフォーマンス、統計、グローバルな視聴者のための公開マッチページ。",
+      "ogTitle": "CriptoVersus | ライブ暗号資産マッチアリーナ",
+      "ogDescription": "CriptoVersusでライブ暗号資産マッチ、スコアボード、マーケットバトルを観戦しよう。"
+    },
+    "page": {
+      "title": "ダッシュボード",
+      "loading": "読み込み中...",
+      "emptySnapshot": "スナップショットデータがありません。"
+    },
+    "dashboard": {
+      "pending": "待機中",
+      "ongoing": "ライブ",
+      "completed24h": "完了（24時間）",
+      "investments": "セレクション",
+      "openMarkets": "セレクション受付中のマッチ",
+      "noOpenMarkets": "現在セレクション可能なマッチはありません。",
+      "matchId": "マッチ #{0}",
+      "invest": "選択",
+      "investIn": "{0}を選択",
+      "closedInvestments": "セレクション締切",
+      "follow": "フォロー",
+      "liveEyebrow": "ライブ",
+      "liveMatches": "ライブマッチ",
+      "noLiveMatches": "現在ライブマッチはありません。",
+      "liveTracking": "ライブカバレッジ",
+      "openMatchPanel": "マッチパネルを開く",
+      "marketRealtime": "市場はリアルタイムで価格変動を追跡",
+      "details": "詳細",
+      "completedEyebrow": "完了",
+      "completedMatches": "完了したマッチ",
+      "noCompletedMatches": "過去24時間以内に完了したマッチはありません。",
+      "matchCompleted": "マッチ完了",
+      "internalStatus": "内部ステータス",
+      "historyAvailable": "マッチ履歴とログが利用可能",
+      "marketEyebrow": "市場",
+      "noData": "データなし。",
+      "awaitingStart": "開始待ち",
+      "liveClock": "{0}' 経過 · -{1}'",
+      "elapsedOnly": "{0}' 経過",
+      "statusOpen": "OPEN",
+      "statusClosed": "CLOSED"
+    }
+  },
+  "match": {
+    "seo": {
+      "live": {
+        "title": "{0} vs {1} ライブマッチ | CriptoVersus",
+        "description": "CriptoVersusで{0}と{1}のライブ暗号資産マッチを観戦。サイド選択、公開スコア変動、マッチプール、リアルタイム市場パフォーマンスをチェック。"
+      },
+      "completed": {
+        "title": "{0} vs {1} 完了マッチ | CriptoVersus",
+        "description": "CriptoVersusで{0}と{1}の完了した暗号資産マッチを振り返る。最終スコア、市場コンテキスト、サイドパフォーマンス、アリーナ履歴を教育分析用に表示。"
+      },
+      "pending": {
+        "title": "{0} vs {1} 今後のマッチ | CriptoVersus",
+        "description": "CriptoVersusで{0}と{1}の今後の暗号資産マッチをプレビュー。次のアリーナサイクルでサイドを選択し、公開市場シグナルをフォロー可能。"
+      },
+      "fallback": {
+        "title": "{0} vs {1} マッチ | CriptoVersus",
+        "description": "CriptoVersusで{0} vs {1}のマッチ詳細を確認。サイド選択コンテキスト、マッチプール、市場プレッシャー、スコア履歴を含む。"
+      }
+    },
+    "status": {
+      "ongoing": "ライブ",
+      "completed": "完了",
+      "pending": "待機中"
+    }
+  },
+  "roadmap": {
+    "pageTitle": "CriptoVersus ロードマップ | プラットフォームの進化",
+    "metaDescription": "CriptoVersusの公開ロードマップをフォロー：暗号資産マッチ、公開マッチ履歴、スコアリングルール、透明性、国際化、将来のブロックチェーン統合。",
+    "openGraph": {
+      "title": "CriptoVersus ロードマップ",
+      "description": "CriptoVersusの計画された進化を確認。暗号資産マッチ、公開マッチ履歴、高度なルール、i18n、ブロックチェーン統合を含む。",
+      "type": "website"
+    },
+    "hero": {
+      "eyebrow": "公開プロダクト概要",
+      "title": "CriptoVersus ロードマップ",
+      "subtitle": "プラットフォームの進化、新しいマッチルール、透明性の向上、将来の統合をフォロー。",
+      "primaryCtaLabel": "ライブマッチを見る",
+      "secondaryCtaLabel": "ルールを読む"
+    },
+    "labels": {
+      "phasesMapped": "マッピング済みフェーズ",
+      "workstreamsActive": "アクティブなワークストリーム",
+      "workstreamsDescription": "ステータスカード、原則、可視ロードマップマイルストーン。",
+      "publicEvolution": "基盤からAIコメンタリーまでの公開進化。",
+      "currentFocus": "現在の焦点",
+      "nextMilestone": "次のマイルストーン",
+      "brandPillars": "ブランドピラー",
+      "statusSummary": "実験的プラットフォームロードマップ",
+      "currentFocusFallback": "アクティブなロードマップ実行",
+      "nextMilestoneFallback": "拡張中のロードマップ",
+      "nextMilestoneFallbackItem": "今後のデリバリーの詳細は近日公開予定です。"
+    },
+    "section": {
+      "roadmap": "ロードマップ",
+      "projectStatus": "プロジェクトステータス",
+      "currentPlatformDirection": "現在のプラットフォームの方向性",
+      "plannedEvolutionByPhase": "フェーズ別の計画進化",
+      "guidingPrinciples": "指導原則",
+      "howProductDecisionsAreFramed": "プロダクト決定の枠組み"
+    },
+    "status": {
+      "completed": "完了",
+      "inProgress": "進行中",
+      "planned": "計画済み",
+      "future": "将来",
+      "experimental": "実験的"
+    },
+    "pillars": {
+      "competition": {
+        "title": "競争",
+        "subtitle": "デジタル資産間"
+      },
+      "strategy": {
+        "title": "戦略",
+        "subtitle": "パフォーマンスとタイミング"
+      },
+      "technology": {
+        "title": "テクノロジー",
+        "subtitle": "ブロックチェーンインフラ"
+      },
+      "ranking": {
+        "title": "ランキング",
+        "subtitle": "スコアリングと進捗"
+      },
+      "global": {
+        "title": "グローバル",
+        "subtitle": "分散型アリーナ"
+      }
+    },
+    "brandPillars": [
+      {
+        "icon": "✦",
+        "accent": "purple",
+        "title": "競争",
+        "subtitle": "デジタル資産間"
+      },
+      {
+        "icon": "↗",
+        "accent": "green",
+        "title": "戦略",
+        "subtitle": "パフォーマンスとタイミング"
+      },
+      {
+        "icon": "⬢",
+        "accent": "cyan",
+        "title": "テクノロジー",
+        "subtitle": "ブロックチェーンインフラ"
+      },
+      {
+        "icon": "🏆",
+        "accent": "gold",
+        "title": "ランキング",
+        "subtitle": "スコアリングと進捗"
+      },
+      {
+        "icon": "◎",
+        "accent": "purple",
+        "title": "グローバル",
+        "subtitle": "分散型アリーナ"
+      }
+    ],
+    "statusCards": [
+      {
+        "title": "アクティブな開発",
+        "description": "プラットフォームは公開リリースと運用の改善を通じて継続的に進化しています。",
+        "tag": "アクティブ"
+      },
+      {
+        "title": "自動化された暗号資産マッチ",
+        "description": "資産間の市場ベースのサイクルとスコアトラッキング、継続的な更新。",
+        "tag": "自動化"
+      },
+      {
+        "title": "公開履歴",
+        "description": "結果とマッチコンテキストが監査とレビューのためにますます可視化されています。",
+        "tag": "透明性"
+      },
+      {
+        "title": "進化するルール",
+        "description": "スコアリングモデルと経済的ダイナミクスはまだテストと改良の段階です。",
+        "tag": "イテレーション"
+      },
+      {
+        "title": "国際展開の準備完了",
+        "description": "ルーティング、SEO、ローカルタイムゾーンサポートが複数のリージョン向けに形成されています。",
+        "tag": "i18n-ready"
+      }
+    ],
+    "phases": [
+      {
+        "phaseLabel": "フェーズ 1",
+        "title": "プラットフォーム基盤",
+        "status": "InProgress",
+        "description": "公開マッチ、初期サイクル、市場主導のゲームフローのための運用基盤。",
+        "items": [
+          "コイン間マッチの作成",
+          "市場データ統合",
+          "ライブマッチビュー",
+          "完了マッチ履歴",
+          "結果とスコアの登録"
+        ],
+        "sortOrder": 1
+      },
+      {
+        "phaseLabel": "フェーズ 2",
+        "title": "透明性と監査可能性",
+        "status": "InProgress",
+        "description": "各マッチの進化と結果のレビュー方法を説明する公開サーフェス。",
+        "items": [
+          "公開履歴ページ",
+          "公開マッチ詳細ページ",
+          "スコア、パフォーマンス、結果の明確な表示",
+          "SEOの改善",
+          "マッチごとの公開メタデータ",
+          "将来の監査可能性のためのマッチイベント記録"
+        ],
+        "sortOrder": 2
+      },
+      {
+        "phaseLabel": "フェーズ 3",
+        "title": "高度なスコアリングルール",
+        "status": "Planned",
+        "description": "説明可能でデータ駆動型のより豊かなマッチロジック。",
+        "items": [
+          "パーセンテージ差によるスコアリング",
+          "チャートクロスオーバーによるスコアリング",
+          "ボリュームウィンドウによるスコアリング",
+          "マッチイベントログ",
+          "将来のAIコメンタリーの基盤"
+        ],
+        "sortOrder": 3
+      },
+      {
+        "phaseLabel": "フェーズ 4",
+        "title": "サイクリカルエコノミー",
+        "status": "Planned",
+        "description": "より実験的な競争プールモデルへの進化。",
+        "items": [
+          "将来のサイクルへの自動参加",
+          "より良いバランス制御",
+          "急激な損失の軽減",
+          "従来の賭けよりも競争プールに近いモデル",
+          "本格的な運用前のシミュレーションとチューニング"
+        ],
+        "sortOrder": 4
+      },
+      {
+        "phaseLabel": "フェーズ 5",
+        "title": "国際化",
+        "status": "Planned",
+        "description": "多言語展開に備えたルーティングとコンテンツ構造。",
+        "items": [
+          "i18nルート",
+          "ポルトガル語と英語のコンテンツ",
+          "Hreflang",
+          "国際SEO",
+          "リージョン別ローカルタイムゾーン"
+        ],
+        "sortOrder": 5
+      },
+      {
+        "phaseLabel": "フェーズ 6",
+        "title": "ブロックチェーン統合",
+        "status": "Experimental",
+        "description": "監査可能性とインフラに焦点を当てた実験的なオンチェーンレイヤー。",
+        "items": [
+          "Solana Devnet/Mainnet統合",
+          "適切な場所でのオンチェーンセレクションとバランス",
+          "オフチェーンロジックとオンチェーン決済の分離",
+          "より強力な公開監査可能性"
+        ],
+        "sortOrder": 6
+      },
+      {
+        "phaseLabel": "フェーズ 7",
+        "title": "AIコメンタリーとエクスペリエンス",
+        "status": "Future",
+        "description": "検証可能なマッチデータと公開履歴に基づくエクスペリエンスの強化。",
+        "items": [
+          "自動マッチコメンテーター",
+          "試合後の要約",
+          "マッチハイライト",
+          "決定的イベントの説明",
+          "ソーシャルシェアリング"
+        ],
+        "sortOrder": 7
+      }
+    ],
+    "principles": [
+      {
+        "title": "スケール前の透明性",
+        "description": "配布を加速する前に、システムの仕組みを説明する。",
+        "tag": "原則"
+      },
+      {
+        "title": "マネタイゼーション前の明確なルール",
+        "description": "プロダクトの進化は、より広がる前に読みやすい状態を保つべき。",
+        "tag": "原則"
+      },
+      {
+        "title": "自動化前の安全性",
+        "description": "フローが十分に検証された後にのみ自動化する。",
+        "tag": "原則"
+      },
+      {
+        "title": "ランキング前の公開履歴",
+        "description": "より大きな競争レイヤーを追加する前に、結果を観察可能にする。",
+        "tag": "原則"
+      },
+      {
+        "title": "ナラティブ前の検証可能なデータ",
+        "description": "将来のナラティブレイヤーは、ログ、イベント、結果に基づくべき。",
+        "tag": "原則"
+      }
+    ],
+    "noticeTitle": "重要な注意事項",
+    "noticeText": "CriptoVersusは公開データに基づく暗号資産市場シミュレーションのための実験的プラットフォームです。ルール、経済モデル、統合は時間とともに進化する可能性があります。このページのいかなる内容も経済的利益の約束を表すものではありません。"
+  },
+  "howItWorks": {
+    "seo": {
+      "title": "仕組み | CriptoVersus",
+      "description": "CriptoVersusの仕組みを学ぶ：サイド選択、マッチスコアリング、市場主導の競争、決済ロジック、教育用暗号資産分析。"
+    }
+  },
+  "social": {
+    "match": {
+      "live": {
+        "text": "{0}と{1}がCriptoVersusで激戦を繰り広げています。現在のスコア：{2}。ライブでフォロー：{3}"
+      }
+    },
+    "hotMatches": {
+      "title": "🔥 今日のHot Matches",
+      "subtitle": "過去24時間の最もホットな5つのバトル",
+      "last24Hours": "過去24時間",
+      "updatedAt": "{0} UTC 更新",
+      "listAriaLabel": "過去24時間のトップ5ホットマッチ",
+      "openMatchAria": "マッチ {0} versus {1}、マッチ {2}を開く",
+      "scoreAria": "{0} 対 {1}",
+      "hotScore": "HotScore {0}",
+      "waiting": "次のホットバトルを待機中",
+      "disclaimer": "エンターテイメント＋市場データ。投資助言ではありません。",
+      "noLastGoal": "最後のゴール：なし",
+      "lastGoal": "最後のゴール {0}前",
+      "status": {
+        "live": "LIVE",
+        "followedMatch": "フォロー中",
+        "continue": "続ける",
+        "seeResult": "結果を見る",
+        "wins": "勝利",
+        "draw": "引き分け",
+        "closing": "CLOSING",
+        "final": "FINAL",
+        "scheduled": "SCHEDULED",
+        "cancelled": "CANCELLED"
+      },
+      "temperature": {
+        "cold": "コールド",
+        "warm": "ウォーム",
+        "hot": "ホット",
+        "explosive": "エクスプローシブ",
+        "historic": "ヒストリック"
+      },
+      "balance": {
+        "tied": "完全な均衡",
+        "veryClose": "非常に接近",
+        "close": "接近",
+        "clearLead": "明確なリード"
+      }
+    },
+    "winRate24h": {
+      "seo": {
+        "title": "勝率 - 過去24時間 | CriptoVersus",
+        "description": "CriptoVersusで過去24時間にクローズされたマッチの勝率トップ10資産。"
+      },
+      "hero": {
+        "period": "24時間ウィンドウ",
+        "utcNote": "クローズ済みマッチのみ",
+        "generatedAt": "{0} UTC に生成",
+        "generatedAtPending": "UTCでランキングを生成中"
+      },
+      "states": {
+        "loadingTitle": "勝率ランキングを読み込み中",
+        "loadingBody": "過去24時間の最新のクローズ済みマッチ結果を取得中。",
+        "errorTitle": "ランキングは一時的に利用できません",
+        "errorBody": "現在勝率ボードを読み込めません。安定した空の状態を表示しています。",
+        "emptyTitle": "まだ十分な対象マッチがありません",
+        "emptyBody": "過去24時間に信頼性の高いランキングを構築するのに十分な完了マッチがありません。"
+      },
+      "chart": {
+        "ariaLabel": "過去24時間の勝率トップ資産",
+        "decisions": "{0}件の決定",
+        "matches": "{0}マッチ"
+      },
+      "footer": {
+        "disclaimer": "クローズ済みマッチのみ。投資助言ではありません。",
+        "generatedAt": "UTC生成時刻：{0}"
+      }
+    }
+  },
+  "stats": {
+    "seo": {
+      "title": "CriptoVersus 統計 - 公開暗号資産バトルランキング",
+      "description": "CriptoVersusの公開統計、暗号資産マッチランキング、パフォーマンストレンド、スコア、マッチ履歴、マーケットバトルインサイトを探索。"
+    },
+    "hero": {
+      "eyebrow": "公開アリーナインテリジェンス",
+      "title": "CriptoVersus 統計",
+      "subtitle": "CriptoVersusアリーナからの公開暗号資産バトルデータ、ランキング、市場パフォーマンスインサイト。",
+      "seoCopy": "この公開統計ページは、CriptoVersusバトルグラウンド全体の暗号資産マッチ、アリーナランキング、追跡資産、スコアボード、歴史的パフォーマンスに関するインデックス可能なデータを集約しています。",
+      "liveNote": "5分ごとに更新",
+      "backToArena": "アリーナに戻る",
+      "backToArenaAria": "CriptoVersusアリーナホームページに戻る",
+      "howScoringWorks": "スコアリングの仕組み",
+      "howScoringWorksAria": "CriptoVersusアリーナスコアリングの仕組みを読む",
+      "coverage": "アリーナカバレッジ",
+      "coverageHint": "インデックス済み公開マッチ",
+      "finishedBattles": "完了バトル",
+      "finishedBattlesHint": "クローズ済みスコアボード",
+      "lastUpdate": "最終更新"
+    },
+    "states": {
+      "loadingTitle": "公開統計を読み込み中",
+      "loadingBody": "最新のアリーナ概要とランキングデータを取得中。",
+      "errorTitle": "統計は一時的に利用できません",
+      "errorBody": "現在公開統計を読み込めません。代わりに安定した空のボードを表示しています。",
+      "emptyTitle": "まだ公開データがありません",
+      "emptyBody": "アリーナは統計ボードを埋めるのに十分な完了または追跡マッチを公開していません。ページはライブのまま、公開マッチデータが増えると自動的に更新されます。",
+      "noData": "まだデータがありません"
+    },
+    "search": {
+      "eyebrow": "資産検索",
+      "title": "コインをすばやく見つける",
+      "description": "統計画面から離れずに、シンボルまたは資産名で公開ランキングを検索。",
+      "label": "コインを検索",
+      "placeholder": "BTC, ETH, STRAX, TON...",
+      "ariaLabel": "シンボルまたは名前でコインを検索",
+      "clear": "クリア",
+      "noResultsTitle": "この検索に一致する資産が見つかりません。",
+      "noResultsBody": "別のシンボルまたは資産名を試して、公開ランキングに戻ってください。"
+    },
+    "summary": {
+      "ariaLabel": "公開統計サマリー",
+      "totalMatches": {
+        "label": "総マッチ数",
+        "hint": "公開アリーナマッチページ"
+      },
+      "finishedMatches": {
+        "label": "完了マッチ",
+        "hint": "インデックス済みクローズ済みスコアボード"
+      },
+      "activeAssets": {
+        "label": "アクティブ資産",
+        "hint": "公開マッチで確認されたシンボル"
+      },
+      "averageScore": {
+        "label": "平均スコア",
+        "hint": "マッチあたりのアリーナ合計スコア"
+      },
+      "highestScore": {
+        "label": "最高スコア",
+        "hint": "登録された最高の片側スコア"
+      },
+      "lastUpdated": {
+        "label": "最終更新",
+        "hint": "公開アリーナリフレッシュ時刻"
+      }
+    },
+    "charts": {
+      "winRate": {
+        "eyebrow": "勝率ボード",
+        "title": "勝率トップ暗号資産",
+        "description": "最も可視性の高い資産の中での最高の公開アリーナクローズ記録。",
+        "ariaLabel": "勝率トップ暗号資産チャート"
+      },
+      "activity": {
+        "eyebrow": "マッチテンポ",
+        "title": "マッチアクティビティ推移",
+        "description": "アリーナタイムライン全体の最近の公開マッチ公開ペース。",
+        "ariaLabel": "マッチアクティビティ推移チャート"
+      }
+    },
+    "trending": {
+      "eyebrow": "アリーナスポットライト",
+      "title": "トレンド資産",
+      "description": "最近の公開アリーナマッチ量と可視性に基づく最もアクティブな資産。",
+      "emptyTitle": "まだトレンド資産がありません",
+      "emptyBody": "アリーナが十分な公開マッチアクティビティを記録すると、トレンド資産がここに表示されます。",
+      "matchesHint": "{0}件の最近のマッチ",
+      "assetAria": "{0}の将来の統計ページを開く"
+    },
+    "ranking": {
+      "eyebrow": "HTMLランキングテーブル",
+      "title": "アリーナパフォーマンストップ暗号資産",
+      "description": "CriptoVersusアリーナバトルと歴史的マッチパフォーマンスに基づくトップパフォーマンス暗号資産。",
+      "empty": "まだランク付けされた資産がありません。",
+      "assetAria": "資産{0}の将来の統計ページを開く",
+      "columns": {
+        "rank": "順位",
+        "asset": "資産",
+        "matches": "マッチ",
+        "wins": "勝利",
+        "losses": "敗北",
+        "winRate": "勝率",
+        "averageScore": "平均スコア",
+        "totalScore": "合計スコア",
+        "lastMatch": "最終マッチ"
+      }
+    },
+    "latest": {
+      "eyebrow": "最新スコアボード",
+      "title": "最新の公開マッチ",
+      "description": "発見と監査のために利用可能な最新の公開アリーナマッチページ。",
+      "empty": "まだ公開マッチがありません。",
+      "vs": "vs",
+      "openMatch": "マッチを開く",
+      "openMatchAria": "{0} versus {1}の公開マッチページを開く",
+      "homeAssetAria": "資産{0}の将来の統計ページを開く",
+      "awayAssetAria": "資産{0}の将来の統計ページを開く",
+      "unavailable": "利用不可",
+      "columns": {
+        "match": "マッチ",
+        "score": "スコア",
+        "status": "ステータス",
+        "startedAt": "開始時刻",
+        "finishedAt": "終了時刻",
+        "publicPage": "公開ページ"
+      }
+    },
+    "future": {
+      "eyebrow": "ロードマップコネクタ",
+      "title": "次の公開統計ハブ",
+      "description": "ライブCriptoVersusアリーナデータに基づいて構築された専用の公開ハブを探索。",
+      "availableNow": "現在利用可能",
+      "comingSoon": "近日公開",
+      "openAria": "{0}を開く",
+      "links": {
+        "teams": {
+          "title": "チーム",
+          "description": "専用のチーム対チーム公開リーダーボード。"
+        },
+        "matches": {
+          "title": "マッチ",
+          "description": "より深い履歴フィルターを備えた拡張マッチアーカイブ。"
+        },
+        "rankings": {
+          "title": "ランキング",
+          "description": "公開アリーナカテゴリ全体の複数指標ランキングボード。"
+        },
+        "records": {
+          "title": "記録",
+          "description": "公開アリーナ記録、連勝、統計マイルストーン。"
+        }
+      }
+    },
+    "status": {
+      "completed": "完了",
+      "ongoing": "ライブ",
+      "pending": "待機中",
+      "cancelled": "キャンセル"
+    },
+    "structuredData": {
+      "breadcrumbStats": "統計"
+    },
+    "footnote": {
+      "title": "公開アリーナデータコンテキスト",
+      "body": "CriptoVersusの公開統計は、暗号資産マッチパフォーマンス、歴史的アリーナバトル、パフォーマンストレンド、スコアボード、デジタル資産間の公開市場競争を追跡します。"
+    }
+  },
+  "statsMatches": {
+    "seo": {
+      "title": "CriptoVersus マッチ統計",
+      "description": "公開暗号資産マッチを閲覧、ステータスでフィルタリング、アリーナ全体の資産結果を確認。"
+    },
+    "hero": {
+      "eyebrow": "公開マッチハブ",
+      "title": "マッチ統計",
+      "subtitle": "公開バトルを検索、最近のスコアボードを調査、資産別に結果を比較。",
+      "backToStats": "統計に戻る",
+      "openTeams": "チームを開く"
+    },
+    "filters": {
+      "searchLabel": "コインまたはチームで検索",
+      "searchPlaceholder": "BTC, ETH, STRAX, TON...",
+      "statusLabel": "ステータス",
+      "status": {
+        "all": "すべて",
+        "ongoing": "ライブ",
+        "completed": "完了",
+        "pending": "待機中",
+        "cancelled": "キャンセル"
+      }
+    },
+    "states": {
+      "loadingTitle": "公開マッチを読み込み中",
+      "loadingBody": "公開スコアボードと最近のバトル履歴を収集中。",
+      "errorTitle": "マッチは一時的に利用できません",
+      "errorBody": "現在公開マッチアーカイブを読み込めません。",
+      "emptyTitle": "マッチが見つかりません",
+      "emptyBody": "別の資産、チームまたはステータスフィルターを試してください。"
+    },
+    "summary": {
+      "totalMatches": "総マッチ数",
+      "completed": "完了",
+      "live": "ライブ",
+      "assets": "追跡資産"
+    },
+    "matches": {
+      "eyebrow": "最近のアーカイブ",
+      "title": "最新の公開マッチ",
+      "description": "マッチページを開いて、最新の公開スコアボードを確認。",
+      "openMatch": "マッチを開く",
+      "columns": {
+        "match": "マッチ",
+        "score": "スコア",
+        "status": "ステータス",
+        "date": "日付",
+        "link": "リンク"
+      }
+    },
+    "teams": {
+      "eyebrow": "資産パフォーマンス",
+      "title": "資産別の勝敗と引き分け",
+      "description": "現在のフィルタリングされたマッチセットから導出された公開資産サマリー。",
+      "columns": {
+        "asset": "資産",
+        "matches": "マッチ",
+        "wins": "勝利",
+        "draws": "引き分け",
+        "losses": "敗北",
+        "goals": "ゴール",
+        "winRate": "勝率"
+      }
+    },
+    "status": {
+      "completed": "完了",
+      "ongoing": "ライブ",
+      "pending": "待機中",
+      "cancelled": "キャンセル",
+      "unknown": "不明"
+    }
+  },
+  "statsRankings": {
+    "seo": {
+      "title": "CriptoVersus ランキング",
+      "description": "勝利数、効率性、ゴール、無敗記録による公開ランキングを比較。"
+    },
+    "hero": {
+      "eyebrow": "公開ランキングハブ",
+      "title": "ランキング統計",
+      "subtitle": "CriptoVersusアリーナの複数指標公開ランキングボード。",
+      "backToStats": "統計に戻る",
+      "openMatches": "マッチを開く"
+    },
+    "filters": {
+      "searchLabel": "資産で検索",
+      "searchPlaceholder": "BTC, ETH, STRAX, TON..."
+    },
+    "states": {
+      "loadingTitle": "公開ランキングを読み込み中",
+      "loadingBody": "最新の公開マッチデータからランキングボードを計算中。",
+      "errorTitle": "ランキングは一時的に利用できません",
+      "errorBody": "現在公開ランキングボードを読み込めません。",
+      "emptyTitle": "まだランキングがありません",
+      "emptyBody": "アリーナはここで資産をランク付けするのに十分な完了公開マッチをまだ必要としています。"
+    },
+    "summary": {
+      "assets": "ランク付けされた資産",
+      "topWins": "最多勝利",
+      "topEfficiency": "最高効率",
+      "topStreak": "最長無敗記録"
+    },
+    "boards": {
+      "columns": {
+        "rank": "順位",
+        "asset": "資産",
+        "matches": "マッチ",
+        "winRate": "勝率"
+      },
+      "wins": {
+        "eyebrow": "勝利ボード",
+        "title": "勝利数ランキング",
+        "description": "完了公開マッチの総勝利数で資産をソート。",
+        "metric": "勝利"
+      },
+      "efficiency": {
+        "eyebrow": "効率ボード",
+        "title": "効率ランキング",
+        "description": "完了公開バトル全体のスリーポイント効率率。",
+        "metric": "効率"
+      },
+      "goals": {
+        "eyebrow": "アタックボード",
+        "title": "ゴールランキング",
+        "description": "最も高い公開スコアリング出力を持つ資産。",
+        "metric": "ゴール"
+      },
+      "streak": {
+        "eyebrow": "Momentumボード",
+        "title": "無敗記録ランキング",
+        "description": "最新の完了マッチ履歴に基づく現在の無敗ラン。",
+        "metric": "連勝"
+      }
+    }
+  },
+  "statsRecords": {
+    "seo": {
+      "title": "CriptoVersus 記録",
+      "description": "アリーナで最大の公開記録、大差試合、注目すべき歴史的マッチを振り返る。"
+    },
+    "hero": {
+      "eyebrow": "公開記録ハブ",
+      "title": "記録統計",
+      "subtitle": "CriptoVersusアリーナからの公開マイルストーンと歴史的スコアボード。",
+      "backToStats": "統計に戻る",
+      "openRankings": "ランキングを開く"
+    },
+    "states": {
+      "loadingTitle": "公開記録を読み込み中",
+      "loadingBody": "注目すべき記録とマイルストーンのために完了公開マッチをスキャン中。",
+      "errorTitle": "記録は一時的に利用できません",
+      "errorBody": "現在公開記録ボードを読み込めません。",
+      "emptyTitle": "まだ記録がありません",
+      "emptyBody": "記録をハイライトする前に、アリーナはまだより多くの完了公開マッチを必要としています。"
+    },
+    "summary": {
+      "longestWinStreak": "最長連勝",
+      "biggestBlowout": "最大得点差",
+      "mostGoals": "1マッチ最多ゴール",
+      "bestCampaign": "最高キャンペーン"
+    },
+    "records": {
+      "eyebrow": "マイルストーン",
+      "title": "アリーナ記録ボード",
+      "description": "既存の公開マッチデータに基づく一時的なフロントエンド計算記録。",
+      "openMatch": "マッチを開く",
+      "cards": {
+        "longestWinStreak": "最長連勝",
+        "longestWinStreakDetail": "公開アリーナ資産による最高の連続勝利。",
+        "biggestBlowout": "最大得点差",
+        "biggestBlowoutDetail": "公開マッチで記録された最大の得点差。",
+        "mostGoals": "マッチ最多ゴール",
+        "mostGoalsDetail": "公開スコアボードで発表された最高の合計スコア。",
+        "bestCampaign": "最高キャンペーン",
+        "bestCampaignDetail": "意味のある公開サンプルを持つ資産の中での最高の効率率。",
+        "worstCampaign": "最低キャンペーン",
+        "worstCampaignDetail": "インデックスされた公開資産の中での最低の効率率。"
+      }
+    },
+    "history": {
+      "eyebrow": "歴史的マッチ",
+      "title": "重要な歴史的マッチ",
+      "description": "公開アーカイブから再訪する価値のある高インパクトスコアボード。",
+      "openMatch": "マッチを開く",
+      "columns": {
+        "match": "マッチ",
+        "score": "スコア",
+        "note": "重要な理由",
+        "link": "リンク"
+      },
+      "notes": {
+        "blowout": "記録上の最大の公開大差試合。",
+        "mostGoals": "これまでで最高得点の公開マッチ。",
+        "closeClassic": "クラシックなエネルギーを持つ接戦の高得点バトル。",
+        "highImpact": "歴史的アーカイブからの高インパクト公開マッチ。"
+      }
+    }
+  },
+  "statsTeams": {
+    "seo": {
+      "title": "暗号資産アリーナチーム - CriptoVersus ランキング",
+      "description": "CriptoVersusエコシステム全体の公開暗号資産アリーナチーム、歴史的パフォーマンストレンド、ランキング、バトル統計を探索。"
+    },
+    "hero": {
+      "eyebrow": "アリーナチームディレクトリ",
+      "title": "暗号資産アリーナチーム",
+      "subtitle": "CriptoVersusアリーナの歴史的バトルにおける公開暗号資産パフォーマンスを探索。",
+      "seoCopy": "CriptoVersusは暗号資産を歴史的ランキング、相対パフォーマンス、公開統計、エコシステム全体のインデックス可能なバトル記録を持つ公開アリーナチームに変えます。",
+      "backToStats": "統計に戻る",
+      "backToStatsAria": "CriptoVersus統計ページに戻る",
+      "howArenaWorks": "アリーナの仕組み",
+      "howArenaWorksAria": "CriptoVersusアリーナの仕組みを読む",
+      "liveDirectory": "ライブディレクトリ",
+      "liveDirectoryHint": "インデックス済み公開資産チーム",
+      "totalIndexedBattles": "インデックス済みバトル総数",
+      "totalIndexedBattlesHint": "完了公開マッチ記録",
+      "updatedStatus": "ライブアリーナ状態",
+      "updatedStatusValue": "公開チーム統計",
+      "updatedStatusHint": "最新の公開履歴で更新"
+    },
+    "states": {
+      "loadingTitle": "アリーナチームを読み込み中",
+      "loadingBody": "最新の公開チームディレクトリとランキングデータを取得中。",
+      "errorTitle": "チームは一時的に利用できません",
+      "errorBody": "現在公開アリーナチームを読み込めません。代わりに安定した空のボードを表示しています。",
+      "emptyTitle": "まだ公開チームがありません",
+      "emptyBody": "アリーナはチームディレクトリを構築するのに十分な完了公開バトルをインデックスしていません。"
+    },
+    "summary": {
+      "ariaLabel": "アリーナチームサマリー",
+      "totalAssets": {
+        "label": "総資産数",
+        "hint": "追跡中の公開暗号資産チーム"
+      },
+      "mostDominantAsset": {
+        "label": "最も支配的な資産",
+        "hint": "現在のトップランクアリーナリーダー"
+      },
+      "highestWinRate": {
+        "label": "最高勝率",
+        "hint": "最高の公開クローズ率"
+      },
+      "mostActiveTeam": {
+        "label": "最もアクティブなチーム",
+        "hint": "最大の公開マッチサンプル"
+      },
+      "totalBattlesIndexed": {
+        "label": "インデックス済みバトル総数",
+        "hint": "完了公開アリーナバトル"
+      }
+    },
+    "search": {
+      "eyebrow": "ディレクトリを検索",
+      "title": "暗号資産チームを見つける",
+      "description": "シンボルまたは資産名で公開アリーナボードを即座にフィルタリング。",
+      "label": "暗号資産チームを検索",
+      "placeholder": "暗号資産チームを検索...",
+      "ariaLabel": "暗号資産チームを検索",
+      "noResultsTitle": "一致するチームがありません",
+      "noResultsBody": "異なるシンボルまたはより広い検索語を試してください。"
+    },
+    "grid": {
+      "eyebrow": "競争ボード",
+      "title": "アリーナチームディレクトリ",
+      "description": "歴史的CriptoVersusバトルパフォーマンスに基づく最強の暗号資産チームのプレミアム公開カード。",
+      "rankValue": "アリーナランク #{0}",
+      "viewTeam": "チームを見る",
+      "viewTeamAria": "{0}の将来のチームページを開く",
+      "metrics": {
+        "winRate": "勝率",
+        "matches": "マッチ",
+        "goals": "ゴール",
+        "averageScore": "平均スコア"
+      },
+      "details": {
+        "wins": "勝利",
+        "losses": "敗北",
+        "totalScore": "合計スコア",
+        "momentum": "Momentum"
+      }
+    },
+    "table": {
+      "eyebrow": "HTMLランキングテーブル",
+      "title": "トップアリーナチーム",
+      "description": "公開暗号資産アリーナチーム、歴史的パフォーマンストレンド、バトル統計のためのインデックス可能なランキングテーブル。",
+      "empty": "まだアリーナチームがありません。",
+      "assetAria": "{0}の将来のチームページを開く",
+      "columns": {
+        "rank": "順位",
+        "asset": "資産",
+        "matches": "マッチ",
+        "wins": "勝利",
+        "losses": "敗北",
+        "winRate": "勝率",
+        "averageScore": "平均スコア",
+        "totalScore": "合計スコア",
+        "momentum": "Momentum"
+      }
+    },
+    "rivalries": {
+      "eyebrow": "アリーナストーリーライン",
+      "title": "トップライバルリー",
+      "description": "最強の公開アリーナチームから構築された注目の競争ペアリング。",
+      "emptyTitle": "まだライバルリーがありません",
+      "emptyBody": "公開チームボードに十分なデータが集まると、ライバルリーがここに表示されます。",
+      "teamAria": "{0}の将来のチームページを開く"
+    },
+    "momentum": {
+      "dominant": "ドミナント",
+      "hot": "ホット",
+      "rising": "ライジング",
+      "aggressive": "アグレッシブ",
+      "veteran": "ベテラン",
+      "struggling": "ストラグリング",
+      "volatile": "ボラタイル"
+    },
+    "structuredData": {
+      "breadcrumbStats": "統計",
+      "breadcrumbTeams": "チーム"
+    }
+  },
+  "statsTeamDetail": {
+    "seo": {
+      "title": "{0} チームプロフィール - CriptoVersus アリーナ統計",
+      "description": "CriptoVersusアリーナの{0}に関する公開統計、最近のバトル、ライバル、歴史的パフォーマンスを探索。"
+    },
+    "hero": {
+      "eyebrow": "アリーナチームプロフィール",
+      "title": "{0} チームプロフィール",
+      "subtitle": "{0}の公開バトル履歴、ライバル、アリーナパフォーマンスインサイト。",
+      "seoCopy": "{0}はCriptoVersus内で公開アリーナチームとして競争し、歴史的マッチ結果、ランキング、パフォーマンストレンド、相対パフォーマンスが検索と発見のために可視化されます。",
+      "backToTeams": "チームに戻る",
+      "backToStats": "統計に戻る",
+      "rank": "アリーナランク",
+      "rankHint": "現在の公開ランク",
+      "momentum": "Momentum",
+      "momentumHint": "現在のアリーナフォームラベル",
+      "lastMatch": "最終マッチ",
+      "lastMatchHint": "最新の公開バトル日付",
+      "winRate": "勝率",
+      "winRateHint": "完了バトルのクローズ率",
+      "matchesPlayed": "プレイ済みマッチ",
+      "matchesPlayedHint": "インデックス済み公開バトルサンプル",
+      "streak": "連勝",
+      "streakHint": "現在の完了結果ラン",
+      "quickStatsEyebrow": "クイック統計",
+      "quickStatsTitle": "一目で見るアリーナパフォーマンス",
+      "quickStatsDescription": "視覚ヒーローから分離して素早く読むための{0}の主要公開指標。",
+      "marketCapHint": "最新のソーシャルプロフィール時価総額ランキング",
+      "historicalRecord": "歴史的記録",
+      "historicalRecordHint": "アリーナでの勝敗と引き分け",
+      "historicalRecordValue": "{0}W • {1}L • {2}D",
+      "historicalRecordLegend": "W • L • D",
+      "streakWinValue": "{0}連勝",
+      "streakLossValue": "{0}連敗",
+      "streakDrawValue": "{0}引き分け"
+    },
+    "social": {
+      "imageAlt": "{0} プレミアムプロフィールアートワーク",
+      "identity": {
+        "name": "名前",
+        "coinGeckoId": "CoinGecko ID",
+        "contract": "コントラクト",
+        "marketCapRank": "時価総額ランク",
+        "visualStyle": "ビジュアルスタイル",
+        "category": "カテゴリ",
+        "memeCoin": "ミームコイン"
+      },
+      "links": {
+        "website": "ウェブサイト",
+        "twitter": "X / Twitter",
+        "telegram": "Telegram"
+      },
+      "reference": {
+        "title": "リファレンスプロフィール",
+        "subtitle": "公式メタデータとソーシャルプロフィールリファレンス",
+        "source": "ソース",
+        "lastChecked": "最終確認 UTC",
+        "marketCapRank": "時価総額ランク",
+        "memeCoin": "ミームコイン"
+      }
+    },
+    "investment": {
+      "eyebrow": "ライブセレクション",
+      "title": "{0}を選択",
+      "cta": "{0}を選択",
+      "loadingCta": "市場を読み込み中",
+      "openMatch": "マッチを開く",
+      "states": {
+        "loading": "読み込み中",
+        "available": "利用可能",
+        "positionAvailable": "セレクション利用可能",
+        "blocked": "ブロック済み",
+        "walletRequired": "ウォレットを接続",
+        "unavailable": "利用不可"
+      },
+      "messages": {
+        "loading": "このチームの最新の選択可能なマッチまたはサイクルを検索中。",
+        "available": "{0}の永続的なセレクションが利用可能です。",
+        "positionAvailable": "{0}の永続的なセレクションが利用可能です。",
+        "positionAvailableNoMatch": "この資産で永続的なサイドを選択できます。将来のサイクルに自動的に参加する場合があります。",
+        "walletRequired": "{0}で永続的なサイドを選択または増加させるにはウォレットを接続してください。",
+        "unavailable": "このチームには現在公開セレクション市場がありません。",
+        "noMatch": "このチームのアクティブな公開マッチがまだ見つかりません。",
+        "closed": "このチームの最近のマッチはセレクションウィンドウ内にありません。",
+        "advancedLive": "この資産は現在高度なライブマッチ中です。エクスポージャーを増やすには次のサイクルをお待ちください。",
+        "blockedAdvancedLive": "この資産は現在高度なライブマッチ中です。エクスポージャーを増やすには次のサイクルをお待ちください。",
+        "error": "現在選択可能なコンテキストを検証できません。もうしばらくしてからもう一度お試しください。",
+        "success": "{0}のセレクションが送信されました。",
+        "submitError": "現在{0}のセレクションを送信できません。"
+      }
+    },
+    "states": {
+      "loadingTitle": "チームプロフィールを読み込み中",
+      "loadingBody": "この暗号資産チームの最新の公開アリーナ詳細を取得中。",
+      "errorTitle": "チームプロフィールは利用できません",
+      "errorBody": "現在この公開チームプロフィールを読み込めません。",
+      "notFoundBody": "このアリーナチームは現在の公開ディレクトリに見つかりませんでした。",
+      "noData": "データなし"
+    },
+    "summary": {
+      "matches": "マッチ",
+      "wins": "勝利",
+      "losses": "敗北",
+      "winRate": "勝率",
+      "averageScore": "平均スコア",
+      "totalScore": "合計スコア"
+    },
+    "activity": {
+      "eyebrow": "アリーナテンポ",
+      "title": "マッチアクティビティ推移",
+      "description": "CriptoVersusアリーナタイムライン全体の{0}の最近の公開バトルペース。",
+      "ariaLabel": "{0}のマッチアクティビティ推移チャート"
+    },
+    "rivals": {
+      "eyebrow": "主要対戦相手",
+      "title": "トップライバル",
+      "description": "完了アリーナバトルでこのチームと最も頻繁に対戦した公開ライバル。",
+      "empty": "まだライバルデータがありません。",
+      "openAria": "{0}のチームプロフィールを開く",
+      "record": "{0}勝 · {1}敗 · {2}マッチ"
+    },
+    "latest": {
+      "eyebrow": "最新スコアボード",
+      "title": "最新の公開マッチ",
+      "description": "CriptoVersusアリーナ内の{0}をフィーチャーした最近の公開バトル。",
+      "empty": "まだ公開マッチがありません。",
+      "openMatch": "マッチを開く",
+      "unavailable": "利用不可",
+      "columns": {
+        "match": "マッチ",
+        "score": "スコア",
+        "status": "ステータス",
+        "startedAt": "開始時刻",
+        "finishedAt": "終了時刻",
+        "publicPage": "公開ページ"
+      }
+    },
+    "momentum": {
+      "dominant": "ドミナント",
+      "hot": "ホット",
+      "rising": "ライジング",
+      "aggressive": "アグレッシブ",
+      "veteran": "ベテラン",
+      "struggling": "ストラグリング",
+      "volatile": "ボラタイル"
+    },
+    "status": {
+      "completed": "完了",
+      "ongoing": "ライブ",
+      "pending": "待機中",
+      "cancelled": "キャンセル"
+    },
+    "structuredData": {
+      "breadcrumbStats": "統計",
+      "breadcrumbTeams": "チーム"
+    }
+  },
+  "publicHome": {
+    "globalCryptoArena": "グローバル暗号資産アリーナ",
+    "exploreLiveMatches": "ライブマッチを探索",
+    "howItWorks": "仕組み",
+    "platformHighlights": "プラットフォームハイライト",
+    "liveMatches": "ライブマッチ",
+    "completedIn24h": "24時間で完了",
+    "trackedCoins": "追跡コイン",
+    "homeSections": "ホームセクション",
+    "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "スコア、Momentum、マッチコンテキストを表示するクロール可能な公開ページで進行中の暗号資産バトルをフォロー。",
+    "onlyLiveBattleTitle": "これが現在唯一のライブバトルです。",
+    "onlyLiveBattleBody": "新しい市場のマッチアップが始まると、アリーナは自動的に更新されます。お待ちの間、トップバトルを探索しましょう。",
+    "noLiveBattlesTitle": "現在ライブバトルはありません。",
+    "noLiveBattlesBody": "アリーナは次の市場マッチアップを準備しています。トップバトルを探索して、もうすぐチェックバックしてください。",
+    "roadmap": "ロードマップ",
+    "liveBattle": "ライブバトル",
+    "arena": {
+      "live": "LIVE",
+      "liveNow": "LIVE NOW",
+      "featuredBattle": "フィーチャードバトル",
+      "openArena": "オープンアリーナ",
+      "openBattle": "バトルを開く",
+      "openMatch": "マッチを開く",
+      "openMatchAria": "マッチ {0} versus {1}、マッチ {2}を開く",
+      "hotMatch": "HOT MATCH",
+      "trending": "TRENDING",
+      "momentum": "MOMENTUM",
+      "fear": "FEAR",
+      "hotScore": "Hot score",
+      "arenaPressure": "Arena pressure",
+      "highVolatility": "HIGH VOLATILITY",
+      "volatility": "ボラティリティ",
+      "scoreLine": "スコアライン",
+      "arenaMatchId": "アリーナマッチ #{0}",
+      "openArenaAria": "アリーナマッチ {0} versus {1}、マッチ {2}を開く",
+      "momentumBar": "Momentumバランス",
+      "finalResultShort": "最終結果",
+      "elapsedMinutes": "{0}' 経過",
+      "startingSoon": "もうすぐ開始",
+      "marketLive": "市場パルスライブ",
+      "momentumEdgeA": "{0}% 左サイドプレッシャー",
+      "momentumEdgeB": "{0}% 右サイドプレッシャー",
+      "tiePressure": "バランスの取れたアリーナプレッシャー",
+      "momentumEdgeNeutral": "バランスの取れたアリーナプレッシャー",
+      "volatilityHigh": "高",
+      "volatilityMedium": "中"
+    },
+    "vs": "vs",
+    "openMatch": "マッチを開く",
+    "topCryptoBattles": "トップ暗号資産バトル",
+    "featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext": "フィーチャード公開マッチページは、市場パフォーマンス、スコアリングルール、透明な歴史的コンテキストをつなぎます。",
+    "criptoversusTracksMarketVariationBetweenAssetsConvertsConfiguredRulesIntoScoreEventsAndPublishesMatchPagesThatCanBeIndexedSharedAndAudited": "CriptoVersusは資産間の市場変動を追跡し、設定されたルールをスコアイベントに変換し、インデックス、共有、監査可能なマッチページを公開します。",
+    "readTheFullRules": "全ルールを読む",
+    "publicMatchLogic": "公開マッチロジック",
+    "eachMatchHasScoreStatusVolumePriceVariationAndRuleBasedEventsVisibleOnThePublicPage": "各マッチにはスコア、ステータス、ボリューム、価格変動、ルールベースのイベントが公開ページに表示されます。",
+    "arenaStyleExperience": "アリーナスタイルエクスペリエンス",
+    "theProductBlendsCryptoDataLiveConfrontationAndSocialReadyStorytelling": "プロダクトは暗号資産データ、ライブ対決、ソーシャル対応のストーリーテリングを融合します。",
+    "globalSeoReadyRouting": "グローバルSEO対応ルーティング",
+    "localizedPublicRoutesCanonicalUrlsAndHreflangSupportKeepInternationalDiscoveryClean": "ローカライズされた公開ルート、canonical URL、hreflangサポートにより、国際的な発見がクリーンに保たれます。",
+    "aQuickPulseOfTheAssetsCurrentlyDrawingTheStrongestAttentionInsideTheArena": "現在アリーナ内で最も強い注目を集めている資産のクイックパルス。",
+    "trackedMarketAsset": "追跡市場資産",
+    "trendingCoins": "トレンドコイン",
+    "cryptoArenaRankings": "暗号資産アリーナランキング",
+    "rankings": "ランキング",
+    "trendingAssetsFeaturedBattlesAndPublicMatchPagesBuildTheCompetitiveRankingLayerOfTheArena": "トレンド資産、フィーチャードバトル、公開マッチページがアリーナの競争ランキングレイヤーを構築します。",
+    "exploreTheProduct": "プロダクトを探索",
+    "howItWorks2": "仕組み",
+    "featuredMatch": "フィーチャードマッチ",
+    "criptoversusLiveCryptoMatchArena": "CriptoVersus | ライブ暗号資産マッチアリーナ",
+    "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "CriptoVersusでSEO対応の公開ページにより、ライブ暗号資産マッチ、公開スコアボード、トレンドコイン、マーケットバトルを探索。",
+    "seoDescription": "CriptoVersusは、公開暗号資産シグナルが教育分析のためにフットボールスタイルのシミュレーションとなるゲーミファイド市場データ可視化プラットフォームです。",
+    "heroTitle": "ゲーミファイドビジュアルアリーナでのライブ暗号資産マーケットバトル。",
+    "heroDescription": "公開市場データがフットボールスタイルの暗号資産バトルに：資産が競争し、スコアが変わり、アリーナをライブでフォローできます。",
+    "heroSemanticLabel": "アリーナメカニクスハイライト",
+    "heroSemantic1": "資産は実際の市場変動で競争する",
+    "heroSemantic2": "スコアとMomentumがライブで更新",
+    "heroSemantic3": "アリーナを見るかマッチを開く",
+    "heroSemantic4": "ゲーミファイドスコアリングによるリアルタイム暗号資産シミュレーション",
+    "heroSemantic5": "実際の市場パフォーマンスによる競争アリーナ分析",
+    "marketDataDisclaimer": "CriptoVersusはゲーミファイド市場データ可視化プラットフォームです。マッチスコアは公開市場シグナルから生成され、投資助言、投資推奨、保証された結果として解釈すべきではありません。",
+    "sections": {
+      "basics": {
+        "eyebrow": "CriptoVersusについて",
+        "title": "CriptoVersusについて",
+        "description": "プラットフォームが何であり、何でなく、公開アリーナがどのように構成されているか。"
+      },
+      "analysis": {
+        "eyebrow": "仕組み",
+        "title": "CriptoVersusの仕組み",
+        "description": "サイド選択、公開マッチスコアリング、市場データシミュレーションの明確な説明。"
+      },
+      "score": {
+        "eyebrow": "スコアリングルール",
+        "title": "スコアリングルール",
+        "description": "公開シグナルがスコア変動、マッチステート、アリーナ履歴に変わる仕組み。"
+      },
+      "wallet": {
+        "eyebrow": "責任ある利用",
+        "title": "責任ある利用",
+        "description": "プラットフォームを慎重かつ現実的な期待を持って使用するための実践的ガイダンス。"
+      },
+      "risk": {
+        "eyebrow": "リスク免責事項",
+        "title": "リスク免責事項",
+        "description": "このサイトはリターンの約束、ギャンブル製品、投資推奨ではありません。"
+      },
+      "tv": {
+        "eyebrow": "ライブブロードキャスト",
+        "title": "TVブロードキャスト",
+        "description": "自動ブロードキャストが公開マッチコンテキストとライブアリーナ状態をどのように提示するか。"
+      },
+      "stats": {
+        "eyebrow": "データソース",
+        "title": "データソース",
+        "description": "公開シグナル、スコアボード、アリーナ指標の出所。"
+      },
+      "deep": {
+        "eyebrow": "投資助言ではありません",
+        "title": "投資助言ではありません",
+        "description": "CriptoVersusは投資助言、投資計画、保証された戦略として読むべきではありません。"
+      }
+    },
+    "faqTitle": "CriptoVersus FAQ",
+    "faqSubtitle": "各バトルの背後にある教育シミュレーションとスコアリングモデルを理解したい検索エンジン、AIシステム、ユーザーへの直接的な回答。",
+    "structuredDataAbstract": "CriptoVersusは、サイド選択、マッチスコアリング、公開シミュレーション、実際の市場パフォーマンスによる教育的市場分析を備えたゲーミファイド市場データ可視化アリーナです。",
+    "faq": {
+      "onlyScoreboard": {
+        "question": "CriptoVersusは暗号資産のスコアボードだけですか？",
+        "answer": "いいえ。CriptoVersusは分析、教育、エンターテイメントのためのゲーミファイド市場データ可視化アリーナです。ユーザーはライブシミュレーションでサイドを選び、マッチプールをフォローし、公開市場シグナルをレビューします。投資助言や将来のトークン価格の予測ではありません。"
+      },
+      "openPositions": {
+        "question": "ユーザーは暗号資産バトルでサイドを選べますか？",
+        "answer": "はい。ユーザーは市場主導のサイクルがアクティブな間、ライブアリーナシミュレーションでサイドを選択できます。その選択は参加と分析のためのものであり、投資助言ではありません。"
+      },
+      "arenaPools": {
+        "question": "CriptoVersusのマッチプールはどう機能しますか？",
+        "answer": "各サイドは参加者をマッチプールに集中させます。それらのプールはライブアリーナ中に進化し、実際の市場パフォーマンスに応答し、決済に使用されるスコアリングロジックを供給します。ビジュアルおよび教育用であり、投資製品ではありません。"
+      },
+      "cyclicalPools": {
+        "question": "サイクリカルマッチプールとは何ですか？",
+        "answer": "サイクリカルプールは、各マッチを独立したスコアボードとして扱うのではなく、複数のバトルサイクル全体でサイド選択を再接続する繰り返しのアリーナ参加レイヤーです。"
+      },
+      "rewardDistribution": {
+        "question": "スコアと結果はどのように分配されますか？",
+        "answer": "スコアと結果は、アクティブなマッチルール、サイドパフォーマンス、プール構成、ライブ市場結果を競争アリーナ結果に変換する決済ロジックに従って決定されます。将来のトークン価格の動きや利益を保証するものではありません。"
+      },
+      "battleCycle": {
+        "question": "暗号資産バトルサイクルはどう機能しますか？",
+        "answer": "バトルサイクルはエントリーウィンドウを開き、サイド選択を許可し、市場パフォーマンスをリアルタイムで追跡し、ライブアリーナを更新し、プール決済と次のサイクルのスコアリング更新で終了します。"
+      }
+    },
+    "liveMatchRealtimeSummary": "現在のスコア {0} x {1}。価格変動と公開マッチシグナルがリアルタイムで更新されます。",
+    "featuredMatchScoreSummary": "マッチ #{0} • スコア {1} x {2}",
+    "structuredDataDescription": "CriptoVersusでの{0}と{1}の間の公開暗号資産市場データシミュレーション。"
+  },
+  "public": {
+    "about": {
+      "seo": {
+        "title": "CriptoVersusについて | 公開市場データアリーナ",
+        "description": "CriptoVersusが公開暗号資産市場データを分析、教育、エンターテイメントのためのフットボールスタイルのシミュレーションに変える仕組みを学ぶ。"
+      },
+      "hero": {
+        "eyebrow": "概要",
+        "title": "公開市場データ、ライブアリーナシミュレーションとして可視化。",
+        "lead": "CriptoVersusはゲーミファイド市場データ可視化プラットフォームです。金融製品として自らを提示することなく、公開暗号資産シグナル、サイド選択、マッチスタイルスコアボードの探索を支援します。",
+        "backToArena": "アリーナに戻る",
+        "viewScoringRules": "スコアリングルールを見る",
+        "panelLabel": "CriptoVersus概要",
+        "panel": {
+          "publicDataLabel": "公開データ",
+          "publicDataTitle": "オープン市場シグナル",
+          "publicDataBody": "アリーナは非公開の市場アクセスではなく、公開暗号資産市場シグナルから構築されています。",
+          "simulationLabel": "シミュレーション",
+          "simulationTitle": "フットボールスタイルのビジュアル",
+          "simulationBody": "マッチスタイルのスコアボードは、価格アクションとMomentumを一目で読むのに役立ちます。",
+          "useLabel": "責任ある利用",
+          "useTitle": "分析第一",
+          "useBody": "このサイトを教育、エンターテイメント、市場可視化に使用してください。"
+        }
+      },
+      "sections": {
+        "overviewLabel": "CriptoVersus概要セクション"
+      },
+      "cards": {
+        "platform": {
+          "label": "それは何か",
+          "title": "公開分析レイヤー",
+          "body": "CriptoVersusは、公開暗号資産データを中心とした教育、エンターテイメント、市場可視化用に設計されています。"
+        },
+        "how": {
+          "label": "仕組み",
+          "title": "シグナルがシミュレーションに",
+          "body": "公開シグナルはフットボールスタイルのマッチビューにグループ化され、ユーザーはMomentum、プレッシャー、マッチコンテキストを検証できます。"
+        },
+        "responsible": {
+          "label": "責任ある利用",
+          "title": "情報であり、助言ではない",
+          "body": "プラットフォームは利益を約束せず、将来の価格を予測せず、独立した判断を置き換えるものでもありません。"
+        }
+      },
+      "dataSources": {
+        "title": "データソース",
+        "description": "CriptoVersusは、Binance取引ペアが利用可能な場合を含む、公開暗号資産市場データと市場シグナルを使用しています。これらのシグナルには、価格変動、パーセンテージ変動、キャンドル挙動、取引アクティビティ、フットボールスタイルのシミュレーションマッチ生成に使用されるその他の市場派生指標が含まれる場合があります。CriptoVersusはBinanceとは提携、承認、後援、または公式に関連していません。",
+        "binanceNotice": "Binance取引ペアが利用可能な場合、他の公開市場ソースの1つとして含まれており、承認やパートナーシップを意味するものではありません。",
+        "notAffiliated": "Binance取引ペアの存在は、基礎となる資産の承認、推奨、検証を意味するものではありません。",
+        "usage": "データは可視化、分析、シミュレーション、エンターテイメントに使用されます。",
+        "reliability": "シグナルは遅延、障害、乖離、一時的な利用不可になる可能性があります。"
+      }
+    },
+    "scoringRules": {
+      "seo": {
+        "title": "CriptoVersus スコアリングルール | 公開市場シグナル",
+        "description": "CriptoVersusで公開市場シグナルがパーセンテージ、クロスオーバー、ボリューム、Candle Battleルールを通じてスコアリングイベントになる仕組みを確認。"
+      },
+      "hero": {
+        "eyebrow": "スコアリングルール",
+        "title": "公開市場シグナルがマッチスコアリングに変わる。",
+        "lead": "CriptoVersusは市場派生指標を使用してシミュレーションマッチを作成します。公開されるスコアはアクティブなルールセットに従い、投資助言や価格予測ではなく分析として読むべきです。",
+        "backToAbout": "CriptoVersusについて読む",
+        "backToArena": "アリーナに戻る",
+        "panelLabel": "スコアリング概要",
+        "panel": {
+          "signalsLabel": "シグナル",
+          "signalsTitle": "公開入力が第一",
+          "signalsBody": "価格変動、パーセンテージ変動、キャンドル挙動、クォートボリューム、取引アクティビティがアリーナに供給され、Binance取引ペアが利用可能な場合も含まれます。",
+          "leftTeam": "サイドA",
+          "versus": "vs",
+          "simulated": "シミュレーションマッチ",
+          "rightTeam": "サイドB",
+          "scoringLabel": "スコアリング",
+          "scoringTitle": "マッチイベント",
+          "scoringBody": "それらの公開入力は、パーセンテージしきい値、クロスオーバー、ボリュームウィンドウ、ボリュームクロスオーバー、Candle Battle支配を通じてスコアリングイベントを作成できます。",
+          "resultLabel": "結果",
+          "resultTitle": "最終リーダーまたはなし",
+          "resultBody": "サイクルは最終リーダー付き、または最終リーダーなしで終了でき、スコアは将来のトークン価格を予測するものではありません。"
+        }
+      },
+      "sections": {
+        "overviewLabel": "スコアリングルール概要",
+        "overviewEyebrow": "アリーナの読み方",
+        "overviewTitle": "公開シグナル、明確なルール、可視サイクル。",
+        "overviewLead": "このページは、公開市場シグナルがスコアリングイベントになる仕組み、シミュレーションマッチの進行方法、公開スコアボードの解釈方法を説明します。",
+        "realRulesLabel": "リアルルール",
+        "realRulesEyebrow": "実際にポイントを授与するもの",
+        "realRulesTitle": "文書化されたスコアリングルールのみがスコアイベントを作成します。",
+        "realRulesLead": "公開アリーナは、パーセンテージ、クロスオーバー、ボリューム、Candle Battleスコアリングのための特定のルールを使用します。ビジュアルウィジェットはマッチの読み取りに役立ちますが、ルールエンジンを置き換えるものではありません。",
+        "simulationsLabel": "シミュレーション",
+        "simulationsEyebrow": "サイクルの提示方法",
+        "simulationsTitle": "各サイクルはシミュレーションマッチとして表示されます。",
+        "simulationsLead": "公開ページはマッチスタイルのタイムラインを使用し、人々がアリーナを取引製品と誤解せずにシグナルフローを理解できるようにします。",
+        "simulationsTimelineLabel": "シミュレーションタイムライン",
+        "visualIndicatorsLabel": "ビジュアルインジケーター",
+        "visualIndicatorsEyebrow": "役立つコンテキスト",
+        "visualIndicatorsTitle": "一部のパネルはビジュアルのみです。",
+        "visualIndicatorsLead": "Arena Pressure、Momentum、市場フローはマッチステートの説明に役立ちます。それ自体がスコアトリガーではないビジュアルインジケーターです。",
+        "meaningLabel": "スコアの意味"
+      },
+      "cards": {
+        "signals": {
+          "label": "シグナル収集",
+          "title": "公開市場データが読み取られる",
+          "body": "プラットフォームは、Binance取引ペアが利用可能な場合を含む公開ソースから、市場変動、パーセンテージ変動、キャンドル挙動、クォートボリューム、取引アクティビティを読み取ります。"
+        },
+        "scoring": {
+          "label": "スコアイベント",
+          "title": "シグナルがスコアイベントに",
+          "body": "パーセンテージしきい値ルールは、差が設定レベルに達した時にポイントを授与します。クロスオーバールールは、一方のサイドが相手の下から上に移動した時にのみポイントを授与します。ボリュームウィンドウとボリュームクロスオーバールールはクォートボリュームに関する同じ公開シグナルロジックに従い、Candle Battle支配は別のスコアリングパスを追加します。"
+        },
+        "settlement": {
+          "label": "サイクル結果",
+          "title": "サイクルがクリーンにクローズ",
+          "body": "公開されるスコアは市場行動の教育的可視化です。投資助言、取引シグナル、保証された結果ではありません。"
+        }
+      },
+      "rules": {
+        "percentage": {
+          "label": "パーセンテージルール",
+          "title": "パーセンテージしきい値",
+          "body": "相対パーセンテージ差が設定しきい値に達した時にポイントが授与されます。",
+          "point1": "より大きなパーセンテージ変動がルールをリードします。",
+          "point2": "各設定しきい値はサイドごとに1回カウントされます。",
+          "point3": "スコアは将来のパフォーマンスではなく、公開市場変動を反映します。"
+        },
+        "crossover": {
+          "label": "クロスオーバールール",
+          "title": "パーセンテージクロスオーバー",
+          "body": "一方のサイドがパーセンテージ変動で他方のサイドの下から上にクロスした時にポイントが授与されます。",
+          "point1": "クロスオーバーは相手を上回って上昇する必要があります。",
+          "point2": "クロスオーバーが発生しない限り、ラインに触れただけでは不十分です。",
+          "point3": "これは市場シグナルルールであり、投資助言ではありません。"
+        },
+        "candleBattle": {
+          "label": "Candle Battleルール",
+          "title": "Candle Battle支配",
+          "body": "Candle Battle支配がキャンドルシーケンスから明確になった時にポイントが授与されます。",
+          "point1": "このルールはキャンドル間の相対変動を比較します。",
+          "point2": "より強力なシーケンスがスコアリングイベントを作成できます。",
+          "point3": "公開市場データに基づくシミュレーションマッチです。"
+        },
+        "dominance": {
+          "label": "ドミナンスルール",
+          "title": "継続的支配",
+          "body": "持続的な支配はマッチリーダーを安定させ、結果を読みやすくすることができます。",
+          "point1": "このルールはアクティブなドミナンスステートに従います。",
+          "point2": "保証された結果ではなく、マッチコントロールを反映します。",
+          "point3": "リーダーボードは教育的可視化のままです。"
+        }
+      },
+      "simulations": {
+        "step1": {
+          "title": "1. シグナルが収集される",
+          "body": "公開市場データが利用可能なソースから収集され、マッチ用に正規化されます。"
+        },
+        "step2": {
+          "title": "2. ルールがスコアイベントを作成する",
+          "body": "アクティブなルールセットが適格な市場変動をスコアリングイベントに変換します。"
+        },
+        "step3": {
+          "title": "3. サイクルがクローズする",
+          "body": "シミュレーションマッチは最終リーダー付き、または最終リーダーなしで終了します。"
+        }
+      },
+      "indicators": {
+        "arenaPressure": {
+          "label": "Arena Pressure",
+          "title": "ビジュアルプレッシャーゲージ",
+          "body": "マッチの強度の指標としてアリーナプレッシャーコンテキストを表示します。それ自体がポイントを授与するものではありません。"
+        },
+        "momentum": {
+          "label": "Momentum",
+          "title": "Momentumバランス",
+          "body": "現在どちらのサイドがより強い市場Momentumを持っているかを表示します。それ自体がスコアリングルールではないビジュアルインジケーターです。"
+        },
+        "marketFlow": {
+          "label": "市場フロー",
+          "title": "最近のフローサマリー",
+          "body": "マッチが解釈しやすくなるよう、公開市場シグナルの最近の方向を要約します。"
+        }
+      },
+      "meaning": {
+        "notAdvice": {
+          "label": "投資助言ではありません",
+          "title": "投資助言ではありません",
+          "body": "CriptoVersusは分析、教育、エンターテイメントのためのものです。ユーザーに何を買い、売り、保有すべきかを指示するものではありません。"
+        },
+        "notPrediction": {
+          "label": "予測ではありません",
+          "title": "予測ではありません",
+          "body": "スコアは将来のトークン価格や市場方向の予測ではありません。"
+        },
+        "notGuarantee": {
+          "label": "保証ではありません",
+          "title": "保証ではありません",
+          "body": "スコアとシミュレーション結果は将来のパフォーマンスの約束ではありません。"
+        }
+      },
+      "dataSourcesNoticeLabel": "データソース注記",
+      "dataSourcesNoticeTitle": "データソース",
+      "dataSourcesNotice": "スコアリングイベントは、Binance取引ペアが利用可能な場合を含む公開市場シグナルから生成されます。CriptoVersusはBinanceとは提携または承認されていません。",
+      "noPrediction": {
+        "label": "意味",
+        "title": "予測レイヤーなし",
+        "body": "マッチスコアは市場行動の教育的可視化です。投資助言、取引シグナル、保証された結果ではありません。"
+      }
+    },
+    "riskDisclaimer": {
+      "seo": {
+        "title": "リスク免責事項 | CriptoVersus",
+        "description": "マッチスコアや市場シミュレーションを解釈する前に、CriptoVersusのリスク、データ、利用免責事項をお読みください。"
+      },
+      "hero": {
+        "eyebrow": "リスク免責事項",
+        "title": "アリーナを可視化として使用し、助言として使用しないでください。",
+        "lead": "CriptoVersusは分析、教育、エンターテイメントのためのものです。投資助言、投資推奨、保証された結果を提供するものではありません。",
+        "backToAbout": "CriptoVersusについて",
+        "backToScoringRules": "スコアリングルール",
+        "panelLabel": "リスクサマリー",
+        "panel": {
+          "adviceLabel": "助言",
+          "adviceTitle": "投資助言ではありません",
+          "adviceBody": "このサイトはあなたに何を買い、売り、保有すべきかを指示しません。",
+          "dataLabel": "データ品質",
+          "dataTitle": "公開データは変更される可能性があります",
+          "dataBody": "公開ソースは遅延、障害、乖離、一時的な利用不可になる可能性があります。",
+          "outcomeLabel": "結果",
+          "outcomeTitle": "保証された結果はありません",
+          "outcomeBody": "スコアとシミュレーション結果は将来のパフォーマンスの約束ではありません。"
+        }
+      },
+      "sections": {
+        "overviewLabel": "リスク免責事項セクション"
+      },
+      "cards": {
+        "noAdvice": {
+          "label": "助言",
+          "title": "投資助言ではありません",
+          "body": "プラットフォームはあなたに何を買い、売り、保有すべきかを指示しません。"
+        },
+        "data": {
+          "label": "データ",
+          "title": "シグナルは変更される可能性があります",
+          "body": "公開ソースは遅延、障害、乖離、一時的な利用不可になる可能性があります。"
+        },
+        "outcome": {
+          "label": "結果",
+          "title": "保証された結果はありません",
+          "body": "スコアとシミュレーション結果は将来のパフォーマンスの約束ではありません。"
+        }
+      },
+      "dataProviderNoticeLabel": "データプロバイダー通知",
+      "dataProviderNotice": "CriptoVersusは公開暗号資産市場データと市場シグナルを使用しています。Binance取引ペアが利用可能な場合、ミックスの一部となる可能性があります。プラットフォームはBinanceとは提携または承認されていません。",
+      "dataProviderNote": "Binance取引ペアの存在は、基礎となる資産の承認、推奨、検証を意味するものではありません。",
+      "dataProviderNoGuarantee": "プラットフォームは可視化、分析、シミュレーション、エンターテイメント用に構築されており、投資製品や保証リターンサービスではありません。"
+    }
+  },
+  "matchDetail": {
+    "loadingMatch": "マッチを読み込み中...",
+    "error": "エラー：",
+    "matchNotFound": "マッチが見つかりません。",
+    "matchNotFoundBody": "このマッチは終了したか、利用できなくなりました。",
+    "loadUnavailableTitle": "このマッチを開けませんでした。",
+    "loadUnavailableBody": "もう一度お試しください。その間、ライブマッチに戻ることができます。",
+    "retry": "再試行",
+    "returnHome": "ライブマッチを見る",
+    "matchLeader": "マッチリーダー",
+    "wonTheMatch": "がマッチに勝利",
+    "noLeaderDefined": "リーダー未定義",
+    "live": "LIVE",
+    "marketDataDisclaimer": "市場データは情報提供およびエンターテイメント目的のみです。投資助言ではありません。",
+    "invest": "選択",
+    "bets": "セレクション",
+    "finalResult": "FINAL RESULT",
+    "finalScore": "最終スコア",
+    "matchClock": "MATCH CLOCK",
+    "remaining": "残り",
+    "scoringLog": "スコアリングログ",
+    "mostRelevantMomentByMomentEventsFromTheMatch": "マッチの最も重要な瞬間ごとのイベント",
+    "eventS": "イベント",
+    "noScoringEventsHaveBeenRecordedForThisMatchYet": "このマッチにはまだスコアリングイベントが記録されていません。",
+    "investmentResponse": "セレクションレスポンス",
+    "matchPanel": "マッチパネル",
+    "elapsed": "経過",
+    "score": "スコア",
+    "match": "マッチ",
+    "activeRule": "アクティブルール",
+    "winner": "マッチリーダー",
+    "noWinner": "最終リーダーなし",
+    "settlementReason": "決済理由",
+    "validFinancialDispute": "有効な金融紛争？",
+    "yes": "はい",
+    "no": "いいえ",
+    "betsOnBothSides": "両サイドにセレクション？",
+    "walletsOnTeamA": "チームAのウォレット",
+    "walletsOnTeamB": "チームBのウォレット",
+    "betsOnTeamA": "チームAのセレクション",
+    "betsOnTeamB": "チームBのセレクション",
+    "totalOnTeamA": "チームAの合計",
+    "totalOnTeamB": "チームBの合計",
+    "winningPool": "勝利プール",
+    "losingPool": "敗北プール",
+    "totalPool": "合計プール",
+    "houseFee": "ハウス手数料",
+    "totalDistributed": "分配総額",
+    "settlementSummary": "決済サマリー",
+    "finished": "完了",
+    "finishedAtUtc": "UTCで完了：{0}",
+    "actions": "アクション",
+    "copyLink": "リンクをコピー",
+    "back": "戻る",
+    "tipShareTheLinkToOpenTheMatchDirectlyInArenaMode": "ヒント：リンクを共有してマッチをアリーナモードで直接開く。",
+    "matchParticipants": "マッチ参加者",
+    "participantS": "参加者",
+    "bet": "選択：",
+    "result": "結果：",
+    "received": "受取：",
+    "securePosition": "安全なポジション",
+    "investmentsOpen": "セレクション受付中",
+    "investmentsClosed": "セレクション締切",
+    "investmentsAreUnavailableForThisMatch": "このマッチではセレクションは利用できません。",
+    "status": "ステータス：",
+    "elapsedTime": "経過時間：",
+    "investIn": "選択",
+    "chooseTheAmountInSol": "SOLで金額を選択",
+    "chooseTheTeamToInvest": "投資するチームを選択",
+    "close": "閉じる",
+    "followMatch": "マッチをフォロー",
+    "unfollow": "フォロー解除",
+    "investmentIn": "選択",
+    "quickValuesInSol": "SOLクイック値",
+    "quickAdjustment": "クイック調整：",
+    "orEnterAnyAmountInSol": "またはSOLで任意の金額を入力",
+    "walletBalanceGuardWalletBalance": "ウォレット残高",
+    "walletBalanceGuardMaximumAvailable": "最大利用可能額",
+    "walletBalanceGuardUseMax": "最大を使用",
+    "walletBalanceGuardInsufficient": "残高不足",
+    "walletBalanceGuardInsufficientMessage": "ウォレット残高が不足しています。この操作には{0}が利用可能です。",
+    "walletBalanceGuardFeeReserve": "Solanaネットワーク手数料のために少額の準備金を維持する必要があります。",
+    "loggedUserLabel": "ユーザー #{0}",
+    "loginRequired": "選択するにはログイン",
+    "cancel": "キャンセル",
+    "sending": "送信中...",
+    "gotIt": "了解",
+    "completed": "完了",
+    "closing": "クロージング",
+    "live2": "ライブ",
+    "pending": "待機中",
+    "noWinner2": "最終リーダーなし",
+    "scoringEvent": "スコアリングイベント",
+    "theMatchEndedWithoutAWinnerNoFeeWasChargedAndAllBetsMustBeFullyRefunded": "マッチは最終リーダーなしで終了しました。手数料は課金されず、すべてのセレクションは全額返金されます。",
+    "thereWasATechnicalWinnerOnTheScoreboardButThereWasNoValidOpposingPoolNoFinancialGainOrHouseFeeWasApplied": "スコアボードにテクニカルリーダーがいましたが、有効な対向プールがありませんでした。経済的利益やハウス手数料は適用されませんでした。",
+    "thereWasNoValidFinancialCounterpartyNoFinancialLossOrHouseFeeWasApplied": "有効なカウンターパーティがありませんでした。経済的損失やハウス手数料は適用されませんでした。",
+    "matchCanceledNoHouseFeeAndFullRefundOfBets": "マッチキャンセル。ハウス手数料なし、セレクション全額返金。",
+    "matchFinishedWithoutAValidFinancialWinnerBetsMustBeRefunded": "マッチは有効な最終リーダーなしで終了しました。セレクションは返金されます。",
+    "settlementCompletedAccordingToTheMatchRule": "マッチルールに従って決済が完了しました。",
+    "chooseACoinToInvestIn": "フォローするコインを選択。",
+    "enterAnAmountGreaterThanZero": "ゼロより大きい金額を入力してください。",
+    "theMatchHasNotBeenCreatedOnChainOnDevnetYetPleaseTryAgainShortly": "マッチはdevnetでオンチェーン作成されていません。もうしばらくしてからもう一度お試しください。",
+    "itWasNotPossibleToPrepareThisCoinSOnChainPositionRightNowPleaseTryAgainShortly": "現在このコインのオンチェーンポジションを準備できませんでした。もうしばらくしてからもう一度お試しください。",
+    "itWasNotPossibleToCompleteTheInvestmentRightNowPleaseTryAgainShortly": "現在投資を完了できませんでした。もうしばらくしてからもう一度お試しください。",
+    "percentageHistoryThresholdCrossover": "パーセンテージ履歴（しきい値 + クロスオーバー）",
+    "percentageHistoryCrossover": "パーセンテージ履歴（クロスオーバー）",
+    "percentageHistory": "パーセンテージ履歴",
+    "crossoverS": "クロスオーバー",
+    "scoringBasedOnPercentageCrossoverAPointOnlyAppearsWhenOneTeamSLineCrossesTheOtherSFromBottomToTop": "パーセンテージクロスオーバーに基づくスコアリング：一方のチームのラインが他方の下から上にクロスした時にのみポイントが表示されます。",
+    "percentageDisplayedForMatchTracking": "マッチトラッキング用に表示されるパーセンテージ。",
+    "volumeHistoryWindowCrossover": "ボリューム履歴（ウィンドウ + クロスオーバー）",
+    "volumeHistoryCrossover": "ボリューム履歴（クロスオーバー）",
+    "volumeHistory": "ボリューム履歴",
+    "comparisonBasedOnVolumeCrossoverAPointOnlyAppearsWhenOneTeamSLineCrossesTheOtherSFromBottomToTop": "ボリュームクロスオーバーに基づく比較：一方のチームのラインが他方の下から上にクロスした時にのみポイントが表示されます。",
+    "candleBattleDominance": "Candle Battle支配",
+    "candleBattleLeadChange": "Candle Battle支配",
+    "volumeDisplayedForMatchTracking": "マッチトラッキング用に表示されるボリューム。",
+    "crossoverPercent": "クロスオーバー %",
+    "volumeWindow": "ボリュームウィンドウ",
+    "volumeCrossover": "ボリュームクロスオーバー",
+    "chartsWillBeDisplayedWhenTheMatchIsLoaded": "マッチが読み込まれるとチャートが表示されます。",
+    "thereAreNoPersistedSnapshotsForThisMatchYetAfterTheWorkerRunsAndRecordsTheCapturesTheChartsWillAppearHere": "このマッチにはまだ永続化されたスナップショットがありません。ワーカーが実行されてキャプチャを記録すると、チャートがここに表示されます。",
+    "percentageThresholdCardDescription": "上のバッジはチャートの上向きクロスオーバーのみを表示します。しきい値ポイントはスコアとログにカウントされます：{0} {1} | {2} {3}。",
+    "volumeWindowCardDescription": "上のバッジはチャートの上向きクロスオーバーのみを表示します。15分ウィンドウからのポイントはスコアとログにカウントされます：{0} {1} | {2} {3}。",
+    "notEnoughPointsToDrawLines": "ラインを描画するのに十分なポイントがまだありません。チームごとに少なくとも2つのキャプチャが必要です。{0}：{1}。{2}：{3}。",
+    "arenaPressureTitle": "Arena Pressure",
+    "arenaPressureSubtitle": "Binance市場データのみから計算される独自のプレッシャーおよびセンチメントゲージ。",
+    "marketPulse": "Market Pulse",
+    "arenaPressureLabel": "Arena Pressure",
+    "arenaExtremeFear": "Extreme Fear",
+    "arenaFear": "Fear",
+    "arenaNeutral": "Neutral",
+    "arenaGreed": "Greed",
+    "arenaExtremeGreed": "Extreme Greed",
+    "arenaInsufficientData": "データ不足",
+    "matchAlerts": "マッチアラート",
+    "configureMatchAlerts": "マッチアラートを設定",
+    "matchAlertsActive": "マッチアラート有効",
+    "alertScore": "スコア変動",
+    "alertComeback": "カムバック",
+    "alertFinished": "マッチ完了",
+    "activateAlerts": "アラートを有効化",
+    "updateAlerts": "更新",
+    "removeAlerts": "アラートを削除",
+    "pushNotSupported": "このブラウザではプッシュ通知がサポートされていません。",
+    "pushNotificationsBlocked": "プッシュ通知がブロックされています。ブラウザ設定で有効にしてください。",
+    "pushPermissionDenied": "通知の許可が拒否されました。",
+    "pushServiceWorkerError": "通知サービスを開始できません。",
+    "pushVapidError": "安全な通知設定を取得できません。",
+    "pushSubscriptionError": "このブラウザで通知サブスクリプションを作成できません。",
+    "pushRegistrationError": "このブラウザを通知に登録できません。",
+    "pushResponseInvalid": "通知サービスが無効なレスポンスを返しました。",
+    "matchAlertSaveError": "ブラウザは登録されましたが、マッチアラートを保存できませんでした。",
+    "pushConnectionError": "通知サービスへの接続が中断されました。",
+    "loadAlertsError": "マッチアラートを読み込めません。",
+    "subscribeError": "アラートの有効化に失敗しました。",
+    "updateAlertsError": "アラートの更新に失敗しました。",
+    "unsubscribeError": "アラートの削除に失敗しました。",
+    "alertsActivated": "マッチアラートが有効化されました。",
+    "alertsUpdated": "マッチアラートが更新されました。",
+    "alertsRemoved": "マッチアラートが削除されました。",
+    "assetAlertTitle": "資産アラート",
+    "followAsset": "フォロー",
+    "unfollowAsset": "フォロー解除",
+    "assetPlayingHint": "{0}が再びプレイする際に通知を受け取る。",
+    "assetSubscribeSuccess": "資産アラートが有効になりました。",
+    "assetUnsubscribeSuccess": "資産アラートが削除されました。",
+    "assetAlertError": "資産アラートの保存に失敗しました。",
+    "loadAssetAlertError": "資産アラートステータスを読み込めません。",
+    "tvAssetAlertFollow": "この資産をフォロー",
+    "tvAssetAlertRemove": "この資産のフォローを停止",
+    "pushClientOutdated": "ページは古い通知バージョンを使用しています。リロードしてもう一度お試しください。",
+    "pushSubscriptionInactive": "プッシュサブスクリプションがアクティブでなくなりました。自動的に再接続中。",
+    "saving": "保存中...",
+    "loading": "読み込み中..."
+  },
+  "cryptoConverterStats": {
+    "seo": {
+      "title": "{0} to {1} コンバーター | CriptoVersus",
+      "description": "{0}が{1}でいくらになるか見積もり、バトルレイヤー、ライブ価格変動、公開アリーナコンテキストを確認。",
+      "unavailableDescription": "このペアのライブ変換は一時的に利用できません。CriptoVersusは公開価格データが戻るまで安全なnoindexレスポンスでページをアクセス可能に保ちます。"
+    },
+    "hero": {
+      "eyebrow": "公開暗号資産コンバーター",
+      "title": "{0} to {1} コンバーター＆バトル統計",
+      "subtitle": "まず推定変換、次に同じペアのアリーナバトルコンテキスト。",
+      "seoCopy": "ペアを検索し、価値を見積もり、CriptoVersusから離れずにバトルレイヤーを確認。",
+      "watchCta": "{0} vs {1} ライブバトルを観戦",
+      "exploreCta": "暗号資産バトルを探索",
+      "backToStats": "統計に戻る",
+      "panelHint": "最新の公開資産スナップショット",
+      "resultLabel": "推定結果",
+      "unavailableTitle": "このペアの変換は利用できません",
+      "unavailableBody": "このペアのライブ変換は一時的に利用できません。",
+      "diagnostics": {
+        "title": "一時的な診断",
+        "fromSymbol": "fromSymbol",
+        "toSymbol": "toSymbol",
+        "fromPriceFound": "fromPriceFound",
+        "toPriceFound": "toPriceFound",
+        "fromStatus": "fromEndpointStatus",
+        "toStatus": "toEndpointStatus",
+        "fromReason": "fromReason",
+        "toReason": "toReason",
+        "fromSource": "fromSource",
+        "toSource": "toSource",
+        "reason": "reason"
+      },
+      "disclaimerEyebrow": "重要な注記",
+      "disclaimerTitle": "免責事項",
+      "disclaimerBody": "CriptoVersusはゲーミファイド市場データ可視化プラットフォームです。マッチスコアは公開市場シグナルから生成され、投資助言、投資推奨、保証された結果として解釈すべきではありません。"
+    },
+    "labels": {
+      "to": "to",
+      "approx": "≈",
+      "vs": "vs",
+      "directRate": "直接レート",
+      "priceUpdated": "価格更新",
+      "momentum": "Momentum",
+      "notAvailableYet": "まだ利用できません"
+    },
+    "table": {
+      "amount": "金額",
+      "estimate": "推定結果",
+      "direct": {
+        "eyebrow": "直接変換",
+        "title": "直接変換テーブル",
+        "description": "CriptoVersusで利用可能な最新の公開価格ソースを使用して、一般的な{0}の金額を{1}に推定。"
+      },
+      "inverse": {
+        "eyebrow": "逆変換",
+        "title": "逆変換テーブル",
+        "description": "同じ公開価格ソースを使用して、一般的な{0}の金額を{1}に逆算。"
+      }
+    },
+    "battle": {
+      "eyebrow": "バトルパフォーマンス",
+      "title": "バトルパフォーマンス",
+      "description": "このペアの公開価格行動とアリーナコンテキスト。",
+      "unavailableTitle": "バトルデータはまだ利用できません",
+      "unavailableBody": "CriptoVersusはこのペアの一致するアリーナバトルをまだ公開していません。",
+      "priceVariation": "価格変動",
+      "priceVariationHint": "公開スナップショットシリーズから観測された最新の変動。",
+      "candleBattle": "Candle Battle",
+      "candleBattleHint": "利用可能な公開マッチスナップショットから取得。",
+      "arenaPressure": "Arena Pressure",
+      "momentum": "Momentum",
+      "momentumHint": "観測された変動によるリーディングシンボル。",
+      "recentWinner": "最近のリーダー",
+      "recentWinnerHint": "存在する場合の最新の公開マッチリーダー。",
+      "watchCta": "{0} vs {1} ライブバトルを観戦",
+      "exploreCta": "暗号資産バトルを探索",
+      "snapshotCount": "{0}スナップショット追跡済み",
+      "matchId": "マッチ #{0}"
+    },
+    "breadcrumbs": {
+      "home": "ホーム",
+      "stats": "統計"
+    },
+    "faq": {
+      "questions": {
+        "conversion": "変換はどのように推定されますか？",
+        "prices": "価格はどこから来ますか？",
+        "watch": "バトルをライブで観戦できますか？"
+      },
+      "answers": {
+        "conversion": "ページはソース金額にfrom-asset価格を掛け、to-asset価格で割って、CriptoVersusにすでに存在する公開市場データを使用して推定します。",
+        "prices": "ページはCriptoVersusにすでに保存されている最新の公開価格スナップショットから各資産を独立して解決し、どちらかのシンボルが解決できない場合は安全な利用不可状態にフォールバックします。",
+        "watch": "ペアの実際の公開バトルが存在する場合、ライブバトルリンクはそのアリーナコンテキストを指します。それ以外の場合、ページは安全な探索パスを提供します。"
+      }
+    }
+  },
+  "tv": {
+    "seo": {
+      "title": "CriptoVersus TV | ライブ暗号資産市場データブロードキャスト",
+      "description": "ライブ市場シミュレーション、公開スコアボード、CriptoVersusの市場統計をフィーチャーしたOBS Studio用の自動ノーログインブロードキャスト。",
+      "broadcastTitle": "CriptoVersus TVブロードキャスト | OBS対応市場データフィード",
+      "broadcastDescription": "YouTubeとOBS向けのブロードキャスト対応CriptoVersus TVシーン。ライブ市場シミュレーションの自動ローテーション、決定論的コメンタリー、ティッカー、アンビエントクラウドオーディオサポート。",
+      "matchTitle": "{0} vs {1} | CriptoVersus TV",
+      "matchDescription": "CriptoVersus TVで{0} vs {1}をライブアリーナオーバーレイ、アリーナコメンタリー、公開市場テレメトリーで観戦。",
+      "matchDescriptionFallback": "OBS Studioのブラウザソースブロードキャストに最適化されたCriptoVersus TVライブマーケットシーン。"
+    },
+    "disclaimer": "CriptoVersusはゲーミファイド市場データ可視化プラットフォームです。マッチスコアは公開市場シグナルから生成され、投資助言、投資推奨、ギャンブル結果、保証された結果として解釈すべきではありません。",
+    "title": "CriptoVersus TV",
+    "subtitle": "自動ライブ暗号資産アリーナブロードキャスト",
+    "liveNow": "ライブ中",
+    "startingSoon": "もうすぐ開始",
+    "ended": "終了",
+    "watchMatch": "マッチを観戦",
+    "watchLive": "ライブで観戦",
+    "openMatch": "マッチを開く",
+    "matchNotFound": "CriptoVersus TVでマッチが見つかりません。",
+    "loading": "TVブロードキャストを読み込み中...",
+    "offline": "ブロードキャストオフライン",
+    "vs": "VS",
+    "score": "スコア",
+    "momentum": "Momentum",
+    "goals": "ゴール",
+    "refreshing": "更新中",
+    "liveArena": "ライブアリーナ",
+    "poweredBy": "Powered by CriptoVersus",
+    "noMatches": "現在利用可能なマッチがありません。",
+    "matchPage": {
+      "eyebrow": "TVマッチ",
+      "loading": "マッチを読み込み中...",
+      "loadingBody": "アリーナがライブマッチアップを準備しています。",
+      "notFound": "マッチが見つかりません。",
+      "notFoundBody": "リクエストされたマッチを見つけることができませんでした。別のアリーナを選択するか、TVチャンネルに戻ってください。",
+      "unavailable": "このマッチは終了しました",
+      "unavailableBody": "次の利用可能なマッチで視聴を続けたり、マッチリストを閲覧したり、自動TVチャンネルに戻ることができます。",
+      "error": "現在アリーナを読み込めません。",
+      "errorBody": "もうしばらくしてからもう一度お試しください。問題が続く場合、ブロードキャストはまだ更新中の可能性があります。",
+      "watchNext": "次のマッチを観戦",
+      "viewMatches": "他のマッチを見る",
+      "returnToTv": "TVに戻る",
+      "returnHome": "ホームに戻る",
+      "retry": "再試行"
+    },
+    "futurebol": {
+      "canvasAriaLabel": "Futurebol 3Dフィールド",
+      "loading": "アリーナを読み込み中...",
+      "loadingSlow": "アリーナの読み込みに少し時間がかかっています...",
+      "error": "3Dアリーナを読み込めません。",
+      "errorBody": "再試行するかページを更新してください。",
+      "retry": "再試行"
+    },
+    "hero": {
+      "eyebrow": "自動ブロードキャスト",
+      "title": "CriptoVersus TV"
+    },
+    "states": {
+      "waitingForNextHotBattle": "次のホットバトルを待機中",
+      "proceduralSearchTitle": "次のプロシージャルバトルを検索中...",
+      "proceduralSearchSubtitle": "市場パルス、ランキング、可能な候補を分析中",
+      "noHotMatchRightNow": "現在ホットマッチがありません",
+      "availableInOtherLanguage": "他の言語でも利用可能：{0}",
+      "aiCalibrating": "AIナレーターがアリーナフィードを調整中。",
+      "aiTracking": "AIナレーターが次のコールのためにライブフローを追跡中。",
+      "commentaryLoading": "アリーナコメンタリーが最新の市場状態から更新中。",
+      "commentaryStandby": "アリーナコメンタリーが次の関連する動きを待機中。",
+      "scanMarketPulse": "市場パルスを同期中...",
+      "scanArenaRanking": "アリーナランキングを読み取り中...",
+      "scanCandidates": "候補コインを検索中...",
+      "awaitingKickoff": "キックオフイベントを待機中...",
+      "initialLoadingTitle": "アリーナを読み込み中...",
+      "initialLoadingSubtitle": "ブロードキャストがマッチデータを確認するまでお待ちください。",
+      "initialLoadingStepOne": "マッチを同期中",
+      "initialLoadingStepTwo": "チャートとスコアボードを準備中",
+      "initialLoadingStepThree": "ブロードキャストを有効化中"
+    },
+    "activity": {
+      "eyebrow": "ライブアクティビティ",
+      "title": "マッチアクティビティ",
+      "description": "リアルタイムで発生するイベント、プレッシャー、Momentum、戦術的変更。",
+      "ariaLabel": "マッチアクティビティ推移チャート"
+    },
+    "labels": {
+      "liveArena": "ライブアリーナ",
+      "automaticBroadcast": "自動ブロードキャスト",
+      "hotMatch": "ホットマッチ",
+      "volume": "ボリューム",
+      "realMatch": "リアルマッチ",
+      "matchIdValue": "マッチ #{0}",
+      "momentum": "Momentum",
+      "reversalDetected": "リバーサル検出",
+      "nextBattle": "次のバトル",
+      "hotScore": "HotScore",
+      "matchClock": "マッチクロック",
+      "remaining": "残り",
+      "live": "ライブ",
+      "firstHalf": "1ST HALF",
+      "halfTime": "HALF TIME",
+      "secondHalf": "2ND HALF",
+      "final": "FINAL",
+      "change": "変動",
+      "remainingTime": "残り時間",
+      "reason": "理由",
+      "competitivePool": "マッチプール",
+      "arenaCycle": "アリーナサイクル",
+      "leader": "リーダー",
+      "pressure": "プレッシャー",
+      "assetPerformance": "資産パフォーマンス",
+      "candleBattle": "Candle Battle",
+      "candlesWon": "獲得キャンドル",
+      "momentumCurrent": "現在のMomentum",
+      "tacticalPanel": "戦術パネル",
+      "tacticalPanelA11y": "Candle Battle戦術パネル",
+      "leadership": "リーダーシップ",
+      "candlesAnalyzed": "分析済みキャンドル",
+      "currentStreak": "現在の連勝",
+      "lastCandle": "最後のキャンドル",
+      "lastVariation": "最後の変動",
+      "waitingCandleHistory": "キャンドル履歴を待機中",
+      "chartForAsset": "{0}のキャンドル",
+      "candleBattleA11y": "{0} vs {1} キャンドルバトルアリーナ",
+      "controlsCandlesBy": "{0}がキャンドルを支配",
+      "pressureAdvantageBy": "{0}プレッシャーアドバンテージ",
+      "momentumNeutral": "ニュートラルMomentum",
+      "leftAssetChange": "左資産変動",
+      "rightAssetChange": "右資産変動",
+      "assetVariationA": "資産変動A",
+      "assetVariationB": "資産変動B",
+      "assetA": "資産A",
+      "assetB": "資産B",
+      "comparisonChart": "{0}と{1}の正規化比較チャート",
+      "normalizedSharedScale": "1.000 ベースライン · 共有スケール",
+      "won": "勝利",
+      "tie": "引き分け",
+      "winnerPerCandle": "キャンドルごとのリーダー",
+      "competitiveness": "競争力",
+      "poolStatus": "プールステータス",
+      "poolStatusActiveFlow": "アクティブライブフロー",
+      "poolStatusIdle": "マッチアクティビティ低",
+      "poolStatusBalanced": "バランスの取れたマッチプール",
+      "poolStatusOpen": "オープンマッチプール",
+      "eventZone": "イベントゾーン",
+      "marketDrivenArena": "市場主導のアリーナ",
+      "liveRewardDynamics": "ライブスコアリングダイナミクス",
+      "sideCompetition": "サイド競争",
+      "tiePressure": "バランスの取れたアリーナプレッシャー",
+      "onePointBattle": "ワンポイントライブバトル",
+      "completed": "完了",
+      "pressureRising": "{0}プレッシャー上昇中",
+      "signalStable": "シグナル安定",
+      "matchArena": "マッチアリーナ",
+      "broadcastTicker": "ブロードキャストティッカー",
+      "aiCommentary": "AIコメンタリー",
+      "remainingWithClock": "残り（{0}）",
+      "pressureSummary": "マッチプール | {0} | {1}",
+      "marketBattleFlow": "マーケットバトルフロー",
+      "assetVariationSplit": "資産変動スプリット",
+      "testCommentary": "テストコメンタリー",
+      "liveNarrator": "ライブナレーター",
+      "aiMetaTimestamp": "{0} | {1} UTC",
+      "commentaryMetaTimestamp": "{0} | {1} UTC",
+      "activity": {
+        "eyebrow": "ライブアクティビティ",
+        "title": "マッチアクティビティ",
+        "description": "リアルタイムで発生するイベント、プレッシャー、Momentum、戦術的変更。",
+        "ariaLabel": "マッチアクティビティ推移チャート"
+      }
+    },
+    "priceBattle": {
+      "eyebrow": "価格比較",
+      "title": "ライブ価格バトル",
+      "subtitle": "マッチ両サイドのマーケットスナップショット。",
+      "centerHint": "リアルタイム市場比較",
+      "currentPrice": "現在価格",
+      "change": "変動",
+      "competitiveness": "競争力",
+      "chartAria": "ライブ価格比較チャート",
+      "noData": "価格データを待機中",
+      "waitingHistory": "価格履歴を待機中",
+      "logoAlt": "{0}のロゴ",
+      "ariaLabel": "{0} versus {1}、競争力{2}。"
+    },
+    "broadcast": {
+      "switchingArena": "次のホットアリーナに切り替え中...",
+      "nextHotArena": "ライブローテーションがより強力なアリーナウィンドウに移動中。",
+      "rotationGaugeLabel": "マッチローテーション",
+      "focusGaugeLabel": "カメラフォーカス",
+      "rotationGaugeTitle": "次のアリーナ切替まで{0}分",
+      "goalLogEmpty": "このマッチの最近のゴールはありません。",
+      "mainMatchEyebrow": "フィーチャードブロードキャストマッチ",
+      "mainMatchDescription": "ライブコンテキストを失うことなく完全なブロードキャストを視聴するために、このマッチの固定バージョンを開いてください。",
+      "mainMatchCta": "ブロードキャストに入る",
+      "openBroadcastAria": "{0}の固定ブロードキャストを開く",
+      "overlayTitle": "ブロードキャストを観戦",
+      "overlaySubtitle": "ライブ中",
+      "signalDegraded": "シグナル劣化",
+      "dataStatusTitle": "リカバリデータでフィードを実行中",
+      "dataStatusFallback": "アリーナがライブフローを再構築している間、ブロードキャストは最後の有効なスナップショットでオンラインを維持しています。",
+      "dataStatusWorkerHeartbeat": "ワーカーが最近のハートビートを見落としています。パイプラインが再開するまで、ブロードキャストは安定したデータでオンラインを維持します。",
+      "dataStatusWorkerDegraded": "ワーカーが劣化モードに入りました。アリーナはパネルをクリアする代わりにフォールバックデータでシグナルをオンラインに保ちました。",
+      "dataStatusCurrencyMissing": "公開通貨スナップショットが現在欠落しています。画面は最後の信頼できるフレームを保持しています。",
+      "dataStatusCurrencyStale": "マーケットスナップショットが古くなりました。取り込みが回復する間、ブロードキャストは最後の有用なランキングを表示し続けています。",
+      "dataStatusStatsStale": "公開統計は一時的に古くなっています。アリーナは最新の利用可能データでオンラインを維持しています。"
+    },
+    "pressureGauge": {
+      "title": "ARENA PRESSURE",
+      "subtitle": "ボールポゼッションの争奪中",
+      "pressureLabel": "PRESSURE",
+      "currentPressureLabel": "CURRENT PRESSURE",
+      "momentumLabel": "MOMENTUM",
+      "pressureTooltip": "{0} {1} - {2}% プレッシャー",
+      "logoAlt": "{0}ロゴ",
+      "ariaLabel": "{0} {1}%プレッシャー、{2} {3}%プレッシャー。現在の状態：{4}。",
+      "statusCritical": "{0} CRITICAL PRESSURE",
+      "statusControlsArena": "{0} CONTROLS THE ARENA",
+      "statusBalanced": "BALANCED DUEL",
+      "statusTransition": "POSSESSION IN TRANSITION",
+      "footerInDispute": "IN DISPUTE",
+      "footerPressuring": "{0} PRESSURES",
+      "footerNeutralPossession": "NEUTRAL POSSESSION",
+      "footerLeftDominant": "LEFT SIDE DOMINANT",
+      "footerRightDominant": "RIGHT SIDE DOMINANT",
+      "momentumStrong": "STRONG MOMENTUM",
+      "momentumRising": "RISING PRESSURE",
+      "momentumNeutral": "NEUTRAL RHYTHM",
+      "momentumRecovering": "RECOVERING",
+      "description": "Arena Pressureはテリトリアルコントロールと各サイドの強度を示します。60%以上は強力な支配を意味します。40%未満はコントロール喪失を意味します。"
+    },
+    "modes": {
+      "kicker": "TVナビゲーション",
+      "title": "観戦方法を選択",
+      "description": "ローテーションチャンネルに留まるか、固定ライブマッチを開きます。",
+      "rotativeEyebrow": "TVローテーション",
+      "rotativeTitle": "自動ライブローテーション",
+      "rotativeDescription": "チャンネルは最も強力な対象アリーナ間でローテーションし続けます。",
+      "rotativeCta": "ライブで観戦",
+      "matchEyebrow": "利用可能なマッチ",
+      "openMatchCta": "マッチを開く",
+      "watchLiveCta": "TVローテーション"
+    },
+    "promo": {
+      "chooseSide": "サイドを選択！",
+      "site": "CRIPTOVERSUS.COM"
+    },
+    "audio": {
+      "crowdEnabled": "クラウドオーディオON",
+      "crowdMuted": "クラウドオーディオミュート",
+      "startBroadcast": "ブロードキャストオーディオを開始"
+    },
+    "field": {
+      "scoreboard": "アリーナスコアボード",
+      "remainingTime": "残り時間",
+      "possession": "ポゼッション",
+      "liveArena": "ライブアリーナ",
+      "automaticBroadcast": "自動ブロードキャスト",
+      "stableSignal": "安定シグナル",
+      "volume": "ボリューム",
+      "momentum": "Momentum",
+      "reason": "理由",
+      "leader": "リーダー",
+      "pressure": "プレッシャー",
+      "assetVariationA": "資産A変動",
+      "assetVariationB": "資産B変動",
+      "competitiveness": "競争力",
+      "poolStatus": "プールステータス",
+      "recentEvents": "最近のイベント",
+      "goalFor": "{0}がポイントを獲得！",
+      "reducedScore": "{0}が1点を返した",
+      "openedScore": "{0}が先制ポイントを獲得",
+      "marketGuidedArena": "市場主導のアリーナ",
+      "eventZone": "イベントゾーン",
+      "arenaCommentary": "アリーナコメンタリー",
+      "recentEventsFallbackTight": "アリーナはまだミッドフィールドでロックされています。",
+      "recentEventsFallbackLead": "リーダーがアリーナを前進させ続けています。"
+    },
+    "grid": {
+      "metrics": {
+        "goals": "ゴール"
+      }
+    },
+    "commentary": {
+      "title": "アリーナコメンタリー",
+      "fallback": "{0}と{1}はアリーナが次の動きを待つ間、ライブボード上でアクティブなままです。",
+      "source": {
+        "template": "テンプレートエンジン",
+        "aiDisabled": "AI無効"
+      },
+      "momentumEven": "バランスの取れたMomentum",
+      "momentumFor": "{0}のMomentum",
+      "templates": {
+        "balanced": [
+          "{2}と{3}はまだ拮抗していますが、Momentumは{0}に傾き始めています。",
+          "スコアボードは接近しており、アリーナはまだオープンで、{0}は脆弱なエッジしか保持していません。",
+          "このマッチは現在のところ固定されていますが、1つのクリーンな動きがプレッシャーを{0}に向けることができます。",
+          "{2} versus {3}はバランスが取れたままで、次の市場プッシュが読みを完全に書き換える可能性があります。",
+          "どちらのサイドもアリーナを開いておらず、{0}は常にプレッシャー下にあります。",
+          "狭いスコアボードと近いパーセンテージがこのアリーナをすべてのティックで生き生きとさせています。",
+          "現在この2つのサイドの間にはほとんど何もありません、それが次のスイングを重要にしています。",
+          "{0}は書面上でエッジを持っていますが、このアリーナはまだ一撃のバトルのように取引されています。"
+        ],
+        "comeback": [
+          "リードがサイドを変え、{0}が突然アリーナのMomentumを所有しました。",
+          "{0}がマッチを反転させ、ブロードキャストは今やライブカムバックストーリーのように感じられます。",
+          "少し前まで安定していたものが今やリバーサルとなり、{0}がフロントラインを取っています。",
+          "{0}がプレッシャーをコントロールに変え、マッチのトーンを変えました。",
+          "アリーナに新しいリーダーがおり、{0}は今や{1}に反応を強いています。",
+          "{0}がアドバンテージを取り戻し、このバトルにカムバックの形を与えました。",
+          "リーダーシップスイングが着地し、{0}がより強いナラティブを運んでいます。",
+          "{1}がコントロールしていましたが、{0}が押し返してリードを奪いました。"
+        ],
+        "pressureRising": [
+          "{0}が前進し始め、アリーナがそのリズムに従い始めています。",
+          "市場パルスが{0}により強く傾いています、スコアボードがまだプレッシャー下にあっても。",
+          "{0}がより良いシーケンスを構築し、アリーナにその上昇を尊重させています。",
+          "このマッチは{0}を中心に締まっており、ボードのペースを推進しています。",
+          "{0}のサイドでプレッシャーが成長しており、次の動きがスコアボードダメージに変わる可能性があります。",
+          "{0}が現在より強い反応を積み重ね、マッチをそのレーンに引き込んでいます。",
+          "リズムが{0}に向かってシフトしており、{1}は素早く答えを必要としています。",
+          "{0}が適切なタイミングで加速しており、アリーナの感覚を変えています。"
+        ],
+        "dominance": [
+          "{0}がフロントからプレイし、このアリーナを明確なコントロール下に保っています。",
+          "スコアボードの差が広がり、{0}がプレッシャーをコマンドに変えています。",
+          "{0}がこのマッチで実際の距離を開け、ペースを決定しています。",
+          "これは現在コントロールされたアリーナで、{0}が強力なリードを維持しています。",
+          "{1}にはまだ時間がありますが、{0}はこのボードを一方的に見せています。",
+          "{0}は単にリードしているだけでなく、マッチの構造をコントロールしています。",
+          "エッジが実質的になり、{0}は今や快適なポジションからオペレーションしています。",
+          "{0}がアドバンテージを十分に広く保ち、このアリーナをますますコントロールされたように見せています。"
+        ],
+        "quietPool": [
+          "{2}と{3}はまだ実際のプールボリュームを待っており、1つのエントリーがペースを即座にリセットできます。",
+          "アリーナはテクニカルにライブですが、プールは静かなままで、次のシグナルがこれまで以上に重要です。",
+          "低アクティビティがこのマッチを今のところ静かに保っていますが、ボードは素早く目覚めることができます。",
+          "まだプールアグレッションがあまりなく、このアリーナを突然のシフトに対してオープンにしています。",
+          "このバトルはまだ軽く呼吸しており、限定的なボリュームと慎重なリズムがあります。",
+          "プールはスローで、ボードは忍耐強く、1つの決定的な動きが突然トーンを変えられます。",
+          "ボリュームがまだ開いておらず、アリーナはまだより強力なトリガーを待っています。",
+          "ライブボードは今のところ穏やかですが、それは多くの場合次のプッシュがより強く着地することを意味します。"
+        ],
+        "heatedPool": [
+          "このアリーナは急速に加熱しており、HotScoreは{8}で、両サイドに実際のプレッシャーが構築されています。",
+          "プールインテンシティが上昇しており、このマッチはオンエア中の最もホットなウィンドウの1つになり始めています。",
+          "アリーナには今や実際の熱があり、プレッシャー、ボリューム、競争力がすべて一緒に上昇しています。",
+          "HotScoreが{8}で、このマッチはプレミアムブロードキャストの注目を獲得しています。",
+          "これはもう静かなボードではありません、アリーナは今や可視の熱で取引されています。",
+          "ボリュームとテンションが一緒に上昇し、これをよりホットなライブローテーションに変えています。",
+          "このマッチを中心に部屋がより賑やかになり、指標がそれを裏付けています。",
+          "このボードはアリーナが完全に目覚めた主要なブロードキャストスポットに加熱しています。"
+        ],
+        "finalThriller": [
+          "クロックは{10}で、差は僅かで、このアリーナは最後のスイングまで生きています。",
+          "{10}しか残っておらず、1つのクリーンな動きがこのボード全体をまだ変えることができます。",
+          "クローズストレッチがここにあり、狭いマージンがすべての秒を危険にしています。",
+          "このアリーナは2つのサイドを分けるものがほとんどないままプレッシャータイムに入っています。",
+          "レイトクロック、ショートギャップ、ライブテンション：このマッチはまだ解決を拒否しています。",
+          "フィニッシュがドラマチックになっています、このボードがまだ反転するのに十分近いためです。",
+          "このアリーナには呼吸する余地がもうなく、{10}とあと1つのスイングだけです。",
+          "マッチが最もシャープなフェーズに達しており、次の動きがエンディングを書き換えることができます。"
+        ],
+        "finalControlled": [
+          "クロックは{10}で短いですが、{0}はフィニッシュを管理するのに十分なスペースをまだ保持しています。",
+          "{0}がコントロールを持ってクローズストレッチに入り、{1}に遅い追跡を強いています。",
+          "時間が減少しており、{0}は最終スクリプトを変える種類のリードを構築しています。",
+          "このレイトアリーナはまだ{0}のもので、有意義なクッションを保護しています。",
+          "{1}は即座に何かを必要としています、{0}が構造を最終分に運んでいるためです。",
+          "エンドゲームがオンで、{0}はクローズウィンドウのコマンドを維持しています。",
+          "{0}が安定したリードを最終フェーズに持ち込み、カムバックパスをより薄くしています。",
+          "{10}しか残っていない状態で、{0}にはライブボードをクローズできる種類のコントロールがあります。"
+        ],
+        "opening": [
+          "マッチはまだ若く、両サイドはアリーナの最初のリズムを感じ取っています。",
+          "サイクルの初期に、{2}と{3}はまだこのボードのオープニングチャプターを書いています。",
+          "このアリーナはまだ始まったばかりで、複数のナラティブスイングの時間が十分にあります。",
+          "オープニングフェーズは慎重なままで、両方の資産がまだライブペースをテストしています。",
+          "まだ十分な時間が残っており、このアーリーボードをワイドオープンに保っています。",
+          "最初のストレッチが進行中で、どちらのサイドもまだ完全に自分自身を課していません。",
+          "このオープニングウィンドウは今のところ分離よりもポジショニングに関するものです。",
+          "アリーナはまだ初期読みの段階で、プレッシャーマップは素早く変更できます。"
+        ],
+        "bothDown": [
+          "両方の資産がプレッシャー下にありますが、{0}はより少なく下落し、レジスタンスをエッジに変えています。",
+          "これは現在ディフェンシブバトルで、{0}はマーケットヒットをより良く吸収しています。",
+          "どちらのサイドもグリーンではありませんが、{0}はダウントーンをより多くのコントロールで生き残っています。",
+          "このアリーナはレッドで決定されており、{0}はよりクリーンにホールドしています。",
+          "両方のチャートがスライドしていますが、{0}は{1}よりもそのスライドに抵抗しています。",
+          "市場は両サイドでネガティブに傾いており、{0}はそれをより良く活用しています。",
+          "共同プレッシャーの下でも、{0}はボード上でより多くのバリューを保護しています。",
+          "これはダメージコントロールのバトルで、{0}は現在その仕事をより良くこなしています。"
+        ],
+        "bothUp": [
+          "両方の資産が上昇していますが、{0}はより強く加速し、成長をプレッシャーに変えています。",
+          "これは両サイドがグリーンのアグレッシブボードで、{0}はまだより多くのリフトを見つけています。",
+          "アリーナには今や両サイドでアップサイドがありますが、{0}はそれからより多くを抽出しています。",
+          "両方のチャートがポジティブですが、{0}はより良い拡張ラインを推進しています。",
+          "このライブバトルは両端に強さがあり、{0}は現在それをより多く変換しています。",
+          "ボードはマッチアップ全体でグリーンで、{0}はまだより強力な上昇ルートを取っています。",
+          "上昇市場の決闘で、{0}は今のところ加速レースに勝っています。",
+          "両サイドが上昇していますが、{0}はより急な上昇を駆動しています。"
+        ],
+        "relativeLead": [
+          "両サイドにプレッシャーがあっても、{0}は市場をより良く処理し、フロントに留まっています。",
+          "{0}はここでクリーンなラリーを必要としません、より良く抵抗することがリードを保持するのに十分です。",
+          "このアリーナは現在相対パフォーマンスで勝たれており、{0}はより良いサバイバーです。",
+          "{0}はこのボードでレジリエンスをコントロールのように見せています。",
+          "市場は簡単な条件を提供していませんが、{0}はより良いバランスでリードを守り続けています。",
+          "相対強度がこのマッチを運んでおり、{0}は現在そのアドバンテージを所有しています。",
+          "{0}は離脱しているわけではありません、単に{1}より耐えているだけです。",
+          "エッジは{0}のもので、より安定したレジスタンスをスコアボードプレッシャーに変えています。"
+        ],
+        "goalRecent": [
+          "{0}がスコアボードを叩き、アリーナに新しいエネルギーを注入しました。",
+          "{0}に新しいポイントが入り、このブロードキャストの全体のトーンが直ちにシフトします。",
+          "{0}が最新のスイングをスコアボードインパクトに変換し、{1}に応答を強います。",
+          "そのポイントがマッチのライブテクスチャを変え、{0}が今やパルスを持っています。",
+          "{0}がクリーンなスコアボードヒットでアリーナを反応させました。",
+          "ボードが再び動き、{0}が最新のインパクトを祝うサイドです。",
+          "{0}がモーメントを活用してポイントを獲得し、{1}へのプレッシャーを高めています。",
+          "{0}の新しいスコアボードダメージで、このマッチを中心にアリーナがより loud になります。"
+        ],
+        "cycleEnding": [
+          "このアリーナはクローズサイクルに近づいており、ボードの現在の形状が最終的になりつつあります。",
+          "マッチが落ち着き始め、ライブナラティブが{0}を中心に定着し始めています。",
+          "アリーナが最終ウィンドウをクローズしており、残りのすべてのシグナルが余分な重みを持っています。",
+          "このサイクルは終了に近づいており、現在のアドバンテージがより意味を持つようになります。",
+          "ボードがフィニッシュに移行しており、スクリプトを書き換える時間がほとんどありません。",
+          "ライブサイクルはほぼクローズされており、アリーナは次の移行を準備しています。",
+          "このマッチが最後の息に達しており、スコアボードがほとんどの話し合いをしています。",
+          "サイクルの終わりが見えており、現在のプレッシャーマップはほぼロックされています。"
+        ]
+      }
+    },
+    "waiting": {
+      "topCoinsEyebrow": "アリーナランキング",
+      "topCoins": "トップコイン",
+      "statsEyebrow": "アリーナフィード",
+      "latestBattles": "最新バトル",
+      "gainersEyebrow": "市場パルス",
+      "marketPulse": "トップムーバー",
+      "loadingRanking": "ランキング読み込み中...",
+      "loadingFeed": "アリーナフィード読み込み中...",
+      "loadingMarketPulse": "市場パルス読み込み中...",
+      "errorRanking": "ランキングの読み込みに失敗、再試行中...",
+      "errorFeed": "フィードの読み込みに失敗、再試行中...",
+      "errorMarketPulse": "市場パルスの読み込みに失敗、再試行中...",
+      "emptyRanking": "現在ランキングデータなし",
+      "emptyFeed": "現在最新データなし",
+      "emptyMarketPulse": "現在大きな市場変動なし"
+    },
+    "fallback": {
+      "closeMatchReason": "アクティブなアリーナプレッシャーによるライブ暗号資産バトル。",
+      "liveArenaReason": "ライブブロードキャスト用に選択された市場主導のアリーナバトル。"
+    },
+    "ticker": {
+      "hotMatchDetected": "HOT MATCH DETECTED",
+      "momentumShift": "MOMENTUM SHIFT",
+      "fearSurge": "FEAR SURGE",
+      "arenaPressureRising": "ARENA PRESSURE RISING",
+      "liveCryptoBattle": "LIVE CRYPTO BATTLE",
+      "marketVolatilityIncreasing": "MARKET VOLATILITY INCREASING",
+      "visitSite": "VISIT CRIPTOVERSUS.COM",
+      "liveBattles": "LIVE CRYPTO BATTLES AT CRIPTOVERSUS.COM",
+      "rankings": "RANKINGS AND LIVE ARENAS AT CRIPTOVERSUS.COM",
+      "matchMarkets": "WATCH LIVE ARENAS, RANKINGS AND MATCH MARKETS AT CRIPTOVERSUS.COM",
+      "dominating": "{0} DOMINATING",
+      "recovering": "{0} RECOVERING",
+      "finalMinutes": "FINAL MINUTES",
+      "crowdEnergySpike": "CROWD ENERGY SPIKE",
+      "nextBattleAround": "NEXT BATTLE AROUND {0}",
+      "marketPulseAround": "MARKET PULSE AROUND {0}"
+    },
+    "events": {
+      "goalKicker": "ゴールイベント",
+      "goalTitle": "GOAL {0}",
+      "leaderChangeKicker": "リーダー変更",
+      "leaderChangeTitle": "{0} TAKES THE LEAD",
+      "leaderChangeBody": "アリーナスコアボードがサイドを変えました。",
+      "hotMatchKicker": "ライブキュレーション",
+      "hotMatchTitle": "HOT MATCH DETECTED",
+      "hotMatchBody": "ブロードキャストが最も強力なライブアリーナバトルにロックオンしました。",
+      "momentumReversalKicker": "Momentumシグナル",
+      "momentumReversalTitle": "MOMENTUM REVERSAL",
+      "momentumReversalBody": "プレッシャーが反転し、アリーナフローが変化しています。",
+      "fearSurgeKicker": "リスクシグナル",
+      "fearSurgeTitle": "FEAR SURGE DETECTED",
+      "fearSurgeBody": "ボラティリティと注意がライブボード上で急騰しました。",
+      "hotScoreSpikeKicker": "ヒートシグナル",
+      "hotScoreSpikeTitle": "HOT SCORE SPIKE",
+      "hotScoreSpikeBody": "アリーナインテンシティがより強力なブロードキャストウィンドウに加速しました。",
+      "finalMomentsKicker": "クロックアラート",
+      "finalMomentsTitle": "FINAL MINUTES",
+      "finalMomentsBody": "バトルがクローズストレッチに入っています。"
+    },
+    "narration": {
+      "goalText": "{0} BREAKS THE DEFENSE",
+      "goalSubtitle": "{0} 対 {1}",
+      "leaderText": "{0} DOMINATING",
+      "leaderSubtitle": "新しいアリーナスイングの後でリーダーが変更",
+      "devGrowText": "PRESSURE RISING",
+      "devGrowSubtitle": "グローアニメーションのブロードキャストデモ",
+      "devZoomBurstText": "GOAL KITE",
+      "devZoomBurstSubtitle": "アリーナプレッシャーがスコアに変換",
+      "devGlitchText": "MOMENTUM SHIFT",
+      "devGlitchSubtitle": "リバーサルプレッシャーが急速に上昇中",
+      "devNeonFlashText": "LIQUIDITY SURGE",
+      "devNeonFlashSubtitle": "ネオンフラッシュ診断イベント",
+      "devShockwaveText": "FINAL MINUTES",
+      "devShockwaveSubtitle": "アリーナがプレッシャータイムに入っています",
+      "devScreenImpactText": "MASSIVE BREAKOUT",
+      "devScreenImpactSubtitle": "フルインパクトシネマティックストレステスト",
+      "devMassiveBreakoutSubtitle": "アリーナがプレッシャータイムに爆発中",
+      "devDiagonalSwipeText": "BTC BREAKS THE DEFENSE",
+      "devDiagonalSwipeSubtitle": "ダイアゴナルエントリーテスト",
+      "devSplitRevealText": "COMEBACK STARTED",
+      "devSplitRevealSubtitle": "スプリットリビール診断イベント",
+      "devHologramRevealText": "HOT MATCH DETECTED",
+      "devHologramRevealSubtitle": "ホログラムリビール診断イベント",
+      "devPulseText": "ARENA UNSTABLE",
+      "devPulseSubtitle": "パルス診断イベント",
+      "hotMatchDetectedText": "HOT MATCH DETECTED",
+      "hotMatchDetectedSubtitle": "{0} vs {1}がアリーナを点灯させました",
+      "momentumShiftText": "MOMENTUM SHIFT",
+      "momentumShiftSubtitle": "{0}のカムバックが始まりました",
+      "fearSpikeText": "ARENA UNSTABLE",
+      "fearSpikeSubtitle": "ライブオーダーフロー全体でフィアスパイクを検出",
+      "hotScoreSpikeText": "LIQUIDITY SURGE",
+      "hotScoreSpikeSubtitle": "ホットスコアが{0}に上昇中",
+      "finalMinutePushText": "FINAL MINUTE PUSH",
+      "finalMinutePushSubtitle": "ライブサイクル残り{0}"
+    }
+  },
+  "walletPage": {
+    "heading": {
+      "eyebrow": "マイウォレット",
+      "title": "マイウォレット",
+      "body": "システム残高、セレクション、資産パフォーマンスをアリーナから離れずに追跡。"
+    },
+    "states": {
+      "loading": "ウォレットを読み込み中...",
+      "loadingShort": "読み込み中...",
+      "walletRequired": "Solanaウォレットでサインインしてセレクションを表示。"
+    },
+    "fallbackUser": "ユーザー #{0}",
+    "walletNetworkBalance": "オンチェーン残高",
+    "onChainBalanceTitle": "{0}のライブ残高",
+    "openPosition": {
+      "cta": "サイドを選択",
+      "modalTitle": "サイドを選択",
+      "amountTitle": "セレクション金額を選択",
+      "back": "戻る",
+      "close": "閉じる",
+      "searchLabel": "資産を選択",
+      "searchPlaceholder": "シンボルまたは名前で検索",
+      "loadingAssets": "対象資産を読み込み中...",
+      "emptyAssets": "この検索に一致する資産が見つかりません。",
+      "loadAssetsError": "資産を読み込めませんでした。",
+      "priceUnavailable": "価格利用不可",
+      "openingOn": "{0}でサイドを選択しています",
+      "investmentIn": "{0}を選択",
+      "valueInSol": "SOLでの価値",
+      "chooseAmount": "セレクション金額を選択",
+      "quickValues": "SOLクイック値",
+      "sliderLabel": "クイック調整",
+      "amountInputLabel": "手動金額",
+      "walletBalanceLabel": "ウォレット残高",
+      "maximumAvailableLabel": "最大利用可能額",
+      "useMax": "最大を使用",
+      "insufficientBalance": "残高不足",
+      "insufficientBalanceMessage": "ウォレット残高が不足しています。この操作には{0}が利用可能です。",
+      "networkFeeReserve": "Solanaネットワーク手数料のために少額の準備金を維持する必要があります。",
+      "custodyWalletLabel": "カストディウォレット",
+      "directFundingTitle": "Phantomによるオンチェーン決済。",
+      "directFundingLine1": "セレクションはウォレットからアリーナに直接送信されます。",
+      "directFundingLine2": "資金はCriptoVersusカストディウォレットに送信されます。",
+      "cancel": "キャンセル",
+      "investing": "セレクション送信中...",
+      "investCta": "{0}を選択",
+      "invalidAmount": "ゼロより大きい金額を入力してください。",
+      "assetBlocked": "この資産は現在新しいエクスポージャーに対してオープンではありません。",
+      "availableNow": "エントリー受付中",
+      "blockedNow": "エントリーブロック中",
+      "walletFundingRequired": "このセレクションでオンチェーン残高を使用するにはウォレットを接続して承認してください。",
+      "walletMismatch": "接続されたウォレットが認証済みアカウントと一致しません。",
+      "phantomRejected": "Phantom署名またはトランザクションがキャンセルされました。",
+      "duplicateSignature": "このトランザクションは既に使用されています。セレクションが表示されない場合はウォレットを更新してから再試行してください。",
+      "statusAwaitingSignature": "Phantom署名を待機中。",
+      "statusConfirmingBlockchain": "オンチェーン転送を確認中。",
+      "statusOpeningPosition": "バックエンドでセレクションを開設中。",
+      "statusPositionOpened": "確認済み決済でセレクションが開設されました。",
+      "transactionHash": "トランザクションハッシュ：{0}",
+      "successInline": "{0}で{1}を使用してセレクションが開設されました。",
+      "successToast": "{0}で{1}を使用してセレクションが開設されました。"
+    },
+    "openPositions": {
+      "title": "オープンセレクション",
+      "count": "{0}件アクティブ",
+      "empty": "まだオープンセレクションがありません。サイドセレクションを開くと、資本がアリーナでその資産の追跡を開始します。",
+      "invested": "投資額",
+      "entry": "エントリー",
+      "pnl": "単純PnL",
+      "time": "セレクション時間",
+      "action": "アクション",
+      "exitRequested": "エグジット要求済み",
+      "closeNow": "セレクションを閉じる",
+      "requestExit": "エグジットを要求"
+    },
+    "seo": {
+      "title": "CriptoVersus マイウォレット",
+      "description": "残高、ポジション、カストディ詳細、アカウント履歴のためのCriptoVersus内部ウォレットページ。",
+      "imageAlt": "CriptoVersusウォレットページ"
+    },
+    "profile": {
+      "connectedWallet": "接続済みウォレット",
+      "user": "ユーザー",
+      "lastAccess": "最終アクセス"
+    },
+    "mode": {
+      "operationalMode": "運用モード",
+      "offChainCustodyMode": "オフチェーンカストディモード"
+    },
+    "custody": {
+      "wallet": "カストディウォレット",
+      "publicAddress": "公開アドレス",
+      "copyWallet": "ウォレットをコピー",
+      "explanation": "このモードでは、ベットは銀行の内部残高のみを使用します。カストディウォレットへのSOL転送は、ベット前に内部残高になるよう調整する必要があります。",
+      "withdrawalsDisabled": "オンチェーン転送が確認されていないデビットを回避するため、このモードでは接続ウォレットへの自動出金は無効になっています。",
+      "copied": "カストディウォレットがコピーされました。",
+      "copyFailed": "ウォレットをコピーできませんでした：{0}"
+    },
+    "metrics": {
+      "systemBalance": "システム残高",
+      "allocatedCapital": "割り当て資本",
+      "open": "オープン",
+      "exitPositions": "エグジットポジション",
+      "realizedProfit": "実現利益",
+      "realizedLoss": "実現損失",
+      "realizedNetResult": "実現純結果"
+    },
+    "withdraw": {
+      "releaseExplanation": "出金のために残高を解放するには、ゲーム外でポジションを確定してください。まだ進行中のマッチにリンクされている場合、エグジットが要求され、そのマッチが決済されると残高は自動的にシステムに戻ります。"
+    },
+    "actions": {
+      "withdrawToWallet": "ウォレットに出金",
+      "walletChanged": "接続されたウォレットが変更または切断されました。現在のウォレットで再度サインインしてください。",
+      "sessionExpired": "セッションが期限切れです。Solanaウォレットで再度サインインしてください。",
+      "walletLoadFailed": "ウォレットを読み込めませんでした：{0}",
+      "modeUnsupported": "{0}モードはまだ自動オンチェーン出金をサポートしていません。残高は将来の再試行のためにシステム内で利用可能です。",
+      "walletNotConnected": "ウォレット未接続。",
+      "walletMismatch": "接続されたウォレットがログインアカウントと異なります。",
+      "custodyWithdrawAuthorized": "ウォレットが出金を承認しました。実際のカストディ出金をウォレットに送信中...",
+      "confirmWithdrawError": "ウォレットで出金を確認できませんでした。",
+      "withdrawCompleted": "出金が完了しました。",
+      "transactionSent": "トランザクション送信済み：{0}",
+      "transactionConfirmed": "トランザクション確認済み：{0}",
+      "positionClosed": "ポジション{0}が閉じられ、残高がシステムに戻されました。",
+      "positionCloseFailed": "ポジション{0}を閉じることができませんでした：{1}",
+      "balanceLookupFailed": "オンチェーン残高を照会できませんでした：{0}",
+      "closeRequestedOngoing": "ポジション{0}がエグジット用にマークされました。まだ進行中のマッチの一部であるため、そのマッチが決済されるとすぐに残高がシステムに解放されます。",
+      "closeRequestedPending": "ポジション{0}がエグジット用にマークされました。オープンマッチにリンクされており、マッチが終了すると残高がシステムに解放されます。",
+      "closeRequestedDefault": "ポジション{0}がエグジット用にマークされました。リンクされたマッチが終了すると残高がシステムに解放されます。",
+      "insufficientBalance": "残高不足。",
+      "walletLoadUnavailable": "マイウォレットルートは実行中のAPIではまだ利用できません。ローカルCriptoVersus.APIプロジェクトを再起動するか、更新されたAPIを公開してください。",
+      "validatingConnectedWallet": "接続されたウォレットを検証中...",
+      "programIdMissing": "CriptoVersusBlockchain program idがウォレットポジションフロー用に設定されていません。"
+    },
+    "openSelections": {
+      "title": "オープンセレクション",
+      "countOne": "{0}件アクティブ",
+      "countOther": "{0}件アクティブ",
+      "empty": "まだオープンセレクションがありません。アリーナセレクションを開くと、資金がアリーナでその資産の追跡を開始します。"
+    },
+    "elapsed": {
+      "days": "{0}日間オープン",
+      "hours": "{0}時間オープン",
+      "minutes": "{0}分オープン"
+    },
+    "history": {
+      "title": "トークン/チーム別履歴",
+      "summary": "{0}件オープン | {1}件決済済み",
+      "summaryText": "{0}件の記録されたマッチ：{1}勝、{2}敗、{3}オープン。",
+      "loadError": "マッチを読み込めませんでした：{0}",
+      "loading": "マッチ読み込み中...",
+      "emptyResults": "このフィルターに一致するマッチが見つかりません。",
+      "hideMatches": "マッチを非表示",
+      "showMatches": "マッチを表示",
+      "pageInfo": "ページ {0}/{1} | {2}マッチ",
+      "pageSummary": "ページ {0}/{1}",
+      "previous": "前へ",
+      "next": "次へ",
+      "vs": "vs",
+      "matchNumber": "マッチ #{0}",
+      "myTeam": "マイチーム：{0}",
+      "winner": "勝者：{0}",
+      "betAmount": "ベット額",
+      "receivedAmount": "受取額",
+      "netResult": "純結果",
+      "refund": "返金",
+      "houseFee": "ハウス手数料",
+      "financialStatus": "財務ステータス",
+      "showMatchDetails": "マッチ詳細を表示",
+      "hideMatchDetails": "マッチ詳細を非表示",
+      "start": "開始",
+      "end": "終了",
+      "matchStatus": "マッチステータス",
+      "teamAWallets": "チームAのウォレット",
+      "teamBWallets": "チームBのウォレット",
+      "teamABets": "チームAのベット",
+      "teamBBets": "チームBのベット",
+      "totalTeamA": "チームAの合計",
+      "totalTeamB": "チームBの合計",
+      "totalPool": "合計プール",
+      "winningPool": "勝利プール",
+      "losingPool": "敗北プール",
+      "totalDistributed": "分配総額",
+      "validDispute": "有効な財務紛争？",
+      "yes": "はい",
+      "no": "いいえ",
+      "settlementReason": "決済理由",
+      "unknown": "不明",
+      "matchStatusPending": "待機中",
+      "matchStatusOngoing": "進行中",
+      "matchStatusCompleted": "完了",
+      "matchStatusCancelled": "キャンセル",
+      "betPrefix": "ベット額：{0}",
+      "resultPrefix": "結果：{0}",
+      "receivedPrefix": "受取額：{0}",
+      "metrics": {
+        "allocatedCapital": "割り当て資本",
+        "open": "オープン",
+        "refundedMatches": "返金マッチ",
+        "realizedNetResult": "実現純結果",
+        "wonMatches": "勝利マッチ",
+        "lostMatches": "敗北マッチ",
+        "lastEntry": "最終エントリー"
+      },
+      "filters": {
+        "all": "すべて",
+        "won": "勝利",
+        "lost": "敗北",
+        "open": "オープン",
+        "finalized": "確定"
+      },
+      "groupCount": "{0}グループ",
+      "emptyGroups": "まだ投資グループがありません。"
+    },
+    "modal": {
+      "kicker": "CRYPTO ARENA"
+    },
+    "solana": {
+      "close": "閉じる",
+      "connectTitle": "Solanaのウォレットを接続して続行",
+      "connectDescription": "サポートされているウォレットを選択して接続し、現在のAPIフローを変更せずにサインイン。",
+      "connectedWalletGeneric": "ウォレット接続済み",
+      "connectedWalletNamed": "{0}接続済み",
+      "availableInBrowser": "このブラウザで利用可能",
+      "openInstallPage": "公式インストールページを開く",
+      "detected": "検出済み",
+      "install": "インストール",
+      "disconnect": "切断",
+      "installRequiredTitle": "インストールが必要",
+      "installRequiredMessage": "公式{0}ページを開いてウォレットをインストールして続行。",
+      "connectingTitle": "ウォレット接続中",
+      "connectingMessage": "ブラウザでの{0}承認を待機中。",
+      "connectionFailedTitle": "接続失敗",
+      "missingPublicKeyTitle": "公開キーがありません",
+      "missingPublicKeyMessage": "ウォレットは接続されましたが、公開キーが返されませんでした。",
+      "walletConnectedTitle": "ウォレット接続済み",
+      "walletConnectedMessage": "ウォレットが接続されました。認証を完了中...",
+      "walletDisconnectedTitle": "ウォレット切断済み",
+      "walletDisconnectedMessage": "いつでもサポートされているSolanaウォレットを再接続できます。",
+      "disconnectFailedTitle": "切断失敗",
+      "connectWalletTitle": "ウォレットを接続",
+      "connectWalletMessage": "続行する前にSolanaウォレットを選択してください。",
+      "loginUnavailableTitle": "ログイン利用不可",
+      "loginUnavailableMessage": "現在ログイン署名を準備できませんでした。もう一度お試しください。",
+      "awaitingSignatureTitle": "署名を待機中",
+      "awaitingSignatureMessage": "ログインを完了するにはウォレットで署名リクエストを承認してください。",
+      "loginRejectedTitle": "ログイン拒否",
+      "loginRejectedMessage": "ウォレット署名を検証できませんでした。もう一度お試しください。",
+      "incompleteLoginTitle": "不完全なログイン",
+      "incompleteLoginMessage": "APIがログインを確認しましたが、セッショントークンが返されませんでした。",
+      "loginCompleteTitle": "ログイン完了",
+      "loginCompleteMessage": "ウォレットが正常に認証されました。",
+      "loginCompleteOnChainMessage": "ウォレットが認証され、オンチェーンアカウントが検証されました。",
+      "loginFailedTitle": "ログインを完了できませんでした",
+      "onChainProgramMissing": "CriptoVersusBlockchain program idが現在のモード用に設定されていません。",
+      "preparingOnChainTitle": "オンチェーンアカウントを準備中",
+      "preparingOnChainMessage": "アクティブなSolanaプログラムで現在のウォレットアカウントを検証中。",
+      "onChainReadyTitle": "オンチェーンアカウント準備完了",
+      "onChainReadyMessage": "PDA：{0}",
+      "unexpectedError": "予期しないことが発生しました。もう一度お試しください。",
+      "errorCanceled": "ウォレットで接続がキャンセルされました。",
+      "errorProviderNotFound": "このブラウザでウォレットプロバイダーが見つかりません。",
+      "errorMissingPublicKey": "ウォレットが有効な公開キーを返しませんでした。"
+    }
+  },
+  "token": {
+    "seo": {
+      "title": "CriptoVersus トークンアリーナ | 公式コミュニティトークン",
+      "description": "CriptoVersusの公式トークンページ、コントラクト詳細、マーケットスナップショット、ライブ暗号資産バトルアリーナコミュニティトークンのPump.funアクセスを探索。"
+    },
+    "hero": {
+      "badge": "公式CriptoVersusトークン",
+      "title": "CriptoVersus トークンアリーナ",
+      "subtitle": "アリーナを動かすトークン。",
+      "description": "最初のライブ暗号資産バトルアリーナに参加。マーケットバトルを観戦し、サイドを選び、CriptoVersusエコシステムの一員になりましょう。"
+    },
+    "visual": {
+      "bulls": "ブル",
+      "bears": "ベア"
+    },
+    "action": {
+      "buy": "Pump.funで購入",
+      "watch": "ライブアリーナを観戦",
+      "copyContract": "コントラクトをコピー",
+      "copied": "コピー済み！",
+      "viewPump": "Pump.funで表示"
+    },
+    "contract": {
+      "kicker": "トークンコントラクト",
+      "title": "コントラクトアドレス",
+      "network": "ネットワーク",
+      "buyTax": "購入税",
+      "sellTax": "売却税",
+      "qrKicker": "Pump.funアクセス",
+      "qrAlt": "Pump.funでCriptoVersusトークンを開くQRコード",
+      "qrDescription": "このコードをスキャンして、携帯電話からPump.funの公式CriptoVersusトークンページを開いてください。",
+      "qrAction": "Pump.funを開く"
+    },
+    "stats": {
+      "price": "現在価格",
+      "marketCap": "時価総額",
+      "holders": "ホルダー",
+      "volume24h": "24時間ボリューム",
+      "liquidity": "流動性"
+    },
+    "market": {
+      "loadingTitle": "トークンスナップショットを読み込み中",
+      "loadingBody": "アリーナビュー用の最新トークンマーケットパネルを準備中。",
+      "liveTitle": "ライブマーケットパネル",
+      "liveBody": "マーケットスナップショット更新：{0}",
+      "fallbackTitle": "フォールバックマーケットパネル",
+      "fallbackBody": "マーケットプロバイダーがこのトークンをまだ完全にインデックスしていません。新しいマーケットデータが利用可能になる間、アリーナはページを安定させています。",
+      "errorTitle": "マーケットパネルがフォールバックで回復",
+      "errorBody": "ライブマーケットリクエストが失敗したため、アリーナはエクスペリエンスを壊す代わりにフォールバック値でページをオンラインに保ちました。",
+      "unavailableTitle": "マーケットインデックス進行中",
+      "unavailableBody": "このトークンはまだ公開マーケットデータプロバイダーによってインデックスされています。インデックスが利用可能になるとライブ統計が自動的に表示されます。",
+      "notIndexedYet": "マーケットデータがまだインデックスされていません",
+      "unavailableValue": "利用不可",
+      "supporting": {
+        "updated": "更新：{0}",
+        "contract": "公式アリーナトークン",
+        "community": "コミュニティサイドカウント",
+        "window24h": "ローリング24時間ウィンドウ",
+        "depth": "可視プール深度"
+      }
+    },
+    "utility": {
+      "kicker": "アリーナユーティリティ",
+      "title": "トークンの用途は？",
+      "items": {
+        "participate": {
+          "title": "アリーナに参加",
+          "description": "ライブバトルに近づき、マッチアイデンティティをフォローし、エコシステムのエンターテイメントレイヤーをサポート。"
+        },
+        "community": {
+          "title": "コミュニティアクセス",
+          "description": "群衆、ソーシャルチャンネル、CriptoVersusの将来のコミュニティアクティベーションに接続したまま。"
+        },
+        "utility": {
+          "title": "将来のエコシステムユーティリティ",
+          "description": "進化するアリーナエクスペリエンスに関連付けられた将来のユーティリティのためにページ構造を準備。"
+        },
+        "identity": {
+          "title": "ライブ暗号資産バトルアイデンティティ",
+          "description": "サイド、ボラティリティ、ライブマーケットスペクタクルを中心に構築されたWeb3エンターテイメントアリーナのシンボルを持つ。"
+        }
+      }
+    },
+    "about": {
+      "kicker": "トークンについて",
+      "title": "トークンについて",
+      "description": "このトークンはCriptoVersusエコシステムをサポートするために作成された実験的コミュニティトークンです。利益の約束ではなく、投資助言ではなく、投資推奨でもありません。"
+    },
+    "notice": {
+      "title": "重要な注意事項",
+      "description": "これは実験的なエンターテイメント/コミュニティトークンです。暗号資産はリスクがあります。常に独自の調査を行い、失っても構わない金額以上は投資しないでください。"
+    },
+    "schema": {
+      "name": "CriptoVersusトークン",
+      "category": "コミュニティトークン",
+      "properties": {
+        "network": "ネットワーク",
+        "contractAddress": "コントラクトアドレス",
+        "buyTax": "購入税",
+        "sellTax": "売却税"
+      }
+    },
+    "footer": {
+      "kicker": "ファイナルコール",
+      "cta": "サイドを選択。アリーナに入れ。",
+      "button": "今すぐトークンを購入"
+    }
+  },
+  "title": "マッチ市場",
+  "postLogin": {
+    "eyebrow": "ウォレット接続完了",
+    "title": "今すぐウォレットを開きますか？",
+    "body": "ウォレットの接続に成功しました。今すぐマイウォレットを開くか、現在のページに留まることもできます。",
+    "stay": "このページに留まる",
+    "goToWallet": "マイウォレットへ"
+  },
+  "reconnect": {
+    "eyebrow": "CRIPTO VERSUS ARENA",
+    "title": "アリーナに再接続中...",
+    "connectionLost": "サーバーへの接続が失われました。マッチをフォローし続けられるようアリーナシグナルを復元しています。",
+    "attempt": "試行",
+    "of": "/",
+    "retrying": "自動再接続中",
+    "failed": "自動再接続ができませんでした。",
+    "rejected": "セッションがサーバーに拒否されました。再入力するにはリロードしてください。",
+    "paused": "再接続が一時的に停止しました。",
+    "reload": "今すぐリロード"
+  },
+  "communityMatch": {
+    "eyebrow": "公開作成",
+    "title": "より良いマッチアップがありますか？",
+    "body": "自分だけのバトルを作成してコミュニティに挑戦。",
+    "button": "自分のバトルを作成",
+    "errors": {
+      "unavailable": "公開バトル作成は一時的に利用できません。",
+      "invalidAsset": "2つの有効な資産を選択してください。",
+      "sameAsset": "2つの異なる資産を選択してください。",
+      "duplicate": "このマッチアップのアクティブなバトルが既に存在します。",
+      "captchaInvalid": "CAPTCHAを検証できませんでした。もう一度お試しください。",
+      "captchaExpired": "CAPTCHAが期限切れです。続行するにもう一度確認してください。",
+      "rateLimited": "{0}秒後にもう一度お試しください。",
+      "network": "サーバーに接続できませんでした。もう一度お試しください。",
+      "generic": "現在バトルを作成できませんでした。"
+    },
+    "modal": {
+      "eyebrow": "公開バトル",
+      "title": "バトルを作成",
+      "close": "閉じる",
+      "orange": "オレンジサイド",
+      "cyan": "ブルーサイド",
+      "searchPlaceholder": "シンボルまたは名前で検索",
+      "loading": "資産読み込み中...",
+      "empty": "利用可能な資産がありません",
+      "selectLeft": "オレンジサイドを選択",
+      "selectRight": "ブルーサイドを選択",
+      "previewLeft": "オレンジサイドプレビュー",
+      "previewRight": "ブルーサイドプレビュー",
+      "submit": "BATTLEを作成",
+      "submitting": "バトル作成中...",
+      "footnote": "コミュニティによるバトル作成",
+      "captchaRequired": "続行するにはCAPTCHAを確認してください。",
+      "captchaError": "CAPTCHAを検証できませんでした。もう一度お試しください。",
+      "created": "バトルが正常に作成されました！",
+      "existing": "このマッチアップのアクティブなバトルが既に存在します。",
+      "fallbackError": "現在バトルを作成できませんでした。",
+      "unavailable": "公開バトル作成は一時的に利用できません。",
+      "sameAsset": "2つの異なる資産を選択してください。",
+      "assetUnavailable": "選択された資産の1つが現在利用できません。",
+      "invalidAsset": "2つの有効な資産を選択してください。",
+      "tooManyRequests": "{0}秒後にもう一度お試しください。"
+    }
+  },
+  "candleBattleV2": {
+    "title": "Candle Battle",
+    "ariaLabel": "{0}と{1}の間のCandle Battle",
+    "loading": "Candle Battleを読み込み中...",
+    "error": "バトル利用不可",
+    "errorBody": "公式マッチステートを読み込めませんでした。もう一度お試しください。",
+    "notFound": "マッチが見つかりません。",
+    "retry": "再試行",
+    "live": "ライブ",
+    "reconnecting": "再接続中",
+    "finished": "マッチ完了",
+    "waitingMarket": "市場を待機中",
+    "waitingNext": "次のキャンドルを待機中",
+    "nextCandles": "次のキャンドル",
+    "nextCandle": "次のキャンドル",
+    "forming": "形成中",
+    "score": "スコア",
+    "points": "ポイント",
+    "point": "ポイント",
+    "pointFor": "{0}のポイント",
+    "draw": "引き分け",
+    "champion": "チャンピオン",
+    "officialScore": "公式サーバースコア",
+    "blockLegend": "1四角ブロック = 1ポイント",
+    "blocksFor": "{0}の{1}ポイントブロック",
+    "navigationLabel": "Candle Battleナビゲーション",
+    "backToMatch": "マッチに戻る",
+    "watchOnTv": "TVで観戦",
+    "seoTitle": "Candle Battle V2 | CriptoVersus",
+    "seoDescription": "公式暗号資産マッチポイントがライブ競争キャンドルアリーナでブロックになる様子を観戦。"
+  }
+}

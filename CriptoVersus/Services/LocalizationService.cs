@@ -29,7 +29,7 @@ public sealed class LocalizationService
         _environment = environment;
         _appCultureService = appCultureService;
         _logger = logger;
-        _resources = LoadResources(environment.ContentRootPath);
+        _resources = MergeResourcesWithFallback(LoadResources(environment.ContentRootPath));
         _resourcesLastWriteUtc = GetResourcesLastWriteUtc(environment.ContentRootPath);
 
         if (_environment.IsDevelopment())
@@ -108,7 +108,7 @@ public sealed class LocalizationService
             if (currentStamp <= _resourcesLastWriteUtc)
                 return;
 
-            _resources = LoadResources(_environment.ContentRootPath);
+            _resources = MergeResourcesWithFallback(LoadResources(_environment.ContentRootPath));
             _resourcesLastWriteUtc = currentStamp;
 
             var loadedCultures = string.Join(", ", _resources.Keys.OrderBy(key => key, StringComparer.OrdinalIgnoreCase));
@@ -168,6 +168,38 @@ public sealed class LocalizationService
         }
 
         return result;
+    }
+
+    private IReadOnlyDictionary<string, JsonNode?> MergeResourcesWithFallback(IReadOnlyDictionary<string, JsonNode?> resources)
+    {
+        var result = new Dictionary<string, JsonNode?>(resources, StringComparer.OrdinalIgnoreCase);
+        if (!result.TryGetValue(AppCultureService.DefaultCultureCode, out var fallback) || fallback is null)
+            return result;
+
+        foreach (var language in _appCultureService.SupportedLanguages)
+        {
+            if (language.Culture.Equals(AppCultureService.DefaultCultureCode, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            result[language.Culture] = MergeNodes(fallback, result.TryGetValue(language.Culture, out var localized) ? localized : null);
+        }
+
+        return result;
+    }
+
+    private static JsonNode? MergeNodes(JsonNode? fallback, JsonNode? localized)
+    {
+        if (fallback is not JsonObject fallbackObject || localized is not JsonObject localizedObject)
+            return localized?.DeepClone() ?? fallback?.DeepClone();
+
+        var merged = new JsonObject();
+        foreach (var property in fallbackObject)
+            merged[property.Key] = MergeNodes(property.Value, localizedObject[property.Key]);
+
+        foreach (var property in localizedObject.Where(property => !fallbackObject.ContainsKey(property.Key)))
+            merged[property.Key] = property.Value?.DeepClone();
+
+        return merged;
     }
 
     private static JsonNode? NormalizeJsonNode(JsonNode? node)
