@@ -21,10 +21,6 @@
     <meta name="description" content="@_page.MetaDescription" />
     <meta name="keywords" content="@MetaKeywords" />
     <link rel="canonical" href="@_page.CanonicalUrl" />
-    @foreach (var alternate in _page.AlternateLinks)
-    {
-        <link rel="alternate" hreflang="@alternate.HrefLang" href="@alternate.Href" />
-    }
     <link rel="alternate" hreflang="x-default" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, "/en/roadmap")" />
     <meta property="og:title" content="@_page.OpenGraph.Title" />
     <meta property="og:description" content="@_page.OpenGraph.Description" />
@@ -972,17 +968,12 @@
     private string? GetCultureFromRoute()
     {
         var relativePath = Nav.ToBaseRelativePath(Nav.Uri).Trim('/');
+        var firstSegment = relativePath.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
 
-        if (relativePath.StartsWith("en/", StringComparison.OrdinalIgnoreCase) || string.Equals(relativePath, "en/roadmap", StringComparison.OrdinalIgnoreCase))
-            return "en";
+        if (firstSegment is not null && AppCulture.TryNormalizeRouteCulture(firstSegment, out var culture))
+            return culture;
 
-        if (relativePath.StartsWith("pt/", StringComparison.OrdinalIgnoreCase) || string.Equals(relativePath, "pt/roadmap", StringComparison.OrdinalIgnoreCase))
-            return "pt";
-
-        if (relativePath.StartsWith("zh/", StringComparison.OrdinalIgnoreCase) || string.Equals(relativePath, "zh/roadmap", StringComparison.OrdinalIgnoreCase))
-            return "zh";
-
-        return "en";
+        return AppCultureService.DefaultRouteCulture;
     }
 
     private string MetaKeywords

@@ -1,0 +1,236 @@
+roadmap.openGraph.title: CriptoVersus Roadmap
+roadmap.hero.title: CriptoVersus Roadmap
+roadmap.phases[4].items[2]: Hreflang
+social.hotMatches.hotScore: HotScore {0}
+stats.search.placeholder: BTC, ETH, STRAX, TON...
+stats.ranking.columns.asset: Asset
+statsMatches.seo.title: CriptoVersus Matches Stats
+statsMatches.seo.description: Browse public crypto matches, filter by status and review as
+statsMatches.hero.eyebrow: Public match hub
+statsMatches.hero.title: Stats Matches
+statsMatches.hero.subtitle: Search public battles, inspect recent scoreboards and compar
+statsMatches.hero.backToStats: Back to stats
+statsMatches.hero.openTeams: Open teams
+statsMatches.filters.searchLabel: Search by coin or team
+statsMatches.filters.searchPlaceholder: BTC, ETH, STRAX, TON...
+statsMatches.filters.statusLabel: Status
+statsMatches.filters.status.ongoing: Live
+statsMatches.filters.status.completed: Finished
+statsMatches.filters.status.pending: Pending
+statsMatches.filters.status.cancelled: Cancelled
+statsMatches.states.loadingTitle: Loading public matches
+statsMatches.states.loadingBody: Collecting public scoreboards and recent battle history.
+statsMatches.states.errorTitle: Matches temporarily unavailable
+statsMatches.states.errorBody: We could not load the public match archive right now.
+statsMatches.states.emptyTitle: No matches found
+statsMatches.states.emptyBody: Try another asset, team or status filter.
+statsMatches.summary.totalMatches: Total matches
+statsMatches.summary.completed: Finished
+statsMatches.summary.live: Live
+statsMatches.summary.assets: Tracked assets
+statsMatches.matches.eyebrow: Recent archive
+statsMatches.matches.title: Latest public matches
+statsMatches.matches.description: Open any match page and review the latest public scoreboards
+statsMatches.matches.openMatch: Open match
+statsMatches.matches.columns.match: Match
+statsMatches.matches.columns.score: Score
+statsMatches.matches.columns.status: Status
+statsMatches.matches.columns.date: Date
+statsMatches.matches.columns.link: Link
+statsMatches.teams.eyebrow: Asset performance
+statsMatches.teams.title: Wins, losses and draws by asset
+statsMatches.teams.description: Public asset summaries derived from the current filtered mat
+statsMatches.teams.columns.asset: Asset
+statsMatches.teams.columns.matches: Matches
+statsMatches.teams.columns.wins: Wins
+statsMatches.teams.columns.draws: Draws
+statsMatches.teams.columns.losses: Losses
+statsMatches.teams.columns.goals: Goals
+statsMatches.teams.columns.winRate: Win Rate
+statsMatches.status.completed: Finished
+statsMatches.status.ongoing: Live
+statsMatches.status.pending: Pending
+statsMatches.status.cancelled: Cancelled
+statsMatches.status.unknown: Unknown
+statsRankings.seo.title: CriptoVersus Rankings
+statsRankings.seo.description: Compare public rankings by wins, efficiency, goals and unbea
+statsRankings.hero.eyebrow: Public rankings hub
+statsRankings.hero.title: Stats Rankings
+statsRankings.hero.subtitle: Multi-metric public ranking boards for the CriptoVersus aren
+statsRankings.hero.backToStats: Back to stats
+statsRankings.hero.openMatches: Open matches
+statsRankings.filters.searchLabel: Search by asset
+statsRankings.filters.searchPlaceholder: BTC, ETH, STRAX, TON...
+statsRankings.states.loadingTitle: Loading public rankings
+statsRankings.states.loadingBody: Calculating ranking boards from the latest public match data
+statsRankings.states.errorTitle: Rankings temporarily unavailable
+statsRankings.states.errorBody: We could not load the public ranking boards right now.
+statsRankings.states.emptyTitle: No rankings available yet
+statsRankings.states.emptyBody: The arena still needs more completed public matches to rank 
+statsRankings.summary.assets: Ranked assets
+statsRankings.summary.topWins: Most wins
+statsRankings.summary.topEfficiency: Best efficiency
+statsRankings.summary.topStreak: Best unbeaten streak
+statsRankings.boards.columns.rank: Rank
+statsRankings.boards.columns.asset: Asset
+statsRankings.boards.columns.matches: Matches
+statsRankings.boards.columns.winRate: Win Rate
+statsRankings.boards.wins.eyebrow: Victory board
+statsRankings.boards.wins.title: Ranking by wins
+statsRankings.boards.wins.description: Assets ordered by total wins in completed public matches.
+statsRankings.boards.wins.metric: Wins
+statsRankings.boards.efficiency.eyebrow: Efficiency board
+statsRankings.boards.efficiency.title: Ranking by efficiency
+statsRankings.boards.efficiency.description: Three-point efficiency rate across completed public battles.
+statsRankings.boards.efficiency.metric: Efficiency
+statsRankings.boards.goals.eyebrow: Attack board
+statsRankings.boards.goals.title: Ranking by goals
+statsRankings.boards.goals.description: Assets with the highest public scoring output.
+statsRankings.boards.goals.metric: Goals
+statsRankings.boards.streak.eyebrow: Momentum board
+statsRankings.boards.streak.title: Ranking by unbeaten streak
+statsRankings.boards.streak.description: Current unbeaten runs based on the latest completed match hi
+statsRankings.boards.streak.metric: Streak
+statsRecords.seo.title: CriptoVersus Records
+statsRecords.seo.description: Review the biggest public records, blowouts and standout his
+statsRecords.hero.eyebrow: Public records hub
+statsRecords.hero.title: Stats Records
+statsRecords.hero.subtitle: Public milestones and historic scoreboards from the CriptoVe
+statsRecords.hero.backToStats: Back to stats
+statsRecords.hero.openRankings: Open rankings
+statsRecords.states.loadingTitle: Loading public records
+statsRecords.states.loadingBody: Scanning completed public matches for standout records and m
+statsRecords.states.errorTitle: Records temporarily unavailable
+statsRecords.states.errorBody: We could not load the public records board right now.
+statsRecords.states.emptyTitle: No records available yet
+statsRecords.states.emptyBody: The arena still needs more completed public matches before r
+statsRecords.summary.longestWinStreak: Longest win streak
+statsRecords.summary.biggestBlowout: Biggest blowout
+statsRecords.summary.mostGoals: Most goals in one match
+statsRecords.summary.bestCampaign: Best campaign
+statsRecords.records.eyebrow: Milestones
+statsRecords.records.title: Arena record board
+statsRecords.records.description: Temporary frontend-calculated records based on existing publ
+statsRecords.records.openMatch: Open match
+statsRecords.records.cards.longestWinStreak: Longest win streak
+statsRecords.records.cards.longestWinStreakDetail: Best consecutive wins by a public arena asset.
+statsRecords.records.cards.biggestBlowout: Biggest blowout
+statsRecords.records.cards.biggestBlowoutDetail: Largest goal difference recorded in a public match.
+statsRecords.records.cards.mostGoals: Most goals in a match
+statsRecords.records.cards.mostGoalsDetail: Highest combined score published on a public scoreboard.
+statsRecords.records.cards.bestCampaign: Best campaign
+statsRecords.records.cards.bestCampaignDetail: Best efficiency rate among assets with a meaningful public s
+statsRecords.records.cards.worstCampaign: Worst campaign
+statsRecords.records.cards.worstCampaignDetail: Lowest efficiency rate among indexed public assets.
+statsRecords.history.eyebrow: Historic matches
+statsRecords.history.title: Relevant historic matches
+statsRecords.history.description: High-impact scoreboards worth revisiting from the public arc
+statsRecords.history.openMatch: Open match
+statsRecords.history.columns.match: Match
+statsRecords.history.columns.score: Score
+statsRecords.history.columns.note: Why it matters
+statsRecords.history.columns.link: Link
+statsRecords.history.notes.blowout: Largest public blowout on record.
+statsRecords.history.notes.mostGoals: Highest-scoring public match so far.
+statsRecords.history.notes.closeClassic: Tight high-scoring battle with classic energy.
+statsRecords.history.notes.highImpact: High-impact public match from the historical archive.
+statsTeams.seo.title: Crypto Arena Teams - CriptoVersus Rankings
+statsTeams.seo.description: Explore public crypto arena teams, historical performance tr
+statsTeams.hero.eyebrow: Arena team directory
+statsTeams.hero.title: Crypto Arena Teams
+statsTeams.hero.subtitle: Explore public crypto asset performance across historical Cr
+statsTeams.hero.seoCopy: CriptoVersus turns crypto assets into public arena teams wit
+statsTeams.hero.backToStats: Back to stats
+statsTeams.hero.backToStatsAria: Return to the CriptoVersus statistics page
+statsTeams.hero.howArenaWorks: How the arena works
+statsTeams.hero.howArenaWorksAria: Read how the CriptoVersus arena works
+statsTeams.hero.liveDirectory: Live directory
+statsTeams.hero.liveDirectoryHint: public asset teams indexed
+statsTeams.hero.totalIndexedBattles: Total battles indexed
+statsTeams.hero.totalIndexedBattlesHint: completed public match records
+statsTeams.hero.updatedStatus: Live arena state
+statsTeams.hero.updatedStatusValue: Public team stats
+statsTeams.hero.updatedStatusHint: refreshed with the latest public history
+statsTeams.states.loadingTitle: Loading arena teams
+statsTeams.states.loadingBody: Fetching the latest public team directory and ranking data.
+statsTeams.states.errorTitle: Teams temporarily unavailable
+statsTeams.states.errorBody: We could not load the public arena teams right now. Showing 
+statsTeams.states.emptyTitle: No public teams yet
+statsTeams.states.emptyBody: The arena has not indexed enough completed public battles to
+statsTeams.summary.ariaLabel: Arena teams summary
+statsTeams.summary.totalAssets.label: Total Assets
+statsTeams.summary.totalAssets.hint: public crypto teams tracked
+statsTeams.summary.mostDominantAsset.label: Most Dominant Asset
+statsTeams.summary.mostDominantAsset.hint: current top ranked arena leader
+statsTeams.summary.highestWinRate.label: Highest Win Rate
+statsTeams.summary.highestWinRate.hint: best public closing percentage
+statsTeams.summary.mostActiveTeam.label: Most Active Team
+statsTeams.summary.mostActiveTeam.hint: largest public match sample
+statsTeams.summary.totalBattlesIndexed.label: Total Battles Indexed
+statsTeams.summary.totalBattlesIndexed.hint: completed public arena battles
+statsTeams.search.eyebrow: Search the directory
+statsTeams.search.title: Find a crypto team
+statsTeams.search.description: Instantly filter the public arena board by symbol or asset n
+statsTeams.search.label: Search crypto teams
+statsTeams.search.placeholder: Search crypto teams...
+statsTeams.search.ariaLabel: Search crypto teams
+statsTeams.search.noResultsTitle: No matching teams
+statsTeams.search.noResultsBody: Try a different symbol or broader search term.
+statsTeams.grid.eyebrow: Competitive board
+statsTeams.grid.title: Arena team directory
+statsTeams.grid.description: Premium public cards for the strongest crypto teams based on
+statsTeams.grid.rankValue: Arena Rank #{0}
+statsTeams.grid.viewTeam: View Team
+statsTeams.grid.viewTeamAria: Open the future team page for {0}
+statsTeams.grid.metrics.winRate: Win Rate
+statsTeams.grid.metrics.matches: Matches
+statsTeams.grid.metrics.goals: Goals
+statsTeams.grid.metrics.averageScore: Average Score
+statsTeams.grid.details.wins: Wins
+statsTeams.grid.details.losses: Losses
+statsTeams.grid.details.totalScore: Total Score
+statsTeams.table.eyebrow: HTML ranking table
+statsTeams.table.title: Top Arena Teams
+statsTeams.table.description: Indexable ranking table for public crypto arena teams, histo
+statsTeams.table.empty: No arena teams available yet.
+statsTeams.table.assetAria: Open the future team page for {0}
+statsTeams.table.columns.rank: Rank
+statsTeams.table.columns.asset: Asset
+statsTeams.table.columns.matches: Matches
+statsTeams.table.columns.wins: Wins
+statsTeams.table.columns.losses: Losses
+statsTeams.table.columns.winRate: Win Rate
+statsTeams.table.columns.averageScore: Average Score
+statsTeams.table.columns.totalScore: Total Score
+statsTeams.rivalries.eyebrow: Arena storylines
+statsTeams.rivalries.title: Top Rivalries
+statsTeams.rivalries.description: Featured competitive pairings built from the strongest publi
+statsTeams.rivalries.emptyTitle: No rivalries yet
+statsTeams.rivalries.emptyBody: Rivalries will appear here once the public team board has en
+statsTeams.rivalries.teamAria: Open the future team page for {0}
+statsTeams.momentum.dominant: Dominant
+statsTeams.momentum.rising: Rising
+statsTeams.momentum.aggressive: Aggressive
+statsTeams.momentum.veteran: Veteran
+statsTeams.momentum.volatile: Volatile
+statsTeams.structuredData.breadcrumbStats: Statistics
+statsTeams.structuredData.breadcrumbTeams: Teams
+statsTeamDetail.momentum.volatile: Volatile
+publicHome.faqTitle: CriptoVersus FAQ
+cryptoConverterStats.hero.diagnostics.fromSymbol: fromSymbol
+cryptoConverterStats.hero.diagnostics.toSymbol: toSymbol
+cryptoConverterStats.hero.diagnostics.fromPriceFound: fromPriceFound
+cryptoConverterStats.hero.diagnostics.toPriceFound: toPriceFound
+cryptoConverterStats.hero.diagnostics.fromStatus: fromEndpointStatus
+cryptoConverterStats.hero.diagnostics.toStatus: toEndpointStatus
+cryptoConverterStats.hero.diagnostics.fromReason: fromReason
+cryptoConverterStats.hero.diagnostics.toReason: toReason
+cryptoConverterStats.hero.diagnostics.fromSource: fromSource
+cryptoConverterStats.hero.diagnostics.toSource: toSource
+cryptoConverterStats.hero.diagnostics.reason: reason
+tv.waiting.marketPulse: Top movers
+tv.events.goalTitle: GOAL {0}
+walletPage.solana.onChainReadyMessage: PDA: {0}
+token.hero.title: CriptoVersus Token Arena
+reconnect.eyebrow: CRIPTO VERSUS ARENA
+candleBattleV2.seoTitle: Candle Battle V2 | CriptoVersus

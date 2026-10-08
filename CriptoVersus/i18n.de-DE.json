@@ -139,258 +139,258 @@
     }
   },
   "roadmap": {
-    "pageTitle": "CriptoVersus Roadmap | Platform Evolution",
-    "metaDescription": "Follow the public CriptoVersus roadmap: crypto matches, public match history, scoring rules, transparency, internationalization and future blockchain integrations.",
+    "pageTitle": "CriptoVersus Roadmap | Plattform-Evolution",
+    "metaDescription": "Verfolgen Sie die öffentliche CriptoVersus-Roadmap: Krypto-Matches, öffentliche Match-Historie, Punkteregeln, Transparenz, Internationalisierung und zukünftige Blockchain-Integrationen.",
     "openGraph": {
       "title": "CriptoVersus Roadmap",
-      "description": "See the planned evolution of CriptoVersus, including crypto matches, public match history, advanced rules, i18n and blockchain integrations.",
+      "description": "Sehen Sie die geplante Entwicklung von CriptoVersus, einschließlich Krypto-Matches, öffentlicher Match-Historie, erweiterten Regeln, i18n und Blockchain-Integrationen.",
       "type": "website"
     },
     "hero": {
-      "eyebrow": "Public product overview",
+      "eyebrow": "Öffentlicher Produktüberblick",
       "title": "CriptoVersus Roadmap",
-      "subtitle": "Follow the platform evolution, new match rules, transparency improvements and future integrations.",
+      "subtitle": "Verfolgen Sie die Plattform-Evolution, neue Match-Regeln, Transparenzverbesserungen und zukünftige Integrationen.",
       "primaryCtaLabel": "Live-Matches ansehen",
-      "secondaryCtaLabel": "Read the rules"
+      "secondaryCtaLabel": "Regeln lesen"
     },
     "labels": {
-      "phasesMapped": "Phases mapped",
-      "workstreamsActive": "Workstreams active",
-      "workstreamsDescription": "Status cards, principles and visible roadmap milestones.",
+      "phasesMapped": "Phasen erfasst",
+      "workstreamsActive": "Aktive Arbeitsbereiche",
+      "workstreamsDescription": "Statuskarten, Prinzipien und sichtbare Roadmap-Meilensteine.",
       "publicEvolution": "Public evolution from foundation to AI commentary.",
       "currentFocus": "Current focus",
       "nextMilestone": "Next milestone",
-      "brandPillars": "Brand pillars",
-      "statusSummary": "Experimental platform roadmap",
-      "currentFocusFallback": "Active roadmap execution",
-      "nextMilestoneFallback": "Roadmap in expansion",
-      "nextMilestoneFallbackItem": "Upcoming delivery details will be published soon."
+      "brandPillars": "Markensäulen",
+      "statusSummary": "Experimentalplattform-Roadmap",
+      "currentFocusFallback": "Aktive Roadmap-Umsetzung",
+      "nextMilestoneFallback": "Roadmap in Erweiterung",
+      "nextMilestoneFallbackItem": "Details zur bevorstehenden Lieferung werden in Kürze veröffentlicht."
     },
     "section": {
       "roadmap": "Roadmap",
-      "projectStatus": "Project status",
-      "currentPlatformDirection": "Current platform direction",
-      "plannedEvolutionByPhase": "Planned evolution by phase",
-      "guidingPrinciples": "Guiding principles",
-      "howProductDecisionsAreFramed": "How product decisions are framed"
+      "projectStatus": "Projektstatus",
+      "currentPlatformDirection": "Aktuelle Plattformausrichtung",
+      "plannedEvolutionByPhase": "Geplante Evolution nach Phase",
+      "guidingPrinciples": "Leitprinzipien",
+      "howProductDecisionsAreFramed": "Wie Produktentscheidungen gerahmt werden"
     },
     "status": {
-      "completed": "Completed",
-      "inProgress": "In progress",
-      "planned": "Planned",
-      "future": "Future",
-      "experimental": "Experimental"
+      "completed": "Abgeschlossen",
+      "inProgress": "In Bearbeitung",
+      "planned": "Geplant",
+      "future": "Zukünftig",
+      "experimental": "Experimentell"
     },
     "pillars": {
       "competition": {
-        "title": "Competition",
-        "subtitle": "Between digital assets"
+        "title": "Wettbewerb",
+        "subtitle": "Zwischen digitalen Vermögenswerten"
       },
       "strategy": {
-        "title": "Strategy",
-        "subtitle": "Performance and timing"
+        "title": "Strategie",
+        "subtitle": "Leistung und Timing"
       },
       "technology": {
-        "title": "Technology",
-        "subtitle": "Blockchain infrastructure"
+        "title": "Technologie",
+        "subtitle": "Blockchain-Infrastruktur"
       },
       "ranking": {
-        "title": "Ranking",
-        "subtitle": "Scoring and progression"
+        "title": "Rangliste",
+        "subtitle": "Punktevergabe und Fortschritt"
       },
       "global": {
         "title": "Global",
-        "subtitle": "Decentralized arena"
+        "subtitle": "Dezentrale Arena"
       }
     },
     "brandPillars": [
       {
         "icon": "✦",
         "accent": "purple",
-        "title": "Competition",
-        "subtitle": "Between digital assets"
+        "title": "Wettbewerb",
+        "subtitle": "Zwischen digitalen Vermögenswerten"
       },
       {
         "icon": "↗",
         "accent": "green",
-        "title": "Strategy",
-        "subtitle": "Performance and timing"
+        "title": "Strategie",
+        "subtitle": "Leistung und Timing"
       },
       {
         "icon": "⬢",
         "accent": "cyan",
-        "title": "Technology",
-        "subtitle": "Blockchain infrastructure"
+        "title": "Technologie",
+        "subtitle": "Blockchain-Infrastruktur"
       },
       {
-        "icon": "ðŸ†",
+        "icon": "🏆",
         "accent": "gold",
-        "title": "Ranking",
-        "subtitle": "Scoring and progression"
+        "title": "Rangliste",
+        "subtitle": "Punktevergabe und Fortschritt"
       },
       {
         "icon": "◎",
         "accent": "purple",
         "title": "Global",
-        "subtitle": "Decentralized arena"
+        "subtitle": "Dezentrale Arena"
       }
     ],
     "statusCards": [
       {
-        "title": "Active development",
-        "description": "The platform is evolving continuously with public releases and operational refinements.",
-        "tag": "Active"
+        "title": "Aktive Entwicklung",
+        "description": "Die Plattform entwickelt sich kontinuierlich mit öffentlichen Releases und operativen Verfeinerungen.",
+        "tag": "Aktiv"
       },
       {
-        "title": "Automated crypto matches",
-        "description": "Market-based cycles between assets with score tracking and continuous updates.",
-        "tag": "Automation"
+        "title": "Automatisierte Krypto-Matches",
+        "description": "Marktbasierte Zyklen zwischen Vermögenswerten mit Punkteverfolgung und kontinuierlichen Updates.",
+        "tag": "Automatisierung"
       },
       {
-        "title": "Public history",
-        "description": "Results and match context are becoming increasingly visible for audit and review.",
-        "tag": "Transparency"
+        "title": "Öffentliche Historie",
+        "description": "Ergebnisse und Match-Kontext werden zunehmend sichtbar für Überprüfung und Audit.",
+        "tag": "Transparenz"
       },
       {
-        "title": "Rules in evolution",
-        "description": "Scoring models and economic dynamics are still being tested and refined.",
+        "title": "Regeln in Entwicklung",
+        "description": "Punktemodelle und ökonomische Dynamiken werden weiterhin getestet und verfeinert.",
         "tag": "Iteration"
       },
       {
-        "title": "Ready for international expansion",
-        "description": "Routing, SEO and local timezone support are being shaped for multiple regions.",
+        "title": "Bereit für internationale Expansion",
+        "description": "Routing, SEO und lokale Zeitzonenunterstützung werden für mehrere Regionen ausgestaltet.",
         "tag": "i18n-ready"
       }
     ],
     "phases": [
       {
         "phaseLabel": "Phase 1",
-        "title": "Platform Foundation",
+        "title": "Plattformfundament",
         "status": "InProgress",
-        "description": "Operational foundation for public matches, early cycles and market-driven game flow.",
+        "description": "Operative Grundlage für öffentMatches, frühe Zyklen und marktgetriebenen Spielablauf.",
         "items": [
-          "Creation of matches between coins",
-          "Market data integration",
-          "Live match view",
-          "Completed match history",
-          "Result and score registration"
+          "Erstellung von Matches zwischen Coins",
+          "Marktdatenintegration",
+          "Live-Match-Ansicht",
+          "Abgeschlossene Match-Historie",
+          "Ergebnis- und Punkteregistrierung"
         ],
         "sortOrder": 1
       },
       {
         "phaseLabel": "Phase 2",
-        "title": "Transparency and Auditability",
+        "title": "Transparenz und Prüfbarkeit",
         "status": "InProgress",
-        "description": "Public surfaces that explain how each match evolves and how results can be reviewed.",
+        "description": "Öffentliche Oberflächen, die erklären, wie sich jeder Match entwickelt und wie Ergebnisse überprüft werden können.",
         "items": [
-          "Public history page",
-          "Public match detail page",
-          "Clear display of score, performance and result",
-          "SEO improvements",
-          "Public metadata per match",
-          "Match event records for future auditability"
+          "Öffentliche Historienseite",
+          "Öffentliche Match-Detailseite",
+          "Klare Anzeige von Punktestand, Leistung und Ergebnis",
+          "SEO-Verbesserungen",
+          "Öffentliche Metadaten pro Match",
+          "Match-Ereignisaufzeichnungen für zukünftige Prüfbarkeit"
         ],
         "sortOrder": 2
       },
       {
         "phaseLabel": "Phase 3",
-        "title": "Advanced Scoring Rules",
+        "title": "Erweiterte Punkteregeln",
         "status": "Planned",
-        "description": "Richer match logic designed to stay explainable and data-driven.",
+        "description": "Reichere Match-Logik, die erklärbar und datengesteuert bleibt.",
         "items": [
-          "Scoring by percentage difference",
-          "Scoring by chart crossovers",
-          "Scoring by volume windows",
-          "Match event logs",
-          "Foundation for a future AI commentator"
+          "Punktevergabe nach prozentualer Differenz",
+          "Punktevergabe nach Chart-Crossover",
+          "Punktevergabe nach Volumenfenstern",
+          "Match-Ereignisprotokolle",
+          "Grundlage für einen zukünftigen KI-Kommentator"
         ],
         "sortOrder": 3
       },
       {
         "phaseLabel": "Phase 4",
-        "title": "Cyclical Economy",
+        "title": "Zyklische Wirtschaft",
         "status": "Planned",
-        "description": "Evolution toward a more experimental competitive pool model.",
+        "description": "Evolution hin zu einem experimentelleren wettbewerbsorientierten Pool-Modell.",
         "items": [
-          "Automatic participation in future cycles",
-          "Better balance control",
-          "Reduced abrupt losses",
-          "A model closer to a competitive pool than a traditional wager",
-          "Simulations and tuning before broader production"
+          "Automatische Teilnahme an zukünftigen Zyklen",
+          "Bessere Kontrolle des Guthabens",
+          "Reduzierung abrupter Verluste",
+          "Ein Modell, das näher an einem Wettbewerbspool als an einer traditionellen Wette ist",
+          "Simulationen und Feinabstimmung vor breiterer Produktion"
         ],
         "sortOrder": 4
       },
       {
         "phaseLabel": "Phase 5",
-        "title": "Internationalization",
+        "title": "Internationalisierung",
         "status": "Planned",
-        "description": "Routing and content structure prepared for multilingual expansion.",
+        "description": "Routing und Inhaltsstruktur für mehrsprachige Expansion vorbereitet.",
         "items": [
-          "i18n routes",
-          "Portuguese and English content",
+          "i18n-Routen",
+          "Portugiesische und englische Inhalte",
           "Hreflang",
-          "International SEO",
-          "Local timezone by region"
+          "Internationaler SEO",
+          "Lokale Zeitzone nach Region"
         ],
         "sortOrder": 5
       },
       {
         "phaseLabel": "Phase 6",
-        "title": "Blockchain Integration",
+        "title": "Blockchain-Integration",
         "status": "Experimental",
-        "description": "An experimental on-chain layer focused on auditability and infrastructure where it makes sense.",
+        "description": "Eine experimentelle On-Chain-Schicht, die sich auf Prüfbarkeit und Infrastruktur konzentriert, wo es sinnvoll ist.",
         "items": [
-          "Solana Devnet/Mainnet integration",
-          "On-chain selections and balances where appropriate",
-          "Separation between off-chain logic and on-chain settlement",
-          "Stronger public auditability"
+          "Solana Devnet/Mainnet-Integration",
+          "On-Chain-Auswahl und Guthaben wo angemessen",
+          "Trennung zwischen Off-Chain-Logik und On-Chain-Abwicklung",
+          "Stärkere öffentliche Prüfbarkeit"
         ],
         "sortOrder": 6
       },
       {
         "phaseLabel": "Phase 7",
-        "title": "AI Commentary and Experience",
+        "title": "KI-Kommentar und Erlebnis",
         "status": "Future",
-        "description": "Experience enhancements built on top of verifiable match data and public history.",
+        "description": "Erlebnisverbesserungen auf Basis überprüfbarer Match-Daten und öffentlicher Historie.",
         "items": [
-          "Automated match commentator",
-          "Post-match summaries",
-          "Match highlights",
-          "Explanations of decisive events",
-          "Social sharing"
+          "Automatisierter Match-Kommentator",
+          "Nach-Match-Zusammenfassungen",
+          "Match-Highlights",
+          "Erklärungen entscheidender Ereignisse",
+          "Soziale Teilung"
         ],
         "sortOrder": 7
       }
     ],
     "principles": [
       {
-        "title": "Transparency before scale",
-        "description": "Explain how the system works before trying to accelerate distribution.",
-        "tag": "Principle"
+        "title": "Transparenz vor Skalierung",
+        "description": "Erklären, wie das System funktioniert, bevor man versucht, die Verteilung zu beschleunigen.",
+        "tag": "Prinzip"
       },
       {
-        "title": "Clear rules before monetization",
-        "description": "Product evolution should stay readable before it becomes broader.",
-        "tag": "Principle"
+        "title": "Klare Regeln vor Monetarisierung",
+        "description": "Die Produktentwicklung sollte lesbar bleiben, bevor sie breiter wird.",
+        "tag": "Prinzip"
       },
       {
-        "title": "Safety before automation",
-        "description": "Only automate flows after they are sufficiently validated.",
-        "tag": "Principle"
+        "title": "Sicherheit vor Automatisierung",
+        "description": "Abläufe erst automatisieren, wenn sie ausreichend validiert sind.",
+        "tag": "Prinzip"
       },
       {
-        "title": "Public history before rankings",
-        "description": "Make results observable before adding bigger competitive layers.",
-        "tag": "Principle"
+        "title": "Öffentliche Historie vor Rankings",
+        "description": "Ergebnisse erst beobachtbar machen, bevor man stärkere Wettbewerbsebenen hinzufügt.",
+        "tag": "Prinzip"
       },
       {
-        "title": "Verifiable data before narrative",
-        "description": "Any future narrative layer should be grounded in logs, events and results.",
-        "tag": "Principle"
+        "title": "Überprüfbare Daten vor Narrativ",
+        "description": "Jede zukünftige Narrativebene sollte in Protokollen, Ereignissen und Ergebnissen verankert sein.",
+        "tag": "Prinzip"
       }
     ],
-    "noticeTitle": "Important notice",
-    "noticeText": "CriptoVersus is an experimental platform for crypto market simulations based on public data. Rules, economic models and integrations may evolve over time. Nothing on this page represents a promise of financial gain."
+    "noticeTitle": "Wichtiger Hinweis",
+    "noticeText": "CriptoVersus ist eine experimentelle Plattform für Krypto-Marktsimulationen auf Basis öffentlicher Daten. Regeln, ökonomische Modelle und Integrationen können sich im Laufe der Zeit weiterentwickeln. Nichts auf dieser Seite stellt ein Versprechen auf finanziellen Gewinn dar."
   },
   "howItWorks": {
     "seo": {

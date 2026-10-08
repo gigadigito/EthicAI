@@ -5,10 +5,10 @@
 @inject RouteLocalizationService RouteLocalization
 
 <HeadContent>
-    @foreach (var language in Languages.AdditionalLanguages)
-    {
-        <link rel="alternate" hreflang="@language.Culture" href="@GetAlternateUrl(language)" />
-    }
+@foreach (var language in Languages.EnabledLanguages)
+{
+    <link rel="alternate" hreflang="@language.Culture" href="@GetAlternateUrl(language)" />
+}
 </HeadContent>
 
 @code {

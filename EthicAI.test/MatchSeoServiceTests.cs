@@ -31,24 +31,21 @@ public sealed class MatchSeoServiceTests
     }
 
     [Fact]
-    public void BuildAlternateLinks_ReturnsPtAndEnHreflangUrls()
+    public void BuildAlternateLinks_ReturnsAllEightCulturesWithCorrectHreflangUrls()
     {
         var service = CreateService();
 
         var links = service.BuildAlternateLinks(39, "ada-vs-bnb");
 
-        Assert.Collection(
-            links,
-            pt =>
-            {
-                Assert.Equal("pt-BR", pt.HrefLang);
-                Assert.Equal("https://seudominio.com/pt/partida/39/ada-vs-bnb", pt.Href);
-            },
-            en =>
-            {
-                Assert.Equal("en-US", en.HrefLang);
-                Assert.Equal("https://seudominio.com/en/match/39/ada-vs-bnb", en.Href);
-            });
+        Assert.Equal(8, links.Count);
+        Assert.Contains(links, l => l.HrefLang == "en-US" && l.Href == "https://seudominio.com/en/match/39/ada-vs-bnb");
+        Assert.Contains(links, l => l.HrefLang == "pt-BR" && l.Href == "https://seudominio.com/pt/partida/39/ada-vs-bnb");
+        Assert.Contains(links, l => l.HrefLang == "zh-CN" && l.Href == "https://seudominio.com/zh/match/39/ada-vs-bnb");
+        Assert.Contains(links, l => l.HrefLang == "es-ES" && l.Href == "https://seudominio.com/es/match/39/ada-vs-bnb");
+        Assert.Contains(links, l => l.HrefLang == "fr-FR" && l.Href == "https://seudominio.com/fr/match/39/ada-vs-bnb");
+        Assert.Contains(links, l => l.HrefLang == "de-DE" && l.Href == "https://seudominio.com/de/match/39/ada-vs-bnb");
+        Assert.Contains(links, l => l.HrefLang == "it-IT" && l.Href == "https://seudominio.com/it/match/39/ada-vs-bnb");
+        Assert.Contains(links, l => l.HrefLang == "ja-JP" && l.Href == "https://seudominio.com/ja/match/39/ada-vs-bnb");
     }
 
     [Fact]
@@ -59,10 +56,10 @@ public sealed class MatchSeoServiceTests
 
         var links = service.BuildAlternateLinks(39, slug);
 
-        Assert.Collection(
-            links,
-            pt => Assert.Equal($"https://seudominio.com/pt/partida/39/{Uri.EscapeDataString(slug)}", pt.Href),
-            en => Assert.Equal($"https://seudominio.com/en/match/39/{Uri.EscapeDataString(slug)}", en.Href));
+        Assert.Equal(8, links.Count);
+        Assert.Contains(links, l => l.HrefLang == "en-US" && l.Href == $"https://seudominio.com/en/match/39/{Uri.EscapeDataString(slug)}");
+        Assert.Contains(links, l => l.HrefLang == "pt-BR" && l.Href == $"https://seudominio.com/pt/partida/39/{Uri.EscapeDataString(slug)}");
+        Assert.Contains(links, l => l.HrefLang == "es-ES" && l.Href == $"https://seudominio.com/es/match/39/{Uri.EscapeDataString(slug)}");
     }
 
     [Fact]
@@ -192,12 +189,14 @@ public sealed class MatchSeoServiceTests
         };
 
         var localization = new LocalizationService(environment, appCultureService, NullLogger<LocalizationService>.Instance);
+        var languages = new SupportedLanguageCatalog();
         return new MatchSeoService(
             appCultureService,
             configuration,
             localization,
             new MatchSlugHelper(),
-            new RouteLocalizationService(appCultureService));
+            new RouteLocalizationService(appCultureService),
+            languages);
     }
 
     private sealed class FakeWebHostEnvironment : IWebHostEnvironment

@@ -30,10 +30,6 @@
     @if (!string.IsNullOrWhiteSpace(_canonicalUrl))
     {
         <link rel="canonical" href="@_canonicalUrl" />
-        @foreach (var alternateLink in _alternateLinks)
-        {
-            <link rel="alternate" hreflang="@alternateLink.HrefLang" href="@alternateLink.Href" />
-        }
         @if (!string.IsNullOrWhiteSpace(_xDefaultUrl))
         {
             <link rel="alternate" hreflang="x-default" href="@_xDefaultUrl" />

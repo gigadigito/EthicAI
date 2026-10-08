@@ -13,19 +13,22 @@ public sealed class MatchSeoService
     private readonly LocalizationService _localizationService;
     private readonly MatchSlugHelper _matchSlugHelper;
     private readonly RouteLocalizationService _routeLocalization;
+    private readonly SupportedLanguageCatalog _languages;
 
     public MatchSeoService(
         AppCultureService appCultureService,
         IConfiguration configuration,
         LocalizationService localizationService,
         MatchSlugHelper matchSlugHelper,
-        RouteLocalizationService routeLocalization)
+        RouteLocalizationService routeLocalization,
+        SupportedLanguageCatalog languages)
     {
         _appCultureService = appCultureService;
         _configuration = configuration;
         _localizationService = localizationService;
         _matchSlugHelper = matchSlugHelper;
         _routeLocalization = routeLocalization;
+        _languages = languages;
     }
 
     public string BuildCanonicalUrl(string? culture, int id, string slug, string? fallbackBaseUri = null)
@@ -35,18 +38,11 @@ public sealed class MatchSeoService
         => SeoDefaults.BuildPublicAbsoluteUrl(_configuration, $"/social-images/match/{id}/{slug}.svg");
 
     public IReadOnlyList<AlternateLink> BuildAlternateLinks(int id, string slug, string? fallbackBaseUri = null)
-        =>
-        [
-            new AlternateLink(
-                _routeLocalization.GetHrefLang("en"),
-                SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildLocalizedPath("en", id, slug))),
-            new AlternateLink(
-                _routeLocalization.GetHrefLang("pt"),
-                SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildLocalizedPath("pt", id, slug))),
-            new AlternateLink(
-                _routeLocalization.GetHrefLang("zh"),
-                SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildLocalizedPath("zh", id, slug)))
-        ];
+        => _languages.EnabledLanguages
+            .Select(language => new AlternateLink(
+                _routeLocalization.GetHrefLang(language.RouteCulture),
+                SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildLocalizedPath(language.RouteCulture, id, slug))))
+            .ToArray();
 
     public string BuildTitle(MatchDto match, string? culture)
     {
