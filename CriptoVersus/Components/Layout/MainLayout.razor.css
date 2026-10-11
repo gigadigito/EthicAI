@@ -347,3 +347,91 @@ main {
         padding: .35rem !important;
     }
 }
+
+/* Shared chrome keeps the public arena visually consistent without changing its behavior. */
+.app-shell {
+    --cv-bg-deep: #12151e;
+    --cv-bg-dark: #181a1e;
+    --cv-surface: #2a2c30;
+    --cv-slate: #454c5b;
+    --cv-slate-alt: #444e5c;
+    --cv-accent: #c3fe0c;
+    --cv-accent-alt: #c0ff0c;
+    --cv-text: #e6e5da;
+    --cv-text-primary: #e6e5da;
+    --cv-text-muted: #afb2a8;
+    --cv-text-soft: #858b91;
+    --cv-border: rgba(224, 224, 224, .09);
+    --cv-border-strong: rgba(224, 224, 224, .16);
+    --cv-action: var(--cv-accent);
+    --cv-action-hover: var(--cv-accent-alt);
+    --cv-action-text: #12151e;
+    --cv-action-rgb: 195, 254, 12;
+    --cv-brand: var(--cv-accent);
+    --cv-brand-hover: var(--cv-accent-alt);
+    --cv-brand-secondary: var(--cv-accent);
+    --cv-success: #c3fe0c;
+    --cv-success-soft: rgba(195, 254, 12, .12);
+    --team-a-color: #9da4ad;
+    --team-a-rgb: 157, 164, 173;
+    --team-b-color: #c3fe0c;
+    --team-b-rgb: 195, 254, 12;
+    background: var(--cv-bg-deep);
+    color: var(--cv-text-primary);
+}
+
+.app-sidebar {
+    background: #12151e;
+    border-right-color: rgba(224, 224, 224, .1);
+}
+
+.app-main {
+    background:
+        radial-gradient(circle at 90% 0, rgba(195, 254, 12, .045), transparent 22rem),
+        var(--cv-bg-deep);
+}
+
+.app-topbar {
+    background: rgba(24, 26, 30, .94);
+    border-bottom-color: rgba(224, 224, 224, .1);
+    backdrop-filter: blur(14px);
+}
+
+.topbar-eyebrow {
+    color: var(--cv-accent);
+    font-weight: 700;
+    letter-spacing: .1em;
+}
+
+.app-topbar h1,
+.wallet-address {
+    color: var(--cv-text-primary);
+}
+
+.wallet-button {
+    background: var(--cv-accent);
+    border-color: var(--cv-accent);
+    border-radius: 10px;
+    color: #12151e;
+}
+
+.wallet-button:hover {
+    background: var(--cv-accent-alt);
+    border-color: var(--cv-accent-alt);
+}
+
+.wallet-button:focus-visible,
+.wallet-identity:focus-visible {
+    outline-color: rgba(195, 254, 12, .46);
+}
+
+.wallet-identity {
+    background: #202329;
+    border-color: rgba(224, 224, 224, .14);
+    border-radius: 10px;
+}
+
+.wallet-identity:hover {
+    background: #292c31;
+    border-color: rgba(195, 254, 12, .54);
+}

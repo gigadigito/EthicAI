@@ -320,3 +320,81 @@
         display: none;
     }
 }
+
+/* Brand and navigation presentation for the graphite/lime visual system. */
+.brand-logo {
+    content: url("/img/criptoversus-mark.svg");
+    background: #181a1e;
+    border-color: rgba(195, 254, 12, .22);
+    border-radius: 12px;
+    box-shadow: none;
+    padding: .28rem;
+}
+
+.brand-mark strong {
+    color: #e6e5da;
+    letter-spacing: -.02em;
+}
+
+.brand-mark small,
+.nav-section-label,
+.sidebar-footer {
+    color: #929891;
+}
+
+.pump-style-nav {
+    --team-a-color: #c3fe0c;
+    --team-b-color: #c3fe0c;
+    --nav-text-color: #e6e5da;
+    --nav-muted-color: #a9aea7;
+    --nav-card-bg: #202329;
+}
+
+.pump-style-nav .pump-nav-link.nav-team-a,
+.pump-style-nav .pump-nav-link.nav-team-b {
+    --nav-team-rgb: 195, 254, 12;
+}
+
+.pump-style-nav .pump-nav-link .nav-icon,
+.pump-style-nav .pump-nav-link.nav-team-a .nav-icon,
+.pump-style-nav .pump-nav-link.nav-team-b .nav-icon {
+    color: #c3fe0c !important;
+    background: #202329;
+    border-color: rgba(224, 224, 224, .12);
+    box-shadow: none;
+}
+
+.pump-style-nav .pump-nav-link:hover,
+.pump-style-nav .pump-nav-link:focus-visible {
+    background: rgba(195, 254, 12, .07);
+    border-color: rgba(195, 254, 12, .25);
+    box-shadow: none;
+    transform: translateX(2px);
+}
+
+.pump-style-nav .pump-nav-link.active {
+    background: rgba(195, 254, 12, .12);
+    border-color: rgba(195, 254, 12, .38);
+    box-shadow: inset 3px 0 0 #c3fe0c;
+    color: #e6e5da;
+}
+
+.pump-style-nav .pump-nav-link.active .nav-icon,
+.pump-style-nav .pump-nav-link:hover .nav-icon,
+.pump-style-nav .pump-nav-link:focus-visible .nav-icon {
+    color: #12151e !important;
+    background: #c3fe0c;
+    border-color: #c3fe0c;
+    box-shadow: none;
+}
+
+.sidebar-footer,
+.nav-community,
+.nav-scrollable {
+    border-color: rgba(224, 224, 224, .1);
+}
+
+.live-dot {
+    background: #c3fe0c;
+    box-shadow: 0 0 0 .25rem rgba(195, 254, 12, .12);
+}
