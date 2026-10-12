@@ -524,6 +524,9 @@ else
         return $"{wallet[..start]}...{wallet[^end..]}";
     }
 
+    private static bool IsKnownCulture(string segment)
+        => segment is "en" or "pt" or "zh" or "es" or "fr" or "de" or "it" or "ja";
+
     private static bool IsPublicRoute(string absoluteUri)
     {
         if (!Uri.TryCreate(absoluteUri, UriKind.Absolute, out var uri))
@@ -534,13 +537,32 @@ else
         if (string.IsNullOrWhiteSpace(path))
             return true;
 
-        return path switch
+        var segments = path.TrimStart('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        if (segments.Length == 0)
+            return true;
+
+        if (!IsKnownCulture(segments[0]))
         {
-            "" or "/" or "/en" or "/pt" or "/zh" or "/en/roadmap" or "/pt/roadmap" or "/zh/roadmap" or "/en/how-it-works" or "/pt/como-funciona" or "/zh/how-it-works" or "/en/faq" or "/pt/faq" or "/zh/faq" or "/en/about" or "/pt/about" or "/zh/about" or "/en/scoring-rules" or "/pt/scoring-rules" or "/zh/scoring-rules" or "/en/risk-disclaimer" or "/pt/risk-disclaimer" or "/zh/risk-disclaimer" => true,
-            _ => path.StartsWith("/en/match/", StringComparison.Ordinal)
-                 || path.StartsWith("/pt/partida/", StringComparison.Ordinal)
-                 || path.StartsWith("/zh/match/", StringComparison.Ordinal)
-        };
+            return path is "/" or "/roadmap" or "/faq" or "/about"
+                or "/scoring-rules" or "/risk-disclaimer" or "/tokenomics"
+                or "/how-it-works" or "/tokenomics"
+                || path.StartsWith("/match/", StringComparison.Ordinal)
+                || path.StartsWith("/partida/", StringComparison.Ordinal);
+        }
+
+        if (segments.Length == 1)
+            return true;
+
+        var second = segments[1];
+        if (second is "roadmap" or "faq" or "about" or "scoring-rules" or "risk-disclaimer"
+            or "como-funciona" or "how-it-works" or "tokenomics")
+            return true;
+
+        if (segments.Length >= 3 && second is "match" or "partida" && int.TryParse(segments[2], out _))
+            return true;
+
+        return false;
     }
 
     private static bool IsHomeRoute(string absoluteUri)
@@ -550,8 +572,11 @@ else
 
         var path = uri.AbsolutePath.TrimEnd('/').ToLowerInvariant();
 
-        return string.IsNullOrWhiteSpace(path)
-            || path is "" or "/" or "/en" or "/pt" or "/zh";
+        if (string.IsNullOrWhiteSpace(path) || path is "" or "/")
+            return true;
+
+        var segment = path.TrimStart('/').Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        return segment is not null && IsKnownCulture(segment) && path.TrimStart('/').Split('/').Length == 1;
     }
 
     private static bool IsTvModeRoute(string absoluteUri)
@@ -570,15 +595,14 @@ else
             return true;
         }
 
-        return path == "/en/tv"
-            || path == "/pt/tv"
-            || path == "/zh/tv"
-            || path == "/en/tv/broadcast"
-            || path == "/pt/tv/broadcast"
-            || path == "/zh/tv/broadcast"
-            || path.StartsWith("/en/tv/match/", StringComparison.Ordinal)
-            || path.StartsWith("/pt/tv/match/", StringComparison.Ordinal)
-            || path.StartsWith("/zh/tv/match/", StringComparison.Ordinal);
+        var segments = path.TrimStart('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length < 2 || !IsKnownCulture(segments[0]))
+            return false;
+
+        return segments[1] == "tv"
+            && (segments.Length == 2
+                || segments.Length == 3 && segments[2] == "broadcast"
+                || segments.Length >= 4 && segments[2] == "match" && int.TryParse(segments[3], out _));
     }
 
     public async ValueTask DisposeAsync()

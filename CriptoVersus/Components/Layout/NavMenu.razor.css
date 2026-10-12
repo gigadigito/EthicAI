@@ -343,8 +343,8 @@
 }
 
 .pump-style-nav {
-    --team-a-color: #185957;
-    --team-b-color: #c1f20f;
+    --team-a-color: #c1f20f;
+    --team-b-color: #185957;
     --nav-text-color: #f3f5f7;
     --nav-muted-color: rgba(243, 245, 247, .72);
     --nav-card-bg: #222938;

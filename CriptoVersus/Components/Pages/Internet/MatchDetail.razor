@@ -412,7 +412,7 @@
                                                      LeftChartId="tv-telemetry-chart-left"
                                                      LeftCurrentPrice="@LeftPriceBattleCurrentPrice"
                                                      LeftChangePercent="@_match.PctA"
-                                                     LeftColor="#185957"
+                                                     LeftColor="#C1F20F"
                                                      LeftPoints="@LeftPriceBattlePoints"
                                                      LeftHasPriceHistory="@LeftPriceBattleHasHistory"
                                                      ScoreVersion="@_match.ScoreVersion"
@@ -422,7 +422,7 @@
                                                      RightChartId="tv-telemetry-chart-right"
                                                      RightCurrentPrice="@RightPriceBattleCurrentPrice"
                                                      RightChangePercent="@_match.PctB"
-                                                     RightColor="#C1F20F"
+                                                     RightColor="#185957"
                                                      RightPoints="@RightPriceBattlePoints"
                                                      RightHasPriceHistory="@RightPriceBattleHasHistory"
                                                      Competitiveness="@ResolvePriceBattleCompetitiveness()"
@@ -440,13 +440,13 @@
                                                   LeftLogoUrl="@GetCoinIconUrl(_match.TeamA)"
                                                   LeftPressurePercent="@GetArenaPressureScore(_arenaSentimentA)"
                                                   LeftMomentumLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
-                                                  LeftColor="#185957"
+                                                  LeftColor="#C1F20F"
                                                   RightSymbol="@RemoveTrailingUsdt(_match.TeamB)"
                                                   RightDisplayName="@_match.TeamB"
                                                   RightLogoUrl="@GetCoinIconUrl(_match.TeamB)"
                                                   RightPressurePercent="@GetArenaPressureScore(_arenaSentimentB)"
                                                   RightMomentumLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
-                                                  RightColor="#C1F20F"
+                                                  RightColor="#185957"
                                                   CurrentPressurePercent="@GetArenaCurrentPressureScore()"
                                                   StatusLabel="@string.Empty"
                                                   Description="@string.Empty"
@@ -483,8 +483,8 @@
                                              FormatTime="FormatEventTime"
                                              DescribeFallback="GetLocalizedScoreEventDescription"
                                              ResolveTeamLogoUrl="GetCoinIconUrl"
-                                             LeftColor="#185957"
-                                             RightColor="#C1F20F"
+                                             LeftColor="#C1F20F"
+                                             RightColor="#185957"
                                              EmptyTitle="@T("scoringLog")"
                                              EmptySubtitle="@T("noScoringEventsHaveBeenRecordedForThisMatchYet")" />
                         </div>
@@ -4595,13 +4595,15 @@
     }
 
     .social-share-card--epic .hero-panel__frame--orange {
-        background-image: url('/img/match-arena/hero-frame-orange-v2.svg') !important;
-        filter: drop-shadow(0 0 5px rgba(255,138,0,.42)) drop-shadow(0 0 16px rgba(255,105,0,.18));
+        background-image: linear-gradient(135deg, rgba(193,242,15,.16), transparent 58%) !important;
+        border: 1px solid rgba(193,242,15,.38);
+        filter: none;
     }
 
     .social-share-card--epic .hero-panel__frame--cyan {
-        background-image: url('/img/match-arena/hero-frame-cyan-v2.svg') !important;
-        filter: drop-shadow(0 0 5px rgba(0,200,255,.42)) drop-shadow(0 0 16px rgba(0,174,255,.18));
+        background-image: linear-gradient(225deg, rgba(24,89,87,.34), transparent 58%) !important;
+        border: 1px solid rgba(24,89,87,.65);
+        filter: none;
     }
 
     /* Evita que o frame dispute com o texto e com os logos. */
@@ -4612,11 +4614,11 @@
 
     /* Pequeno reforço metálico por baixo do SVG. */
     .social-share-card--epic .social-share-hero-team--a {
-        box-shadow: inset 0 1px 0 rgba(255,198,104,.14), inset 0 -1px 0 rgba(255,112,0,.20), 0 0 18px rgba(255,105,0,.10) !important;
+        box-shadow: inset 0 1px 0 rgba(212,255,82,.16), inset 0 -1px 0 rgba(193,242,15,.22) !important;
     }
 
     .social-share-card--epic .social-share-hero-team--b {
-        box-shadow: inset 0 1px 0 rgba(137,232,255,.14), inset 0 -1px 0 rgba(0,184,255,.20), 0 0 18px rgba(0,174,255,.10) !important;
+        box-shadow: inset 0 1px 0 rgba(100,167,164,.14), inset 0 -1px 0 rgba(24,89,87,.28) !important;
     }
 
     @@media (max-width: 1023.98px) {
@@ -4630,12 +4632,11 @@
     /* Convite discreto para criação pública de batalhas */
 
     .community-match-floating {
-        position: fixed;
-        right: 18px;
-        bottom: 18px;
-        z-index: 1050;
-        width: auto;
-        max-width: calc(100vw - 24px);
+        position: relative;
+        z-index: 1;
+        width: min(100%, 420px);
+        max-width: 100%;
+        margin: 0 0 24px auto;
         overflow: visible;
         border: 0;
         border-radius: 999px;
@@ -4835,10 +4836,9 @@
 
     @@media (max-width: 767.98px) {
         .community-match-floating {
-            right: 12px;
-            bottom: 12px;
-            width: auto;
-            max-width: calc(100vw - 24px);
+            width: 100%;
+            max-width: 100%;
+            margin: 0 0 16px;
         }
 
             .community-match-floating .community-match-card__button,
@@ -7903,20 +7903,21 @@
         --cv-surface-raised: #222938;
         --cv-text-primary: #f3f5f7;
         --cv-text-muted: rgba(243, 245, 247, .72);
-        --team-a: #185957;
-        --team-b: #c1f20f;
+        --team-a: #c1f20f;
+        --team-b: #185957;
+        --team-b-readable: #64a7a4;
         color: var(--cv-text-primary);
         font-variant-numeric: tabular-nums;
     }
 
     .match-detail-wide-container .social-share-card--epic {
         --arena-orange: var(--team-a);
-        --arena-orange-soft: #4b908d;
-        --arena-orange-hot: #63aaa6;
+        --arena-orange-soft: #d4ff52;
+        --arena-orange-hot: #d4ff52;
         --arena-cyan: var(--team-b);
-        --arena-cyan-soft: #d4ff52;
-        --arena-cyan-hot: #d4ff52;
-        --arena-green: var(--team-b);
+        --arena-cyan-soft: #64a7a4;
+        --arena-cyan-hot: #64a7a4;
+        --arena-green: var(--team-a);
         background: linear-gradient(145deg, rgba(30, 36, 48, .98), rgba(23, 28, 38, .99));
         border-color: rgba(243, 245, 247, .12);
         box-shadow: 0 20px 44px rgba(0, 0, 0, .24);
@@ -7925,20 +7926,20 @@
     .match-detail-wide-container .social-share-card--epic .social-share-card__background,
     .match-detail-wide-container .social-share-card--epic .social-share-card__atmosphere {
         background-image:
-            radial-gradient(circle at 12% 18%, rgba(24, 89, 87, .28), transparent 34%),
-            radial-gradient(circle at 88% 18%, rgba(193, 242, 15, .16), transparent 30%);
+            radial-gradient(circle at 12% 18%, rgba(193, 242, 15, .16), transparent 34%),
+            radial-gradient(circle at 88% 18%, rgba(24, 89, 87, .28), transparent 30%);
     }
 
     .match-detail-wide-container .social-share-hero-team--a,
     .match-detail-wide-container .social-share-team-card--a {
-        border-color: rgba(24, 89, 87, .8);
-        background: linear-gradient(135deg, rgba(24, 89, 87, .24), rgba(30, 36, 48, .76));
+        border-color: rgba(193, 242, 15, .72);
+        background: linear-gradient(135deg, rgba(193, 242, 15, .12), rgba(30, 36, 48, .76));
     }
 
     .match-detail-wide-container .social-share-hero-team--b,
     .match-detail-wide-container .social-share-team-card--b {
-        border-color: rgba(193, 242, 15, .65);
-        background: linear-gradient(225deg, rgba(193, 242, 15, .12), rgba(30, 36, 48, .76));
+        border-color: rgba(24, 89, 87, .8);
+        background: linear-gradient(225deg, rgba(24, 89, 87, .24), rgba(30, 36, 48, .76));
     }
 
     .match-detail-wide-container .social-share-hero-team--a .market-pair-text,
@@ -7949,7 +7950,7 @@
         color: var(--team-a) !important;
         background: none !important;
         -webkit-text-fill-color: var(--team-a);
-        text-shadow: 0 0 16px rgba(24, 89, 87, .42);
+        text-shadow: 0 0 16px rgba(193, 242, 15, .3);
     }
 
     .match-detail-wide-container .social-share-hero-team--b .market-pair-text,
@@ -7957,10 +7958,10 @@
     .match-detail-wide-container .score--b,
     .match-detail-wide-container .score--right,
     .match-detail-wide-container .arena-versus-core__score--right {
-        color: var(--team-b) !important;
+        color: var(--team-b-readable) !important;
         background: none !important;
-        -webkit-text-fill-color: var(--team-b);
-        text-shadow: 0 0 16px rgba(193, 242, 15, .3);
+        -webkit-text-fill-color: var(--team-b-readable);
+        text-shadow: 0 0 16px rgba(24, 89, 87, .42);
     }
 
     .match-detail-wide-container .team-badge--a,
@@ -7982,44 +7983,44 @@
     .match-detail-wide-container .social-share-team-card__cta--a,
     .match-detail-wide-container .match-team-alert--a {
         color: var(--cv-text-primary);
-        background: #185957;
-        border-color: #185957;
-        box-shadow: 0 0 18px rgba(24, 89, 87, .26);
+        background: #c1f20f;
+        border-color: #c1f20f;
+        box-shadow: 0 0 18px rgba(193, 242, 15, .22);
     }
 
     .match-detail-wide-container .social-share-team-card__cta--b,
     .match-detail-wide-container .match-team-alert--b,
     .match-detail-wide-container .match-team-alert.is-active,
     .match-detail-wide-container .match-alert-top-btn.is-active {
-        color: #171c26;
-        background: #c1f20f;
-        border-color: #c1f20f;
-        box-shadow: 0 0 18px rgba(193, 242, 15, .28);
+        color: var(--cv-text-primary);
+        background: #185957;
+        border-color: #185957;
+        box-shadow: 0 0 18px rgba(24, 89, 87, .22);
     }
 
     .match-detail-wide-container .social-share-team-card__cta--a:hover,
     .match-detail-wide-container .social-share-team-card__cta--a:focus-visible {
-        color: var(--cv-text-primary);
-        background: #216f6c;
-        border-color: #63aaa6;
-    }
-
-    .match-detail-wide-container .social-share-team-card__cta--b:hover,
-    .match-detail-wide-container .social-share-team-card__cta--b:focus-visible {
         color: #171c26;
         background: #d4ff52;
         border-color: #d4ff52;
     }
 
+    .match-detail-wide-container .social-share-team-card__cta--b:hover,
+    .match-detail-wide-container .social-share-team-card__cta--b:focus-visible {
+        color: var(--cv-text-primary);
+        background: #216f6c;
+        border-color: #63aaa6;
+    }
+
     .match-detail-wide-container .tv-candle-battle {
-        --team-left-color: #185957;
-        --team-left-color-soft: rgba(24, 89, 87, .72);
-        --team-left-color-glow: rgba(24, 89, 87, .34);
-        --team-left-color-faint: rgba(24, 89, 87, .12);
-        --team-right-color: #c1f20f;
-        --team-right-color-soft: rgba(193, 242, 15, .72);
-        --team-right-color-glow: rgba(193, 242, 15, .3);
-        --team-right-color-faint: rgba(193, 242, 15, .1);
+        --team-left-color: #c1f20f;
+        --team-left-color-soft: rgba(193, 242, 15, .72);
+        --team-left-color-glow: rgba(193, 242, 15, .3);
+        --team-left-color-faint: rgba(193, 242, 15, .1);
+        --team-right-color: #185957;
+        --team-right-color-soft: rgba(24, 89, 87, .72);
+        --team-right-color-glow: rgba(24, 89, 87, .34);
+        --team-right-color-faint: rgba(24, 89, 87, .12);
     }
 
     .match-detail-wide-container .tv-price-battle,
@@ -8032,12 +8033,113 @@
 
     .match-detail-wide-container .tv-price-battle__legend-item--left,
     .match-detail-wide-container .tv-price-battle__side--left {
-        --team-color: #185957;
+        --team-color: #c1f20f;
     }
 
     .match-detail-wide-container .tv-price-battle__legend-item--right,
     .match-detail-wide-container .tv-price-battle__side--right {
-        --team-color: #c1f20f;
+        --team-color: #185957;
+    }
+
+    /* Keep the SVG glow in the same semantic palette as the rendered arcs. */
+    .match-detail-wide-container .tv-arena-pressure-gauge__svg filter[id$="-glow-left"] feDropShadow {
+        flood-color: #c1f20f !important;
+        flood-opacity: .34;
+    }
+
+    .match-detail-wide-container .tv-arena-pressure-gauge__svg filter[id$="-glow-right"] feDropShadow {
+        flood-color: #185957 !important;
+        flood-opacity: .38;
+    }
+
+    .match-detail-wide-container .tv-arena-pressure-gauge__fill--left {
+        filter: drop-shadow(0 0 7px rgba(193, 242, 15, .34));
+    }
+
+    .match-detail-wide-container .tv-arena-pressure-gauge__fill--right {
+        filter: drop-shadow(0 0 7px rgba(24, 89, 87, .42));
+    }
+
+    /* Analytical panels share a quiet, readable baseline below the hero. */
+    .match-detail-wide-container .social-share-card__tv-grid {
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .match-detail-wide-container .social-share-card__tv-slot {
+        min-width: 0;
+    }
+
+    .match-detail-wide-container .match-panel {
+        color: var(--cv-text-primary);
+        background: var(--cv-surface);
+        border: 1px solid rgba(243, 245, 247, .1);
+        border-radius: 16px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, .16);
+    }
+
+    .match-detail-wide-container .match-panel .text-muted,
+    .match-detail-wide-container .match-panel .small {
+        color: var(--cv-text-muted) !important;
+    }
+
+    .match-detail-wide-container .match-panel .fw-semibold,
+    .match-detail-wide-container .match-panel .fw-bold {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .match-detail-wide-container .match-panel .btn {
+        min-height: 42px;
+        border-radius: 10px;
+        font-weight: 700;
+        letter-spacing: 0;
+    }
+
+    .match-detail-wide-container .match-panel .btn-outline-info,
+    .match-detail-wide-container .match-panel .btn-outline-warning {
+        color: var(--cv-text-primary);
+        border-color: rgba(243, 245, 247, .22);
+        background: transparent;
+    }
+
+    .match-detail-wide-container .match-panel .btn-outline-warning.active,
+    .match-detail-wide-container .match-alert-top-btn.is-active {
+        color: var(--cv-text-primary);
+        background: var(--cv-surface-raised);
+        border-color: rgba(243, 245, 247, .42);
+        box-shadow: none;
+    }
+
+    .match-detail-wide-container .match-team-alert--a.is-active {
+        color: #171c26;
+        background: #c1f20f;
+        border-color: #c1f20f;
+    }
+
+    .match-detail-wide-container .match-team-alert--b.is-active {
+        color: var(--cv-text-primary);
+        background: #185957;
+        border-color: #185957;
+    }
+
+    .match-detail-wide-container .tv-event-card {
+        border-radius: 14px;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, .14);
+    }
+
+    .match-detail-wide-container .tv-event-card__edge-glow {
+        opacity: .42;
+    }
+
+    @@media (max-width: 767.98px) {
+        .match-detail-wide-container .social-share-card__tv-grid {
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .match-detail-wide-container .match-panel {
+            border-radius: 14px;
+        }
     }
 
     .match-detail-wide-container :focus-visible {

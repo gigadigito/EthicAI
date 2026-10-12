@@ -182,7 +182,9 @@ else if (_resolvedMatchId > 0)
     private bool _loadFailed;
     private bool _matchNotFound;
     private int _resolvedMatchId;
-    private string RouteCulture => AppCulture.NormalizeRouteCulture(Culture);
+    private string RouteCulture => !string.IsNullOrWhiteSpace(Culture)
+        ? AppCulture.NormalizeRouteCulture(Culture)
+        : AppCulture.GetCurrentRouteCulture(Nav);
     private string HomeUrl => RouteCulture == AppCultureService.DefaultRouteCulture ? "/" : $"/{RouteCulture}";
 
     protected override async Task OnParametersSetAsync()
@@ -238,7 +240,7 @@ else if (_resolvedMatchId > 0)
 
             var officialSlug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
             _resolvedMatchId = match.MatchId;
-            var metadata = MatchSeo.BuildMetadata(match, officialSlug, Culture, Nav.BaseUri);
+            var metadata = MatchSeo.BuildMetadata(match, officialSlug, RouteCulture, Nav.BaseUri);
             _metaTitle = metadata.Title;
             _metaDescription = metadata.Description;
             _metaKeywords = metadata.Keywords;
@@ -257,7 +259,7 @@ else if (_resolvedMatchId > 0)
             _twitterCard = metadata.TwitterCard;
             _structuredDataMarkup = metadata.StructuredDataMarkup;
 
-            var expectedPath = RouteLocalization.BuildBestPath(Culture, match.MatchId, officialSlug);
+            var expectedPath = RouteLocalization.BuildBestPath(RouteCulture, match.MatchId, officialSlug);
             var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
             if (!PathsEquivalent(currentPath, expectedPath))
             {
@@ -266,6 +268,10 @@ else if (_resolvedMatchId > 0)
             }
 
             (_slugA, _slugB) = SplitSlug(officialSlug);
+        }
+        catch (Microsoft.AspNetCore.Components.NavigationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

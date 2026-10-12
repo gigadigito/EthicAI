@@ -274,6 +274,8 @@ public sealed class RouteLocalizationService
                 case "stats/rankings": return BuildStatsRankingsPath(normalizedTarget) + querySuffix;
                 case "stats/records": return BuildStatsRecordsPath(normalizedTarget) + querySuffix;
                 case "token": return BuildTokenPath(normalizedTarget) + querySuffix;
+                case "tv": return BuildTvPath(normalizedTarget) + querySuffix;
+                case "tv/broadcast": return BuildTvBroadcastPath(normalizedTarget) + querySuffix;
             }
 
             if (localizedTail.StartsWith("stats/teams/", StringComparison.OrdinalIgnoreCase))

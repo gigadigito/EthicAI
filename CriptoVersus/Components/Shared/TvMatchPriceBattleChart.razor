@@ -158,7 +158,7 @@
     [Parameter] public string LeftChartId { get; set; } = $"tv-price-battle-left-{Guid.NewGuid():N}";
     [Parameter] public decimal? LeftCurrentPrice { get; set; }
     [Parameter] public decimal? LeftChangePercent { get; set; }
-    [Parameter] public string LeftColor { get; set; } = "#ff9100";
+    [Parameter] public string LeftColor { get; set; } = "#c1f20f";
     [Parameter] public IReadOnlyList<TvPriceChartPoint> LeftPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
     [Parameter] public bool LeftHasPriceHistory { get; set; }
 
@@ -168,7 +168,7 @@
     [Parameter] public string RightChartId { get; set; } = $"tv-price-battle-right-{Guid.NewGuid():N}";
     [Parameter] public decimal? RightCurrentPrice { get; set; }
     [Parameter] public decimal? RightChangePercent { get; set; }
-    [Parameter] public string RightColor { get; set; } = "#53c8ff";
+    [Parameter] public string RightColor { get; set; } = "#185957";
     [Parameter] public IReadOnlyList<TvPriceChartPoint> RightPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
     [Parameter] public bool RightHasPriceHistory { get; set; }
 
@@ -179,7 +179,7 @@
     [Parameter] public string BroadcastRotationRemaining { get; set; } = "00:00";
     [Parameter] public double BroadcastRotationProgress { get; set; }
     [Parameter] public double BroadcastFocusProgress { get; set; }
-    [Parameter] public string BroadcastFocusColor { get; set; } = "#53c8ff";
+    [Parameter] public string BroadcastFocusColor { get; set; } = "#c1f20f";
     [Parameter] public bool IsSignalStable { get; set; } = true;
 
     [Parameter] public string MatchIdLabel { get; set; } = string.Empty;
@@ -254,7 +254,7 @@
                             time = point.Time,
                             value = (double)point.Value
                         }).ToArray(),
-                        color = "#ff9100",
+                        color = SafeLeftColor,
                         side = "left",
                         label = DisplaySymbol(LeftSymbol),
                         compactLabel = CompactSymbol(LeftSymbol),
@@ -267,7 +267,7 @@
                             time = point.Time,
                             value = (double)point.Value
                         }).ToArray(),
-                        color = "#18d8d2",
+                        color = SafeRightColor,
                         side = "right",
                         label = DisplaySymbol(RightSymbol),
                         compactLabel = CompactSymbol(RightSymbol),
@@ -369,17 +369,22 @@
             Tail(RightPoints),
             RightHasPriceHistory ? "1" : "0",
             LeftLogoUrl,
-            RightLogoUrl);
+            RightLogoUrl,
+            SafeLeftColor,
+            SafeRightColor);
     }
+
+    private string SafeLeftColor => NormalizeColor(LeftColor, "#c1f20f");
+    private string SafeRightColor => NormalizeColor(RightColor, "#185957");
 
     private string BuildCssVariables()
     {
-        const string left = "#ff9100";
-        const string right = "#18d8d2";
-
         return FormattableString.Invariant(
-            $"--price-battle-left:{left}; --price-battle-right:{right}; --price-battle-accent:{right};");
+            $"--price-battle-left:{SafeLeftColor}; --price-battle-right:{SafeRightColor}; --price-battle-accent:{SafeLeftColor};");
     }
+
+    private static string NormalizeColor(string? color, string fallback)
+        => string.IsNullOrWhiteSpace(color) ? fallback : color.Trim();
 
     private IReadOnlyList<CrossGuideViewModel> BuildCrossGuides()
     {
@@ -682,8 +687,8 @@
 
 <style>
     .tv-price-battle {
-        --price-battle-left: #ff9100;
-        --price-battle-right: #53c8ff;
+        --price-battle-left: #c1f20f;
+        --price-battle-right: #185957;
         --price-battle-accent: var(--price-battle-right);
         --price-battle-panel: rgba(3, 10, 21, 0.94);
         --price-battle-panel-strong: rgba(2, 8, 17, 0.98);
