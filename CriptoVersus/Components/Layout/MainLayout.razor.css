@@ -350,49 +350,49 @@ main {
 
 /* Shared chrome keeps the public arena visually consistent without changing its behavior. */
 .app-shell {
-    --cv-bg-deep: #12151e;
-    --cv-bg-dark: #181a1e;
-    --cv-surface: #2a2c30;
-    --cv-slate: #454c5b;
-    --cv-slate-alt: #444e5c;
-    --cv-accent: #c3fe0c;
-    --cv-accent-alt: #c0ff0c;
-    --cv-text: #e6e5da;
-    --cv-text-primary: #e6e5da;
-    --cv-text-muted: #afb2a8;
-    --cv-text-soft: #858b91;
+    --cv-bg-deep: #171c26;
+    --cv-bg-dark: #1e2430;
+    --cv-surface: #1e2430;
+    --cv-slate: #185957;
+    --cv-slate-alt: #222938;
+    --cv-accent: #c1f20f;
+    --cv-accent-alt: #d0ff35;
+    --cv-text: #f3f5f7;
+    --cv-text-primary: #f3f5f7;
+    --cv-text-muted: rgba(243, 245, 247, .72);
+    --cv-text-soft: rgba(243, 245, 247, .54);
     --cv-border: rgba(224, 224, 224, .09);
     --cv-border-strong: rgba(224, 224, 224, .16);
     --cv-action: var(--cv-accent);
     --cv-action-hover: var(--cv-accent-alt);
-    --cv-action-text: #12151e;
-    --cv-action-rgb: 195, 254, 12;
+    --cv-action-text: #171c26;
+    --cv-action-rgb: 193, 242, 15;
     --cv-brand: var(--cv-accent);
     --cv-brand-hover: var(--cv-accent-alt);
     --cv-brand-secondary: var(--cv-accent);
-    --cv-success: #c3fe0c;
-    --cv-success-soft: rgba(195, 254, 12, .12);
-    --team-a-color: #9da4ad;
-    --team-a-rgb: 157, 164, 173;
-    --team-b-color: #c3fe0c;
-    --team-b-rgb: 195, 254, 12;
+    --cv-success: #c1f20f;
+    --cv-success-soft: rgba(193, 242, 15, .12);
+    --team-a-color: #185957;
+    --team-a-rgb: 24, 89, 87;
+    --team-b-color: #c1f20f;
+    --team-b-rgb: 193, 242, 15;
     background: var(--cv-bg-deep);
     color: var(--cv-text-primary);
 }
 
 .app-sidebar {
-    background: #12151e;
+    background: #171c26;
     border-right-color: rgba(224, 224, 224, .1);
 }
 
 .app-main {
     background:
-        radial-gradient(circle at 90% 0, rgba(195, 254, 12, .045), transparent 22rem),
+        radial-gradient(circle at 90% 0, rgba(193, 242, 15, .045), transparent 22rem),
         var(--cv-bg-deep);
 }
 
 .app-topbar {
-    background: rgba(24, 26, 30, .94);
+    background: rgba(30, 36, 48, .94);
     border-bottom-color: rgba(224, 224, 224, .1);
     backdrop-filter: blur(14px);
 }
@@ -412,7 +412,7 @@ main {
     background: var(--cv-accent);
     border-color: var(--cv-accent);
     border-radius: 10px;
-    color: #12151e;
+    color: #171c26;
 }
 
 .wallet-button:hover {
@@ -422,16 +422,16 @@ main {
 
 .wallet-button:focus-visible,
 .wallet-identity:focus-visible {
-    outline-color: rgba(195, 254, 12, .46);
+    outline-color: rgba(193, 242, 15, .46);
 }
 
 .wallet-identity {
-    background: #202329;
+    background: #222938;
     border-color: rgba(224, 224, 224, .14);
     border-radius: 10px;
 }
 
 .wallet-identity:hover {
-    background: #292c31;
-    border-color: rgba(195, 254, 12, .54);
+    background: #2a3343;
+    border-color: rgba(193, 242, 15, .54);
 }

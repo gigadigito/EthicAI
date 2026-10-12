@@ -4054,4 +4054,107 @@
             transition-duration: .01ms !important;
         }
     }
+
+    /* Official CriptoVersus palette. These variables keep the home visually aligned with the arena. */
+    .public-home-arena {
+        --cv-bg-deep: #171c26;
+        --cv-bg-dark: #1e2430;
+        --cv-surface: #1e2430;
+        --cv-slate: #185957;
+        --cv-slate-alt: #222938;
+        --cv-accent: #c1f20f;
+        --cv-accent-alt: #d4ff52;
+        --cv-text: #f3f5f7;
+        --cv-text-primary: #f3f5f7;
+        --cv-text-muted: rgba(243, 245, 247, .72);
+        --cv-text-soft: rgba(243, 245, 247, .54);
+        --team-a-color: #185957;
+        --team-a-rgb: 24, 89, 87;
+        --team-b-color: #c1f20f;
+        --team-b-rgb: 193, 242, 15;
+        background:
+            radial-gradient(circle at 8% 4%, rgba(24, 89, 87, .22), transparent 27rem),
+            radial-gradient(circle at 92% 12%, rgba(193, 242, 15, .08), transparent 24rem),
+            var(--cv-bg-deep);
+        color: var(--cv-text-primary);
+    }
+
+    .public-home-arena .home-hot-hero,
+    .public-home-arena .arena-match-card,
+    .public-home-arena .arena-section,
+    .public-home-arena .home-section-card {
+        background-color: var(--cv-surface);
+        border-color: rgba(243, 245, 247, .12);
+    }
+
+    .public-home-arena .home-hot-hero__team--a,
+    .public-home-arena .arena-match-card__team--a,
+    .public-home-arena .arena-energy-bar__side--left {
+        --team-color: #185957;
+        background-color: #185957;
+        border-color: #185957;
+    }
+
+    .public-home-arena .home-hot-hero__team--b,
+    .public-home-arena .arena-match-card__team--b,
+    .public-home-arena .arena-energy-bar__side--right {
+        --team-color: #c1f20f;
+        background-color: #c1f20f;
+        border-color: #c1f20f;
+    }
+
+    .public-home-arena .home-hot-hero__cta--primary,
+    .public-home-arena .arena-cta-link--primary,
+    .public-home-arena .arena-cta-link {
+        color: #171c26;
+        background: #c1f20f;
+        border-color: #c1f20f;
+        box-shadow: none;
+    }
+
+    .public-home-arena .home-hot-hero__cta--secondary,
+    .public-home-arena .arena-cta-button,
+    .public-home-arena .arena-cta-button--secondary {
+        color: #f3f5f7;
+        background: #185957;
+        border-color: #185957;
+        box-shadow: none;
+    }
+
+    .public-home-arena .home-hot-hero__cta--primary:hover,
+    .public-home-arena .home-hot-hero__cta--primary:focus-visible,
+    .public-home-arena .arena-cta-link:hover,
+    .public-home-arena .arena-cta-link:focus-visible {
+        color: #171c26;
+        background: #d4ff52;
+        border-color: #d4ff52;
+    }
+
+    .public-home-arena .home-hot-hero__cta--secondary:hover,
+    .public-home-arena .home-hot-hero__cta--secondary:focus-visible,
+    .public-home-arena .arena-cta-button:hover,
+    .public-home-arena .arena-cta-button:focus-visible {
+        color: #f3f5f7;
+        background: #216f6c;
+        border-color: #63aaa6;
+    }
+
+    .public-home-arena .home-cta--primary,
+    .public-home-arena .arena-chip--live,
+    .public-home-arena .arena-status--live {
+        color: #171c26;
+        background-color: #c1f20f;
+        border-color: #c1f20f;
+    }
+
+    .public-home-arena .home-cta--secondary,
+    .public-home-arena .arena-chip--secondary {
+        color: #f3f5f7;
+        background-color: #185957;
+        border-color: #185957;
+    }
+
+    .public-home-arena :focus-visible {
+        outline-color: #c1f20f;
+    }
 </style>
