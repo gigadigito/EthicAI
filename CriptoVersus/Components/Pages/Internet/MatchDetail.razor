@@ -393,7 +393,7 @@
                                                      LeftChartId="tv-telemetry-chart-left"
                                                      LeftCurrentPrice="@LeftPriceBattleCurrentPrice"
                                                      LeftChangePercent="@_match.PctA"
-                                                     LeftColor="#C1F20F"
+                                                     LeftColor="#B8FF00"
                                                      LeftPoints="@LeftPriceBattlePoints"
                                                      LeftHasPriceHistory="@LeftPriceBattleHasHistory"
                                                      ScoreVersion="@_match.ScoreVersion"
@@ -403,7 +403,7 @@
                                                      RightChartId="tv-telemetry-chart-right"
                                                      RightCurrentPrice="@RightPriceBattleCurrentPrice"
                                                      RightChangePercent="@_match.PctB"
-                                                     RightColor="#185957"
+                                                     RightColor="#00D5DF"
                                                      RightPoints="@RightPriceBattlePoints"
                                                      RightHasPriceHistory="@RightPriceBattleHasHistory"
                                                      Competitiveness="@ResolvePriceBattleCompetitiveness()"
@@ -411,7 +411,7 @@
                                                      BroadcastRotationRemaining="@_remainingLive"
                                                      BroadcastRotationProgress="@GetRemainingProgress()"
                                                      BroadcastFocusProgress="@GetFocusProgress()"
-                                                     BroadcastFocusColor="#C1F20F"
+                                                     BroadcastFocusColor="#B8FF00"
                                                      IsSignalStable="@(!_loading && string.IsNullOrWhiteSpace(_error))" />
                         </div>
 
@@ -421,13 +421,13 @@
                                                   LeftLogoUrl="@GetCoinIconUrl(_match.TeamA)"
                                                   LeftPressurePercent="@GetArenaPressureScore(_arenaSentimentA)"
                                                   LeftMomentumLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
-                                                  LeftColor="#C1F20F"
+                                                  LeftColor="#B8FF00"
                                                   RightSymbol="@RemoveTrailingUsdt(_match.TeamB)"
                                                   RightDisplayName="@_match.TeamB"
                                                   RightLogoUrl="@GetCoinIconUrl(_match.TeamB)"
                                                   RightPressurePercent="@GetArenaPressureScore(_arenaSentimentB)"
                                                   RightMomentumLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
-                                                  RightColor="#185957"
+                                                  RightColor="#00D5DF"
                                                   CurrentPressurePercent="@GetArenaCurrentPressureScore()"
                                                   StatusLabel="@string.Empty"
                                                   Description="@string.Empty"
@@ -464,8 +464,8 @@
                                              FormatTime="FormatEventTime"
                                              DescribeFallback="GetLocalizedScoreEventDescription"
                                              ResolveTeamLogoUrl="GetCoinIconUrl"
-                                             LeftColor="#C1F20F"
-                                             RightColor="#185957"
+                                             LeftColor="#B8FF00"
+                                             RightColor="#00D5DF"
                                              EmptyTitle="@T("scoringLog")"
                                              EmptySubtitle="@T("noScoringEventsHaveBeenRecordedForThisMatchYet")" />
                         </div>
@@ -7878,26 +7878,26 @@
     /* 2026 CriptoVersus palette: presentation only; match and investment behavior remain unchanged. */
     .match-detail-wide-container {
         --cv-bg-deep: #07111F;
-        --cv-secondary: #20C4C9;
-        --cv-primary: #C6FF00;
+        --cv-secondary: #00D5DF;
+        --cv-primary: #B8FF00;
         --cv-surface: #101B2B;
         --cv-surface-raised: #17263A;
         --cv-text-primary: #F1F5F9;
         --cv-text-muted: #94A3B8;
-        --team-a: #C6FF00;
-        --team-b: #20C4C9;
-        --team-b-readable: #20C4C9;
+        --team-a: #B8FF00;
+        --team-b: #00D5DF;
+        --team-b-readable: #00D5DF;
         color: var(--cv-text-primary);
         font-variant-numeric: tabular-nums;
     }
 
     .match-detail-wide-container .social-share-card--epic {
         --arena-orange: var(--team-a);
-        --arena-orange-soft: #C6FF00;
-        --arena-orange-hot: #C6FF00;
+        --arena-orange-soft: #B8FF00;
+        --arena-orange-hot: #B8FF00;
         --arena-cyan: var(--team-b);
-        --arena-cyan-soft: #20C4C9;
-        --arena-cyan-hot: #20C4C9;
+        --arena-cyan-soft: #00D5DF;
+        --arena-cyan-hot: #00D5DF;
         --arena-green: var(--team-a);
         background: var(--cv-bg-deep);
         border-color: rgba(148, 163, 184, .24);
@@ -7907,20 +7907,20 @@
     .match-detail-wide-container .social-share-card--epic .social-share-card__background,
     .match-detail-wide-container .social-share-card--epic .social-share-card__atmosphere {
         background-image:
-            radial-gradient(circle at 12% 18%, rgba(198, 255, 0, .14), transparent 34%),
-            radial-gradient(circle at 88% 18%, rgba(32, 196, 201, .14), transparent 30%);
+            radial-gradient(circle at 12% 18%, rgba(184, 255, 0, .028), transparent 24%),
+            radial-gradient(circle at 88% 18%, rgba(0, 213, 223, .08), transparent 28%);
     }
 
     .match-detail-wide-container .social-share-hero-team--a,
     .match-detail-wide-container .social-share-team-card--a {
-        border-color: rgba(198, 255, 0, .62);
-        background: linear-gradient(135deg, rgba(198, 255, 0, .10), rgba(16, 27, 43, .94));
+        border-color: rgba(184, 255, 0, .34);
+        background: linear-gradient(135deg, rgba(184, 255, 0, .02), rgba(16, 27, 43, .94));
     }
 
     .match-detail-wide-container .social-share-hero-team--b,
     .match-detail-wide-container .social-share-team-card--b {
-        border-color: rgba(32, 196, 201, .62);
-        background: linear-gradient(225deg, rgba(32, 196, 201, .10), rgba(16, 27, 43, .94));
+        border-color: rgba(0, 213, 223, .34);
+        background: linear-gradient(225deg, rgba(0, 213, 223, .06), rgba(16, 27, 43, .94));
     }
 
     .match-detail-wide-container .social-share-hero-team--a .market-pair-text,
@@ -7931,7 +7931,7 @@
         color: var(--team-a) !important;
         background: none !important;
         -webkit-text-fill-color: var(--team-a);
-        text-shadow: 0 0 14px rgba(198, 255, 0, .26);
+        text-shadow: 0 0 14px rgba(184, 255, 0, .20);
     }
 
     .match-detail-wide-container .social-share-hero-team--b .market-pair-text,
@@ -7942,7 +7942,7 @@
         color: var(--team-b-readable) !important;
         background: none !important;
         -webkit-text-fill-color: var(--team-b-readable);
-        text-shadow: 0 0 14px rgba(32, 196, 201, .26);
+        text-shadow: 0 0 14px rgba(0, 213, 223, .20);
     }
 
     .match-detail-wide-container .team-badge--a,
@@ -7964,9 +7964,9 @@
     .match-detail-wide-container .social-share-team-card__cta--a,
     .match-detail-wide-container .match-team-alert--a {
         color: #07111F;
-        background: #C6FF00;
-        border-color: #C6FF00;
-        box-shadow: 0 0 18px rgba(198, 255, 0, .22);
+        background: #B8FF00;
+        border-color: #B8FF00;
+        box-shadow: 0 0 16px rgba(184, 255, 0, .16);
     }
 
     .match-detail-wide-container .social-share-team-card__cta--b,
@@ -7974,9 +7974,9 @@
     .match-detail-wide-container .match-team-alert.is-active,
     .match-detail-wide-container .match-alert-top-btn.is-active {
         color: #07111F;
-        background: #20C4C9;
-        border-color: #20C4C9;
-        box-shadow: 0 0 18px rgba(32, 196, 201, .22);
+        background: #00D5DF;
+        border-color: #00D5DF;
+        box-shadow: 0 0 16px rgba(0, 213, 223, .16);
     }
 
     .match-detail-wide-container .social-share-team-card__cta--a:hover,
@@ -7984,7 +7984,7 @@
         color: #07111F;
         background: #A8D900;
         border-color: #A8D900;
-        outline: 3px solid rgba(198, 255, 0, .48);
+        outline: 3px solid rgba(184, 255, 0, .48);
         outline-offset: 3px;
     }
 
@@ -7992,18 +7992,18 @@
     .match-detail-wide-container .social-share-team-card__cta--b:focus-visible {
         color: #07111F;
         background: #1AA7AB;
-        border-color: #20C4C9;
+        border-color: #00D5DF;
     }
 
     .match-detail-wide-container .tv-candle-battle {
-        --team-left-color: #C6FF00;
-        --team-left-color-soft: rgba(198, 255, 0, .72);
-        --team-left-color-glow: rgba(198, 255, 0, .3);
-        --team-left-color-faint: rgba(198, 255, 0, .1);
-        --team-right-color: #20C4C9;
-        --team-right-color-soft: rgba(32, 196, 201, .72);
-        --team-right-color-glow: rgba(32, 196, 201, .34);
-        --team-right-color-faint: rgba(32, 196, 201, .12);
+        --team-left-color: #B8FF00;
+        --team-left-color-soft: rgba(184, 255, 0, .72);
+        --team-left-color-glow: rgba(184, 255, 0, .18);
+        --team-left-color-faint: rgba(184, 255, 0, .025);
+        --team-right-color: #00D5DF;
+        --team-right-color-soft: rgba(0, 213, 223, .72);
+        --team-right-color-glow: rgba(0, 213, 223, .18);
+        --team-right-color-faint: rgba(0, 213, 223, .05);
     }
 
     .match-detail-wide-container .tv-price-battle,
@@ -8016,31 +8016,31 @@
 
     .match-detail-wide-container .tv-price-battle__legend-item--left,
     .match-detail-wide-container .tv-price-battle__side--left {
-        --team-color: #C6FF00;
+        --team-color: #B8FF00;
     }
 
     .match-detail-wide-container .tv-price-battle__legend-item--right,
     .match-detail-wide-container .tv-price-battle__side--right {
-        --team-color: #20C4C9;
+        --team-color: #00D5DF;
     }
 
     /* Keep the SVG glow in the same semantic palette as the rendered arcs. */
     .match-detail-wide-container .tv-arena-pressure-gauge__svg filter[id$="-glow-left"] feDropShadow {
-        flood-color: #C6FF00 !important;
+        flood-color: #B8FF00 !important;
         flood-opacity: .34;
     }
 
     .match-detail-wide-container .tv-arena-pressure-gauge__svg filter[id$="-glow-right"] feDropShadow {
-        flood-color: #20C4C9 !important;
+        flood-color: #00D5DF !important;
         flood-opacity: .38;
     }
 
     .match-detail-wide-container .tv-arena-pressure-gauge__fill--left {
-        filter: drop-shadow(0 0 7px rgba(198, 255, 0, .34));
+        filter: drop-shadow(0 0 7px rgba(184, 255, 0, .24));
     }
 
     .match-detail-wide-container .tv-arena-pressure-gauge__fill--right {
-        filter: drop-shadow(0 0 7px rgba(32, 196, 201, .42));
+        filter: drop-shadow(0 0 7px rgba(0, 213, 223, .28));
     }
 
     /* Analytical panels share a quiet, readable baseline below the hero. */
@@ -8095,14 +8095,14 @@
 
     .match-detail-wide-container .match-team-alert--a.is-active {
         color: #171c26;
-        background: #c1f20f;
-        border-color: #c1f20f;
+        background: #B8FF00;
+        border-color: #B8FF00;
     }
 
     .match-detail-wide-container .match-team-alert--b.is-active {
         color: var(--cv-text-primary);
-        background: #185957;
-        border-color: #185957;
+        background: #00D5DF;
+        border-color: #00D5DF;
     }
 
     .match-detail-wide-container .tv-event-card {
@@ -8117,7 +8117,7 @@
     /* The arena surface is deliberately CSS-built: no legacy orange artwork or blast layers. */
     .match-detail-wide-container .social-share-card--epic::after {
         background-image: none;
-        background: linear-gradient(90deg, rgba(198, 255, 0, .52), transparent 16%, transparent 84%, rgba(32, 196, 201, .52));
+        background: linear-gradient(90deg, rgba(184, 255, 0, .28), transparent 16%, transparent 84%, rgba(0, 213, 223, .28));
         opacity: .65;
     }
 
@@ -8128,23 +8128,23 @@
     }
 
     .match-detail-wide-container .arena-scoreboard::before {
-        background: linear-gradient(90deg, rgba(198, 255, 0, .12), rgba(16, 27, 43, .96) 38%, rgba(16, 27, 43, .96) 62%, rgba(32, 196, 201, .12));
+        background: linear-gradient(90deg, rgba(184, 255, 0, .024), rgba(16, 27, 43, .96) 32%, rgba(16, 27, 43, .96) 68%, rgba(0, 213, 223, .06));
         border-top-color: rgba(148, 163, 184, .22);
         border-bottom-color: rgba(148, 163, 184, .22);
     }
 
     .match-detail-wide-container .arena-scoreboard::after {
-        background-image: linear-gradient(90deg, rgba(198, 255, 0, .72), rgba(198, 255, 0, .06) 42%, transparent 49%, transparent 51%, rgba(32, 196, 201, .06) 58%, rgba(32, 196, 201, .72));
+        background-image: linear-gradient(90deg, rgba(184, 255, 0, .36), rgba(184, 255, 0, .02) 36%, transparent 49%, transparent 51%, rgba(0, 213, 223, .03) 64%, rgba(0, 213, 223, .42));
     }
 
     .match-detail-wide-container .social-share-hero-team--a {
-        background-image: linear-gradient(90deg, rgba(198, 255, 0, .10), rgba(16, 27, 43, .96) 72%);
-        box-shadow: inset 0 0 42px rgba(198, 255, 0, .08);
+        background-image: linear-gradient(90deg, rgba(184, 255, 0, .02), rgba(16, 27, 43, .96) 54%);
+        box-shadow: inset 0 0 28px rgba(184, 255, 0, .025);
     }
 
     .match-detail-wide-container .social-share-hero-team--b {
-        background-image: linear-gradient(270deg, rgba(32, 196, 201, .10), rgba(16, 27, 43, .96) 72%);
-        box-shadow: inset 0 0 42px rgba(32, 196, 201, .08);
+        background-image: linear-gradient(270deg, rgba(0, 213, 223, .06), rgba(16, 27, 43, .96) 54%);
+        box-shadow: inset 0 0 28px rgba(0, 213, 223, .04);
     }
 
     .match-detail-wide-container .social-share-hero-team--a::after,
@@ -8160,15 +8160,15 @@
     }
 
     .match-detail-wide-container .social-share-card__hero .team-badge--a {
-        background: radial-gradient(circle at 38% 28%, rgba(198, 255, 0, .18), transparent 38%), #07111F;
-        border-color: rgba(198, 255, 0, .88);
-        box-shadow: 0 0 0 6px rgba(198, 255, 0, .08), inset 0 0 26px rgba(198, 255, 0, .14), 0 0 24px rgba(198, 255, 0, .24), 0 20px 34px rgba(0, 0, 0, .58);
+        background: radial-gradient(circle at 38% 28%, rgba(184, 255, 0, .08), transparent 32%), #07111F;
+        border-color: rgba(184, 255, 0, .52);
+        box-shadow: 0 0 0 4px rgba(184, 255, 0, .04), inset 0 0 20px rgba(184, 255, 0, .06), 0 0 18px rgba(184, 255, 0, .14), 0 20px 34px rgba(0, 0, 0, .58);
     }
 
     .match-detail-wide-container .social-share-card__hero .team-badge--b {
-        background: radial-gradient(circle at 38% 28%, rgba(32, 196, 201, .18), transparent 38%), #07111F;
-        border-color: rgba(32, 196, 201, .88);
-        box-shadow: 0 0 0 6px rgba(32, 196, 201, .08), inset 0 0 26px rgba(32, 196, 201, .14), 0 0 24px rgba(32, 196, 201, .24), 0 20px 34px rgba(0, 0, 0, .58);
+        background: radial-gradient(circle at 38% 28%, rgba(0, 213, 223, .08), transparent 32%), #07111F;
+        border-color: rgba(0, 213, 223, .52);
+        box-shadow: 0 0 0 4px rgba(0, 213, 223, .04), inset 0 0 20px rgba(0, 213, 223, .06), 0 0 18px rgba(0, 213, 223, .14), 0 20px 34px rgba(0, 0, 0, .58);
     }
 
     .match-detail-wide-container .arena-versus-core {
@@ -8194,21 +8194,21 @@
     }
 
     .match-detail-wide-container .arena-versus-core__vs-letter--v {
-        color: #C6FF00;
-        text-shadow: 0 0 12px rgba(198, 255, 0, .38);
+        color: #B8FF00;
+        text-shadow: 0 0 12px rgba(184, 255, 0, .30);
     }
 
     .match-detail-wide-container .arena-versus-core__vs-letter--s {
-        color: #20C4C9;
-        text-shadow: 0 0 12px rgba(32, 196, 201, .38);
+        color: #00D5DF;
+        text-shadow: 0 0 12px rgba(0, 213, 223, .30);
     }
 
     .match-detail-wide-container .social-share-team-card--a::after {
-        background: linear-gradient(90deg, transparent, rgba(198, 255, 0, .54), transparent);
+        background: linear-gradient(90deg, transparent, rgba(184, 255, 0, .36), transparent);
     }
 
     .match-detail-wide-container .social-share-team-card--b::after {
-        background: linear-gradient(90deg, transparent, rgba(32, 196, 201, .54), transparent);
+        background: linear-gradient(90deg, transparent, rgba(0, 213, 223, .36), transparent);
     }
 
     .match-detail-wide-container .social-share-team-card__cta--a:active,
@@ -8242,6 +8242,6 @@
     }
 
     .match-detail-wide-container :focus-visible {
-        outline-color: #c1f20f;
+        outline-color: #B8FF00;
     }
 </style>

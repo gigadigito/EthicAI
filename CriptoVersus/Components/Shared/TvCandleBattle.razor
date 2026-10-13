@@ -163,14 +163,14 @@
 
 <style>
     .tv-candle-battle {
-        --team-left-color: #c1f20f;
-        --team-left-color-soft: rgba(193, 242, 15, .72);
-        --team-left-color-glow: rgba(193, 242, 15, .22);
-        --team-left-color-faint: rgba(193, 242, 15, .08);
-        --team-right-color: #185957;
-        --team-right-color-soft: rgba(24, 89, 87, .72);
-        --team-right-color-glow: rgba(24, 89, 87, .22);
-        --team-right-color-faint: rgba(24, 89, 87, .08);
+        --team-left-color: #B8FF00;
+        --team-left-color-soft: rgba(184, 255, 0, .72);
+        --team-left-color-glow: rgba(184, 255, 0, .18);
+        --team-left-color-faint: rgba(184, 255, 0, .025);
+        --team-right-color: #00D5DF;
+        --team-right-color-soft: rgba(0, 213, 223, .72);
+        --team-right-color-glow: rgba(0, 213, 223, .18);
+        --team-right-color-faint: rgba(0, 213, 223, .05);
         container-type: inline-size;
         container-name: candle-battle;
         width: 100%;
@@ -193,7 +193,7 @@
     .tv-candle-battle__sidebar {
         min-width: 0;
         border: 1px solid rgba(255,255,255,0.06);
-        background: linear-gradient(180deg, rgba(11, 19, 34, 0.96), rgba(7, 12, 24, 0.94)), radial-gradient(circle at top left, rgba(42, 201, 255, 0.08), transparent 30%), radial-gradient(circle at top right, rgba(255, 128, 0, 0.10), transparent 28%);
+        background: linear-gradient(180deg, rgba(10, 25, 39, 0.96), rgba(7, 17, 31, 0.94)), radial-gradient(circle at top left, rgba(184, 255, 0, 0.016), transparent 22%), radial-gradient(circle at top right, rgba(0, 213, 223, 0.06), transparent 28%);
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 42px rgba(0,0,0,0.22);
     }
 
@@ -218,7 +218,7 @@
         position: absolute;
         inset: 0;
         pointer-events: none;
-        background: linear-gradient(90deg, rgba(42, 201, 255, 0.06), transparent 34%, transparent 66%, rgba(255, 128, 0, 0.08));
+        background: linear-gradient(90deg, rgba(184, 255, 0, 0.012), transparent 22%, transparent 78%, rgba(0, 213, 223, 0.05));
     }
 
     .tv-candle-battle__score-side,
@@ -320,7 +320,7 @@
     }
 
     .tv-candle-battle__score-copy .tv-candle-battle__score-kicker {
-        color: rgba(255, 216, 96, .96);
+        color: #94A3B8;
         font-size: clamp(.52rem, .68cqi, .66rem);
         font-weight: 950;
         letter-spacing: .12em;

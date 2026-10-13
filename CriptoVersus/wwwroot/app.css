@@ -8,12 +8,12 @@ a, .btn-link {
 
 .btn-primary {
     color: var(--cv-action-text, #07111F);
-    background-color: var(--cv-action, #C6FF00);
-    border-color: var(--cv-action, #C6FF00);
+    background-color: var(--cv-action, #B8FF00);
+    border-color: var(--cv-action, #B8FF00);
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem #07111F, 0 0 0 0.25rem #C6FF00;
+  box-shadow: 0 0 0 0.1rem #07111F, 0 0 0 0.25rem #B8FF00;
 }
 
 .content {
@@ -71,15 +71,15 @@ h1:focus {
     --cv-text-secondary: var(--cv-text-soft);
 
     /* === BRAND === */
-    --cv-brand: #C6FF00;
+    --cv-brand: #B8FF00;
     --cv-brand-hover: #A8D900;
-    --cv-brand-secondary: #20C4C9;
+    --cv-brand-secondary: #00D5DF;
 
     /* === ACTION (CTA) === */
-    --cv-action: #C6FF00;
+    --cv-action: #B8FF00;
     --cv-action-hover: #A8D900;
     --cv-action-text: #07111F;
-    --cv-action-rgb: 198, 255, 0;
+    --cv-action-rgb: 184, 255, 0;
 
     /* === SUCCESS === */
     --cv-success: #4cf38d;
@@ -105,10 +105,10 @@ h1:focus {
     --cv-market-negative-soft: rgba(248,113,113,.12);
 
     /* === DYNAMIC (team context) === */
-    --team-a-color: #C6FF00;
-    --team-a-rgb: 198, 255, 0;
-    --team-b-color: #20C4C9;
-    --team-b-rgb: 32, 196, 201;
+    --team-a-color: #B8FF00;
+    --team-a-rgb: 184, 255, 0;
+    --team-b-color: #00D5DF;
+    --team-b-rgb: 0, 213, 223;
 
     /* === ELEVATION / GLOW SCALE === */
     --cv-shadow-sm: 0 8px 22px rgba(0,0,0,.24);

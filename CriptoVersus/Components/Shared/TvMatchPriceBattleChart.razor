@@ -158,7 +158,7 @@
     [Parameter] public string LeftChartId { get; set; } = $"tv-price-battle-left-{Guid.NewGuid():N}";
     [Parameter] public decimal? LeftCurrentPrice { get; set; }
     [Parameter] public decimal? LeftChangePercent { get; set; }
-    [Parameter] public string LeftColor { get; set; } = "#c1f20f";
+    [Parameter] public string LeftColor { get; set; } = "#B8FF00";
     [Parameter] public IReadOnlyList<TvPriceChartPoint> LeftPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
     [Parameter] public bool LeftHasPriceHistory { get; set; }
 
@@ -168,7 +168,7 @@
     [Parameter] public string RightChartId { get; set; } = $"tv-price-battle-right-{Guid.NewGuid():N}";
     [Parameter] public decimal? RightCurrentPrice { get; set; }
     [Parameter] public decimal? RightChangePercent { get; set; }
-    [Parameter] public string RightColor { get; set; } = "#185957";
+    [Parameter] public string RightColor { get; set; } = "#00D5DF";
     [Parameter] public IReadOnlyList<TvPriceChartPoint> RightPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
     [Parameter] public bool RightHasPriceHistory { get; set; }
 
@@ -179,7 +179,7 @@
     [Parameter] public string BroadcastRotationRemaining { get; set; } = "00:00";
     [Parameter] public double BroadcastRotationProgress { get; set; }
     [Parameter] public double BroadcastFocusProgress { get; set; }
-    [Parameter] public string BroadcastFocusColor { get; set; } = "#c1f20f";
+    [Parameter] public string BroadcastFocusColor { get; set; } = "#B8FF00";
     [Parameter] public bool IsSignalStable { get; set; } = true;
 
     [Parameter] public string MatchIdLabel { get; set; } = string.Empty;
@@ -374,8 +374,8 @@
             SafeRightColor);
     }
 
-    private string SafeLeftColor => NormalizeColor(LeftColor, "#c1f20f");
-    private string SafeRightColor => NormalizeColor(RightColor, "#185957");
+    private string SafeLeftColor => NormalizeColor(LeftColor, "#B8FF00");
+    private string SafeRightColor => NormalizeColor(RightColor, "#00D5DF");
 
     private string BuildCssVariables()
     {
@@ -687,8 +687,8 @@
 
 <style>
     .tv-price-battle {
-        --price-battle-left: #c1f20f;
-        --price-battle-right: #185957;
+        --price-battle-left: #B8FF00;
+        --price-battle-right: #00D5DF;
         --price-battle-accent: var(--price-battle-right);
         --price-battle-panel: rgba(3, 10, 21, 0.94);
         --price-battle-panel-strong: rgba(2, 8, 17, 0.98);
@@ -707,7 +707,7 @@
         color: #f5f7fb;
         border: 1px solid var(--price-battle-border);
         border-radius: 22px;
-        background: radial-gradient(circle at 18% 8%, color-mix(in srgb, var(--price-battle-left) 10%, transparent), transparent 30%), radial-gradient(circle at 84% 10%, color-mix(in srgb, var(--price-battle-right) 10%, transparent), transparent 32%), linear-gradient(180deg, #030914 0%, #020812 100%);
+        background: radial-gradient(circle at 18% 8%, color-mix(in srgb, var(--price-battle-left) 2%, transparent), transparent 22%), radial-gradient(circle at 84% 10%, color-mix(in srgb, var(--price-battle-right) 6%, transparent), transparent 26%), linear-gradient(180deg, #07111F 0%, #0A1927 100%);
         box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 24px 60px rgba(0,0,0,.30);
         isolation: isolate;
         container-type: inline-size;
@@ -937,14 +937,14 @@
 
     .tv-price-battle__score-team--left {
         grid-template-columns: auto minmax(0, 1fr) auto;
-        border-color: color-mix(in srgb, var(--price-battle-left) 62%, rgba(74,113,149,.22));
-        background: radial-gradient(circle at 0% 50%, color-mix(in srgb, var(--price-battle-left) 13%, transparent), transparent 48%), linear-gradient(180deg, var(--price-battle-panel), var(--price-battle-panel-strong));
+        border-color: color-mix(in srgb, var(--price-battle-left) 34%, rgba(0, 213, 223, .18));
+        background: radial-gradient(circle at 0% 50%, color-mix(in srgb, var(--price-battle-left) 3%, transparent), transparent 32%), linear-gradient(180deg, var(--price-battle-panel), var(--price-battle-panel-strong));
     }
 
     .tv-price-battle__score-team--right {
         grid-template-columns: auto minmax(0, 1fr) auto;
-        border-color: color-mix(in srgb, var(--price-battle-right) 62%, rgba(74,113,149,.22));
-        background: radial-gradient(circle at 100% 50%, color-mix(in srgb, var(--price-battle-right) 15%, transparent), transparent 48%), linear-gradient(180deg, var(--price-battle-panel), var(--price-battle-panel-strong));
+        border-color: color-mix(in srgb, var(--price-battle-right) 34%, rgba(0, 213, 223, .18));
+        background: radial-gradient(circle at 100% 50%, color-mix(in srgb, var(--price-battle-right) 6%, transparent), transparent 32%), linear-gradient(180deg, var(--price-battle-panel), var(--price-battle-panel-strong));
     }
 
     .tv-price-battle__score-logo {
@@ -959,14 +959,14 @@
 
     .tv-price-battle__score-team--left .tv-price-battle__score-logo {
         color: var(--price-battle-left);
-        border: 2px solid color-mix(in srgb, var(--price-battle-left) 72%, rgba(255,255,255,.18));
-        box-shadow: 0 0 0 2px color-mix(in srgb, var(--price-battle-left) 12%, transparent), 0 0 18px color-mix(in srgb, var(--price-battle-left) 30%, transparent);
+        border: 1px solid color-mix(in srgb, var(--price-battle-left) 38%, rgba(0, 213, 223, .18));
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--price-battle-left) 8%, transparent), 0 0 14px color-mix(in srgb, var(--price-battle-left) 18%, transparent);
     }
 
     .tv-price-battle__score-team--right .tv-price-battle__score-logo {
         color: var(--price-battle-right);
-        border: 2px solid color-mix(in srgb, var(--price-battle-right) 72%, rgba(255,255,255,.18));
-        box-shadow: 0 0 0 2px color-mix(in srgb, var(--price-battle-right) 12%, transparent), 0 0 18px color-mix(in srgb, var(--price-battle-right) 30%, transparent);
+        border: 1px solid color-mix(in srgb, var(--price-battle-right) 38%, rgba(0, 213, 223, .18));
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--price-battle-right) 8%, transparent), 0 0 14px color-mix(in srgb, var(--price-battle-right) 18%, transparent);
     }
 
     .tv-price-battle__score-logo img {
