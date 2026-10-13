@@ -91,7 +91,7 @@ window.tokenomicsCharts = (() => {
                         {
                             value: winners,
                             name: "Pool dos vencedores",
-                            itemStyle: { color: "#93c5fd" }
+                            itemStyle: { color: "#C1F20F" }
                         },
                         {
                             value: house,

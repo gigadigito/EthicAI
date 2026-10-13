@@ -20,7 +20,7 @@
             </p>
         </div>
         <div class="rules-hero-mark" aria-hidden="true">
-            <img src="/img/favicon-emblema.png" alt="" />
+            <img src="/favicon-source-emblema.png?v=2" alt="" />
         </div>
     </div>
 
@@ -401,6 +401,6 @@
 
 @code {
     private string CanonicalUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, "/tokenomics/regras-das-partidas");
-    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, "/img/tokenomics-hero-banner-en.png");
+    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, "/images/how-it-works/criptoversus_banner_en.png");
     private string StructuredDataMarkup => $$"""{"@context":"https://schema.org","@type":"WebPage","name":"CriptoVersus Match Rules","description":"Detailed explanation of CriptoVersus scoring rules, thresholds, crossover events, volume windows and auditable score formation.","url":"{{CanonicalUrl}}","image":"{{SocialImageUrl}}","keywords":"CriptoVersus, #CriptoVersus, crypto match rules, crypto scoreboard rules, market battle scoring, percentage crossover, volume window, blockchain game rules"}""";
 }

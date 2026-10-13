@@ -1,4 +1,5 @@
 @rendermode InteractiveServer
+@implements IDisposable
 @page "/tokenomics"
 @page "/en/how-it-works"
 @page "/pt/como-funciona"
@@ -43,11 +44,14 @@
 
 <section class="tokenomics-page">
     <div class="tokenomics-hero">
-        <img class="tokenomics-hero__banner"
+        <img @key="HeroBannerUrl"
+             class="tokenomics-hero__banner"
              src="@HeroBannerUrl"
              alt="@L.T("howItWorks.seo.title", CurrentCulture)"
              loading="eager"
-             decoding="async" />
+             decoding="async"
+             fetchpriority="high"
+             @onerror="UseEnglishBannerFallback" />
     </div>
 
     @if (_loading)
@@ -351,12 +355,45 @@
     private bool IsEnglish => CurrentCulture == "en";
     private bool IsChinese => CurrentCulture == "zh";
 
-    private string HeroBannerUrl => CurrentCulture switch
+    // Imagens físicas: wwwroot/images/how-it-works/criptoversus_banner_*.png
+    // URLs públicas: /images/how-it-works/criptoversus_banner_*.png
+    private const string BannerDirectory = "/images/how-it-works/";
+    private bool _useEnglishBannerFallback;
+
+    private string HeroBannerUrl => BannerDirectory + (_useEnglishBannerFallback
+        ? "criptoversus_banner_en.png"
+        : GetBannerFilename(CurrentCulture));
+
+    private static string GetBannerFilename(string? culture)
     {
-        "en" => "/img/tokenomics-hero-banner-en.png?a=66",
-        "zh" => "/img/tokenomics-hero-banner-zh.png?a=77",
-        _ => "/img/tokenomics-hero-banner.png?a=88"
-    };
+        var language = (culture ?? "en").Split('-', '_')[0].ToLowerInvariant();
+        return language switch
+        {
+            "pt" => "criptoversus_banner_pt-BR.png",
+            "es" => "criptoversus_banner_es-ES.png",
+            "fr" => "criptoversus_banner_fr-FR.png",
+            "de" => "criptoversus_banner_de-DE.png",
+            "it" => "criptoversus_banner_it-IT.png",
+            "ja" => "criptoversus_banner_ja-JP.png",
+            "zh" => "criptoversus_banner_zh-CN.png",
+            _ => "criptoversus_banner_en.png"
+        };
+    }
+
+    private void UseEnglishBannerFallback()
+    {
+        // Evita repetição infinita quando até o arquivo inglês estiver indisponível.
+        if (!_useEnglishBannerFallback && HeroBannerUrl != BannerDirectory + "criptoversus_banner_en.png")
+            _useEnglishBannerFallback = true;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    {
+        _useEnglishBannerFallback = false;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus how it works, #CriptoVersus rules, crypto scoring rules";
     private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, HeroBannerUrl);
@@ -369,6 +406,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Nav.LocationChanged += OnLocationChanged;
         try
         {
             _data = await Api.GetTokenomicsAsync();
@@ -551,10 +589,10 @@
         --tk-border: rgba(118, 131, 164, 0.18);
         --tk-text: #eef4ff;
         --tk-muted: #aab7cb;
-        --tk-left: #ff9100;
-        --tk-right: #18d8d2;
+        --tk-left: #C1F20F;
+        --tk-right: #185957;
         --tk-purple: var(--tk-left);
-        --tk-green: var(--tk-right);
+        --tk-green: var(--tk-left);
         --tk-cyan: var(--tk-right);
         --tk-gold: var(--tk-left);
         display: grid;
@@ -572,7 +610,7 @@
             position: absolute;
             inset: 0;
             pointer-events: none;
-            background: radial-gradient(circle at 8% 12%, rgba(255, 145, 0, 0.14), transparent 20%), radial-gradient(circle at 92% 16%, rgba(24, 216, 210, 0.10), transparent 24%);
+            background: radial-gradient(circle at 8% 12%, rgba(193, 242, 15, 0.14), transparent 20%), radial-gradient(circle at 92% 16%, rgba(24, 89, 87, 0.10), transparent 24%);
         }
 
     .tokenomics-hero {
@@ -587,8 +625,8 @@
         display: block;
         width: 100%;
         height: auto;
-        aspect-ratio: 923 / 321;
-        object-fit: cover;
+        aspect-ratio: 16 / 9;
+        object-fit: contain;
         background: #030507;
     }
 
@@ -599,7 +637,7 @@
         gap: 0;
         padding: 1.6rem 1.7rem;
         align-items: stretch;
-        background: radial-gradient(circle at 14% 18%, rgba(255, 145, 0, 0.22), transparent 24%), radial-gradient(circle at 84% 26%, rgba(24, 216, 210, 0.18), transparent 28%), linear-gradient(90deg, rgba(18, 9, 26, 0.97), rgba(4, 17, 14, 0.97)), #030507;
+        background: radial-gradient(circle at 14% 18%, rgba(193, 242, 15, 0.22), transparent 24%), radial-gradient(circle at 84% 26%, rgba(24, 89, 87, 0.18), transparent 28%), linear-gradient(90deg, rgba(18, 9, 26, 0.97), rgba(4, 17, 14, 0.97)), #030507;
     }
 
     .tokenomics-hero__pillar {
@@ -669,7 +707,7 @@
 
     .tokenomics-hero__pillar--tech strong,
     .tokenomics-hero__pillar--tech .tokenomics-hero__icon {
-        color: #38bdf8;
+        color: var(--tk-left);
     }
 
     .tokenomics-hero__pillar--ranking strong,
@@ -685,7 +723,7 @@
     .rule-panel span,
     .metrics-band span,
     .positions-band span {
-        color: var(--tk-right);
+        color: var(--tk-left);
         font-weight: 900;
         letter-spacing: .12em;
         text-transform: uppercase;
@@ -712,7 +750,7 @@
             position: absolute;
             inset: 0;
             pointer-events: none;
-            background: linear-gradient(135deg, rgba(255, 145, 0, 0.08), transparent 22%, transparent 72%, rgba(24, 216, 210, 0.07)), linear-gradient(90deg, rgba(255,255,255,0.02), transparent 18%, transparent 82%, rgba(255,255,255,0.02));
+            background: linear-gradient(135deg, rgba(193, 242, 15, 0.08), transparent 22%, transparent 72%, rgba(24, 89, 87, 0.07)), linear-gradient(90deg, rgba(255,255,255,0.02), transparent 18%, transparent 82%, rgba(255,255,255,0.02));
         }
 
     .metrics-band {
@@ -772,7 +810,7 @@
 
     .topic-callout {
         align-items: center;
-        background: radial-gradient(circle at top left, rgba(255, 145, 0, .16), transparent 34%), radial-gradient(circle at bottom right, rgba(24, 216, 210, .12), transparent 32%), linear-gradient(135deg, rgba(11, 18, 26, .96), rgba(14, 21, 31, .94));
+        background: radial-gradient(circle at top left, rgba(193, 242, 15, .16), transparent 34%), radial-gradient(circle at bottom right, rgba(24, 89, 87, .12), transparent 32%), linear-gradient(135deg, rgba(11, 18, 26, .96), rgba(14, 21, 31, .94));
         border: 1px solid rgba(116, 131, 164, .2);
         border-radius: 24px;
         display: grid;
@@ -799,7 +837,7 @@
 
     .topic-link {
         align-items: center;
-        background: linear-gradient(90deg, rgba(255, 145, 0, 0.94), rgba(24, 216, 210, 0.94));
+        background: linear-gradient(90deg, rgba(193, 242, 15, 0.94), rgba(24, 89, 87, 0.94));
         border-radius: 999px;
         color: #041018;
         display: inline-flex;
@@ -808,7 +846,7 @@
         padding: 0 1.15rem;
         text-decoration: none;
         white-space: nowrap;
-        box-shadow: 0 10px 24px rgba(24, 216, 210, 0.14);
+        box-shadow: 0 10px 24px rgba(193, 242, 15, 0.14);
     }
 
         .topic-link:hover {
@@ -911,7 +949,7 @@
         padding: 1rem;
         border: 1px solid rgba(118, 131, 164, 0.18);
         border-radius: 18px;
-        background: radial-gradient(circle at left center, rgba(255, 145, 0, 0.09), transparent 30%), radial-gradient(circle at right center, rgba(24, 216, 210, 0.08), transparent 34%), #101720;
+        background: radial-gradient(circle at left center, rgba(193, 242, 15, 0.07), transparent 30%), radial-gradient(circle at right center, rgba(24, 89, 87, 0.22), transparent 34%), #101720;
     }
 
     .settlement-chart__pie {
@@ -989,7 +1027,7 @@
         padding: 1.35rem 1.35rem 1.45rem;
         display: grid;
         gap: 1.15rem;
-        background: radial-gradient(circle at left top, rgba(255, 145, 0, 0.08), transparent 26%), radial-gradient(circle at right center, rgba(24, 216, 210, 0.08), transparent 30%), linear-gradient(180deg, rgba(9, 13, 20, 0.98), rgba(7, 10, 16, 0.99));
+        background: radial-gradient(circle at left top, rgba(193, 242, 15, 0.08), transparent 26%), radial-gradient(circle at right center, rgba(24, 89, 87, 0.08), transparent 30%), linear-gradient(180deg, rgba(9, 13, 20, 0.98), rgba(7, 10, 16, 0.99));
     }
 
     .positions-band__header {
@@ -1029,7 +1067,7 @@
                 position: absolute;
                 inset: 0;
                 pointer-events: none;
-                background: linear-gradient(90deg, rgba(255,255,255,0.03), transparent 24%, transparent 76%, rgba(76, 243, 141, 0.05));
+                background: linear-gradient(90deg, rgba(255,255,255,0.03), transparent 24%, transparent 76%, rgba(24, 89, 87, 0.05));
             }
 
     .position-list__rank {
@@ -1261,18 +1299,19 @@
         }
     }
 
-    /* CriptoVersus team color standard overrides */
+    /* CriptoVersus official palette: limão #C1F20F + verde #185957 */
     .tokenomics-page {
-        --tk-left: #ff9100;
-        --tk-right: #18d8d2;
+        --tk-left: #C1F20F;
+        --tk-right: #185957;
         --tk-purple: var(--tk-left);
-        --tk-green: var(--tk-right);
+        --tk-green: var(--tk-left);
         --tk-cyan: var(--tk-right);
         --tk-gold: var(--tk-left);
+        --tk-verde-border: rgba(24, 89, 87, 0.55);
     }
 
         .tokenomics-page::before {
-            background: radial-gradient(circle at 8% 12%, rgba(255, 145, 0, 0.16), transparent 22%), radial-gradient(circle at 92% 16%, rgba(24, 216, 210, 0.13), transparent 26%);
+            background: radial-gradient(circle at 8% 12%, rgba(193, 242, 15, 0.10), transparent 22%), radial-gradient(circle at 92% 16%, rgba(24, 89, 87, 0.24), transparent 26%);
         }
 
     .tokenomics-hero,
@@ -1281,7 +1320,7 @@
     .positions-band,
     .rule-alert,
     .topic-callout {
-        border-color: rgba(24, 216, 210, 0.18);
+        border-color: var(--tk-verde-border);
     }
 
         .metrics-band::before,
@@ -1289,33 +1328,30 @@
         .positions-band::before,
         .rule-alert::before,
         .topic-callout::before {
-            background: linear-gradient(135deg, rgba(255, 145, 0, 0.10), transparent 24%, transparent 72%, rgba(24, 216, 210, 0.09)), linear-gradient(90deg, rgba(255,255,255,0.02), transparent 18%, transparent 82%, rgba(255,255,255,0.02));
+            background: linear-gradient(135deg, rgba(193, 242, 15, 0.06), transparent 24%, transparent 72%, rgba(24, 89, 87, 0.16)), linear-gradient(90deg, rgba(255,255,255,0.02), transparent 18%, transparent 82%, rgba(255,255,255,0.02));
         }
 
         .metrics-band article:nth-child(odd),
         .semantic-band article:nth-child(odd),
         .rule-panel:nth-child(odd),
         .position-list article:nth-child(odd) {
-            border-color: rgba(255, 145, 0, 0.22);
-            box-shadow: inset 3px 0 0 rgba(255, 145, 0, 0.86), 0 24px 70px rgba(0,0,0,0.30);
+            border-color: rgba(193, 242, 15, 0.30);
+            box-shadow: inset 3px 0 0 rgba(193, 242, 15, 0.86), 0 24px 70px rgba(0,0,0,0.30);
         }
 
         .metrics-band article:nth-child(even),
         .semantic-band article:nth-child(even),
         .rule-panel:nth-child(even),
         .position-list article:nth-child(even) {
-            border-color: rgba(24, 216, 210, 0.22);
-            box-shadow: inset 3px 0 0 rgba(24, 216, 210, 0.86), 0 24px 70px rgba(0,0,0,0.30);
+            border-color: var(--tk-verde-border);
+            box-shadow: inset 3px 0 0 rgba(24, 89, 87, 0.95), 0 24px 70px rgba(0,0,0,0.30);
         }
 
         .metrics-band span,
         .rule-panel span,
         .positions-band span,
         .semantic-band span,
-        .positions-band__header span {
-            color: var(--tk-right);
-        }
-
+        .positions-band__header span,
         .metrics-band article:nth-child(odd) span,
         .rule-panel:nth-child(odd) > span,
         .semantic-band article:nth-child(odd) span,
@@ -1324,24 +1360,20 @@
         }
 
         .metrics-band strong,
+        .metrics-band article:nth-child(odd) strong,
         .position-list__body > span {
-            color: var(--tk-right);
-            text-shadow: 0 0 22px rgba(24, 216, 210, 0.18);
-        }
-
-        .metrics-band article:nth-child(odd) strong {
             color: var(--tk-left);
-            text-shadow: 0 0 22px rgba(255, 145, 0, 0.18);
+            text-shadow: 0 0 22px rgba(193, 242, 15, 0.16);
         }
 
     .topic-callout {
-        background: radial-gradient(circle at top left, rgba(255, 145, 0, .16), transparent 34%), radial-gradient(circle at bottom right, rgba(24, 216, 210, .12), transparent 32%), linear-gradient(135deg, rgba(11, 18, 26, .96), rgba(14, 21, 31, .94));
+        background: radial-gradient(circle at top left, rgba(193, 242, 15, .10), transparent 34%), radial-gradient(circle at bottom right, rgba(24, 89, 87, .30), transparent 36%), linear-gradient(135deg, rgba(11, 18, 26, .96), rgba(14, 21, 31, .94));
     }
 
     .topic-link {
-        background: linear-gradient(90deg, var(--tk-left), var(--tk-right));
-        color: #041018;
-        box-shadow: 0 10px 24px rgba(24, 216, 210, 0.14);
+        background: linear-gradient(90deg, #C1F20F, #a9d60d);
+        color: #0b1118;
+        box-shadow: 0 10px 24px rgba(193, 242, 15, 0.16);
     }
 
     .tokenomics-hero__pillar--combat strong,
@@ -1349,24 +1381,16 @@
     .tokenomics-hero__pillar--ranking strong,
     .tokenomics-hero__pillar--ranking .tokenomics-hero__icon,
     .tokenomics-hero__pillar--global strong,
-    .tokenomics-hero__pillar--global .tokenomics-hero__icon {
-        color: var(--tk-left);
-    }
-
+    .tokenomics-hero__pillar--global .tokenomics-hero__icon,
     .tokenomics-hero__pillar--strategy strong,
     .tokenomics-hero__pillar--strategy .tokenomics-hero__icon,
     .tokenomics-hero__pillar--tech strong,
     .tokenomics-hero__pillar--tech .tokenomics-hero__icon {
-        color: var(--tk-right);
-    }
-
-    .allocation-bar i,
-    .settlement-chart__target--refund {
-        border-color: rgba(24, 216, 210, 0.32);
+        color: var(--tk-left);
     }
 
     .allocation-bar i {
-        background: var(--tk-right);
+        background: #5eead4;
     }
 
     .allocation-bar b {
@@ -1378,18 +1402,19 @@
     }
 
     .settlement-chart__target--refund {
-        box-shadow: inset 3px 0 0 var(--tk-right);
+        border-color: rgba(94, 234, 212, 0.32);
+        box-shadow: inset 3px 0 0 #5eead4;
     }
 
     .settlement-chart__target--winners {
-        border-color: rgba(255, 145, 0, 0.30);
+        border-color: rgba(193, 242, 15, 0.32);
         box-shadow: inset 3px 0 0 var(--tk-left);
     }
 
     .position-list__rank {
-        background: linear-gradient(180deg, rgba(24, 216, 210, 0.14), rgba(24, 216, 210, 0.04));
-        border-color: rgba(24, 216, 210, 0.22);
-        color: var(--tk-right);
+        background: linear-gradient(180deg, rgba(24, 89, 87, 0.50), rgba(24, 89, 87, 0.20));
+        border-color: var(--tk-verde-border);
+        color: var(--tk-left);
     }
 
 </style>
