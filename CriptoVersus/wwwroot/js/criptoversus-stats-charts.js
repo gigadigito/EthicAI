@@ -94,9 +94,9 @@ window.criptoVersusStatsCharts = (() => {
             tooltip: {
                 trigger: "axis",
                 axisPointer: { type: "shadow" },
-                backgroundColor: "rgba(9, 14, 24, 0.96)",
-                borderColor: "rgba(127, 246, 223, 0.18)",
-                textStyle: { color: "#eef4ff" },
+                backgroundColor: "#171C26",
+                borderColor: "rgba(24, 89, 87, 0.9)",
+                textStyle: { color: "#F1F5F9" },
                 formatter: params => {
                     if (!params || !params.length) {
                         return "No data";
@@ -105,15 +105,15 @@ window.criptoVersusStatsCharts = (() => {
                     const point = params[0];
                     const source = rows[point.dataIndex];
                     const fullSymbol = source?.symbol || source?.displayName || point.name;
-                    return `${point.name}<br/><span style="color:#93a4bc">${fullSymbol}</span><br/>${Number(point.value ?? 0).toFixed(2)}%`;
+                    return `${point.name}<br/><span style="color:#94A3B8">${fullSymbol}</span><br/>${Number(point.value ?? 0).toFixed(2)}%`;
                 }
             },
             xAxis: {
                 type: "value",
                 min: 0,
                 max: 100,
-                axisLabel: { color: "#93a4bc", formatter: value => `${value}%` },
-                splitLine: { lineStyle: { color: "rgba(147, 163, 184, 0.12)" } }
+                axisLabel: { color: "#94A3B8", formatter: value => `${value}%` },
+                splitLine: { lineStyle: { color: "rgba(24, 89, 87, 0.45)" } }
             },
             yAxis: {
                 type: "category",
@@ -121,7 +121,7 @@ window.criptoVersusStatsCharts = (() => {
                 data: empty ? ["No data yet"] : categories,
                 axisTick: { show: false },
                 axisLine: { show: false },
-                axisLabel: { color: "#d9e6f7", fontWeight: 700 }
+                axisLabel: { color: "#F1F5F9", fontWeight: 700 }
             },
             series: [
                 {
@@ -130,16 +130,12 @@ window.criptoVersusStatsCharts = (() => {
                     barWidth: 18,
                     itemStyle: {
                         borderRadius: [0, 10, 10, 0],
-                        color: new window.echarts.graphic.LinearGradient(1, 0, 0, 0, [
-                            { offset: 0, color: "#7ff6df" },
-                            { offset: 0.45, color: "#4cf38d" },
-                            { offset: 1, color: "#4776ff" }
-                        ])
+                        color: "#C1F20F"
                     },
                     label: {
                         show: true,
                         position: "right",
-                        color: "#eef4ff",
+                        color: "#F1F5F9",
                         formatter: ({ value }) => `${Number(value ?? 0).toFixed(1)}%`
                     }
                 }
@@ -159,16 +155,16 @@ window.criptoVersusStatsCharts = (() => {
             grid: { left: 24, right: 18, top: 40, bottom: 34, containLabel: true },
             tooltip: {
                 trigger: "axis",
-                backgroundColor: "rgba(9, 14, 24, 0.96)",
-                borderColor: "rgba(83, 200, 255, 0.18)",
-                textStyle: { color: "#eef4ff" }
+                backgroundColor: "#171C26",
+                borderColor: "rgba(24, 89, 87, 0.9)",
+                textStyle: { color: "#F1F5F9" }
             },
             xAxis: {
                 type: "category",
                 boundaryGap: false,
                 data: empty ? ["No data yet"] : dates,
                 axisLabel: {
-                    color: "#93a4bc",
+                    color: "#94A3B8",
                     formatter: value => {
                         if (!value || value.length < 10) {
                             return value;
@@ -177,13 +173,13 @@ window.criptoVersusStatsCharts = (() => {
                         return `${value.slice(5, 7)}/${value.slice(8, 10)}`;
                     }
                 },
-                axisLine: { lineStyle: { color: "rgba(147, 163, 184, 0.12)" } }
+                axisLine: { lineStyle: { color: "rgba(24, 89, 87, 0.45)" } }
             },
             yAxis: {
                 type: "value",
                 minInterval: 1,
-                axisLabel: { color: "#93a4bc" },
-                splitLine: { lineStyle: { color: "rgba(147, 163, 184, 0.12)" } }
+                axisLabel: { color: "#94A3B8" },
+                splitLine: { lineStyle: { color: "rgba(24, 89, 87, 0.45)" } }
             },
             series: [
                 {
@@ -192,21 +188,16 @@ window.criptoVersusStatsCharts = (() => {
                     symbol: "circle",
                     symbolSize: empty ? 7 : 6,
                     data: empty ? [0] : values,
-                    lineStyle: { width: 3, color: "#53c8ff" },
+                    lineStyle: { width: 3, color: "#C1F20F" },
                     itemStyle: {
-                        color: "#7ff6df",
-                        borderColor: "#102133",
+                        color: "#C1F20F",
+                        borderColor: "#185957",
                         borderWidth: 2
                     },
                     emphasis: {
                         focus: "series"
                     },
-                    areaStyle: {
-                        color: new window.echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                            { offset: 0, color: "rgba(83, 200, 255, 0.36)" },
-                            { offset: 1, color: "rgba(83, 200, 255, 0.02)" }
-                        ])
-                    }
+                    areaStyle: { color: "rgba(24, 89, 87, 0.34)" }
                 }
             ]
         };

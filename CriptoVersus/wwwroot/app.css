@@ -258,6 +258,137 @@ a:hover,
     }
 }
 
+/* Public Token and Stats pages use the official CriptoVersus competition palette. */
+.stats-page.stats-page,
+.hub-page.hub-page,
+.teams-page.teams-page,
+.team-detail-page.team-detail-page {
+    --cv-bg: #171c26;
+    --cv-surface: #185957;
+    --cv-accent: #c1f20f;
+    --cv-text-primary: #f1f5f9;
+    --cv-text-secondary: #94a3b8;
+    color: var(--cv-text-primary);
+}
+
+.stats-page.stats-page,
+.hub-page.hub-page,
+.teams-page.teams-page,
+.team-detail-page.team-detail-page {
+    background: var(--cv-bg);
+}
+
+.stats-page .stats-hero,
+.stats-page .stats-search-shell,
+.stats-page .stats-feedback,
+.stats-page .stats-card,
+.stats-page .stats-trending-section,
+.stats-page .stats-chart-card,
+.stats-page .stats-table-section,
+.hub-page .hub-hero,
+.hub-page .hub-panel,
+.hub-page .hub-card,
+.hub-page .hub-feedback,
+.hub-page .hub-summary article,
+.hub-page .hub-record-card,
+.teams-page .teams-hero,
+.teams-page .teams-card,
+.teams-page .teams-search-shell,
+.teams-page .team-table-section,
+.teams-page .top-rivalries,
+.teams-page .team-card,
+.team-detail-page .team-detail-hero,
+.team-detail-page .team-detail-card,
+.team-detail-page .team-detail-stat-card,
+.team-detail-page .team-detail-chart-card,
+.team-detail-page .team-detail-table-section,
+.team-detail-page .team-detail-rivals-card {
+    background: var(--cv-bg);
+    border-color: rgba(24, 89, 87, .8);
+    box-shadow: none;
+}
+
+.stats-page .stats-hero__eyebrow,
+.stats-page .stats-section-head > div > span,
+.hub-page .hub-eyebrow,
+.hub-page .hub-section-head span,
+.hub-page .hub-record-card span,
+.teams-page .teams-hero__eyebrow,
+.teams-page .teams-section-head > div > span,
+.team-detail-page .team-detail-hero__eyebrow,
+.team-detail-page .team-detail-section-head > div > span {
+    color: var(--cv-accent);
+}
+
+.stats-page .stats-hero__lead,
+.stats-page .stats-hero__seo-copy,
+.stats-page .stats-section-head p,
+.stats-page .stats-card small,
+.stats-page .stats-table__muted,
+.hub-page .hub-hero p,
+.hub-page .hub-section-head p,
+.hub-page .hub-feedback p,
+.hub-page .hub-summary span,
+.teams-page .teams-hero__seo-copy,
+.teams-page .teams-section-head p,
+.teams-page .teams-card small,
+.team-detail-page .team-detail-hero__lead,
+.team-detail-page .team-detail-hero__seo-copy,
+.team-detail-page .team-detail-muted {
+    color: var(--cv-text-secondary);
+}
+
+.stats-page .stats-pill-link,
+.stats-page .stats-search-input,
+.stats-page .stats-search-clear,
+.stats-page .stats-ranking-pagination__button,
+.stats-page .stats-ranking-pagination__select,
+.hub-page .hub-pill,
+.hub-page .hub-input-group input,
+.teams-page .teams-pill-link,
+.teams-page .teams-search-input,
+.team-detail-page .team-detail-pill-link,
+.team-detail-page .team-detail-invest-button,
+.team-detail-page .team-detail-amount-chip {
+    background: rgba(24, 89, 87, .28);
+    border-color: rgba(24, 89, 87, .88);
+    color: var(--cv-text-primary);
+    box-shadow: none;
+}
+
+.stats-page .stats-pill-link--accent,
+.hub-page .hub-pill--accent,
+.teams-page .teams-pill-link--accent,
+.team-detail-page .team-detail-pill-link--accent,
+.team-detail-page .team-detail-invest-button--primary {
+    background: var(--cv-accent);
+    border-color: var(--cv-accent);
+    color: var(--cv-bg);
+}
+
+.stats-page :is(a, button, input, select):focus-visible,
+.hub-page :is(a, button, input):focus-visible,
+.teams-page :is(a, button, input):focus-visible,
+.team-detail-page :is(a, button, input, select):focus-visible {
+    outline: 3px solid var(--cv-accent);
+    outline-offset: 3px;
+}
+
+.stats-page .stats-table thead th,
+.hub-page .hub-table thead th,
+.teams-page .team-table thead th,
+.team-detail-page .team-detail-table thead th {
+    background: #171c26;
+    color: var(--cv-text-primary);
+}
+
+.stats-page .stats-table tbody tr:hover,
+.hub-page .hub-table tbody tr:hover,
+.teams-page .team-table tbody tr:hover,
+.team-detail-page .team-detail-table tbody tr:hover {
+    background: rgba(24, 89, 87, .22);
+}
+
 #components-reconnect-modal {
     position: fixed;
     inset: 0;

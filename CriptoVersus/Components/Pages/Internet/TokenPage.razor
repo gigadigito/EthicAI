@@ -246,10 +246,15 @@
 
 <style>
     .token-arena-page {
-        --team-a-color: #ff9100;
-        --team-a-rgb: 255, 145, 0;
-        --team-b-color: #18d8d2;
-        --team-b-rgb: 24, 216, 210;
+        --team-a-color: #c1f20f;
+        --team-a-rgb: 193, 242, 15;
+        --team-b-color: #185957;
+        --team-b-rgb: 24, 89, 87;
+        --cv-bg: #171c26;
+        --cv-surface: #185957;
+        --cv-accent: #c1f20f;
+        --cv-text-primary: #f1f5f9;
+        --cv-text-secondary: #94a3b8;
         width: 100%;
         max-width: min(1880px, calc(100vw - 24px));
         margin-inline: auto;
@@ -257,7 +262,7 @@
         position: relative;
         overflow: hidden;
         min-height: calc(100vh - 5rem);
-        background: radial-gradient(circle at top left, rgba(var(--team-a-rgb), 0.20), transparent 28%), radial-gradient(circle at top right, rgba(var(--team-b-rgb), 0.18), transparent 32%), linear-gradient(180deg, #050811 0%, #070d17 35%, #040812 100%);
+        background: var(--cv-bg);
     }
 
     .token-arena-page__backdrop {
@@ -398,29 +403,29 @@
         }
 
     .token-arena-button--primary {
-        color: #160900;
+        color: #171c26;
         border-color: rgba(var(--team-a-rgb), 0.72);
-        background: radial-gradient(circle at 20% 20%, rgba(255,255,255,.32), transparent 34%), linear-gradient(135deg, #ffb347 0%, var(--team-a-color) 48%, #ff6b00 100%);
-        box-shadow: 0 14px 30px rgba(var(--team-a-rgb), 0.28), inset 0 1px 0 rgba(255,255,255,.24);
+        background: var(--cv-accent);
+        box-shadow: none;
     }
 
         .token-arena-button--primary:hover:not(:disabled),
         .token-arena-button--primary:focus-visible {
-            color: #160900;
+            color: #171c26;
             border-color: rgba(var(--team-a-rgb), 0.88);
             box-shadow: 0 18px 38px rgba(var(--team-a-rgb), 0.34), 0 0 0 1px rgba(var(--team-a-rgb), 0.28), inset 0 1px 0 rgba(255,255,255,.28);
         }
 
     .token-arena-button--ghost {
-        color: #001414;
+        color: #f1f5f9;
         border-color: rgba(var(--team-b-rgb), 0.72);
-        background: radial-gradient(circle at 20% 20%, rgba(255,255,255,.32), transparent 34%), linear-gradient(135deg, #7ffaf6 0%, var(--team-b-color) 52%, #0ea5a4 100%);
-        box-shadow: 0 14px 30px rgba(var(--team-b-rgb), 0.24), inset 0 1px 0 rgba(255,255,255,.24);
+        background: var(--cv-surface);
+        box-shadow: none;
     }
 
         .token-arena-button--ghost:hover:not(:disabled),
         .token-arena-button--ghost:focus-visible {
-            color: #001414;
+            color: #f1f5f9;
             border-color: rgba(var(--team-b-rgb), 0.88);
             box-shadow: 0 18px 38px rgba(var(--team-b-rgb), 0.32), 0 0 0 1px rgba(var(--team-b-rgb), 0.28), inset 0 1px 0 rgba(255,255,255,.28);
         }
@@ -546,7 +551,7 @@
 
     .token-arena-market-status--fallback {
         border-color: rgba(var(--team-a-rgb), 0.22);
-        background: linear-gradient(135deg, rgba(var(--team-a-rgb), 0.08), rgba(255, 110, 74, 0.04));
+        background: rgba(var(--team-a-rgb), 0.08);
     }
 
     .token-arena-market-status--error {
@@ -563,7 +568,7 @@
         border-radius: 999px;
         border: 1px solid rgba(var(--team-a-rgb), 0.28);
         background: rgba(var(--team-a-rgb), 0.10);
-        color: #ffd597;
+        color: var(--cv-accent);
         font-size: 0.8rem;
         font-weight: 700;
         letter-spacing: 0.03em;
@@ -615,7 +620,7 @@
         align-content: start;
         gap: 0.9rem;
         padding: 1rem;
-        background: linear-gradient(160deg, rgba(36, 20, 5, 0.92), rgba(8, 22, 24, 0.96)), linear-gradient(135deg, rgba(var(--team-a-rgb), 0.18), rgba(var(--team-b-rgb), 0.14));
+        background: var(--cv-bg);
         border-color: rgba(var(--team-a-rgb), 0.24);
         box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset, 0 18px 40px rgba(0, 0, 0, 0.28), 0 0 40px rgba(var(--team-a-rgb), 0.08);
     }
@@ -764,7 +769,7 @@
     }
 
         .token-arena-notice strong {
-            color: #ffbd5a;
+            color: var(--cv-accent);
         }
 
         .token-arena-notice p {
@@ -860,6 +865,87 @@
         .token-arena-visual {
             min-height: 250px;
         }
+    }
+
+    /* Official token arena surface: calm, high-contrast, and asset-neutral. */
+    .token-arena-card,
+    .token-arena-visual,
+    .token-arena-visual__frame,
+    .token-arena-qr,
+    .token-arena-notice {
+        background: var(--cv-bg);
+        border-color: rgba(var(--team-b-rgb), .72);
+        box-shadow: none;
+    }
+
+    .token-arena-card::before,
+    .token-arena-visual__frame-glow,
+    .token-arena-visual__overlay,
+    .token-arena-page__backdrop {
+        display: none;
+    }
+
+    .token-arena-hero h1,
+    .token-arena-card h3,
+    .token-arena-contract__address,
+    .token-arena-button--outline {
+        color: var(--cv-text-primary);
+    }
+
+    .token-arena-hero h2,
+    .token-arena-eyebrow,
+    .token-arena-kicker,
+    .token-arena-notice strong {
+        color: var(--cv-accent);
+    }
+
+    .token-arena-hero p,
+    .token-arena-body,
+    .token-arena-list p,
+    .token-arena-notice p,
+    .token-arena-qr__copy,
+    .token-arena-contract__meta span {
+        color: var(--cv-text-secondary);
+    }
+
+    .token-arena-button--primary {
+        color: var(--cv-bg);
+        border-color: var(--cv-accent);
+        background: var(--cv-accent);
+    }
+
+    .token-arena-button--ghost,
+    .token-arena-button--outline {
+        color: var(--cv-text-primary);
+        border-color: rgba(var(--team-b-rgb), .88);
+        background: rgba(var(--team-b-rgb), .28);
+    }
+
+    .token-arena-button:hover:not(:disabled) {
+        filter: brightness(.92);
+        box-shadow: none;
+    }
+
+    .token-arena-button:focus-visible {
+        outline: 3px solid var(--cv-accent);
+        outline-offset: 3px;
+        box-shadow: none;
+    }
+
+    .token-arena-button:disabled {
+        background: rgba(var(--team-b-rgb), .24);
+        border-color: rgba(var(--team-b-rgb), .45);
+        color: var(--cv-text-secondary);
+        opacity: 1;
+    }
+
+    .token-arena-visual__image {
+        filter: none;
+    }
+
+    .token-arena-qr__code-shell {
+        background: #fff;
+        box-shadow: none;
     }
 </style>
 

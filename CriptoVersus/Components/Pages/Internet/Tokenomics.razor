@@ -624,10 +624,10 @@
     .tokenomics-hero__banner {
         display: block;
         width: 100%;
-        height: auto;
-        aspect-ratio: 16 / 9;
+        height: clamp(180px, 24vw, 340px);
         object-fit: contain;
-        background: #030507;
+        object-position: center;
+        background: #171C26;
     }
 
     .tokenomics-hero__board {
@@ -1189,6 +1189,10 @@
 
         .tokenomics-hero {
             border-radius: 22px;
+        }
+
+        .tokenomics-hero__banner {
+            height: clamp(130px, 35vw, 220px);
         }
 
         .tokenomics-hero__board {
