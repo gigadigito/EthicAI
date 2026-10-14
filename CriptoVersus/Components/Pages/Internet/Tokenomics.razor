@@ -614,18 +614,21 @@
         }
 
     .tokenomics-hero {
+        width: 100%;
+        min-width: 0;
         min-height: 0;
         border: 1px solid var(--tk-border);
         border-radius: 28px;
         overflow: hidden;
-        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255,255,255,0.05);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.42);
     }
 
     .tokenomics-hero__banner {
         display: block;
         width: 100%;
-        height: clamp(180px, 24vw, 340px);
-        object-fit: contain;
+        height: auto;
+        max-height: 850px;
+        object-fit: cover;
         object-position: center;
         background: #171C26;
     }
