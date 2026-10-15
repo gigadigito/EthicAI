@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="wwwroot\js\candle-battles\tests\**" />
     <Content Remove="wwwroot\js\dashboard\index.ts" />
     <Content Remove="wwwroot\js\dashboard\workerHealth.ts" />
     <Content Remove="wwwroot\js\dashboard\workerStatus.ts" />

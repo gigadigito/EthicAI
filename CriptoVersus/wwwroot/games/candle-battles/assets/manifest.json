@@ -1,0 +1,32 @@
+{
+  "atlas": "modular.json",
+  "texture": "modular.png",
+  "audio": [
+    "audio/music/music_menu_loop_132bpm.wav",
+    "audio/music/music_arena_loop_132bpm.wav",
+    "audio/sfx/sfx_score_point.wav",
+    "audio/sfx/sfx_data_tick.wav",
+    "audio/sfx/sfx_combo.wav",
+    "audio/sfx/sfx_dash.wav",
+    "audio/sfx/sfx_block_fall.wav",
+    "audio/sfx/sfx_sell_red.wav",
+    "audio/sfx/sfx_menu_select.wav",
+    "audio/sfx/sfx_block_lock.wav",
+    "audio/sfx/sfx_candle_spawn.wav",
+    "audio/sfx/sfx_big_win.wav",
+    "audio/sfx/sfx_line_complete.wav",
+    "audio/sfx/sfx_buy_green.wav",
+    "audio/sfx/sfx_candle_destroy.wav",
+    "audio/sfx/sfx_draw.wav",
+    "audio/sfx/sfx_punch_impact.wav",
+    "audio/sfx/sfx_pause.wav"
+  ],
+  "sourceSha256": "ee61657b6a485653d85153689914448d7cd0ff3e5356eeb843f2d0b3e9a8ea78",
+  "poses": {
+    "run": 8,
+    "punch": 6,
+    "break": 8,
+    "recover": 3
+  },
+  "notes": "Fixed-size face ink extracted from approved base sheet. Articulated limbs redrawn from approved poses. Body and wicks are financial geometry."
+}

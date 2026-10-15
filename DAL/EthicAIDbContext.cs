@@ -48,6 +48,30 @@ namespace EthicAI.EntityModel
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<CandleBattlesRound>(e =>
+            {
+                e.ToTable("candle_battles_round", t => t.HasCheckConstraint("CK_candle_battles_winner", "\"Winner\" IN ('left', 'right', 'draw')"));
+                e.HasKey(x => new { x.MatchId, x.OpenTimeUtc });
+                e.Property(x => x.LeftCandleJson).HasColumnType("jsonb");
+                e.Property(x => x.RightCandleJson).HasColumnType("jsonb");
+                e.Property(x => x.LeftStrength).HasPrecision(18, 10);
+                e.Property(x => x.RightStrength).HasPrecision(18, 10);
+                e.Property(x => x.Winner).HasMaxLength(5);
+                e.Property(x => x.RuleVersion).HasMaxLength(80);
+                e.HasOne<Match>().WithMany().HasForeignKey(x => x.MatchId).OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<CandleBattlesState>(e =>
+            {
+                e.ToTable("candle_battles_state");
+                e.HasKey(x => x.MatchId);
+                e.Property(x => x.MatchId).ValueGeneratedNever();
+                e.Property(x => x.LeftFormingJson).HasColumnType("jsonb");
+                e.Property(x => x.RightFormingJson).HasColumnType("jsonb");
+                e.Property(x => x.Status).HasMaxLength(32);
+                e.HasIndex(x => new { x.Complete, x.MatchId });
+                e.HasOne<Match>().WithMany().HasForeignKey(x => x.MatchId).OnDelete(DeleteBehavior.Restrict);
+            });
+
             modelBuilder.Entity<WorkerStatus>(entity =>
             {
                 entity.HasKey(e => e.WorkerName);

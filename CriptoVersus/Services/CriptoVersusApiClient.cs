@@ -105,6 +105,10 @@ public sealed class CriptoVersusApiClient
             $"api/Matches/{matchId}?includeParticipants={includeParticipants.ToString().ToLowerInvariant()}",
             ct);
 
+    public Task<CandleBattlesFeedDto?> GetCandleBattlesAsync(int matchId, long? after = null, CancellationToken ct = default)
+        => GetFromJsonWithBearerAsync<CandleBattlesFeedDto>($"api/matches/{matchId}/candle-battles?take=200" +
+            (after.HasValue ? $"&after={after.Value}" : string.Empty), ct);
+
     public async Task<List<MatchMetricSnapshotDto>?> GetMatchMetricSnapshotsAsync(
         int matchId,
         int take = 500,

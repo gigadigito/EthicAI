@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Candle Battles visual fixtures</title><style>body{margin:0;background:#101722;color:#fff;font-family:system-ui}#arena{width:100%;aspect-ratio:8/5}canvas{display:block}button{padding:12px;background:#243040;color:white;border:1px solid #a9d33c}</style></head><body><div id="arena"></div><script type="module">
+import * as Phaser from '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
+import { CandleRenderer } from '/js/dist/candle-battles/renderer.js';
+import { demoRound } from '/js/dist/candle-battles/model.js';
+const kind=new URLSearchParams(location.search).get('kind');
+if(kind==='game'||kind==='live') {
+ const {create}=await import('/js/dist/candle-battles/game.js');
+ window.engine=await create(document.querySelector('#arena'),{mode:kind==='live'?'live':'demo',reducedMotion:true,labels:{forming:'FORMING CANDLE',nextStrength:'NEXT STRENGTH',arcade:'INDEPENDENT ARCADE SCORE',recent:'RECENT BATTLES',lines:'LINES',page:'PAGE',territory:'TERRITORY CONTROL',strength:'STRENGTH',waiting:'WAITING FOR MARKET',draw:'DRAW'}});
+ window.ready=true;
+} else {
+ const configs=[['SMALL',100.05,103,98,5],['MEDIUM',103,104,99,6],['LARGE',108,109,97,10],['DOJI',100,107,93,10],['EXTREME WICKS',100.15,130,75,35]];
+ window.fighters=[];
+ class Gallery extends Phaser.Scene {
+ preload(){this.load.atlas('modular','/games/candle-battles/assets/modular.png','/games/candle-battles/assets/modular.json');}
+ create(){
+ this.add.text(26,24,'MODULAR OHLC · FIXED FACE & LIMBS',{fontFamily:'system-ui',fontSize:26,color:'#f3f5f7'});
+ for(let row=0;row<2;row++)for(let col=0;col<configs.length;col++){
+ const [name,close,high,low,range]=configs[col],side=row===0?'left':'right',x=128+col*245,y=115+row*330;
+ this.add.text(x,y,name,{fontFamily:'system-ui',fontSize:16,color:'#94a3b8'}).setOrigin(.5);
+ this.add.text(x,y+25,side==='left'?'LIME · BUY':'TEAL · SELL',{fontFamily:'system-ui',fontSize:12,color:'#94a3b8'}).setOrigin(.5);
+ const fighter=new CandleRenderer(this,side,x,y+60);
+ const c={...demoRound(0).left,open:100,close:row===0?close:200-close,high:row===0?high:200-low,low:row===0?low:200-high};
+ fighter.setReducedMotion(true);fighter.setCandle(c,range,true);fighter.update(0,240);
+ window.fighters.push({fighter,c,range});
+ }
+ window.ready=true;
+ }
+ }
+ window.gallery=new Phaser.Game({type:Phaser.CANVAS,parent:'arena',width:1280,height:800,backgroundColor:'#101722',scene:Gallery,banner:false,audio:{noAudio:true},render:{antialias:true},scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH}});
+ window.reverse=()=>{for(const item of window.fighters){item.c={...item.c,close:200-item.c.close,high:Math.max(item.c.high,200-item.c.low),low:Math.min(item.c.low,200-item.c.high),updatedAt:item.c.updatedAt+1};item.fighter.setCandle(item.c,item.range);item.fighter.update(0,240);}};
+}
+</script></body></html>

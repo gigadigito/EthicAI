@@ -34,6 +34,7 @@
            href="@RouteLocalization.BuildTvMatchPath(NormalizedCulture, MatchId, Slug)">
             @L.T("candleBattleV2.watchOnTv", NormalizedCulture)
         </a>
+        <a class="candle-v2-page__journey-link" href="@RouteLocalization.BuildCandleBattlesPath(NormalizedCulture, MatchId, Slug)">Candle Battles · @L.T("candleBattles.arcade", NormalizedCulture)</a>
     </nav>
     <CandleBattleV2 MatchId="@MatchId" Culture="@NormalizedCulture" />
 </main>

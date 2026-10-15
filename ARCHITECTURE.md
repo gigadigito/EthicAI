@@ -129,6 +129,7 @@ flowchart TD
     WorkerTests --> Worker
     WorkerTests --> API
     WorkerTests --> DAL
+    WorkerTests --> DTOs
     Integration --> DTOs
     ApiTests --> API
     ApiTests --> Web
@@ -146,7 +147,7 @@ flowchart TD
 | CriptoVersus.Worker | BLL, DAL, DTOs | `CriptoVersus.Worker/CriptoVersus.Worker.csproj` |
 | EthicAI | BLL, DAL | `EthicAI/EthicAI.csproj` |
 | EthicAI.test | BLL, Web, API, DAL, DTOs | `EthicAI.test/EthicAI.test.csproj` |
-| Worker.Tests | Worker, API, DAL; DTOs by binary hint path | `CriptoVersus.Worker.Tests/CriptoVersus.Worker.Tests.csproj` |
+| Worker.Tests | Worker, API, DAL, DTOs | `CriptoVersus.Worker.Tests/CriptoVersus.Worker.Tests.csproj` |
 | Integration Tests | DTOs | `CriptoVersus.Tests.Integration/CriptoVersus.Tests.Integration.csproj` |
 | API.Tests | API, Web, DAL, DTOs | `CriptoVersus.API.Tests/CriptoVersus.API.Tests.csproj` |
 | MCP | npm dependencies only | `CriptoVersus.Mcp/package.json` |
@@ -536,6 +537,17 @@ V2 obtains prices and forming-candle input from `MatchMetricSnapshotDto`, logos 
 
 The Web visualization must not be treated as the authoritative scoring engine. The `tvCandleBattleEngine.mjs`, `tvCandleBattleHud.mjs`, and `tvCandleBattleMarkers.mjs` modules exist, but no active import path was verified for the current Razor implementation.
 
+
+### Candle Battles arcade (independent 5M competition)
+
+The additive arcade route is /{culture}/tv/candle/{matchId}/{slug}, with an API-free demo at /{culture}/games/candle-battles/demo. Existing TV and V2 routes remain available. CandleBattlesHost uses the existing DashboardHubClient invalidation and server-side CriptoVersusApiClient, then sends a dedicated DTO feed to the local Phaser 3.90.0 engine. There is no browser market connection or new Web-to-DAL access.
+
+The Worker appends the candle-battles-arcade stage after its existing stages. CandleBattlesRoundService uses an isolated scope, touches heartbeat between matches, and obtains actual exchange OHLCV through BinanceKlineClient. That client also owns the existing volume-window kline transport. Both closed 5M intervals and twenty contiguous prior candles are validated against exchange server time. CandleBattlesResolver owns a separately versioned 45/25/20/10 strength formula; it never writes the financial match score, dominance state, ledger or settlement records.
+
+Migration 20261015000000_AddCandleBattlesArcade adds candle_battles_round and candle_battles_state. Worker is the sole writer. A (MatchId, OpenTimeUtc) primary key plus per-match transaction advisory lock makes round insertion and durable cursor advancement atomic. API and Worker retain their existing migration-startup ownership. GET /api/matches/{matchId}/candle-battles exposes paginated immutable rounds, forming OHLCV, provisional strength, arcade score and failure/staleness status. Replay and reconnection reconstruct points and territory only from these rounds.
+
+The TypeScript renderer draws financial body/wicks and keeps fixed-size face/limb accessories separate from decorative motion. A snapshot for an active battle is immutable while the independent heartbeat receives the next candle. Audio, resize and browser listeners are instance-owned and disposed. The build emits versioned local Phaser and native ESM modules; generated JS is not hand-edited. User-supplied source art stays outside wwwroot, and visual-test fixtures are excluded from publication. See docs/candle-battles.md for formula parameters, schema ownership, asset preparation and verification limits.
+
 ## MCP Flow
 
 ```mermaid
@@ -593,7 +605,7 @@ MCP wallet authentication does not require a Solana RPC call.
 4. API knows Web public route shapes when generating links.
 5. Web uses BLL investment policy types, weakening the API boundary.
 6. API uses some Solnet types through transitive BLL dependencies instead of explicit package references.
-7. Test projects rely on transitive references, linked production files, and a binary DTO hint path.
+7. Some test projects still rely on transitive references and linked production files; Worker tests now reference DTOs directly.
 8. API includes an old explicit SignalR server package while targeting .NET 8.
 
 ### Operational
@@ -623,7 +635,7 @@ MCP wallet authentication does not require a Solana RPC call.
 ### Phase 1: Stabilize Contracts
 
 1. Add `CriptoVersus.API.Tests` to the solution and make all test dependencies explicit.
-2. Replace the Worker test DTO binary hint path with a project reference.
+2. Worker tests now reference the DTO project directly; retain this source dependency for reproducible isolated builds.
 3. Decide whether to implement or remove the three unavailable MCP endpoints/tools.
 4. Introduce constants or typed contracts for SignalR event names and payloads.
 5. Add service-to-service authentication for Worker notification and audio calls.

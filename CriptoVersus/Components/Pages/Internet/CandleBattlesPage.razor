@@ -1,0 +1,30 @@
+@page "/{Culture}/tv/candle/{MatchId:int}/{Slug}"
+@page "/{Culture}/games/candle-battles/demo"
+@rendermode InteractiveServer
+@using CriptoVersus.Web.Services
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject RouteLocalizationService Routes
+@inject IConfiguration Config
+
+<PageTitle>Candle Battles · CriptoVersus</PageTitle>
+<HeadContent><meta name="description" content="@L.T("candleBattles.independent", Language)" /><link rel="canonical" href="@Canonical" /></HeadContent>
+<main style="max-width:1440px;margin:16px auto;padding:0 12px">
+    <nav style="display:flex;gap:16px;margin-bottom:12px">
+        @if (MatchId > 0)
+        {
+            <a href="@Routes.BuildCandleBattleV2Path(Language, MatchId, Slug)">@L.T("candleBattles.classic", Language)</a>
+            <a href="@Routes.BuildTvMatchPath(Language, MatchId, Slug)">@L.T("candleBattleV2.watchOnTv", Language)</a>
+        }
+        <a href="@Routes.BuildCandleBattlesDemoPath(Language)">DEMO</a>
+    </nav>
+    <CandleBattlesHost @key="MatchId" MatchId="MatchId" Culture="@Language" />
+</main>
+@code {
+    [Parameter] public string Culture { get; set; } = "en";
+    [Parameter] public int MatchId { get; set; }
+    [Parameter] public string Slug { get; set; } = string.Empty;
+    private string Language => AppCulture.NormalizeRouteCulture(Culture);
+    private string Canonical => SeoDefaults.BuildPublicAbsoluteUrl(Config, MatchId > 0
+        ? Routes.BuildCandleBattlesPath(Language, MatchId, Slug) : Routes.BuildCandleBattlesDemoPath(Language));
+}

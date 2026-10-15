@@ -134,6 +134,12 @@ public sealed class RouteLocalizationService
     public string BuildCandleBattleV2Path(string? culture, int id, string slug)
         => $"/{NormalizeCulture(culture)}/candle/{id}/{NormalizeRouteSegment(slug)}";
 
+    public string BuildCandleBattlesPath(string? culture, int id, string slug)
+        => $"{BuildTvPath(culture)}/candle/{id}/{NormalizeRouteSegment(slug)}";
+
+    public string BuildCandleBattlesDemoPath(string? culture)
+        => $"/{NormalizeCulture(culture)}/games/candle-battles/demo";
+
     public string BuildLegacyTvPath()
         => "/tv";
 
@@ -274,6 +280,7 @@ public sealed class RouteLocalizationService
                 case "stats/rankings": return BuildStatsRankingsPath(normalizedTarget) + querySuffix;
                 case "stats/records": return BuildStatsRecordsPath(normalizedTarget) + querySuffix;
                 case "token": return BuildTokenPath(normalizedTarget) + querySuffix;
+                case "games/candle-battles/demo": return BuildCandleBattlesDemoPath(normalizedTarget) + querySuffix;
                 case "tv": return BuildTvPath(normalizedTarget) + querySuffix;
                 case "tv/broadcast": return BuildTvBroadcastPath(normalizedTarget) + querySuffix;
             }
@@ -315,6 +322,10 @@ public sealed class RouteLocalizationService
         {
             return BuildTvMatchPath(normalizedTarget, localizedTvMatchId, segments[4]) + querySuffix;
         }
+
+        if (segments.Length == 5 && segments[1].Equals("tv", StringComparison.OrdinalIgnoreCase)
+            && segments[2].Equals("candle", StringComparison.OrdinalIgnoreCase) && int.TryParse(segments[3], out var arcadeId))
+            return BuildCandleBattlesPath(normalizedTarget, arcadeId, segments[4]) + querySuffix;
 
         if (segments.Length >= 4
             && segments[1].Equals("candle", StringComparison.OrdinalIgnoreCase)

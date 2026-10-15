@@ -49,6 +49,10 @@
 </HeadContent>
 
 <main class="tv-match-page">
+    @if (_match is not null)
+    {
+        <a href="@RouteLocalization.BuildCandleBattlesPath(_culture, MatchId, Slug ?? string.Empty)">Candle Battles · @L.T("candleBattles.arcade", _culture)</a>
+    }
     <div class="tv-match-page__context" aria-hidden="@(_loadState != TvMatchPageLoadState.Loaded)">
         @if (_match is not null)
         {

@@ -2810,6 +2810,39 @@
     "watchOnTv": "在 TV 观看",
     "seoTitle": "K线对战 V2 | CriptoVersus",
     "seoDescription": "在实时竞技K线赛场中观看官方加密资产比赛积分变成方块。"
+  },
+  "candleBattles": {
+    "crushing": "压倒性胜利",
+    "nextStrength": "下一轮力量",
+    "arcade": "街机竞赛",
+    "start": "开始",
+    "pause": "暂停 / 继续",
+    "restart": "重新开始",
+    "replay": "回放",
+    "speed": "速度",
+    "sound": "开启 / 关闭声音",
+    "fullscreen": "全屏",
+    "volume": "总音量",
+    "music": "音乐",
+    "effects": "音效",
+    "arena": "Candle Battles 竞技场",
+    "demo": "演示 · 模拟市场数据",
+    "independent": "独立街机比分 · 不影响金融结果",
+    "retry": "重试",
+    "error": "无法更新，正在重试…",
+    "polling": "通过定期刷新获取实时数据",
+    "forming": "蜡烛形成中 · 等待确认收盘",
+    "waiting": "等待双方5分钟蜡烛确认收盘",
+    "finished": "已结束",
+    "recent": "最近对战",
+    "lines": "完成行数",
+    "page": "页",
+    "territory": "领地控制",
+    "draw": "平局",
+    "strength": "力量",
+    "combo": "连击！",
+    "domination": "统治！",
+    "comeback": "逆转！",
+    "classic": "经典视图"
   }
- }
-
+}

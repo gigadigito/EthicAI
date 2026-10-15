@@ -252,6 +252,12 @@ namespace CriptoVersus.Worker
             await ExecuteStageAsync("materialize-recurring-bets", cycleStartUtc, true, innerCt => MaterializeRecurringPositionBetsAsync(db, positionService, nowUtc, innerCt), ct);
 
             await ExecuteStageAsync("log-pool-status", cycleStartUtc, true, innerCt => LogPoolStatusAsync(db, nowUtc, innerCt), ct);
+            await ExecuteStageAsync("candle-battles-arcade", cycleStartUtc, true, async innerCt =>
+            {
+                using var arcadeScope = _sp.CreateScope();
+                await arcadeScope.ServiceProvider.GetRequiredService<CandleBattlesRoundService>().ProcessAsync(
+                    nowUtc, token => TouchHeartbeatAsync(cycleStartUtc, "running", "candle-battles-arcade", token), innerCt);
+            }, ct);
         }
 
         private async Task<BinanceMarketSnapshot> LoadMarketSnapshotAsync(HttpClient http, CancellationToken ct)
@@ -2161,20 +2167,15 @@ namespace CriptoVersus.Worker
         {
             var startMs = new DateTimeOffset(windowStartUtc).ToUnixTimeMilliseconds();
             var endMs = new DateTimeOffset(windowEndUtc).ToUnixTimeMilliseconds();
-            var url = $"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={windowMinutes}m&startTime={startMs}&endTime={endMs}&limit=1";
-            using var response = await client.GetAsync(url, ct);
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                _logger.LogWarning("?? Falha ao carregar kline {symbol} {start}->{end}: HTTP {statusCode}", symbol, windowStartUtc, windowEndUtc, (int)response.StatusCode);
+                return await new BinanceKlineClient(client).GetQuoteVolumeAsync(symbol, windowMinutes, startMs, endMs, ct);
+            }
+            catch (HttpRequestException)
+            {
+                _logger.LogWarning("Volume kline unavailable for {Symbol}", symbol);
                 return null;
             }
-
-            var payload = await response.Content.ReadFromJsonAsync<List<List<JsonElement>>>(cancellationToken: ct);
-            if (payload is null || payload.Count == 0 || payload[0].Count < 8)
-                return null;
-
-            return ParseDecimal(payload[0][7].GetString());
         }
 
         private static DateTime AlignToWindow(DateTime utc, int windowMinutes)

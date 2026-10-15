@@ -23,6 +23,35 @@ namespace DAL.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("DAL.NftFutebol.CandleBattlesRound", b =>
+            {
+                b.Property<int>("MatchId").HasColumnType("integer");
+                b.Property<DateTime>("OpenTimeUtc").HasColumnType("timestamp with time zone");
+                b.Property<string>("LeftCandleJson").IsRequired().HasColumnType("jsonb");
+                b.Property<string>("RightCandleJson").IsRequired().HasColumnType("jsonb");
+                b.Property<decimal>("LeftStrength").HasPrecision(18, 10).HasColumnType("numeric(18,10)");
+                b.Property<decimal>("RightStrength").HasPrecision(18, 10).HasColumnType("numeric(18,10)");
+                b.Property<string>("Winner").IsRequired().HasMaxLength(5).HasColumnType("character varying(5)");
+                b.Property<string>("RuleVersion").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)");
+                b.Property<DateTime>("ConfirmedAtUtc").HasColumnType("timestamp with time zone");
+                b.HasKey("MatchId", "OpenTimeUtc");
+                b.ToTable("candle_battles_round", t => t.HasCheckConstraint("CK_candle_battles_winner", "\"Winner\" IN ('left', 'right', 'draw')"));
+            });
+            modelBuilder.Entity("DAL.NftFutebol.CandleBattlesState", b =>
+            {
+                b.Property<int>("MatchId").ValueGeneratedNever().HasColumnType("integer");
+                b.Property<DateTime>("NextOpenUtc").HasColumnType("timestamp with time zone");
+                b.Property<string>("LeftFormingJson").HasColumnType("jsonb");
+                b.Property<string>("RightFormingJson").HasColumnType("jsonb");
+                b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
+                b.Property<bool>("Complete").HasColumnType("boolean");
+                b.Property<string>("Status").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
+                b.HasKey("MatchId");
+                b.HasIndex("Complete", "MatchId");
+                b.ToTable("candle_battles_state");
+            });
+
+
             modelBuilder.Entity("DAL.NftFutebol.ArenaSentimentSnapshot", b =>
                 {
                     b.Property<long>("Id")
@@ -2557,6 +2586,10 @@ namespace DAL.Migrations
 
                     b.Navigation("TeamPositions");
                 });
+            modelBuilder.Entity("DAL.NftFutebol.CandleBattlesRound", b =>
+                b.HasOne("DAL.NftFutebol.Match", null).WithMany().HasForeignKey("MatchId").OnDelete(DeleteBehavior.Restrict).IsRequired());
+            modelBuilder.Entity("DAL.NftFutebol.CandleBattlesState", b =>
+                b.HasOne("DAL.NftFutebol.Match", null).WithMany().HasForeignKey("MatchId").OnDelete(DeleteBehavior.Restrict).IsRequired());
 #pragma warning restore 612, 618
         }
     }

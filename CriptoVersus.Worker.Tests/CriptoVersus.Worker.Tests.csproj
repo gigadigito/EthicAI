@@ -24,9 +24,7 @@
     <ProjectReference Include="..\CriptoVersus.API\CriptoVersus.API.csproj" />
     <ProjectReference Include="..\CriptoVersus.Worker\CriptoVersus.Worker.csproj" />
     <ProjectReference Include="..\DAL\DAL.csproj" />
-    <Reference Include="DTOs">
-      <HintPath>..\.codex-artifacts-local\bin\DTOs\Debug\net8.0\DTOs.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\DTOs\DTOs.csproj" />
   </ItemGroup>
 
   <ItemGroup>

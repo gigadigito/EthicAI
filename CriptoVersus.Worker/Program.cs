@@ -77,6 +77,8 @@ Console.WriteLine("=================================");
 Console.ResetColor();
 
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient<BinanceKlineClient>(client => client.Timeout = TimeSpan.FromSeconds(8));
+builder.Services.AddScoped<CandleBattlesRoundService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpClient<IArenaSentimentService, ArenaSentimentService>()
