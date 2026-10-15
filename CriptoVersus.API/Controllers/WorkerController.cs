@@ -94,8 +94,8 @@ namespace CriptoVersus.API.Controllers
 
         private async Task<WorkerStatusRow?> ReadWorkerStatusRowAsync(CancellationToken ct)
         {
-            return await _db.Set<WorkerStatusRow>()
-                .FromSqlInterpolated($@"
+            return await _db.Database
+                .SqlQuery<WorkerStatusRow>($@"
                     SELECT 
                       tx_worker_name AS ""ServiceName"",
                       dt_last_heartbeat AS ""LastHeartbeatUtc"",
