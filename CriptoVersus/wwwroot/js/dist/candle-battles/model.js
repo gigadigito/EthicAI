@@ -92,10 +92,14 @@ export function combatFrame(left, right, leftStrength, rightStrength, elapsedMs,
     const leftMotion = { attack: leftAttack, block: leftBlock, dodge: leftDodge, hit: leftHit, counter: leftCounter, taunt: leftTaunt };
     const rightMotion = { attack: rightAttack, block: rightBlock, dodge: rightDodge, hit: rightHit, counter: rightCounter, taunt: rightTaunt };
     const bias = advantage.leftPressure - 0.5;
-    const centerOffset = bias * 34 + Math.sin(elapsedMs / 430 + seed * 0.001) * (2 + intensity * 4);
+    // Keep footwork alive after the initial engagement. The fighters circle
+    // and trade space without changing the financial geometry of either body.
+    const footwork = Math.sin(elapsedMs / 255 + seed * 0.0017) * (4 + intensity * 16);
+    const centerOffset = bias * 34 + footwork + Math.sin(elapsedMs / 430 + seed * 0.001) * (2 + intensity * 4);
     const approach = Math.min(1, progress * 4.4);
     const easedApproach = approach * approach * (3 - 2 * approach);
-    return { centerOffset, separation: 620 - 460 * easedApproach, intensity, left: leftMotion, right: rightMotion };
+    const exchangeSpace = Math.abs(Math.sin(elapsedMs / 290 + seed * 0.0012)) * (8 + intensity * 24);
+    return { centerOffset, separation: 620 - 460 * easedApproach + exchangeSpace, intensity, left: leftMotion, right: rightMotion };
 }
 /** Owns market state only. A confirmed round is never mutated by a newer tick. */
 export class MarketHeartbeat {

@@ -93,9 +93,10 @@ export class CandleRenderer {
         this.limbs.clear();
         const armY = (g.top + g.bottom) / 2 + jitter;
         this.strokeLimb(-23, armY, -37 - swing * .3, armY + 9 + lift, -39, armY + 18 + lift, color);
+        const idleSway = this.frozen ? 0 : Math.sin(time / 190) * (this.phase === 'FORMING_CANDLE' ? 6 : this.combat.taunt * 6);
         const guardX = 37 - guard * 18;
-        const guardY = armY + 6 - guard * 20;
-        this.strokeLimb(23, armY, guardX + attack * .5, guardY + lift, guardX + attack, guardY + 8 + lift, color);
+        const guardY = armY + 6 - guard * 20 + idleSway;
+        this.strokeLimb(23, armY, guardX + attack * .5 + idleSway, guardY + lift, guardX + attack + idleSway, guardY + 8 + lift, color);
         if (guard > .18)
             this.strokeLimb(-23, armY, -13, armY - guard * 14, 18 - guard * 10, armY - guard * 18 + lift, color);
         this.strokeLimb(-12, g.bottom + 2, -14 + swing, g.bottom + 17, -21 + swing, g.bottom + 27, color, false);

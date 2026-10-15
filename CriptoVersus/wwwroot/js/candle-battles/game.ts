@@ -247,7 +247,14 @@ export class GameEngine {
             this.left?.root.setPosition(leftX,230); this.right?.root.setPosition(rightX,230);
             this.left?.setCombatMotion(frame.left); this.right?.setCombatMotion(frame.right);
         } else {
-            this.left?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+            // LIVE has no confirmed round while the exchange candle is forming.
+            // Show readable footwork and anticipation without fabricating attacks
+            // or using information from the future candle close.
+            const idleStep = Math.sin(this.time / 420) * 9;
+            this.left?.root.setPosition(330 + idleStep,230); this.right?.root.setPosition(950 - idleStep,230);
+            const idle = .2 + Math.abs(Math.sin(this.time / 260)) * .2;
+            this.left?.setCombatMotion({ attack: 0, block: idle, dodge: idle * .35, hit: 0, counter: 0, taunt: idle });
+            this.right?.setCombatMotion({ attack: 0, block: idle, dodge: idle * .35, hit: 0, counter: 0, taunt: idle });
         }
         this.left?.update(this.time,dt,p); this.right?.update(this.time,dt,p);
         if(this.tile && this.dropTarget) this.tile.setPosition(this.dropTarget.x,470+(this.dropTarget.y-470)*p*p);
