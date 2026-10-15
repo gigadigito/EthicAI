@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { Candle, Geometry, Phase, Side, TEAM, OUTLINE, project, interpolate } from './model.js';
+import { Candle, CombatMotion, Geometry, Phase, Side, TEAM, OUTLINE, project, interpolate } from './model.js';
 
 export class CandleRenderer {
     readonly root: Phaser.GameObjects.Container;
@@ -20,6 +20,7 @@ export class CandleRenderer {
     private phase: Phase = 'FORMING_CANDLE';
     private win = true;
     private outline = OUTLINE.neutral;
+    private combat: CombatMotion = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
     constructor(private scene: Phaser.Scene, readonly side: Side, x: number, y: number) {
         this.aura = scene.add.graphics();
         this.body = scene.add.graphics();
@@ -41,6 +42,7 @@ export class CandleRenderer {
         if (immediate) this.visibleGeometry = { ...this.target };
     }
     setPose(phase: Phase, winner: boolean): void { this.phase = phase; this.win = winner; }
+    setCombatMotion(motion: CombatMotion): void { this.combat = { ...motion }; }
     setReducedMotion(reduced: boolean): void { this.frozen = reduced; }
     get geometry(): Geometry | undefined { return this.visibleGeometry && { ...this.visibleGeometry }; }
     get financialSnapshot(): Candle | undefined { return this.last && { ...this.last }; }
@@ -54,7 +56,8 @@ export class CandleRenderer {
         const g = this.visibleGeometry, color = TEAM[this.side];
         this.outline = OUTLINE[this.direction];
         const bounce = this.frozen ? 0 : Math.sin(time / 280) * 2;
-        const jitter = this.frozen ? 0 : Math.sin(time / 31) * this.impulse * 1.5;
+        const reaction = this.combat.hit * 8;
+        const jitter = this.frozen ? reaction : Math.sin(time / 31) * this.impulse * 1.5 + Math.sin(time / 23) * reaction;
         this.impulse = Math.max(0, this.impulse - delta / 350);
         // Financial graphics have no scale or bounce transform. Pulse changes aura opacity only.
         this.body.clear().lineStyle(6, 0x071317, 1).lineBetween(0, g.highY, 0, g.lowY);
@@ -71,26 +74,31 @@ export class CandleRenderer {
             .strokeRect(-25, g.top, 50, Math.max(1, g.height));
         // A tiny body/doji gets a floating expression above it, never an inflated financial rectangle.
         const faceY = g.height < 36 ? g.top - 22 : (g.top + g.bottom) / 2;
+        const taunt = this.frozen ? 0 : Math.sin(time / 150) * this.combat.taunt * 3;
         this.facePlate.clear();
         if (g.height < 36) {
             this.facePlate.fillStyle(color).fillCircle(0, 0, 19);
             this.facePlate.lineStyle(1, this.side === 'left' ? 0xe5ff82 : 0x37dbca, .8).strokeCircle(0, 0, 19);
         }
-        this.facePlate.setPosition(jitter, faceY + bounce);
-        this.face.setPosition(jitter, faceY + bounce).setAlpha(this.phase === 'DESTROYING' && !this.win ? 1 - progress : 1);
+        this.facePlate.setPosition(jitter + (this.combat.dodge - this.combat.hit) * 8, faceY + bounce + taunt - this.combat.hit * 5);
+        this.face.setPosition(jitter + (this.combat.dodge - this.combat.hit) * 8, faceY + bounce + taunt - this.combat.hit * 5).setAlpha(this.phase === 'DESTROYING' && !this.win ? 1 - progress : 1);
         this.face.setFlipX(this.side === 'right');
         const dir = this.side === 'left' ? 1 : -1;
         const running = this.phase === 'APPROACHING';
         const runFrame = Math.floor(progress * 8) % 8;
         const punchFrame = Math.min(5, Math.floor(progress * 6));
-        const attack = this.phase === 'ATTACKING' || this.phase === 'COLLISION';
+        const phaseAttack = this.phase === 'ATTACKING' || this.phase === 'COLLISION' ? [0, 10, 30, 38, 26, 7][punchFrame] : 0;
+        const attack = this.combat.attack * 42 + this.combat.counter * 18 + phaseAttack;
+        const guard = this.combat.block;
         const lift = this.phase === 'VICTORY' && this.win ? -28 : 0;
-        const swing = running && !this.frozen ? Math.sin(runFrame / 8 * Math.PI * 2) * 12 : bounce;
+        const swing = running && !this.frozen ? Math.sin(runFrame / 8 * Math.PI * 2) * 12 : bounce + taunt + this.combat.dodge * 8;
         this.limbs.clear();
         const armY = (g.top + g.bottom) / 2 + jitter;
         this.strokeLimb(-23, armY, -37 - swing * .3, armY + 9 + lift, -39, armY + 18 + lift, color);
-        const reach = attack ? [0, 10, 30, 38, 26, 7][punchFrame] : 0;
-        this.strokeLimb(23, armY, 37 + reach * .5, armY + 6 + lift, 39 + reach, armY + 14 + lift, color);
+        const guardX = 37 - guard * 18;
+        const guardY = armY + 6 - guard * 20;
+        this.strokeLimb(23, armY, guardX + attack * .5, guardY + lift, guardX + attack, guardY + 8 + lift, color);
+        if (guard > .18) this.strokeLimb(-23, armY, -13, armY - guard * 14, 18 - guard * 10, armY - guard * 18 + lift, color);
         this.strokeLimb(-12, g.bottom + 2, -14 + swing, g.bottom + 17, -21 + swing, g.bottom + 27, color, false);
         this.strokeLimb(12, g.bottom + 2, 14 - swing, g.bottom + 17, 22 - swing, g.bottom + 27, color, false);
         this.limbs.setScale(dir, 1);

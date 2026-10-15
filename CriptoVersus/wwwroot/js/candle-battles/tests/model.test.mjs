@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle } from '../../dist/candle-battles/model.js';
+import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle, candleDirection, combatAdvantage, combatFrame } from '../../dist/candle-battles/model.js';
 const candle = (overrides={}) => ({...demoRound(0).left,open:100,high:106,low:94,close:103,...overrides});
 test('OHLC maps exact price distances, including small body, large body, doji and extreme wicks',()=>{
     for(const close of [100,100.01,103,110,90]) {
@@ -64,6 +64,38 @@ test('normalization compares percentage movement rather than nominal coin prices
     const a=candle(),b={...a,open:10000,high:10600,low:9400,close:10300};
     assert.deepEqual(project(a,sharedRange([a,b]),200),project(b,sharedRange([a,b]),200));
     assert.equal(validCandle({...a,open:NaN}),false);assert.throws(()=>project(a,0,200));
+});
+
+test('OHLC direction gives a small green candle offensive priority over a large red candle',()=>{
+    const green=candle({open:100,close:101,high:151,low:90});
+    const red=candle({open:100,close:90,high:150,low:40});
+    assert.equal(candleDirection(green),'up');assert.equal(candleDirection(red),'down');
+    const advantage=combatAdvantage(green,red,20,95);
+    assert.ok(advantage.leftPressure>.5);
+    assert.ok(advantage.leftPressure>=.7);
+    const frames=Array.from({length:12},(_,i)=>combatFrame(green,red,20,95,i*280,3800,123));
+    const avg=(values)=>values.reduce((sum,value)=>sum+value,0)/values.length;
+    assert.ok(avg(frames.map(f=>f.left.attack))>avg(frames.map(f=>f.right.attack)));
+    assert.ok(avg(frames.map(f=>f.right.hit))>avg(frames.map(f=>f.left.hit)));
+});
+
+test('same-direction candles use strength as the tie-breaker and combat remains active before the finale',()=>{
+    const left=candle({open:100,close:104}),right=candle({open:100,close:102});
+    const advantage=combatAdvantage(left,right,85,30);
+    assert.ok(advantage.leftPressure>.5);
+    const early=combatFrame(left,right,85,30,450,3800,7);
+    const middle=combatFrame(left,right,85,30,1900,3800,7);
+    assert.ok(early.left.attack>0);assert.ok(early.right.attack>0);
+    assert.ok(middle.left.attack>0);assert.ok(middle.right.attack>0);
+    assert.notEqual(early.centerOffset,middle.centerOffset);
+});
+
+test('dojis stay balanced while preserving financial geometry',()=>{
+    const left=candle({close:100,high:106,low:94}),right=candle({close:100,high:130,low:70});
+    const advantage=combatAdvantage(left,right,50,50);
+    assert.equal(candleDirection(left),'neutral');assert.equal(candleDirection(right),'neutral');
+    assert.equal(advantage.leftPressure,.5);assert.equal(advantage.rightPressure,.5);
+    assert.equal(project(left,40,200).height,0);assert.equal(project(right,40,200).height,0);
 });
 
 test('territory rejects alternate IDs for the same interval and comeback requires a prior deficit',()=>{

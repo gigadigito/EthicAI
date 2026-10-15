@@ -1,5 +1,5 @@
 import type PhaserTypes from 'phaser';
-import { Candle, Round, Side, Phase, MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, demoRound, sharedRange, validRound } from './model.js';
+import { Candle, Round, Side, Phase, MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, demoRound, sharedRange, validRound, combatFrame } from './model.js';
 import { CandleRenderer } from './renderer.js';
 import { AudioManager } from './audio.js';
 
@@ -62,6 +62,7 @@ export class GameEngine {
     private pendingReconcile = false;
     private backgrounded = false;
     private time = 0;
+    private combatElapsed = 0;
     constructor(private host: HTMLElement, private options: Options, Phaser: typeof PhaserTypes) {
         this.mode = options.mode;
         this.state = new BattleStateMachine(options.battleDurationMs);
@@ -142,7 +143,7 @@ export class GameEngine {
     }
     receive(feed: Feed, reconcile = false): void {
         if (this.disposed) return;
-        if (this.feed && this.feed.matchId !== feed.matchId) { this.history=[]; this.market.clear(); this.clock.clear(); this.territory.reset(); this.active=undefined; this.state.reset(); }
+        if (this.feed && this.feed.matchId !== feed.matchId) { this.history=[]; this.market.clear(); this.clock.clear(); this.territory.reset(); this.active=undefined; this.combatElapsed=0; this.state.reset(); }
         this.feed = feed; this.pendingReconcile ||= reconcile;
         if (!this.scene) return;
         for (const side of ['left','right'] as const) {
@@ -205,7 +206,7 @@ export class GameEngine {
         this.controls.querySelector('[data-cb-action="mute"]')?.setAttribute('aria-pressed',String(!this.audio.muted));
     }
     private restart(): void {
-        this.active=undefined; this.clock.clear(); this.territory.reset(); this.state.reset(); this.market.clear();
+        this.active=undefined; this.combatElapsed=0; this.clock.clear(); this.territory.reset(); this.state.reset(); this.market.clear();
         this.tile?.destroy(); this.tile=undefined; this.dropTarget=undefined; this.demoIndex=0; this.demoElapsed=0; this.replayIndex=0;
         this.started=true; this.paused=false; this.hud.get('result')?.setText(''); this.drawTerritory(); this.audio.loop('arena');
         if(this.mode==='live') this.reconcile();
@@ -236,10 +237,18 @@ export class GameEngine {
         }
         if(this.active) this.state.advance(battleDt,p=>this.enter(p));
         const p=this.state.progress;
-        let x=330;
-        if(this.state.phase==='APPROACHING') x=330+230*p;
-        else if(this.active && this.state.phase!=='SPAWNING') x=560;
-        this.left?.root.setPosition(x,230); this.right?.root.setPosition(1280-x,230);
+        if (this.active) {
+            this.combatElapsed += battleDt;
+            const frame = combatFrame(this.active.left, this.active.right, this.active.leftStrength, this.active.rightStrength,
+                this.combatElapsed, this.state.durationMs, this.active.left.openTime);
+            const center = 640 + frame.centerOffset;
+            const leftX = center - frame.separation / 2;
+            const rightX = center + frame.separation / 2;
+            this.left?.root.setPosition(leftX,230); this.right?.root.setPosition(rightX,230);
+            this.left?.setCombatMotion(frame.left); this.right?.setCombatMotion(frame.right);
+        } else {
+            this.left?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+        }
         this.left?.update(this.time,dt,p); this.right?.update(this.time,dt,p);
         if(this.tile && this.dropTarget) this.tile.setPosition(this.dropTarget.x,470+(this.dropTarget.y-470)*p*p);
         this.flash=Math.max(0,this.flash-dt/500);
@@ -253,7 +262,7 @@ export class GameEngine {
         }
     }
     private begin(r:Readonly<Round>): void {
-        this.active=r; const range=sharedRange([r.left,r.right]);
+        this.active=r; this.combatElapsed=0; const range=sharedRange([r.left,r.right]);
         this.left?.setCandle(r.left,range,true); this.right?.setCandle(r.right,range,true);
         if (this.mode === 'replay') {
             for (const side of ['left','right'] as const) {
@@ -297,7 +306,12 @@ export class GameEngine {
             if(this.territory.special){ this.hud.get('result')?.setText(this.text(this.territory.special));this.audio.play(this.territory.special==='combo'?'combo':'big_win'); }
             this.drawTerritory();
         }
-        if(phase==='FORMING_CANDLE') { this.active=undefined; this.left?.setPose(phase,true); this.right?.setPose(phase,true); this.updateMarket(); }
+        if(phase==='FORMING_CANDLE') {
+            this.active=undefined; this.combatElapsed=0;
+            this.left?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+            this.right?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+            this.left?.setPose(phase,true); this.right?.setPose(phase,true); this.updateMarket();
+        }
     }
     private setLogo(side:Side,symbol:string):void {
         if(!this.scene || this.logoSymbols.get(side)===symbol)return;

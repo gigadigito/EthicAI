@@ -1,4 +1,4 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, demoRound, sharedRange, validRound } from './model.js';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, demoRound, sharedRange, validRound, combatFrame } from './model.js';
 import { CandleRenderer } from './renderer.js';
 import { AudioManager } from './audio.js';
 export async function create(host, options) {
@@ -42,6 +42,7 @@ export class GameEngine {
         this.pendingReconcile = false;
         this.backgrounded = false;
         this.time = 0;
+        this.combatElapsed = 0;
         this.mode = options.mode;
         this.state = new BattleStateMachine(options.battleDurationMs);
         this.ready = new Promise((resolve, reject) => { this.readyResolve = resolve; this.readyReject = reject; });
@@ -152,6 +153,7 @@ export class GameEngine {
             this.clock.clear();
             this.territory.reset();
             this.active = undefined;
+            this.combatElapsed = 0;
             this.state.reset();
         }
         this.feed = feed;
@@ -286,6 +288,7 @@ export class GameEngine {
     }
     restart() {
         this.active = undefined;
+        this.combatElapsed = 0;
         this.clock.clear();
         this.territory.reset();
         this.state.reset();
@@ -347,13 +350,20 @@ export class GameEngine {
         if (this.active)
             this.state.advance(battleDt, p => this.enter(p));
         const p = this.state.progress;
-        let x = 330;
-        if (this.state.phase === 'APPROACHING')
-            x = 330 + 230 * p;
-        else if (this.active && this.state.phase !== 'SPAWNING')
-            x = 560;
-        this.left?.root.setPosition(x, 230);
-        this.right?.root.setPosition(1280 - x, 230);
+        if (this.active) {
+            this.combatElapsed += battleDt;
+            const frame = combatFrame(this.active.left, this.active.right, this.active.leftStrength, this.active.rightStrength, this.combatElapsed, this.state.durationMs, this.active.left.openTime);
+            const center = 640 + frame.centerOffset;
+            const leftX = center - frame.separation / 2;
+            const rightX = center + frame.separation / 2;
+            this.left?.root.setPosition(leftX, 230);
+            this.right?.root.setPosition(rightX, 230);
+            this.left?.setCombatMotion(frame.left);
+            this.right?.setCombatMotion(frame.right);
+        }
+        else {
+            this.left?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+        }
         this.left?.update(this.time, dt, p);
         this.right?.update(this.time, dt, p);
         if (this.tile && this.dropTarget)
@@ -381,6 +391,7 @@ export class GameEngine {
     }
     begin(r) {
         this.active = r;
+        this.combatElapsed = 0;
         const range = sharedRange([r.left, r.right]);
         this.left?.setCandle(r.left, range, true);
         this.right?.setCandle(r.right, range, true);
@@ -459,6 +470,9 @@ export class GameEngine {
         }
         if (phase === 'FORMING_CANDLE') {
             this.active = undefined;
+            this.combatElapsed = 0;
+            this.left?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+            this.right?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
             this.left?.setPose(phase, true);
             this.right?.setPose(phase, true);
             this.updateMarket();

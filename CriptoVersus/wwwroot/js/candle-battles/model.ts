@@ -58,6 +58,109 @@ export function sharedRange(candles: Candle[]): number {
     return Math.max(0.1, ...candles.filter(validCandle).flatMap(c => [Math.abs((c.high - c.open) / c.open * 100), Math.abs((c.low - c.open) / c.open * 100)])) * 1.18;
 }
 
+export type CandleDirection = "up" | "down" | "neutral";
+
+/** Direction is always derived from OHLC, never from a presentation color. */
+export function candleDirection(candle: Candle): CandleDirection {
+    if (candle.close > candle.open) return "up";
+    if (candle.close < candle.open) return "down";
+    return "neutral";
+}
+
+export interface CombatAdvantage {
+    leftPressure: number;
+    rightPressure: number;
+    leftDirection: CandleDirection;
+    rightDirection: CandleDirection;
+}
+
+const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+
+/**
+ * Converts market direction into visual pressure. Body size never enters this
+ * calculation: the OHLC direction owns the green-versus-red advantage, while
+ * the existing strength indicators only break ties between comparable candles.
+ */
+export function combatAdvantage(left: Candle, right: Candle, leftStrength = 50, rightStrength = 50): CombatAdvantage {
+    const leftDirection = candleDirection(left);
+    const rightDirection = candleDirection(right);
+    const leftScore = clamp01(Number.isFinite(leftStrength) ? leftStrength / 100 : 0.5);
+    const rightScore = clamp01(Number.isFinite(rightStrength) ? rightStrength / 100 : 0.5);
+    const strengthBias = leftScore - rightScore;
+
+    let leftPressure: number;
+    if (leftDirection === "up" && rightDirection === "down") {
+        leftPressure = 0.78 + strengthBias * 0.08;
+    } else if (leftDirection === "down" && rightDirection === "up") {
+        leftPressure = 0.22 + strengthBias * 0.08;
+    } else {
+        // Same-direction candles and dojis use the authoritative strength
+        // indicators without allowing a large body to become an attack bonus.
+        leftPressure = 0.5 + strengthBias * 0.28;
+    }
+
+    leftPressure = clamp01(leftPressure);
+    return { leftPressure, rightPressure: 1 - leftPressure, leftDirection, rightDirection };
+}
+
+export interface CombatMotion {
+    attack: number;
+    block: number;
+    dodge: number;
+    hit: number;
+    counter: number;
+    taunt: number;
+}
+
+export interface CombatFrame {
+    centerOffset: number;
+    separation: number;
+    intensity: number;
+    left: CombatMotion;
+    right: CombatMotion;
+}
+
+const wave = (elapsed: number, period: number, phase: number): number => Math.max(0, Math.sin(elapsed / period + phase));
+
+/**
+ * Samples deterministic in-round cinematics. It is presentation-only: it
+ * consumes a confirmed candle snapshot and never changes score or territory.
+ */
+export function combatFrame(
+    left: Candle,
+    right: Candle,
+    leftStrength: number,
+    rightStrength: number,
+    elapsedMs: number,
+    durationMs: number,
+    seed = 0
+): CombatFrame {
+    const advantage = combatAdvantage(left, right, leftStrength, rightStrength);
+    const progress = clamp01(elapsedMs / Math.max(1, durationMs));
+    const intensity = 0.38 + 0.62 * (progress * progress * (3 - 2 * progress));
+    const leftPulse = 0.28 + 0.72 * wave(elapsedMs, 310, seed * 0.0007);
+    const rightPulse = 0.28 + 0.72 * wave(elapsedMs, 337, seed * 0.0009 + 1.7);
+    const leftAttack = clamp01(intensity * (0.18 + advantage.leftPressure * 0.82) * leftPulse);
+    const rightAttack = clamp01(intensity * (0.18 + advantage.rightPressure * 0.82) * rightPulse);
+    const leftBlock = clamp01(intensity * (0.24 + (1 - advantage.leftPressure) * 0.58) * (0.7 + 0.3 * wave(elapsedMs, 510, seed * 0.001 + 0.4)));
+    const rightBlock = clamp01(intensity * (0.24 + (1 - advantage.rightPressure) * 0.58) * (0.7 + 0.3 * wave(elapsedMs, 470, seed * 0.001 + 2.1)));
+    const leftDodge = clamp01(intensity * (0.12 + (1 - advantage.leftPressure) * 0.42) * (0.5 + 0.5 * wave(elapsedMs, 420, seed * 0.001 + 1.2)));
+    const rightDodge = clamp01(intensity * (0.12 + (1 - advantage.rightPressure) * 0.42) * (0.5 + 0.5 * wave(elapsedMs, 390, seed * 0.001 + 2.7)));
+    const leftHit = clamp01(rightAttack * (1 - leftBlock * 0.62 - leftDodge * 0.24));
+    const rightHit = clamp01(leftAttack * (1 - rightBlock * 0.62 - rightDodge * 0.24));
+    const leftCounter = clamp01(leftBlock * rightAttack * 0.72 + leftDodge * rightAttack * 0.35);
+    const rightCounter = clamp01(rightBlock * leftAttack * 0.72 + rightDodge * leftAttack * 0.35);
+    const leftTaunt = clamp01((1 - leftAttack) * (0.12 + 0.18 * wave(elapsedMs, 760, seed * 0.0004)));
+    const rightTaunt = clamp01((1 - rightAttack) * (0.12 + 0.18 * wave(elapsedMs, 790, seed * 0.0005 + 1)));
+    const leftMotion = { attack: leftAttack, block: leftBlock, dodge: leftDodge, hit: leftHit, counter: leftCounter, taunt: leftTaunt };
+    const rightMotion = { attack: rightAttack, block: rightBlock, dodge: rightDodge, hit: rightHit, counter: rightCounter, taunt: rightTaunt };
+    const bias = advantage.leftPressure - 0.5;
+    const centerOffset = bias * 34 + Math.sin(elapsedMs / 430 + seed * 0.001) * (2 + intensity * 4);
+    const approach = Math.min(1, progress * 4.4);
+    const easedApproach = approach * approach * (3 - 2 * approach);
+    return { centerOffset, separation: 620 - 460 * easedApproach, intensity, left: leftMotion, right: rightMotion };
+}
+
 /** Owns market state only. A confirmed round is never mutated by a newer tick. */
 export class MarketHeartbeat {
     private latest = new Map<Side, Readonly<Candle>>();
