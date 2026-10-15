@@ -50,6 +50,7 @@ export class CandleRenderer {
     private frozen = false;
     private phase: Phase = 'FORMING_CANDLE';
     private win = true;
+    private draw = false;
     private outline = OUTLINE.neutral;
     private animation: FighterAnimation = 'idle';
     private combat: CombatMotion = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
@@ -79,11 +80,13 @@ export class CandleRenderer {
         this.playAnimation(true);
     }
 
-    setPose(phase: Phase, winner: boolean): void {
+    setPose(phase: Phase, winner: boolean, draw = false): void {
         const changed = this.phase !== phase;
         this.phase = phase;
         this.win = winner;
-        const next = fighterAnimationForPhase(phase);
+        this.draw = draw;
+        let next = fighterAnimationForPhase(phase);
+        if (!draw && winner && ['BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE'].includes(phase)) next = 'recover';
         if (changed || next !== this.animation) {
             this.animation = next;
             this.playAnimation(true);
@@ -141,7 +144,7 @@ export class CandleRenderer {
         const breakFrame = Math.min(7, Math.floor(progress * 8));
         const recovery = this.phase === 'SPAWNING' ? (Math.min(2, Math.floor(progress * 3)) + 1) / 3 : 1;
         const alpha = (this.phase === 'DESTROYING' && !this.win) ? 1 - breakFrame / 7 :
-            (!this.win && ['VICTORY', 'BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE'].includes(this.phase)) ? 0 : recovery;
+            (!this.draw && !this.win && ['VICTORY', 'BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE'].includes(this.phase)) ? 0 : recovery;
         this.body.setAlpha(alpha);
         this.sprite.setAlpha(alpha);
         this.aura.setAlpha(alpha);

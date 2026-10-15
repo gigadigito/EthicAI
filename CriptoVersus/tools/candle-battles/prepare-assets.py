@@ -59,10 +59,10 @@ extended_bytes = z.read(prefix + "assets/sprites/characters/source/candle_fighte
 extended = Image.open(io.BytesIO(extended_bytes)).convert("RGBA")
 action_rows = {
     # The lower edge of every tuple stops before the baked action label.
-    "run": ((0, 160, 8), (650, 760, 8)),
-    "punch": ((195, 331, 6), (800, 934, 6)),
-    "break": ((350, 475, 8), (950, 1091, 8)),
-    "recover": ((500, 622, 3), (1105, 1233, 3)),
+    "run": ((0, 164, 8), (646, 762, 8)),
+    "punch": ((195, 317, 6), (805, 918, 6)),
+    "break": ((350, 472, 8), (951, 1071, 8)),
+    "recover": ((500, 613, 3), (1104, 1214, 3)),
 }
 directions = ("neutral", "up", "down")
 

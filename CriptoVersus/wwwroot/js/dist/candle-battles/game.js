@@ -419,8 +419,8 @@ export class GameEngine {
         const r = this.active;
         if (!r)
             return;
-        this.left?.setPose(phase, r.winner === 'left');
-        this.right?.setPose(phase, r.winner === 'right');
+        this.left?.setPose(phase, r.winner === 'left', r.winner === 'draw');
+        this.right?.setPose(phase, r.winner === 'right', r.winner === 'draw');
         if (phase === 'SPAWNING')
             this.audio.play('candle_spawn');
         if (phase === 'APPROACHING')

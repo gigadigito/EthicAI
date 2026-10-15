@@ -284,7 +284,7 @@ export class GameEngine {
     }
     private enter(phase:Phase): void {
         const r=this.active; if(!r) return;
-        this.left?.setPose(phase,r.winner==='left'); this.right?.setPose(phase,r.winner==='right');
+        this.left?.setPose(phase,r.winner==='left',r.winner==='draw'); this.right?.setPose(phase,r.winner==='right',r.winner==='draw');
         if(phase==='SPAWNING') this.audio.play('candle_spawn');
         if(phase==='APPROACHING') this.audio.play('dash');
         if(phase==='COLLISION') { this.audio.play('punch_impact'); this.burst(640,330,r.winner==='right'?'right':'left'); if(!this.reduced)this.scene?.cameras.main.shake(100,.002); }

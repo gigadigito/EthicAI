@@ -52,7 +52,7 @@ Fonte TypeScript: CriptoVersus/wwwroot/js/candle-battles. Phaser 3.90.0 é empac
 
 CandleRenderer projeta Open/Close e High/Low em um domínio percentual compartilhado entre os ativos. O corpo é um retângulo desenhado por Graphics e o doji tem altura financeira zero. Nenhuma imagem inteira é escalada verticalmente. Open, Close, High e Low visuais são interpolados por 240 ms e chegam exatamente às coordenadas alvo. Os DTOs recebidos não são alterados. Durante todo o round, um diretor determinístico de combate deriva a direção de `close - open`: candles verdes recebem pressão ofensiva, candles vermelhos priorizam defesa/recuo e reações, e dojis permanecem equilibrados; a força existente só desempata candles comparáveis. O tamanho OHLC permanece exclusivamente financeiro e não concede vantagem ofensiva.
 
-O rosto foi extraído da prancha aprovada. Braços, punhos e pernas foram redesenhados e articulados programaticamente a partir das poses de referência. Suas dimensões são fixas. Para corpos pequenos e dojis, o rosto aparece em um pequeno distintivo acima do corpo: esse distintivo é decorativo, não parte da geometria financeira. Bounce e Jitter deslocam apenas acessórios; Pulse muda a aura. Os contornos de alta, baixa e neutro são independentes da cor da equipe.
+O rosto, braços, punhos e pernas das ações disponíveis são sprites reais recortados da prancha aprovada; não são redesenhados pelo renderer. O atlas registra variantes neutra, compra e venda para as duas equipes. As sequências usadas são RUN (8), PUNCH (6), BREAK (8) e RECOVER (3), com o pé normalizado em uma tela transparente comum, sem deformar a proporção original. Idle, lunge, victory e defeat usam a alternativa mais próxima disponível da mesma arte. O corpo e os pavios continuam sendo a geometria OHLC exata, separados da camada ilustrada. Os contornos de alta, baixa e neutro são independentes da cor da equipe.
 
 As poses incluem Idle/Bounce, corrida com oito posições, ataque com seis posições, destruição em oito etapas com fragmentos, vitória e recuperação em três etapas. As pranchas completas e a imagem conceitual não são usadas como frames financeiros nem como uma arena pronta.
 
@@ -66,7 +66,7 @@ Preparação reproduzível:
 
     python CriptoVersus/tools/candle-battles/prepare-assets.py <arquivo-zip-fornecido>
 
-O script preserva a prancha base em tools/candle-battles/source (fora do wwwroot), extrai a tinta do rosto, recorta blocos, impactos e ícones e gera modular.png/modular.json/manifest.json. O manifesto registra o hash da fonte e os recursos utilizados. As duas músicas e os 16 efeitos fornecidos estão em wwwroot/games/candle-battles/assets/audio.
+O script preserva as pranchas base e extended em tools/candle-battles/source (fora do wwwroot), recorta os estados reais de ação, remove os rótulos incorporados, preserva alpha e gera modular.png/modular.json/manifest.json. O manifesto registra os hashes das fontes, as poses, as direções e os recursos utilizados. As músicas e os efeitos fornecidos estão em wwwroot/games/candle-battles/assets/audio.
 
 O áudio só é desbloqueado por interação local do usuário. Os botões são tratados no navegador para preservar o gesto exigido por áudio e fullscreen. Há controles de volume geral, música, efeitos e mute, com preferência local, fade da trilha, máximo de seis efeitos simultâneos e intervalo mínimo de 900 ms para data tick. ResizeObserver, listeners, áudio, texturas e o jogo são liberados no descarte.
 
@@ -80,7 +80,7 @@ O áudio só é desbloqueado por interação local do usuário. Os botões são 
     dotnet test CriptoVersus.Worker.Tests/CriptoVersus.Worker.Tests.csproj --filter "FullyQualifiedName~CandleBattle|FullyQualifiedName~Volume"
     dotnet build EthicAI.sln
 
-Os testes visuais usam Edge headless e servidor estático local, sem API ou banco de produção. As capturas de referência estão em wwwroot/js/candle-battles/tests/visual.spec.mjs-snapshots; o diretório tests é excluído da publicação Web. A galeria cobre corpos pequeno/médio/grande, doji, pavios extremos, contornos das duas equipes, inversão durante interpolação, tamanho fixo dos acessórios, reconexão, replay, blocos quadrados, resize, dispose, áudio real e fullscreen por gesto nativo.
+Os testes visuais usam Edge headless e servidor estático local, sem API ou banco de produção. As capturas de referência estão em wwwroot/js/candle-battles/tests/visual.spec.mjs-snapshots; o diretório tests é excluído da publicação Web. A galeria cobre corpos pequeno/médio/grande, doji, pavios extremos, contornos das duas equipes, sprites de combate, inversão durante interpolação, reconexão, replay, blocos quadrados, resize, dispose, áudio real e fullscreen por gesto nativo.
 
 Neste workspace, arquivos de saída estavam bloqueados pela aplicação aberta e o projeto legado incluía obj antigo no glob. A validação da solução usa saída isolada e exclui esses objetos sem removê-los:
 
