@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame } from '../../dist/candle-battles/model.js';
+import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase } from '../../dist/candle-battles/model.js';
 const candle = (overrides={}) => ({...demoRound(0).left,open:100,high:106,low:94,close:103,...overrides});
 test('OHLC maps exact price distances, including small body, large body, doji and extreme wicks',()=>{
     for(const close of [100,100.01,103,110,90]) {
@@ -102,6 +102,17 @@ test('same-direction candles use strength as the tie-breaker and combat remains 
     assert.ok(early.left.attack>0);assert.ok(early.right.attack>0);
     assert.ok(middle.left.attack>0);assert.ok(middle.right.attack>0);
     assert.notEqual(early.centerOffset,middle.centerOffset);
+});
+
+test('battle phases select real action sequences instead of an idle procedural pose',()=>{
+    assert.equal(fighterAnimationForPhase('FORMING_CANDLE'),'idle');
+    assert.equal(fighterAnimationForPhase('SPAWNING'),'idle');
+    assert.equal(fighterAnimationForPhase('APPROACHING'),'run');
+    assert.equal(fighterAnimationForPhase('ATTACKING'),'punch');
+    assert.equal(fighterAnimationForPhase('COLLISION'),'punch');
+    assert.equal(fighterAnimationForPhase('DESTROYING'),'break');
+    assert.equal(fighterAnimationForPhase('VICTORY'),'recover');
+    assert.equal(fighterAnimationForPhase('ROUND_COMPLETE'),'recover');
 });
 
 test('dojis stay balanced while preserving financial geometry',()=>{

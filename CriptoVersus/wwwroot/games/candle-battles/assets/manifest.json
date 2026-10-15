@@ -22,11 +22,17 @@
     "audio/sfx/sfx_pause.wav"
   ],
   "sourceSha256": "ee61657b6a485653d85153689914448d7cd0ff3e5356eeb843f2d0b3e9a8ea78",
+  "fighterSourceSha256": "16acc67617cd752f45dbcb7f1f616c46dfaa17e790c63d2deb53dff645a67ff5",
   "poses": {
     "run": 8,
     "punch": 6,
     "break": 8,
     "recover": 3
   },
-  "notes": "Fixed-size face ink extracted from approved base sheet. Articulated limbs redrawn from approved poses. Body and wicks are financial geometry."
+  "directions": [
+    "neutral",
+    "up",
+    "down"
+  ],
+  "notes": "Fighter action frames are extracted from the approved extended sheet, alpha-trimmed and padded without aspect-ratio deformation. OHLC body and wicks remain financial geometry; unavailable idle/lunge/victory/defeat poses use the closest real action sequence."
 }

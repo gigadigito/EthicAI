@@ -237,6 +237,20 @@ export class TerritoryManager {
 
 export const PHASES = ["SPAWNING", "APPROACHING", "ATTACKING", "COLLISION", "DESTROYING", "VICTORY", "BLOCK_FALLING", "BLOCK_LOCKING", "ROUND_COMPLETE"] as const;
 export type Phase = typeof PHASES[number] | "WAITING_MARKET" | "FORMING_CANDLE";
+export type FighterAnimation = "idle" | "run" | "punch" | "break" | "recover";
+
+/**
+ * Maps the authoritative battle phase to an available illustrated sequence.
+ * The financial body and wick remain procedural; this function only selects
+ * the presentation layer and is deterministic for replay/TV.
+ */
+export function fighterAnimationForPhase(phase: Phase): FighterAnimation {
+    if (phase === "APPROACHING") return "run";
+    if (phase === "ATTACKING" || phase === "COLLISION") return "punch";
+    if (phase === "DESTROYING" || phase === "BLOCK_FALLING" || phase === "BLOCK_LOCKING") return "break";
+    if (phase === "VICTORY" || phase === "ROUND_COMPLETE") return "recover";
+    return "idle";
+}
 const DURATIONS = [350, 650, 350, 180, 600, 550, 800, 220, 100];
 export class BattleStateMachine {
     phase: Phase = "WAITING_MARKET";

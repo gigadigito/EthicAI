@@ -183,6 +183,22 @@ export class TerritoryManager {
     reset() { this.history.length = 0; this.score.left = this.score.right = this.lines = this.streak = 0; this.lastWinner = "draw"; this.special = ""; this.seen.clear(); this.intervals.clear(); this.trailing.clear(); }
 }
 export const PHASES = ["SPAWNING", "APPROACHING", "ATTACKING", "COLLISION", "DESTROYING", "VICTORY", "BLOCK_FALLING", "BLOCK_LOCKING", "ROUND_COMPLETE"];
+/**
+ * Maps the authoritative battle phase to an available illustrated sequence.
+ * The financial body and wick remain procedural; this function only selects
+ * the presentation layer and is deterministic for replay/TV.
+ */
+export function fighterAnimationForPhase(phase) {
+    if (phase === "APPROACHING")
+        return "run";
+    if (phase === "ATTACKING" || phase === "COLLISION")
+        return "punch";
+    if (phase === "DESTROYING" || phase === "BLOCK_FALLING" || phase === "BLOCK_LOCKING")
+        return "break";
+    if (phase === "VICTORY" || phase === "ROUND_COMPLETE")
+        return "recover";
+    return "idle";
+}
 const DURATIONS = [350, 650, 350, 180, 600, 550, 800, 220, 100];
 export class BattleStateMachine {
     constructor(durationMs = 3800) {
