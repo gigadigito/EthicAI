@@ -41,7 +41,15 @@ public sealed class CandleBattlesRoundService(EthicAIDbContext db, BinanceKlineC
         foreach (var id in ids)
         {
             await heartbeat(ct);
-            try { await ProcessMatchAsync(id, serverTime, nowUtc, ct); }
+            try
+            {
+                var strategy = db.Database.CreateExecutionStrategy();
+                await strategy.ExecuteAsync(async token =>
+                {
+                    db.ChangeTracker.Clear();
+                    await ProcessMatchAsync(id, serverTime, nowUtc, token);
+                }, ct);
+            }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
             catch (Exception ex)
             {
