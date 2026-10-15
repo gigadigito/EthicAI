@@ -352,7 +352,7 @@ export class GameEngine {
         const p = this.state.progress;
         if (this.active) {
             this.combatElapsed += battleDt;
-            const frame = combatFrame(this.active.left, this.active.right, this.active.leftStrength, this.active.rightStrength, this.combatElapsed, this.state.durationMs, this.active.left.openTime);
+            const frame = combatFrame(this.active.left, this.active.right, this.active.leftStrength, this.active.rightStrength, this.combatElapsed, this.state.durationMs, this.active.left.openTime, this.active.winner);
             const center = 640 + frame.centerOffset;
             const leftX = center - frame.separation / 2;
             const rightX = center + frame.separation / 2;

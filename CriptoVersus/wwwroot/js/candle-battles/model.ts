@@ -67,6 +67,10 @@ export function candleDirection(candle: Candle): CandleDirection {
     return "neutral";
 }
 
+export function candleChangePercent(candle: Candle): number {
+    return (candle.close - candle.open) / candle.open * 100;
+}
+
 export interface CombatAdvantage {
     leftPressure: number;
     rightPressure: number;
@@ -81,23 +85,19 @@ const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
  * calculation: the OHLC direction owns the green-versus-red advantage, while
  * the existing strength indicators only break ties between comparable candles.
  */
-export function combatAdvantage(left: Candle, right: Candle, leftStrength = 50, rightStrength = 50): CombatAdvantage {
+export function combatAdvantage(left: Candle, right: Candle, leftStrength = 50, rightStrength = 50, officialWinner: Winner = "draw"): CombatAdvantage {
     const leftDirection = candleDirection(left);
     const rightDirection = candleDirection(right);
     const leftScore = clamp01(Number.isFinite(leftStrength) ? leftStrength / 100 : 0.5);
     const rightScore = clamp01(Number.isFinite(rightStrength) ? rightStrength / 100 : 0.5);
     const strengthBias = leftScore - rightScore;
 
-    let leftPressure: number;
-    if (leftDirection === "up" && rightDirection === "down") {
-        leftPressure = 0.78 + strengthBias * 0.08;
-    } else if (leftDirection === "down" && rightDirection === "up") {
-        leftPressure = 0.22 + strengthBias * 0.08;
-    } else {
-        // Same-direction candles and dojis use the authoritative strength
-        // indicators without allowing a large body to become an attack bonus.
-        leftPressure = 0.5 + strengthBias * 0.28;
-    }
+    const returnDifference = candleChangePercent(left) - candleChangePercent(right);
+    // Match the backend tolerance. For equal percentage returns, use the
+    // official resolver's strength tie-breaker instead of inventing a winner.
+    let leftPressure = Math.abs(returnDifference) <= .000001
+        ? officialWinner === "left" ? .68 : officialWinner === "right" ? .32 : .5 + strengthBias * .28
+        : .5 + clamp01(Math.abs(returnDifference) / Math.max(1, Math.abs(candleChangePercent(left)), Math.abs(candleChangePercent(right)))) * .4 * Math.sign(returnDifference);
 
     leftPressure = clamp01(leftPressure);
     return { leftPressure, rightPressure: 1 - leftPressure, leftDirection, rightDirection };
@@ -133,9 +133,10 @@ export function combatFrame(
     rightStrength: number,
     elapsedMs: number,
     durationMs: number,
-    seed = 0
+    seed = 0,
+    officialWinner: Winner = "draw"
 ): CombatFrame {
-    const advantage = combatAdvantage(left, right, leftStrength, rightStrength);
+    const advantage = combatAdvantage(left, right, leftStrength, rightStrength, officialWinner);
     const progress = clamp01(elapsedMs / Math.max(1, durationMs));
     const intensity = 0.38 + 0.62 * (progress * progress * (3 - 2 * progress));
     const leftPulse = 0.28 + 0.72 * wave(elapsedMs, 310, seed * 0.0007);

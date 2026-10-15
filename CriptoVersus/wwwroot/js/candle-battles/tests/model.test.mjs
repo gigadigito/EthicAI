@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle, candleDirection, combatAdvantage, combatFrame } from '../../dist/candle-battles/model.js';
+import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame } from '../../dist/candle-battles/model.js';
 const candle = (overrides={}) => ({...demoRound(0).left,open:100,high:106,low:94,close:103,...overrides});
 test('OHLC maps exact price distances, including small body, large body, doji and extreme wicks',()=>{
     for(const close of [100,100.01,103,110,90]) {
@@ -77,6 +77,20 @@ test('OHLC direction gives a small green candle offensive priority over a large 
     const avg=(values)=>values.reduce((sum,value)=>sum+value,0)/values.length;
     assert.ok(avg(frames.map(f=>f.left.attack))>avg(frames.map(f=>f.right.attack)));
     assert.ok(avg(frames.map(f=>f.right.hit))>avg(frames.map(f=>f.left.hit)));
+});
+
+test('visual pressure follows percentage return, including red versus red and equal-return tie-breaks',()=>{
+    const mildRed=candle({open:100,close:98,high:101,low:97});
+    const deepRed=candle({open:100,close:92,high:101,low:90});
+    assert.equal(candleChangePercent(mildRed),-2);
+    assert.equal(candleChangePercent(deepRed),-8);
+    assert.ok(combatAdvantage(mildRed,deepRed,10,90).leftPressure>.5);
+    const equalLeft=candle({open:100,close:102});
+    const equalRight=candle({open:200,close:204});
+    assert.equal(candleChangePercent(equalLeft),candleChangePercent(equalRight));
+    assert.ok(combatAdvantage(equalLeft,equalRight,10,90,'left').leftPressure>.5);
+    assert.ok(combatAdvantage(equalLeft,equalRight,10,90,'right').leftPressure<.5);
+    assert.equal(combatAdvantage(equalLeft,equalRight,50,50,'draw').leftPressure,.5);
 });
 
 test('same-direction candles use strength as the tie-breaker and combat remains active before the finale',()=>{

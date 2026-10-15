@@ -39,30 +39,27 @@ export function candleDirection(candle) {
         return "down";
     return "neutral";
 }
+export function candleChangePercent(candle) {
+    return (candle.close - candle.open) / candle.open * 100;
+}
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
 /**
  * Converts market direction into visual pressure. Body size never enters this
  * calculation: the OHLC direction owns the green-versus-red advantage, while
  * the existing strength indicators only break ties between comparable candles.
  */
-export function combatAdvantage(left, right, leftStrength = 50, rightStrength = 50) {
+export function combatAdvantage(left, right, leftStrength = 50, rightStrength = 50, officialWinner = "draw") {
     const leftDirection = candleDirection(left);
     const rightDirection = candleDirection(right);
     const leftScore = clamp01(Number.isFinite(leftStrength) ? leftStrength / 100 : 0.5);
     const rightScore = clamp01(Number.isFinite(rightStrength) ? rightStrength / 100 : 0.5);
     const strengthBias = leftScore - rightScore;
-    let leftPressure;
-    if (leftDirection === "up" && rightDirection === "down") {
-        leftPressure = 0.78 + strengthBias * 0.08;
-    }
-    else if (leftDirection === "down" && rightDirection === "up") {
-        leftPressure = 0.22 + strengthBias * 0.08;
-    }
-    else {
-        // Same-direction candles and dojis use the authoritative strength
-        // indicators without allowing a large body to become an attack bonus.
-        leftPressure = 0.5 + strengthBias * 0.28;
-    }
+    const returnDifference = candleChangePercent(left) - candleChangePercent(right);
+    // Match the backend tolerance. For equal percentage returns, use the
+    // official resolver's strength tie-breaker instead of inventing a winner.
+    let leftPressure = Math.abs(returnDifference) <= .000001
+        ? officialWinner === "left" ? .68 : officialWinner === "right" ? .32 : .5 + strengthBias * .28
+        : .5 + clamp01(Math.abs(returnDifference) / Math.max(1, Math.abs(candleChangePercent(left)), Math.abs(candleChangePercent(right)))) * .4 * Math.sign(returnDifference);
     leftPressure = clamp01(leftPressure);
     return { leftPressure, rightPressure: 1 - leftPressure, leftDirection, rightDirection };
 }
@@ -71,8 +68,8 @@ const wave = (elapsed, period, phase) => Math.max(0, Math.sin(elapsed / period +
  * Samples deterministic in-round cinematics. It is presentation-only: it
  * consumes a confirmed candle snapshot and never changes score or territory.
  */
-export function combatFrame(left, right, leftStrength, rightStrength, elapsedMs, durationMs, seed = 0) {
-    const advantage = combatAdvantage(left, right, leftStrength, rightStrength);
+export function combatFrame(left, right, leftStrength, rightStrength, elapsedMs, durationMs, seed = 0, officialWinner = "draw") {
+    const advantage = combatAdvantage(left, right, leftStrength, rightStrength, officialWinner);
     const progress = clamp01(elapsedMs / Math.max(1, durationMs));
     const intensity = 0.38 + 0.62 * (progress * progress * (3 - 2 * progress));
     const leftPulse = 0.28 + 0.72 * wave(elapsedMs, 310, seed * 0.0007);

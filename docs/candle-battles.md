@@ -18,14 +18,20 @@ BinanceKlineClient centraliza o transporte público de klines usado também pela
 
 As velas são OHLC e volume cotado reais de 5 minutos. A confirmação exige: timestamps UTC alinhados, fechamento da corretora igual à abertura + 300000 - 1 ms, OHLC válido, e relógio da corretora pelo menos 1500 ms após o fim exclusivo do intervalo. Os dois ativos precisam compartilhar o mesmo intervalo e ter 20 candles anteriores completos e contíguos. O primeiro intervalo parcial da partida é excluído. Não há substituição por máximas, mínimas ou volumes inventados.
 
-A fórmula versionada strength-v1-b45-v25-r20-m10-h20 usa decimal:
+A regra de vitória versionada `return-v1-pct-strength-tiebreak` compara primeiro a variação percentual do candle, usando decimal:
+
+- Variação: `((Close - Open) / Open) * 100`.
+- A maior variação vence: o menos negativo vence entre quedas, o positivo vence qualquer negativo e a maior alta vence entre altas.
+- Se as variações forem iguais até `0,000001`, a fórmula de força `strength-v1-b45-v25-r20-m10-h20` permanece como desempate; força igual produz `draw`.
+
+A força auxiliar usa:
 
 - Corpo: abs(Close - Open) / Open, saturado em 2%, peso 45%.
 - Volume: volume cotado / média dos 20 candles anteriores, saturado em 3x, peso 25%. Média zero produz componente zero.
 - Amplitude: (High - Low) / Open, saturada em 4%, peso 20%.
 - Momentum: abs(Close - Close de três candles atrás) / Close de três candles atrás, saturado em 3%, peso 10%.
 
-Cada componente fica em [0,100]. Força final arredondada para dez casas decimais; diferença até 0,000001 é empate. Os limites fazem parte da versão. Dados de preço e volume extremos saturam antes de operações que poderiam causar overflow. A força provisória usa PreviewStrength com candles ainda abertos, sem modificar confirmação ou timestamps; pode aparecer no HUD, mas não concede pontos.
+Cada componente fica em [0,100]. Força final arredondada para dez casas decimais. Os limites fazem parte da versão. Dados de preço e volume extremos saturam antes de operações que poderiam causar overflow. A força provisória usa PreviewStrength com candles ainda abertos, sem modificar confirmação ou timestamps; pode aparecer no HUD, mas não concede pontos nem resolve uma rodada.
 
 ## Persistência e recuperação
 

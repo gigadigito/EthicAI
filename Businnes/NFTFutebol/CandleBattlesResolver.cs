@@ -4,7 +4,8 @@ namespace BLL.NFTFutebol;
 
 public static class CandleBattlesResolver
 {
-    public const string Version = "strength-v1-b45-v25-r20-m10-h20";
+    public const string Version = "return-v1-pct-strength-tiebreak";
+    public const decimal ComparisonTolerance = .000001m;
     public const int HistoryLength = 20;
     public const long PeriodMs = 300_000;
     public static decimal Strength(CandleBattlesCandleDto candle, IReadOnlyList<CandleBattlesCandleDto> history)
@@ -12,6 +13,14 @@ public static class CandleBattlesResolver
 
     public static decimal PreviewStrength(CandleBattlesCandleDto candle, IReadOnlyList<CandleBattlesCandleDto> history)
         => CalculateStrength(candle, history, requireConfirmation: false);
+
+    public static decimal PercentageChange(CandleBattlesCandleDto candle)
+    {
+        var delta = candle.Close - candle.Open;
+        if (delta == 0m) return 0m;
+        try { return delta / candle.Open * 100m; }
+        catch (OverflowException) { return delta > 0m ? decimal.MaxValue : decimal.MinValue; }
+    }
 
     private static decimal CalculateStrength(CandleBattlesCandleDto candle, IReadOnlyList<CandleBattlesCandleDto> history, bool requireConfirmation)
     {
@@ -50,7 +59,24 @@ public static class CandleBattlesResolver
             throw new ArgumentException("Both candles must share the same UTC interval.");
         var a = Strength(left, leftHistory);
         var b = Strength(right, rightHistory);
+        var leftReturn = PercentageChange(left);
+        var rightReturn = PercentageChange(right);
+        var returnComparison = ComparePercentageChanges(leftReturn, rightReturn);
+        var winner = returnComparison != 0
+            ? returnComparison > 0 ? "left" : "right"
+            // Preserve the existing strength comparison as the explicit
+            // tie-breaker; equal strength remains a draw.
+            : Math.Abs(a - b) <= ComparisonTolerance ? "draw" : a > b ? "left" : "right";
         return new($"{matchId}:5m:{left.OpenTime}", matchId, left, right,
-            Math.Abs(a - b) <= .000001m ? "draw" : a > b ? "left" : "right", Version, a, b);
+            winner, Version, a, b);
+    }
+
+    private static int ComparePercentageChanges(decimal left, decimal right)
+    {
+        if (left == right) return 0;
+        if (left == decimal.MaxValue || right == decimal.MinValue) return 1;
+        if (left == decimal.MinValue || right == decimal.MaxValue) return -1;
+        var difference = left - right;
+        return Math.Abs(difference) <= ComparisonTolerance ? 0 : difference > 0m ? 1 : -1;
     }
 }

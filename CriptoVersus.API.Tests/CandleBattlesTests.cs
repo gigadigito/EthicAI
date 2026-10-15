@@ -47,6 +47,38 @@ public sealed class CandleBattlesTests
         Assert.Equal("left", CandleBattlesResolver.Resolve(7, a with { Close=102m }, b, History(), History("BBBUSDT")).Winner);
         Assert.Equal("right", CandleBattlesResolver.Resolve(7, a, b with { Close=102m }, History(), History("BBBUSDT")).Winner);
     }
+
+    [Theory]
+    [InlineData(-8, -2, "right")]
+    [InlineData(-10, 1, "right")]
+    [InlineData(2, 7, "right")]
+    [InlineData(-1, 0, "right")]
+    [InlineData(0, 1, "right")]
+    public void ResolverUsesPercentageChangeForAllCandleDirections(decimal leftPercent, decimal rightPercent, string expectedWinner)
+    {
+        var left = Candle() with { Close = 100m + leftPercent, High = Math.Max(100m, 100m + leftPercent) + 1m, Low = Math.Min(100m, 100m + leftPercent) - 1m };
+        var right = Candle(symbol: "BBBUSDT") with { Close = 100m + rightPercent, High = Math.Max(100m, 100m + rightPercent) + 1m, Low = Math.Min(100m, 100m + rightPercent) - 1m };
+        var result = CandleBattlesResolver.Resolve(7, left, right, History(), History("BBBUSDT"));
+        Assert.Equal(leftPercent, CandleBattlesResolver.PercentageChange(left));
+        Assert.Equal(rightPercent, CandleBattlesResolver.PercentageChange(right));
+        Assert.Equal(expectedWinner, result.Winner);
+    }
+
+    [Fact]
+    public void EqualPercentageChangeUsesStrengthTieBreakerAndEqualStrengthDraws()
+    {
+        var left = Candle() with { Close = 102m, High = 103m, Low = 99m };
+        var right = Candle(symbol: "BBBUSDT") with { Open = 200m, Close = 204m, High = 206m, Low = 198m };
+        var result = CandleBattlesResolver.Resolve(7, left, right, History(), History("BBBUSDT"));
+        Assert.Equal(2m, CandleBattlesResolver.PercentageChange(left));
+        Assert.Equal(2m, CandleBattlesResolver.PercentageChange(right));
+        Assert.Equal("right", result.Winner);
+
+        var tieLeft = left with { High = 102m, Low = 100m };
+        var tieRight = right with { High = 204m, Low = 200m };
+        var scaledRightHistory = History("BBBUSDT").Select(c => c with { Open = 200m, High = 200m, Low = 200m, Close = 200m }).ToArray();
+        Assert.Equal("draw", CandleBattlesResolver.Resolve(7, tieLeft, tieRight, History(), scaledRightHistory).Winner);
+    }
     [Fact]
     public void IncompleteUnconfirmedInvalidOrMismatchedCandlesNeverResolve()
     {
