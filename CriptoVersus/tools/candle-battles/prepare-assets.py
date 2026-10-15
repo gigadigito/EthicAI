@@ -65,6 +65,18 @@ action_rows = {
     "recover": ((500, 613, 3), (1104, 1214, 3)),
 }
 directions = ("neutral", "up", "down")
+# The three fighters inside an action group are intentionally offset rather
+# than split into equal thirds. Equal thirds cut the neutral fighter and pull
+# the neighbouring fighter into the frame. These reviewed spans keep one
+# complete character per frame while retaining its local glow.
+variant_spans = {
+    "run": ((0.10, 0.46), (0.42, 0.70), (0.77, 0.98)),
+    "punch": ((0.08, 0.40), (0.42, 0.64), (0.74, 0.94)),
+    "break": ((0.10, 0.46), (0.42, 0.70), (0.77, 0.98)),
+    "recover": ((0.05, 0.34), (0.33, 0.61), (0.64, 0.98)),
+}
+# Recover is a centered three-frame strip, unlike the full-width action rows.
+group_bounds = {"recover": ((300, 500), (540, 740), (770, 970))}
 
 
 def padded_frame(image: Image.Image, size=(200, 200)) -> Image.Image:
@@ -83,13 +95,18 @@ def padded_frame(image: Image.Image, size=(200, 200)) -> Image.Image:
 
 for action, team_rows in action_rows.items():
     for team, (y0, y1, count) in enumerate(team_rows):
-        group_width = extended.width / count
+        bounds = group_bounds.get(action)
+        group_width = extended.width / count if bounds is None else None
         for frame in range(count):
-            x0 = round(frame * group_width)
-            x1 = round((frame + 1) * group_width)
+            if bounds is None:
+                x0 = round(frame * group_width)
+                x1 = round((frame + 1) * group_width)
+            else:
+                x0, x1 = bounds[frame]
             for variant, direction in enumerate(directions):
-                vx0 = x0 + round((x1 - x0) * variant / 3)
-                vx1 = x0 + round((x1 - x0) * (variant + 1) / 3)
+                start, end = variant_spans[action][variant]
+                vx0 = x0 + round((x1 - x0) * start)
+                vx1 = x0 + round((x1 - x0) * end)
                 tile = extended.crop((vx0, y0, vx1, y1))
                 side = "left" if team == 0 else "right"
                 items[f"fighter-{side}-{direction}-{action}-{frame + 1}"] = padded_frame(tile)
