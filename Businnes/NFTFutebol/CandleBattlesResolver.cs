@@ -5,6 +5,7 @@ namespace BLL.NFTFutebol;
 public static class CandleBattlesResolver
 {
     public const string Version = "return-v1-pct-strength-tiebreak";
+    public const string LegacyStrengthVersion = "strength-v1-b45-v25-r20-m10-h20";
     public const decimal ComparisonTolerance = .000001m;
     public const int HistoryLength = 20;
     public const long PeriodMs = 300_000;
@@ -59,16 +60,21 @@ public static class CandleBattlesResolver
             throw new ArgumentException("Both candles must share the same UTC interval.");
         var a = Strength(left, leftHistory);
         var b = Strength(right, rightHistory);
-        var leftReturn = PercentageChange(left);
-        var rightReturn = PercentageChange(right);
-        var returnComparison = ComparePercentageChanges(leftReturn, rightReturn);
-        var winner = returnComparison != 0
+        var winner = ResolveWinner(left, right, a, b);
+        return new($"{matchId}:5m:{left.OpenTime}", matchId, left, right,
+            winner, Version, a, b);
+    }
+
+    public static string ResolveWinner(CandleBattlesCandleDto left, CandleBattlesCandleDto right,
+        decimal leftStrength, decimal rightStrength)
+    {
+        var returnComparison = ComparePercentageChanges(PercentageChange(left), PercentageChange(right));
+        return returnComparison != 0
             ? returnComparison > 0 ? "left" : "right"
             // Preserve the existing strength comparison as the explicit
             // tie-breaker; equal strength remains a draw.
-            : Math.Abs(a - b) <= ComparisonTolerance ? "draw" : a > b ? "left" : "right";
-        return new($"{matchId}:5m:{left.OpenTime}", matchId, left, right,
-            winner, Version, a, b);
+            : Math.Abs(leftStrength - rightStrength) <= ComparisonTolerance ? "draw"
+            : leftStrength > rightStrength ? "left" : "right";
     }
 
     private static int ComparePercentageChanges(decimal left, decimal right)

@@ -44,7 +44,7 @@ Uma trava transacional PostgreSQL por partida serializa réplicas do Worker. Rod
 
 Novos estados são criados para partidas em andamento ou concluídas nos últimos dez minutos. Não é feita uma importação indiscriminada de todas as partidas históricas. O histórico arcade é independente da retenção de snapshots de mercado e não é apagado por ela.
 
-O endpoint público GET /api/matches/{matchId}/candle-battles aceita after (abertura Unix ms exclusiva) e take (1–500). Retorna símbolos reais, placar arcade agregado, estado de mercado, velas atuais e rodadas em ordem. Não expõe entidades EF. O host Blazor pagina todo o histórico antes do bootstrap. dashboard_changed é somente invalidação; a consulta periódica de dez segundos cobre eventos perdidos. Falhas são mostradas sem gerar resultados alternativos. O estado delayed é exposto quando o Worker deixa de atualizar por mais de dois minutos.
+O endpoint público GET /api/matches/{matchId}/candle-battles aceita after (abertura Unix ms exclusiva) e take (1–500). Retorna símbolos reais, placar arcade agregado, estado de mercado, velas atuais e rodadas em ordem. Não expõe entidades EF. O host Blazor pagina todo o histórico antes do bootstrap. Rodadas persistidas com versões anteriores à regra percentual são normalizadas somente na leitura a partir do OHLC; a linha histórica não é alterada, mas o vencedor e o placar entregues ao Replay/TV seguem a regra atual. dashboard_changed é somente invalidação; a consulta periódica de dez segundos cobre eventos perdidos. Falhas são mostradas sem gerar resultados alternativos. O estado delayed é exposto quando o Worker deixa de atualizar por mais de dois minutos.
 
 ## Renderização modular
 

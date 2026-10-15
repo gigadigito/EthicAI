@@ -146,6 +146,36 @@ public sealed class CandleBattlesTests
     }
 
     [Fact]
+    public async Task ApiNormalizesLegacyStrengthWinnersFromStoredPercentageReturns()
+    {
+        var options = new DbContextOptionsBuilder<EthicAIDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        await using var db = new EthicAIDbContext(options);
+        db.Match.Add(new Match { MatchId = 8, ScoreA = 0, ScoreB = 0, Status = MatchStatus.Ongoing,
+            TeamA = new Team { TeamId = 11, Currency = new Currency { CurrencyId = 11, Symbol = "AAAUSDT" } },
+            TeamB = new Team { TeamId = 12, Currency = new Currency { CurrencyId = 12, Symbol = "BBBUSDT" } } });
+
+        var firstLeft = Candle() with { Close = 98m, High = 101m, Low = 97m };
+        var firstRight = Candle(symbol: "BBBUSDT") with { Close = 100m, High = 101m, Low = 99m };
+        var secondLeft = Candle(Start + 300000) with { Close = 102m, High = 103m, Low = 99m };
+        var secondRight = Candle(Start + 300000, symbol: "BBBUSDT") with { Close = 100m, High = 101m, Low = 99m };
+        db.AddRange(
+            new CandleBattlesRound { MatchId = 8, OpenTimeUtc = DateTimeOffset.FromUnixTimeMilliseconds(Start).UtcDateTime,
+                Winner = "left", RuleVersion = CandleBattlesResolver.LegacyStrengthVersion,
+                LeftCandleJson = JsonSerializer.Serialize(firstLeft), RightCandleJson = JsonSerializer.Serialize(firstRight) },
+            new CandleBattlesRound { MatchId = 8, OpenTimeUtc = DateTimeOffset.FromUnixTimeMilliseconds(Start + 300000).UtcDateTime,
+                Winner = "right", RuleVersion = CandleBattlesResolver.LegacyStrengthVersion,
+                LeftCandleJson = JsonSerializer.Serialize(secondLeft), RightCandleJson = JsonSerializer.Serialize(secondRight) });
+        await db.SaveChangesAsync();
+
+        var result = Assert.IsType<OkObjectResult>((await new CandleBattlesController(db).Get(8, take: 10)).Result);
+        var feed = Assert.IsType<CandleBattlesFeedDto>(result.Value);
+        Assert.Equal(1, feed.ScoreLeft);
+        Assert.Equal(1, feed.ScoreRight);
+        Assert.Equal(new[] { "right", "left" }, feed.Rounds.Select(r => r.Winner));
+        Assert.All(feed.Rounds, r => Assert.Equal(CandleBattlesResolver.Version, r.RuleVersion));
+    }
+
+    [Fact]
     public void ExtremeValidPricesAndVolumesSaturateWithoutOverflow()
     {
         var tiny = .00000000000000000001m;
