@@ -77,11 +77,16 @@ export class CandleRenderer {
         this.elapsed = immediate ? 240 : 0;
         this.last = { ...candle };
         this.range = range;
-        this.direction = candleDirection(candle);
+        const nextDirection = candleDirection(candle);
+        const directionChanged = nextDirection !== this.direction;
+        this.direction = nextDirection;
         this.impulse = 1;
         this.root.setVisible(true);
         if (immediate) this.visibleGeometry = { ...this.target };
-        this.playAnimation(true);
+        // Market heartbeats update OHLC while a candle is forming. Do not
+        // restart the current sprite sequence on every tick: doing so keeps
+        // the animation on its first frame and creates visible blinking.
+        if (directionChanged || !this.sprite.anims.isPlaying) this.playAnimation(true);
     }
 
     setPose(phase: Phase, winner: boolean, draw = false): void {
