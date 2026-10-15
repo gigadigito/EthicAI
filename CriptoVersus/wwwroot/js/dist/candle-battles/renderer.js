@@ -47,7 +47,11 @@ export class CandleRenderer {
         this.sprite = scene.add.sprite(0, 0, 'modular', fighterFrame(side, 'neutral', 'recover', 1));
         this.sprite.setOrigin(.5, 1);
         this.root = scene.add.container(x, y, [this.aura, this.body, this.sprite]);
-        this.root.setVisible(false);
+        // Keep a neutral fighter visible while LIVE is waiting for the first
+        // OHLC snapshot.  The direction remains neutral until setCandle()
+        // receives real data, so this is only a visual idle placeholder.
+        this.root.setVisible(true);
+        this.sprite.setPosition(0, 30).setScale(.8);
         this.playAnimation(true);
     }
     setCandle(candle, range, immediate = false) {
