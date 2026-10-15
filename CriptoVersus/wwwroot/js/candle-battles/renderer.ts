@@ -4,14 +4,16 @@ import { Candle, CombatMotion, FighterAnimation, Geometry, Phase, Side, TEAM, OU
 type FighterDirection = keyof typeof OUTLINE;
 
 const ACTION_FRAME_COUNTS: Record<Exclude<FighterAnimation, 'idle'>, number> = {
-    run: 8,
-    punch: 6,
+    // Later cells in the supplied montage overlap adjacent colour variants.
+    // Use the clean motion cells instead of flashing clipped neighbours.
+    run: 4,
+    punch: 4,
     break: 8,
     recover: 3,
 };
 
 const fighterFrame = (side: Side, direction: FighterDirection, action: FighterAnimation, frame: number): string =>
-    `fighter-${side}-${direction}-${action === 'idle' ? 'recover' : action}-${Math.max(1, frame)}`;
+    `fighter-${side}-${direction}-${action}-${Math.max(1, frame)}`;
 
 const animationKey = (side: Side, direction: FighterDirection, action: FighterAnimation): string =>
     `candle-${side}-${direction}-${action}`;
@@ -22,12 +24,11 @@ export function registerFighterAnimations(scene: Phaser.Scene): void {
         for (const action of ['idle', 'run', 'punch', 'break', 'recover'] as const) {
             const key = animationKey(side, direction, action);
             if (scene.anims.exists(key)) continue;
-            const sourceAction = action === 'idle' ? 'recover' : action;
-            const count = ACTION_FRAME_COUNTS[sourceAction];
+            const count = action === 'idle' ? 1 : ACTION_FRAME_COUNTS[action];
             scene.anims.create({
                 key,
-                frames: Array.from({ length: count }, (_, i) => ({ key: 'modular', frame: fighterFrame(side, direction, sourceAction, i + 1) })),
-                frameRate: action === 'run' ? 12 : action === 'punch' ? 18 : action === 'break' ? 14 : 8,
+                frames: Array.from({ length: count }, (_, i) => ({ key: 'modular', frame: fighterFrame(side, direction, action, i + 1) })),
+                frameRate: action === 'run' ? 8 : action === 'punch' ? 12 : action === 'break' ? 14 : 8,
                 repeat: action === 'idle' || action === 'run' ? -1 : 0,
             });
         }
@@ -59,7 +60,7 @@ export class CandleRenderer {
         registerFighterAnimations(scene);
         this.aura = scene.add.graphics();
         this.body = scene.add.graphics();
-        this.sprite = scene.add.sprite(0, 0, 'modular', fighterFrame(side, 'neutral', 'recover', 1));
+        this.sprite = scene.add.sprite(0, 0, 'modular', fighterFrame(side, 'neutral', 'idle', 1));
         this.sprite.setOrigin(.5, 1);
         this.root = scene.add.container(x, y, [this.aura, this.body, this.sprite]);
         // Keep a neutral fighter visible while LIVE is waiting for the first
@@ -90,13 +91,12 @@ export class CandleRenderer {
     }
 
     setPose(phase: Phase, winner: boolean, draw = false): void {
-        const changed = this.phase !== phase;
         this.phase = phase;
         this.win = winner;
         this.draw = draw;
         let next = fighterAnimationForPhase(phase);
         if (!draw && winner && ['BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE'].includes(phase)) next = 'recover';
-        if (changed || next !== this.animation) {
+        if (next !== this.animation) {
             this.animation = next;
             this.playAnimation(true);
         }

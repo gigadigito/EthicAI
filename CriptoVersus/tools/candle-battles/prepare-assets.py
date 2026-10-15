@@ -2,8 +2,8 @@
 
 The fighter board is an illustrated reference sheet rather than a regular
 Phaser grid. The crop boxes below intentionally exclude its baked labels.
-Frames are alpha-trimmed and padded on a common transparent canvas so their
-feet share a baseline without stretching the original artwork.
+Frames use fixed subcell boundaries and a common transparent canvas so their
+feet share a baseline without stretching or shifting with animated glow.
 """
 import argparse
 import hashlib
@@ -65,23 +65,20 @@ action_rows = {
     "recover": ((500, 613, 3), (1104, 1214, 3)),
 }
 directions = ("neutral", "up", "down")
-# The three fighters inside an action group are intentionally offset rather
-# than split into equal thirds. Equal thirds cut the neutral fighter and pull
-# the neighbouring fighter into the frame. These reviewed spans keep one
-# complete character per frame while retaining its local glow.
+# A group is an illustrated triptych, not one sprite. Boundaries must end
+# between characters; including a neighbour makes two fighters flash at once.
 variant_spans = {
-    "run": ((0.10, 0.46), (0.42, 0.70), (0.77, 0.98)),
-    "punch": ((0.08, 0.40), (0.42, 0.64), (0.74, 0.94)),
-    "break": ((0.10, 0.46), (0.42, 0.70), (0.77, 0.98)),
-    "recover": ((0.05, 0.34), (0.33, 0.61), (0.64, 0.98)),
+    "run": ((0.06, 0.39), (0.40, 0.74), (0.75, 0.99)),
+    "punch": ((0.04, 0.36), (0.37, 0.67), (0.68, 0.99)),
+    "break": ((0.06, 0.39), (0.40, 0.74), (0.75, 0.99)),
+    "recover": ((0.05, 0.28), (0.36, 0.57), (0.68, 0.98)),
 }
 # Recover is a centered three-frame strip, unlike the full-width action rows.
 group_bounds = {"recover": ((300, 500), (540, 740), (770, 970))}
 
 
 def padded_frame(image: Image.Image, size=(200, 200)) -> Image.Image:
-    """Preserve aspect ratio and place the original feet on one baseline."""
-    image = image.crop(image.getbbox() or (0, 0, 1, 1))
+    """Preserve fixed-cell alignment; glow must not move the fighter's anchor."""
     scale = min(size[0] / image.width, size[1] / image.height, 1.0)
     if scale < 1:
         image = image.resize(
@@ -91,6 +88,20 @@ def padded_frame(image: Image.Image, size=(200, 200)) -> Image.Image:
     canvas = Image.new("RGBA", size)
     canvas.alpha_composite(image, ((size[0] - image.width) // 2, size[1] - image.height - 3))
     return canvas
+
+
+# The base sheet has an actual upright IDLE pose. Do not loop RECOVER here:
+# its halo/leaning frames look like damage and introduce visible flashing.
+idle_bounds = (
+    ((23, 65, 113, 220), (117, 42, 210, 220), (213, 42, 307, 220)),
+    ((23, 670, 113, 840), (117, 646, 210, 840), (213, 646, 307, 840)),
+)
+for team, variants in enumerate(idle_bounds):
+    side = "left" if team == 0 else "right"
+    for direction, bounds in zip(directions, variants):
+        tile = im.crop(bounds)
+        tile = tile.resize((round(tile.width * .7), round(tile.height * .7)), Image.Resampling.LANCZOS)
+        items[f"fighter-{side}-{direction}-idle-1"] = padded_frame(tile)
 
 
 for action, team_rows in action_rows.items():
@@ -153,9 +164,9 @@ for entry in z.infolist():
             "audio": audio,
             "sourceSha256": hashlib.sha256(base).hexdigest(),
             "fighterSourceSha256": hashlib.sha256(extended_bytes).hexdigest(),
-            "poses": {"run": 8, "punch": 6, "break": 8, "recover": 3},
+            "poses": {"idle": 1, "run": 8, "punch": 6, "break": 8, "recover": 3},
             "directions": list(directions),
-            "notes": "Fighter action frames are extracted from the approved extended sheet, alpha-trimmed and padded without aspect-ratio deformation. OHLC body and wicks remain financial geometry; unavailable idle/lunge/victory/defeat poses use the closest real action sequence.",
+            "notes": "Idle frames come from the approved base sheet; action frames come from the extended sheet. Fixed-cell padding preserves alignment without aspect-ratio deformation. OHLC body and wicks remain financial geometry; unavailable lunge/victory/defeat poses use the closest real action sequence.",
         },
         indent=2,
     )

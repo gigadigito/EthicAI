@@ -1,6 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase } from '../../dist/candle-battles/model.js';
+import { registerFighterAnimations } from '../../dist/candle-battles/renderer.js';
+
+test('idle holds one upright fighter frame without cycling through stun poses', () => {
+    const animations = new Map();
+    registerFighterAnimations({ anims: {
+        exists: key => animations.has(key),
+        create: config => animations.set(config.key, config),
+    } });
+    for (const side of ['left', 'right']) for (const direction of ['neutral', 'up', 'down']) {
+        const idle = animations.get(`candle-${side}-${direction}-idle`);
+        assert.equal(idle.frames.length, 1);
+        assert.equal(idle.frames[0].frame, `fighter-${side}-${direction}-idle-1`);
+        assert.equal(idle.repeat, -1);
+    }
+});
 const candle = (overrides={}) => ({...demoRound(0).left,open:100,high:106,low:94,close:103,...overrides});
 test('OHLC maps exact price distances, including small body, large body, doji and extreme wicks',()=>{
     for(const close of [100,100.01,103,110,90]) {

@@ -77,7 +77,7 @@ export class GameEngine {
         const owner = this;
         class BattleScene extends Phaser.Scene {
             constructor() { super('CandleBattles'); }
-            preload(): void { this.load.on('loaderror',()=>owner.readyReject(new Error('Candle Battles asset failed to load'))); this.load.atlas('modular', '/games/candle-battles/assets/modular.png', '/games/candle-battles/assets/modular.json'); }
+            preload(): void { this.load.on('loaderror',()=>owner.readyReject(new Error('Candle Battles asset failed to load'))); this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015c', '/games/candle-battles/assets/modular.json?v=20261015c'); }
             create(): void { owner.setup(this); }
             update(_time: number, delta: number): void { owner.update(delta); }
         }

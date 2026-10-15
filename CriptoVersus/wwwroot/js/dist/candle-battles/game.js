@@ -1,6 +1,6 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, demoRound, sharedRange, validRound, combatFrame } from './model.js';
-import { CandleRenderer } from './renderer.js';
-import { AudioManager } from './audio.js';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, demoRound, sharedRange, validRound, combatFrame } from './model.js?v=20261015c';
+import { CandleRenderer } from './renderer.js?v=20261015c';
+import { AudioManager } from './audio.js?v=20261015c';
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
     const Phaser = await import(url);
@@ -59,7 +59,7 @@ export class GameEngine {
         const owner = this;
         class BattleScene extends Phaser.Scene {
             constructor() { super('CandleBattles'); }
-            preload() { this.load.on('loaderror', () => owner.readyReject(new Error('Candle Battles asset failed to load'))); this.load.atlas('modular', '/games/candle-battles/assets/modular.png', '/games/candle-battles/assets/modular.json'); }
+            preload() { this.load.on('loaderror', () => owner.readyReject(new Error('Candle Battles asset failed to load'))); this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015c', '/games/candle-battles/assets/modular.json?v=20261015c'); }
             create() { owner.setup(this); }
             update(_time, delta) { owner.update(delta); }
         }
