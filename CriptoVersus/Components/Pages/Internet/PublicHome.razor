@@ -210,14 +210,14 @@
 
                     <div class="home-hot-hero__cta-group">
                         <a class="arena-cta-button home-hot-hero__cta home-hot-hero__cta--secondary"
-                           href="@GetTvWatchUrl(hero)"
-                           aria-label="@ArenaText("openArenaAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("openArena")
+                           href="@GetCandleTvUrl(hero)"
+                           aria-label="@ArenaText("candleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
+                            @ArenaText("candle")
                         </a>
                         <a class="arena-cta-link home-hot-hero__cta-link home-hot-hero__cta--primary"
                            href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
-                           aria-label="@ArenaText("openMatchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("openMatch")
+                           aria-label="@ArenaText("matchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
+                            @ArenaText("match")
                         </a>
                     </div>
                 </article>
@@ -300,14 +300,14 @@
 
                     <div class="home-hot-hero__cta-group">
                         <a class="arena-cta-button home-hot-hero__cta home-hot-hero__cta--secondary"
-                           href="@GetTvMatchUrl(hero)"
-                           aria-label="@ArenaText("openArenaAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("openArena")
+                           href="@GetCandleTvUrl(hero)"
+                           aria-label="@ArenaText("candleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
+                            @ArenaText("candle")
                         </a>
                         <a class="arena-cta-link home-hot-hero__cta-link home-hot-hero__cta--primary"
                            href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
-                           aria-label="@ArenaText("openMatchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("openMatch")
+                           aria-label="@ArenaText("matchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
+                            @ArenaText("match")
                         </a>
                     </div>
                 </article>
@@ -428,14 +428,14 @@
                             <span class="arena-status-subtext">@GetMatchClockLabel(match)</span>
                             <div class="arena-match-card__actions">
                                 <a class="arena-cta-button"
-                                   href="@GetTvMatchUrl(match)"
-                                   aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                    @ArenaText("openArena")
+                                   href="@GetCandleTvUrl(match)"
+                                   aria-label="@ArenaText("candleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
+                                    @ArenaText("candle")
                                 </a>
                                 <a class="arena-cta-link"
                                    href="@GetPublicMatchUrl(match)"
-                                   aria-label="@ArenaText("openMatchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                    @ArenaText("openMatch")
+                                   aria-label="@ArenaText("matchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
+                                    @ArenaText("match")
                                 </a>
                             </div>
                         </div>
@@ -511,14 +511,14 @@
                         <span class="arena-status-subtext">@T("featuredMatchScoreSummary", match.MatchId, match.ScoreA, match.ScoreB)</span>
                         <div class="arena-match-card__actions">
                             <a class="arena-cta-button"
-                               href="@GetTvMatchUrl(match)"
-                               aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                @ArenaText("openArena")
+                               href="@GetCandleTvUrl(match)"
+                               aria-label="@ArenaText("candleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
+                                @ArenaText("candle")
                             </a>
                             <a class="arena-cta-link"
                                href="@GetPublicMatchUrl(match)"
-                               aria-label="@ArenaText("openMatchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                @ArenaText("openMatch")
+                               aria-label="@ArenaText("matchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
+                                @ArenaText("match")
                             </a>
                         </div>
                     </div>
@@ -807,9 +807,6 @@
             : RouteLocalization.BuildLocalizedPath(CurrentCulture, match.MatchId, slug);
     }
 
-    private string GetTvWatchUrl(HotMatchDto match)
-        => GetTvMatchUrl(match);
-
     private string GetPublicMatchUrl(MatchDto match)
         => GetPublicMatchUrl(match.MatchId, match.TeamA, match.TeamB);
 
@@ -822,23 +819,25 @@
             : RouteLocalization.BuildLocalizedPath(CurrentCulture, matchId, slug);
     }
 
-    private string GetTvMatchUrl(HotMatchDto match)
+    private string GetCandleTvUrl(HotMatchDto match)
     {
         var slug = !string.IsNullOrWhiteSpace(match.Slug)
             ? match.Slug
             : MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
 
-        return string.IsNullOrWhiteSpace(slug)
-            ? RouteLocalization.BuildTvPath(CurrentCulture)
-            : RouteLocalization.BuildTvMatchPath(CurrentCulture, match.MatchId, slug);
+        return RouteLocalization.BuildCandleBattlesPath(
+            CurrentCulture,
+            match.MatchId,
+            string.IsNullOrWhiteSpace(slug) ? $"match-{match.MatchId}" : slug);
     }
 
-    private string GetTvMatchUrl(MatchDto match)
+    private string GetCandleTvUrl(MatchDto match)
     {
         var slug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
-        return string.IsNullOrWhiteSpace(slug)
-            ? RouteLocalization.BuildTvPath(CurrentCulture)
-            : RouteLocalization.BuildTvMatchPath(CurrentCulture, match.MatchId, slug);
+        return RouteLocalization.BuildCandleBattlesPath(
+            CurrentCulture,
+            match.MatchId,
+            string.IsNullOrWhiteSpace(slug) ? $"match-{match.MatchId}" : slug);
     }
 
     private MatchDto ToMatchCard(HotMatchDto match)
