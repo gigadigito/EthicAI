@@ -58,3 +58,7 @@ i
 cd C:\CursoPython\XTTS-v2
 .\venv\Scripts\activate
 python worker.py
+
+
+ git push origem main
+  git pull origem main

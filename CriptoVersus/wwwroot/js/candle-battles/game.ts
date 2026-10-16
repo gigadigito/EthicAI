@@ -345,18 +345,20 @@ export class GameEngine {
         this.hud.get('matchTime')?.setText(this.text('matchTime','MATCH TIME')+'  '+clockParts(capped)+' / 90:00');
         const remaining=this.nextBattleRemaining();
         this.hud.get('nextBattle')?.setText(this.terminal?'':this.text('nextBattle','NEXT BATTLE')+'  '+(this.active?'00:00':remaining==null?'--:--':clockParts(Math.ceil(remaining/1000)*1000)));
-        const round=this.terminal?this.completedRounds:Math.min(MATCH_ROUNDS,this.completedRounds+1);
-        this.hud.get('round')?.setText(this.text('round','ROUND')+'  '+round+' / '+(this.feed?.expectedRounds??MATCH_ROUNDS));
+        const configuredRounds=this.feed?.expectedRounds??MATCH_ROUNDS;
+        const expectedRounds=this.terminal && this.feed?.status==='finished' ? this.completedRounds : configuredRounds;
+        const round=this.terminal?this.completedRounds:Math.min(configuredRounds,this.completedRounds+1);
+        this.hud.get('round')?.setText(this.text('round','ROUND')+'  '+round+' / '+expectedRounds);
     }
     private finish(): void {
         if(this.terminal || !this.feed?.finished) return;
         this.terminal=true; this.started=false; this.audio.pause();
         this.left?.setPose('FORMING_CANDLE',true); this.right?.setPose('FORMING_CANDLE',true);
-        const enough=this.completedRounds===(this.feed.expectedRounds??MATCH_ROUNDS);
+        const incomplete=this.feed.status==='incomplete' || this.feed.status!=='finished';
         const left=this.territory.score.left,right=this.territory.score.right;
         const winner=left===right?this.text('draw','DRAW'):(left>right?this.feed.leftSymbol:this.feed.rightSymbol);
-        this.hud.get('status')?.setText(this.text('matchFinished','MATCH FINISHED')+(enough?' — '+winner+(left===right?'':' '+this.text('wins','WINS')):''));
-        this.hud.get('result')?.setText(enough?`${this.text('finalScore','FINAL SCORE')}: ${left} × ${right}`:this.text('incomplete','INCOMPLETE RESULT'));
+        this.hud.get('status')?.setText(this.text('matchFinished','MATCH FINISHED')+(incomplete?'':' — '+winner+(left===right?'':' '+this.text('wins','WINS'))));
+        this.hud.get('result')?.setText(incomplete?this.text('incomplete','INCOMPLETE RESULT'):`${this.text('finalScore','FINAL SCORE')}: ${left} × ${right}`);
         this.hud.get('nextBattle')?.setText('');
     }
     private begin(r:Readonly<Round>): void {
