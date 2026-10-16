@@ -37,6 +37,24 @@ test('decorative bounce and pulse cannot resize OHLC or fixed-size accessories; 
  expect(result.decorated).toEqual(result.before);expect(result.size).toEqual(result.afterSize);expect(result.scaleY).toBe(1);
  expect(result.halfway.height).toBe(0);expect(result.close).toBe(97);expect(result.after.height).toBeCloseTo(result.before.height,8);
 });
+
+test('fighters stay below candles and action frames contain one team character',async({page})=>{
+ await page.goto(url);await page.waitForFunction(()=>window.ready);
+ const positions=await page.evaluate(()=>{
+  const actions=['run','punch','break'];
+  return [0,1,2,5,6,7].map((index)=>{
+   const fighter=window.fighters[index].fighter;
+   const sprite=fighter.root.list[2],action=actions[index%5];
+   fighter.setPose(action==='run'?'APPROACHING':action==='punch'?'ATTACKING':'DESTROYING',false);
+   sprite.setFrame(`fighter-${fighter.side}-neutral-${action}-${action==='break'?1:action==='punch'?3:2}`);
+   fighter.update(0,0);
+   return {candleBottom:fighter.geometry.lowY,spriteFoot:sprite.y,frame:sprite.frame.name};
+  });
+ });
+ expect(positions.every(x=>x.candleBottom<x.spriteFoot-40)).toBe(true);
+ expect(positions.every(x=>x.frame.includes('-neutral-'))).toBe(true);
+ await expect(page).toHaveScreenshot('isolated-fighters.png');
+});
 test('LIVE reconciles immutable history and heartbeat never creates points',async({page})=>{
  await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine);
  await page.evaluate(async()=>{

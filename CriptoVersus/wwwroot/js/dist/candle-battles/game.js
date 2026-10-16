@@ -1,6 +1,6 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, demoRound, sharedRange, validRound, combatFrame } from './model.js?v=20261015c';
-import { CandleRenderer } from './renderer.js?v=20261015c';
-import { AudioManager } from './audio.js?v=20261015c';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, demoRound, sharedRange, validRound, combatFrame } from './model.js?v=20261015d';
+import { CandleRenderer } from './renderer.js?v=20261015d';
+import { AudioManager } from './audio.js?v=20261015d';
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
     const Phaser = await import(url);
@@ -59,7 +59,7 @@ export class GameEngine {
         const owner = this;
         class BattleScene extends Phaser.Scene {
             constructor() { super('CandleBattles'); }
-            preload() { this.load.on('loaderror', () => owner.readyReject(new Error('Candle Battles asset failed to load'))); this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015c', '/games/candle-battles/assets/modular.json?v=20261015c'); }
+            preload() { this.load.on('loaderror', () => owner.readyReject(new Error('Candle Battles asset failed to load'))); this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d'); }
             create() { owner.setup(this); }
             update(_time, delta) { owner.update(delta); }
         }
@@ -126,8 +126,8 @@ export class GameEngine {
         this.label('percent', '50% / 50%', 640, 772, 16, '#f3f5f7', .5);
         this.chart = scene.add.graphics();
         this.lineFlash = scene.add.graphics().setDepth(20);
-        this.left = new CandleRenderer(scene, 'left', 330, 230);
-        this.right = new CandleRenderer(scene, 'right', 950, 230);
+        this.left = new CandleRenderer(scene, 'left', 330, 260);
+        this.right = new CandleRenderer(scene, 'right', 950, 260);
         this.left.setReducedMotion(this.reduced);
         this.right.setReducedMotion(this.reduced);
         this.drawTerritory();
@@ -356,21 +356,17 @@ export class GameEngine {
             const center = 640 + frame.centerOffset;
             const leftX = center - frame.separation / 2;
             const rightX = center + frame.separation / 2;
-            this.left?.root.setPosition(leftX, 230);
-            this.right?.root.setPosition(rightX, 230);
+            this.left?.root.setPosition(leftX, 260);
+            this.right?.root.setPosition(rightX, 260);
             this.left?.setCombatMotion(frame.left);
             this.right?.setCombatMotion(frame.right);
         }
         else {
-            // LIVE has no confirmed round while the exchange candle is forming.
-            // Show readable footwork and anticipation without fabricating attacks
-            // or using information from the future candle close.
-            const idleStep = Math.sin(this.time / 420) * 9;
-            this.left?.root.setPosition(330 + idleStep, 230);
-            this.right?.root.setPosition(950 - idleStep, 230);
-            const idle = .2 + Math.abs(Math.sin(this.time / 260)) * .2;
-            this.left?.setCombatMotion({ attack: 0, block: idle, dodge: idle * .35, hit: 0, counter: 0, taunt: idle });
-            this.right?.setCombatMotion({ attack: 0, block: idle, dodge: idle * .35, hit: 0, counter: 0, taunt: idle });
+            // A forming candle has no confirmed opponent action yet.
+            this.left?.root.setPosition(330, 260);
+            this.right?.root.setPosition(950, 260);
+            this.left?.setCombatMotion({ attack: 0, block: .2, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+            this.right?.setCombatMotion({ attack: 0, block: .2, dodge: 0, hit: 0, counter: 0, taunt: 0 });
         }
         this.left?.update(this.time, dt, p);
         this.right?.update(this.time, dt, p);
@@ -427,13 +423,13 @@ export class GameEngine {
             this.audio.play('dash');
         if (phase === 'COLLISION') {
             this.audio.play('punch_impact');
-            this.burst(640, 330, r.winner === 'right' ? 'right' : 'left');
+            this.burst(640, 400, r.winner === 'right' ? 'right' : 'left');
             if (!this.reduced)
                 this.scene?.cameras.main.shake(100, .002);
         }
         if (phase === 'DESTROYING') {
             this.audio.play('candle_destroy');
-            this.burst(r.winner === 'left' ? 720 : 560, 350, r.winner === 'left' ? 'right' : 'left');
+            this.burst(r.winner === 'left' ? 720 : 560, 400, r.winner === 'left' ? 'right' : 'left');
         }
         if (phase === 'VICTORY') {
             this.hud.get('result')?.setText(r.winner === 'draw' ? this.text('draw') : (r[r.winner].symbol + ' +1'));

@@ -35,5 +35,5 @@
     "up",
     "down"
   ],
-  "notes": "Idle frames come from the approved base sheet; action frames come from the extended sheet. Fixed-cell padding preserves alignment without aspect-ratio deformation. OHLC body and wicks remain financial geometry; unavailable lunge/victory/defeat poses use the closest real action sequence."
+  "notes": "Idle and action frames use isolated characters from the approved base sheet; the extended sheet is retained as a reference. Fixed-cell padding preserves alignment without aspect-ratio deformation. OHLC body and wicks remain financial geometry."
 }

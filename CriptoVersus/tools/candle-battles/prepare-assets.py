@@ -13,6 +13,7 @@ import zipfile
 from pathlib import Path
 
 from PIL import Image
+from fighter_frames import single_fighter_frames
 
 p = argparse.ArgumentParser()
 p.add_argument("archive", type=Path)
@@ -122,6 +123,11 @@ for action, team_rows in action_rows.items():
                 side = "left" if team == 0 else "right"
                 items[f"fighter-{side}-{direction}-{action}-{frame + 1}"] = padded_frame(tile)
 
+# The triptych crops above preserve the atlas layout. Replace their artwork
+# with isolated poses from the base sheet so neighbouring fighters cannot
+# appear during a colour change or an action frame.
+items.update(single_fighter_frames(im))
+
 atlas_width = 1536
 atlas_height = 256 * ((len(items) + 6) // 7)
 atlas = Image.new("RGBA", (atlas_width, atlas_height))
@@ -166,7 +172,7 @@ for entry in z.infolist():
             "fighterSourceSha256": hashlib.sha256(extended_bytes).hexdigest(),
             "poses": {"idle": 1, "run": 8, "punch": 6, "break": 8, "recover": 3},
             "directions": list(directions),
-            "notes": "Idle frames come from the approved base sheet; action frames come from the extended sheet. Fixed-cell padding preserves alignment without aspect-ratio deformation. OHLC body and wicks remain financial geometry; unavailable lunge/victory/defeat poses use the closest real action sequence.",
+            "notes": "Idle and action frames use isolated characters from the approved base sheet; the extended sheet is retained as a reference. Fixed-cell padding preserves alignment without aspect-ratio deformation. OHLC body and wicks remain financial geometry.",
         },
         indent=2,
     )

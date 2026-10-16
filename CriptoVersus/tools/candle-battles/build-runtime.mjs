@@ -10,7 +10,7 @@ await writeFile(new URL('wwwroot/js/dist/candle-battles/package.json', root), JS
 
 // Browser ESM caches each relative import independently of the entrypoint URL.
 // Keep this revision in sync with CandleBattlesHost.razor and the atlas URLs.
-const revision = '20261015c';
+const revision = '20261015d';
 const modules = new URL('wwwroot/js/dist/candle-battles/', root);
 for (const file of await readdir(modules)) {
     if (!file.endsWith('.js')) continue;

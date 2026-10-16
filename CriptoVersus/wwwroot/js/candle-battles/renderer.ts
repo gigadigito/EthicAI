@@ -4,11 +4,11 @@ import { Candle, CombatMotion, FighterAnimation, Geometry, Phase, Side, TEAM, OU
 type FighterDirection = keyof typeof OUTLINE;
 
 const ACTION_FRAME_COUNTS: Record<Exclude<FighterAnimation, 'idle'>, number> = {
-    // Later cells in the supplied montage overlap adjacent colour variants.
-    // Use the clean motion cells instead of flashing clipped neighbours.
+    // Hold the damage pose while its alpha fades; cycling the source montage
+    // would reveal neighbouring colour variants.
     run: 4,
     punch: 4,
-    break: 8,
+    break: 1,
     recover: 3,
 };
 
@@ -45,7 +45,6 @@ export class CandleRenderer {
     private visibleGeometry?: Geometry;
     private elapsed = 0;
     private direction: FighterDirection = 'neutral';
-    private impulse = 0;
     private last?: Candle;
     private range = 0;
     private frozen = false;
@@ -67,27 +66,22 @@ export class CandleRenderer {
         // OHLC snapshot.  The direction remains neutral until setCandle()
         // receives real data, so this is only a visual idle placeholder.
         this.root.setVisible(true);
-        this.sprite.setPosition(0, 30).setScale(.8);
+        this.sprite.setPosition(0, 185).setScale(.8);
         this.playAnimation(true);
     }
 
     setCandle(candle: Candle, range: number, immediate = false): void {
         if (!immediate && this.last && candle.open === this.last.open && candle.close === this.last.close && candle.high === this.last.high && candle.low === this.last.low && candle.openTime === this.last.openTime && candle.updatedAt === this.last.updatedAt && this.range === range) return;
-        this.from = this.visibleGeometry ?? project(candle, range, 200);
-        this.target = project(candle, range, 200);
+        this.from = this.visibleGeometry ?? project(candle, range, 90);
+        this.target = project(candle, range, 90);
         this.elapsed = immediate ? 240 : 0;
         this.last = { ...candle };
         this.range = range;
         const nextDirection = candleDirection(candle);
-        const directionChanged = nextDirection !== this.direction;
         this.direction = nextDirection;
-        this.impulse = 1;
         this.root.setVisible(true);
         if (immediate) this.visibleGeometry = { ...this.target };
-        // Market heartbeats update OHLC while a candle is forming. Do not
-        // restart the current sprite sequence on every tick: doing so keeps
-        // the animation on its first frame and creates visible blinking.
-        if (directionChanged || !this.sprite.anims.isPlaying) this.playAnimation(true);
+        if (!this.sprite.anims.isPlaying) this.playAnimation(true);
     }
 
     setPose(phase: Phase, winner: boolean, draw = false): void {
@@ -95,7 +89,8 @@ export class CandleRenderer {
         this.win = winner;
         this.draw = draw;
         let next = fighterAnimationForPhase(phase);
-        if (!draw && winner && ['BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE'].includes(phase)) next = 'recover';
+        if (next === 'recover') next = 'idle';
+        if (!draw && winner && ['BLOCK_FALLING', 'BLOCK_LOCKING'].includes(phase)) next = 'idle';
         if (next !== this.animation) {
             this.animation = next;
             this.playAnimation(true);
@@ -121,10 +116,7 @@ export class CandleRenderer {
         const g = this.visibleGeometry;
         const color = TEAM[this.side];
         this.outline = OUTLINE[this.direction];
-        const bounce = this.frozen ? 0 : Math.sin(time / 280) * 2;
-        const reaction = this.combat.hit * 8;
-        const jitter = this.frozen ? reaction : Math.sin(time / 31) * this.impulse * 1.5 + Math.sin(time / 23) * reaction;
-        this.impulse = Math.max(0, this.impulse - delta / 350);
+        const bounce = this.frozen ? 0 : Math.sin(time / 650) * .7;
 
         // This layer is the exact financial OHLC body/wick. It is never scaled
         // or transformed with the illustrated fighter sprite.
@@ -142,13 +134,12 @@ export class CandleRenderer {
         for (let i = 4; i >= 1; i--) this.aura.lineStyle(3 + i * 3, this.outline, (.012 + (this.frozen ? 0 : .006 * Math.sin(time / 170))) * (5 - i))
             .strokeRect(-25, g.top, 50, Math.max(1, g.height));
 
-        // Uniform scaling preserves the original sprite aspect ratio while
-        // keeping a large financial body visibly larger than a small one.
-        const spriteScale = Math.max(.58, Math.min(1.3, .72 + Math.min(128, g.height) / 128 * .46));
         const facing = this.side === 'left' ? 1 : -1;
-        const footY = g.bottom + 30 + bounce + (this.combat.hit * 3);
-        const spriteX = jitter + (this.combat.dodge - this.combat.hit) * 8 + facing * (this.combat.attack * 12 + this.combat.counter * 6);
-        this.sprite.setPosition(spriteX, footY).setScale(spriteScale).setFlipX(this.side === 'right');
+        // The candle stays above the fighter. A fixed foot line keeps market
+        // updates from resizing or lifting the character mid-fight.
+        const footY = 185 + bounce + this.combat.hit * 2;
+        const spriteX = facing * (this.combat.attack * 5 - this.combat.dodge * 3);
+        this.sprite.setPosition(spriteX, footY).setScale(.8).setFlipX(this.side === 'right');
 
         const breakFrame = Math.min(7, Math.floor(progress * 8));
         const recovery = this.phase === 'SPAWNING' ? (Math.min(2, Math.floor(progress * 3)) + 1) / 3 : 1;
@@ -160,7 +151,9 @@ export class CandleRenderer {
     }
 
     private playAnimation(restart: boolean): void {
-        const key = animationKey(this.side, this.direction, this.animation);
+        // The colour variants overlap in the supplied triptych. Keep each
+        // team's neutral character while the OHLC outline conveys direction.
+        const key = animationKey(this.side, 'neutral', this.animation);
         if (!this.scene.anims.exists(key)) return;
         this.sprite.anims.play(key, restart);
         if (this.frozen) this.sprite.anims.pause();
