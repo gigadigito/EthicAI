@@ -212,12 +212,14 @@
                         <a class="arena-cta-button home-hot-hero__cta home-hot-hero__cta--secondary"
                            href="@GetCandleTvUrl(hero)"
                            aria-label="@ArenaText("candleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("candle")
+                            <i class="bi bi-tv" aria-hidden="true"></i>
+                            <span>@ArenaText("candle")</span>
                         </a>
                         <a class="arena-cta-link home-hot-hero__cta-link home-hot-hero__cta--primary"
                            href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
                            aria-label="@ArenaText("matchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("match")
+                            <i class="bi bi-controller" aria-hidden="true"></i>
+                            <span>@ArenaText("match")</span>
                         </a>
                     </div>
                 </article>
@@ -302,12 +304,14 @@
                         <a class="arena-cta-button home-hot-hero__cta home-hot-hero__cta--secondary"
                            href="@GetCandleTvUrl(hero)"
                            aria-label="@ArenaText("candleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("candle")
+                            <i class="bi bi-tv" aria-hidden="true"></i>
+                            <span>@ArenaText("candle")</span>
                         </a>
                         <a class="arena-cta-link home-hot-hero__cta-link home-hot-hero__cta--primary"
                            href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
                            aria-label="@ArenaText("matchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("match")
+                            <i class="bi bi-controller" aria-hidden="true"></i>
+                            <span>@ArenaText("match")</span>
                         </a>
                     </div>
                 </article>
@@ -430,12 +434,14 @@
                                 <a class="arena-cta-button"
                                    href="@GetCandleTvUrl(match)"
                                    aria-label="@ArenaText("candleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                    @ArenaText("candle")
+                                    <i class="bi bi-tv" aria-hidden="true"></i>
+                                    <span>@ArenaText("candle")</span>
                                 </a>
                                 <a class="arena-cta-link"
                                    href="@GetPublicMatchUrl(match)"
                                    aria-label="@ArenaText("matchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                    @ArenaText("match")
+                                    <i class="bi bi-controller" aria-hidden="true"></i>
+                                    <span>@ArenaText("match")</span>
                                 </a>
                             </div>
                         </div>
@@ -513,12 +519,14 @@
                             <a class="arena-cta-button"
                                href="@GetCandleTvUrl(match)"
                                aria-label="@ArenaText("candleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                @ArenaText("candle")
+                                <i class="bi bi-tv" aria-hidden="true"></i>
+                                <span>@ArenaText("candle")</span>
                             </a>
                             <a class="arena-cta-link"
                                href="@GetPublicMatchUrl(match)"
                                aria-label="@ArenaText("matchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                @ArenaText("match")
+                                <i class="bi bi-controller" aria-hidden="true"></i>
+                                <span>@ArenaText("match")</span>
                             </a>
                         </div>
                     </div>
@@ -3866,6 +3874,7 @@
     .public-home-arena .arena-match-card__actions > a {
         border-radius: 8px;
         font-weight: 700;
+        gap: .5rem;
         transition: background-color .16s ease, border-color .16s ease, transform .16s ease;
     }
 
@@ -4139,6 +4148,20 @@
         color: #f3f5f7;
         background: #216f6c;
         border-color: #63aaa6;
+    }
+
+    .public-home-arena .arena-match-card__actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+        width: 100%;
+        gap: .5rem;
+    }
+
+    .public-home-arena .arena-match-card__actions > a {
+        width: 100%;
+        min-width: 0;
+        flex: none;
     }
 
     .public-home-arena .home-cta--primary,
