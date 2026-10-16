@@ -1555,6 +1555,7 @@
     "finalResult": "FINAL RESULT",
     "finalScore": "Final score",
     "matchClock": "MATCH CLOCK",
+    "matchTimer": "MATCH TIMER",
     "remaining": "Remaining",
     "scoringLog": "Scoring log",
     "mostRelevantMomentByMomentEventsFromTheMatch": "Most relevant moment-by-moment events from the match",

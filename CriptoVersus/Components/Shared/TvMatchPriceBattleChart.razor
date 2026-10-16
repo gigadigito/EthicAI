@@ -11,6 +11,38 @@
          aria-label="@ResolveAriaLabel()"
          style="@BuildCssVariables()">
 
+    <div class="tv-price-battle__chart-shell">
+        <div id="@CombinedChartId"
+             class="tv-price-battle__chart"
+             aria-label="@ChartAriaLabel()"></div>
+
+        @if (_chartReady && CrossGuides.Count > 0)
+        {
+            <div class="tv-price-battle__cross-guides" aria-hidden="true">
+                @foreach (var guide in CrossGuides)
+                {
+                    <span class="tv-price-battle__cross-guide @(guide.IsLeft ? "tv-price-battle__cross-guide--left" : "tv-price-battle__cross-guide--right")"
+                          style="@BuildCrossGuideStyle(guide)"></span>
+                }
+            </div>
+        }
+
+        @if (!HasEnoughChartData())
+        {
+            <div class="tv-price-battle__empty">
+                <strong>@EmptyChartTitle()</strong>
+                <small>@WaitingPriceDescription()</small>
+            </div>
+        }
+        else if (!_chartReady)
+        {
+            <div class="tv-price-battle__empty tv-price-battle__empty--loading">
+                <strong>@LoadingChartTitle()</strong>
+                <small>@LoadingChartDescription()</small>
+            </div>
+        }
+    </div>
+
     <header class="tv-price-battle__scoreboard">
         <article class="tv-price-battle__score-team tv-price-battle__score-team--left">
             <div class="tv-price-battle__score-logo">
@@ -60,38 +92,6 @@
             </div>
         </article>
     </header>
-
-    <div class="tv-price-battle__chart-shell">
-        <div id="@CombinedChartId"
-             class="tv-price-battle__chart"
-             aria-label="@ChartAriaLabel()"></div>
-
-        @if (_chartReady && CrossGuides.Count > 0)
-        {
-            <div class="tv-price-battle__cross-guides" aria-hidden="true">
-                @foreach (var guide in CrossGuides)
-                {
-                    <span class="tv-price-battle__cross-guide @(guide.IsLeft ? "tv-price-battle__cross-guide--left" : "tv-price-battle__cross-guide--right")"
-                          style="@BuildCrossGuideStyle(guide)"></span>
-                }
-            </div>
-        }
-
-        @if (!HasEnoughChartData())
-        {
-            <div class="tv-price-battle__empty">
-                <strong>@EmptyChartTitle()</strong>
-                <small>@WaitingPriceDescription()</small>
-            </div>
-        }
-        else if (!_chartReady)
-        {
-            <div class="tv-price-battle__empty tv-price-battle__empty--loading">
-                <strong>@LoadingChartTitle()</strong>
-                <small>@LoadingChartDescription()</small>
-            </div>
-        }
-    </div>
 
     <footer class="tv-price-battle__bottom-bar">
         <div class="tv-price-battle__legend">
@@ -585,7 +585,7 @@
     private string CrossEventsLabel() => IsPortuguese() ? "Cruzamentos para cima" : "Upward crossovers";
     private string NoCrossEventsText() => IsPortuguese() ? "Sem cruzamento ainda" : "No crossover yet";
     private string PriceBattleTitle() => IsPortuguese() ? "BATALHA DE PREÇO" : "PRICE BATTLE";
-    private string PricePointsLabel() => IsPortuguese() ? "PONTOS DE PREÇO" : "PRICE POINTS";
+    private string PricePointsLabel() => IsPortuguese() ? "PONTOS DA RODADA" : "ROUND POINTS";
     private string PointsShortLabel() => IsPortuguese() ? "PTS" : "PTS";
     private string LiveLabel() => IsPortuguese() ? "AO VIVO" : "LIVE";
     private string EmptyChartTitle() => IsPortuguese() ? "Aguardando histórico das duas moedas" : "Waiting for both assets history";
@@ -695,7 +695,7 @@
         --price-battle-border: rgba(72, 118, 156, .24);
         position: relative;
         display: grid;
-        grid-template-rows: auto minmax(0, 1fr) auto;
+        grid-template-rows: minmax(0, 1fr) auto auto;
         gap: 10px;
         width: 100%;
         min-width: 0;
@@ -912,7 +912,7 @@
         z-index: 1;
         min-width: 0;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(112px, auto) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) minmax(96px, auto) minmax(0, 1fr);
         align-items: center;
         gap: 10px;
     }
@@ -926,7 +926,7 @@
     }
 
     .tv-price-battle__score-team {
-        min-height: 72px;
+        min-height: 56px;
         display: grid;
         align-items: center;
         gap: 10px;
@@ -1039,7 +1039,7 @@
 
     .tv-price-battle__score-team b {
         min-width: 0;
-        font-size: clamp(2.65rem, 5.2cqi, 4.35rem);
+        font-size: clamp(1.75rem, 3.1cqi, 2.55rem);
         font-weight: 1000;
         line-height: .9;
         letter-spacing: -.07em;
@@ -1057,7 +1057,7 @@
     }
 
     .tv-price-battle__score-center {
-        min-height: 64px;
+        min-height: 52px;
         display: grid;
         align-content: center;
         justify-items: center;
@@ -1296,7 +1296,7 @@
 
     @@container price-battle (max-width: 820px) {
         .tv-price-battle {
-            grid-template-rows: auto minmax(0, 1fr) auto;
+            grid-template-rows: minmax(0, 1fr) auto auto;
             gap: 8px;
             padding: 10px;
             min-height: 525px !important;

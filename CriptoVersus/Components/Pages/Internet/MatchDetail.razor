@@ -156,8 +156,25 @@
                         </div>
                     </div>
 
-                    <div class="social-share-card__header-clock" aria-label="@T("matchClock")">
-                        <span class="social-share-card__clock-time">@_clockLive</span>
+                    @{
+                        var clockResultStage = ShouldShowResultStage(_match);
+                        var clockShowWinner = _match is not null && (IsCompleted(_match.Status) || _match.IsFinished);
+                    }
+                    <div class="social-share-card__header-clock @(clockResultStage ? "is-final" : null)" aria-label="@T("matchTimer")">
+                        <span class="social-share-card__clock-icon" aria-hidden="true">
+                            <i class="bi @(clockResultStage ? "bi-flag-fill" : "bi-stopwatch")"></i>
+                        </span>
+                        <span class="social-share-card__clock-copy">
+                            <span class="social-share-card__clock-label">@(clockResultStage ? GetPresentationStatusText(_match) : T("matchTimer"))</span>
+                            @if (clockShowWinner && _match is not null)
+                            {
+                                <strong class="social-share-card__clock-time social-share-card__clock-winner">@GetWinnerDisplayText(_match)</strong>
+                            }
+                            else
+                            {
+                                <strong class="social-share-card__clock-time">@_clockLive<span class="social-share-card__clock-millis">@_clockLiveMillis</span></strong>
+                            }
+                        </span>
                     </div>
 
                     <div class="social-share-card__header-meta">
@@ -211,11 +228,14 @@
                                 @onclick="OpenAlertModalTeamA">
                             <i class="@AlertIconClass" aria-hidden="true"></i>
                         </button>
-                        <button class="btn social-share-hero-pick social-share-hero-pick--a"
+                        <button class="btn social-share-hero-pick social-share-hero-pick--a @(_pickedTeamId == _match.TeamAId ? "is-selected" : null) @(IsPickLoading(_match.TeamAId) ? "is-loading" : null)"
                                 type="button"
                                 disabled="@(!CanBetOnCurrentMatch() || _investmentModal?.IsSending == true)"
+                                aria-pressed="@(_pickedTeamId == _match.TeamAId)"
                                 @onclick="() => OpenInvestmentAmountModalAsync(_match.TeamAId, _match.TeamA)">
-                            @T("invest")
+                            <i class="bi social-share-hero-pick__icon @(IsPickLoading(_match.TeamAId) ? "bi-arrow-clockwise is-spin" : "bi-hand-index-thumb-fill")" aria-hidden="true"></i>
+                            <span>@T("invest")</span>
+                            <i class="bi bi-check-lg social-share-hero-pick__check" aria-hidden="true"></i>
                         </button>
                     </div>
 
@@ -243,11 +263,14 @@
                     </div>
 
                     <div class="social-share-hero-team social-share-hero-team--b">
-                        <button class="btn social-share-hero-pick social-share-hero-pick--b"
+                        <button class="btn social-share-hero-pick social-share-hero-pick--b @(_pickedTeamId == _match.TeamBId ? "is-selected" : null) @(IsPickLoading(_match.TeamBId) ? "is-loading" : null)"
                                 type="button"
                                 disabled="@(!CanBetOnCurrentMatch() || _investmentModal?.IsSending == true)"
+                                aria-pressed="@(_pickedTeamId == _match.TeamBId)"
                                 @onclick="() => OpenInvestmentAmountModalAsync(_match.TeamBId, _match.TeamB)">
-                            @T("invest")
+                            <i class="bi social-share-hero-pick__icon @(IsPickLoading(_match.TeamBId) ? "bi-arrow-clockwise is-spin" : "bi-hand-index-thumb-fill")" aria-hidden="true"></i>
+                            <span>@T("invest")</span>
+                            <i class="bi bi-check-lg social-share-hero-pick__check" aria-hidden="true"></i>
                         </button>
                         <button type="button"
                                 class="match-team-alert match-team-alert--b @(_matchAlertsActive ? "is-active" : null)"
@@ -5767,14 +5790,24 @@
         }
         catch { }
 
+        _pendingPickTeamId = teamId;
         return _investmentModal.OpenAsync(_match, side);
     }
 
     private Task HandleInvestmentCompletedAsync(int _)
-        => ReloadMatchAsync(CancellationToken.None);
+    {
+        _pickedTeamId = _pendingPickTeamId;
+        return ReloadMatchAsync(CancellationToken.None);
+    }
 
     private static string FmtSolAmount(decimal value)
         => $"{value:0.########} SOL";
+
+    private int? _pickedTeamId;
+    private int? _pendingPickTeamId;
+
+    private bool IsPickLoading(int teamId)
+        => _investmentModal?.IsSending == true && _pendingPickTeamId == teamId;
 
     private bool CanBetOnCurrentMatch()
         => PublicInvestmentRules.IsBettingWindowOpen(_match);
@@ -6160,7 +6193,8 @@
 
     private DateTime? _startUtc;
 
-    private string _clockLive = "00:00.000";
+    private string _clockLive = "00:00:00";
+    private string _clockLiveMillis = ".000";
     private string _remainingLive = "(90:00.000)";
 
     private async Task StartOrRestartMatchClockAsync()
@@ -6171,7 +6205,8 @@
         if (_match?.StartTime is null)
         {
             _startUtc = null;
-            _clockLive = "00:00.000";
+            _clockLive = "00:00:00";
+        _clockLiveMillis = ".000";
             _remainingLive = "(90:00.000)";
             await InvokeAsync(StateHasChanged);
             return;
@@ -6235,7 +6270,8 @@
     {
         if (_startUtc is null)
         {
-            _clockLive = "00:00.000";
+            _clockLive = "00:00:00";
+        _clockLiveMillis = ".000";
             _remainingLive = "(90:00.000)";
             return;
         }
@@ -6248,7 +6284,8 @@
         var remaining = MatchDuration - elapsed;
         if (remaining < TimeSpan.Zero) remaining = TimeSpan.Zero;
 
-        _clockLive = FormatClock(elapsed);
+        _clockLive = FormatClockHms(elapsed);
+        _clockLiveMillis = $".{elapsed.Milliseconds:000}";
         _remainingLive = $"({FormatClock(remaining)})";
 
         Logger.LogInformation(
@@ -6269,6 +6306,12 @@
         var ss = t.Seconds;
         var ms = t.Milliseconds;
         return $"{mm:00}:{ss:00}.{ms:000}";
+    }
+
+    private static string FormatClockHms(TimeSpan t)
+    {
+        var hh = (int)t.TotalHours;
+        return $"{hh:00}:{t.Minutes:00}:{t.Seconds:00}";
     }
 
     private List<MatchMetricSnapshotDto> _metricSnapshots = new();
@@ -7421,6 +7464,222 @@
     .social-share-card__match-id {
         padding: .32rem .62rem;
         font-size: .66rem;
+    }
+
+    /* =========================
+           PAINEL 0 — MATCH TIMER
+           ========================= */
+
+    .social-share-card__header-clock {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: .62rem;
+        flex: 0 0 auto;
+        padding: .45rem 1.35rem .45rem .85rem;
+        clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+        background: linear-gradient(135deg, rgba(0, 213, 223, .85), rgba(0, 213, 223, .3) 46%, rgba(184, 255, 0, .42));
+        box-shadow: 0 0 18px rgba(0, 213, 223, .18);
+    }
+
+    .social-share-card__header-clock::before {
+        content: "";
+        position: absolute;
+        inset: 2px;
+        z-index: 0;
+        clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+        background: linear-gradient(180deg, rgba(16, 30, 48, .97), rgba(7, 14, 25, .98));
+    }
+
+    .social-share-card__header-clock > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .social-share-card__clock-icon {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        flex: 0 0 30px;
+        border-radius: 9px;
+        color: #00D5DF;
+        background: rgba(0, 213, 223, .12);
+        border: 1px solid rgba(0, 213, 223, .38);
+        font-size: 1rem;
+    }
+
+    .social-share-card__clock-copy {
+        display: grid;
+        gap: .08rem;
+        min-width: 0;
+    }
+
+    .social-share-card__clock-label {
+        font-size: .56rem;
+        letter-spacing: .28em;
+        text-transform: uppercase;
+        color: rgba(148, 205, 224, .8);
+    }
+
+    .social-share-card__clock-time {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-variant-numeric: tabular-nums;
+        font-weight: 900;
+        font-size: clamp(1.35rem, 2.1vw, 1.9rem);
+        line-height: 1;
+        letter-spacing: .02em;
+        color: #f5fbff;
+        text-shadow: 0 0 14px rgba(0, 213, 223, .4);
+        white-space: nowrap;
+    }
+
+    .social-share-card__clock-millis {
+        margin-left: .14em;
+        font-size: .56em;
+        color: rgba(0, 213, 223, .75);
+        text-shadow: none;
+    }
+
+    .social-share-card__clock-winner {
+        max-width: 22ch;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: clamp(1.05rem, 1.7vw, 1.5rem);
+        letter-spacing: .04em;
+    }
+
+    .social-share-card__header-clock.is-final {
+        background: linear-gradient(135deg, rgba(184, 255, 0, .85), rgba(184, 255, 0, .3) 46%, rgba(0, 213, 223, .42));
+        box-shadow: 0 0 22px rgba(184, 255, 0, .18);
+    }
+
+    .social-share-card__header-clock.is-final .social-share-card__clock-icon {
+        color: #B8FF00;
+        background: rgba(184, 255, 0, .12);
+        border-color: rgba(184, 255, 0, .38);
+    }
+
+    .social-share-card__header-clock.is-final .social-share-card__clock-label {
+        color: rgba(184, 255, 0, .85);
+    }
+
+    .social-share-card__header-clock.is-final .social-share-card__clock-winner {
+        color: #B8FF00;
+        text-shadow: 0 0 16px rgba(184, 255, 0, .35);
+    }
+
+    /* =========================
+           PAINEL 0 — PICK BUTTONS
+           ========================= */
+
+    .social-share-hero-pick {
+        --pick-color: #B8FF00;
+        --pick-fill: rgba(184, 255, 0, .14);
+        --pick-fill-soft: rgba(184, 255, 0, .06);
+        --pick-border: rgba(184, 255, 0, .55);
+        --pick-glow: rgba(184, 255, 0, .35);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        min-width: 118px;
+        padding: .55rem 1.05rem;
+        border-radius: 12px;
+        border: 1px solid var(--pick-border);
+        color: var(--pick-color);
+        background: linear-gradient(180deg, var(--pick-fill), var(--pick-fill-soft));
+        font-size: .82rem;
+        font-weight: 900;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        line-height: 1;
+        white-space: nowrap;
+        transition: color .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
+
+    .social-share-hero-pick--b {
+        --pick-color: #00D5DF;
+        --pick-fill: rgba(0, 213, 223, .14);
+        --pick-fill-soft: rgba(0, 213, 223, .06);
+        --pick-border: rgba(0, 213, 223, .55);
+        --pick-glow: rgba(0, 213, 223, .35);
+    }
+
+    .social-share-hero-pick:hover:not(:disabled) {
+        color: #07111F;
+        background: var(--pick-color);
+        border-color: var(--pick-color);
+        box-shadow: 0 0 22px var(--pick-glow);
+        transform: translateY(-1px);
+    }
+
+    .social-share-hero-pick:focus-visible {
+        outline: 2px solid var(--pick-color);
+        outline-offset: 2px;
+    }
+
+    .social-share-hero-pick:active:not(:disabled) {
+        transform: translateY(0) scale(.97);
+    }
+
+    .social-share-hero-pick:disabled {
+        opacity: .55;
+        cursor: not-allowed;
+        filter: saturate(.55);
+    }
+
+    .social-share-hero-pick.is-loading {
+        opacity: .8;
+        cursor: progress;
+    }
+
+    .social-share-hero-pick.is-selected {
+        color: #07111F;
+        background: var(--pick-color);
+        border-color: var(--pick-color);
+        box-shadow: 0 0 26px var(--pick-glow);
+    }
+
+    .social-share-hero-pick__check {
+        display: none;
+    }
+
+    .social-share-hero-pick.is-selected .social-share-hero-pick__check {
+        display: inline-flex;
+    }
+
+    .social-share-hero-pick__icon.is-spin {
+        animation: socialSharePickSpin 1s linear infinite;
+    }
+
+    @@keyframes socialSharePickSpin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .social-share-card__header {
+            flex-wrap: wrap;
+        }
+
+        .social-share-card__header-clock {
+            order: 3;
+            width: 100%;
+            justify-content: center;
+            padding: .38rem 1.05rem .38rem .75rem;
+        }
+
+        .social-share-card__clock-time {
+            font-size: 1.25rem;
+        }
+
+        .social-share-hero-pick {
+            min-width: 0;
+            padding: .5rem .8rem;
+            font-size: .72rem;
+        }
     }
 
     @@media (max-width: 1199.98px) {

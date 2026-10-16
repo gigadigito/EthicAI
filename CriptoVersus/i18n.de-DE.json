@@ -1555,6 +1555,7 @@
     "finalResult": "ENDERGEBNIS",
     "finalScore": "Endstand",
     "matchClock": "MATCH-UHR",
+    "matchTimer": "MATCH-TIMER",
     "remaining": "Verbleibend",
     "scoringLog": "Bewertungsprotokoll",
     "mostRelevantMomentByMomentEventsFromTheMatch": "Relevanteste Moment-für-Moment-Ereignisse aus dem Match",
