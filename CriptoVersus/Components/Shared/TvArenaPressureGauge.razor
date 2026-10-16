@@ -2,7 +2,7 @@
 @using CriptoVersus.Web.Services
 @inject LocalizationService L
 
-<section class="tv-arena-pressure-gauge @StateClass @(IsCompact ? "is-compact" : string.Empty)"
+<section class="tv-arena-pressure-gauge @StateClass @(IsCompact ? "is-compact" : string.Empty) @ViewCssClass"
          aria-label="@AriaLabel"
          title="@AriaLabel"
          style="@BuildColorVariables()">
@@ -196,6 +196,43 @@
             <p>@DisplayDescription</p>
         </div>
     </div>
+
+    <div class="tv-arena-pressure-gauge__balance">
+        <header class="tv-arena-pressure-gauge__balance-head">
+            <span class="tv-arena-pressure-gauge__balance-badge" aria-hidden="true">
+                <i class="bi bi-speedometer2"></i>
+            </span>
+            <strong>@Tg("balanceTitle")</strong>
+        </header>
+
+        <div class="tv-arena-pressure-gauge__balance-row">
+            <span class="tv-arena-pressure-gauge__balance-side tv-arena-pressure-gauge__balance-side--left">
+                <i class="tv-arena-pressure-gauge__balance-dot" aria-hidden="true"></i>
+                <b>@DisplaySymbol(LeftSymbol)</b>
+                <strong>@LeftPressureDisplay%</strong>
+            </span>
+
+            <span class="tv-arena-pressure-gauge__balance-status">@DisplayStatusLabel</span>
+
+            <span class="tv-arena-pressure-gauge__balance-side tv-arena-pressure-gauge__balance-side--right">
+                <strong>@RightPressureDisplay%</strong>
+                <b>@DisplaySymbol(RightSymbol)</b>
+                <i class="tv-arena-pressure-gauge__balance-dot" aria-hidden="true"></i>
+            </span>
+        </div>
+
+        <div class="tv-arena-pressure-gauge__balance-metrics">
+            <div class="tv-arena-pressure-gauge__balance-metric">
+                <span>@Tg("currentPressureLabel")</span>
+                <strong>@CurrentPressureDisplay%</strong>
+            </div>
+
+            <div class="tv-arena-pressure-gauge__balance-metric">
+                <span>@Tg("momentumLabel")</span>
+                <strong>@DisplayText(LeftMomentumLabel) / @DisplayText(RightMomentumLabel)</strong>
+            </div>
+        </div>
+    </div>
 </section>
 
 @code {
@@ -217,6 +254,19 @@
     [Parameter] public string StatusLabel { get; set; } = string.Empty;
     [Parameter] public string Description { get; set; } = string.Empty;
     [Parameter] public bool IsCompact { get; set; }
+
+    public const string ViewFull = "full";
+    public const string ViewGauge = "gauge";
+    public const string ViewBalance = "balance";
+
+    [Parameter] public string View { get; set; } = ViewFull;
+
+    private string ViewCssClass => View switch
+    {
+        ViewGauge => "is-view-gauge",
+        ViewBalance => "is-view-balance",
+        _ => string.Empty
+    };
     [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
 
     private const double ArcRadius = 165d;
@@ -337,8 +387,8 @@
     {
         var normalized = NormalizeColor(color, "#B8FF00");
 
-        // Mantém o lado A no padrão laranja do CriptoVersus mesmo se algum pai
-        // ainda enviar as versões antigas mais amareladas do gauge.
+        // Mantï¿½m o lado A no padrï¿½o laranja do CriptoVersus mesmo se algum pai
+        // ainda enviar as versï¿½es antigas mais amareladas do gauge.
         return normalized.Equals("#ffd54a", StringComparison.OrdinalIgnoreCase)
             || normalized.Equals("#ffd84a", StringComparison.OrdinalIgnoreCase)
             || normalized.Equals("#ff9f1c", StringComparison.OrdinalIgnoreCase)
@@ -382,11 +432,11 @@
 
         var startPoint = PointOnArc(start);
         var endPoint = PointOnArc(end);
-        // Cada segmento ocupa no máximo meia circunferência visual do gauge.
-        // Mesmo quando a pressão passa de 50%, o trecho continua menor que 180 graus
-        // porque o gauge inteiro já é apenas um semicírculo. Usar largeArcFlag=1 aqui
+        // Cada segmento ocupa no mï¿½ximo meia circunferï¿½ncia visual do gauge.
+        // Mesmo quando a pressï¿½o passa de 50%, o trecho continua menor que 180 graus
+        // porque o gauge inteiro jï¿½ ï¿½ apenas um semicï¿½rculo. Usar largeArcFlag=1 aqui
         // faz o SVG escolher o arco longo por baixo e ele acaba sendo cortado/parecendo
-        // um pedaço pequeno no canto esquerdo.
+        // um pedaï¿½o pequeno no canto esquerdo.
         const int largeArcFlag = 0;
 
         return FormattableString.Invariant(
@@ -1636,6 +1686,232 @@
         .tv-arena-pressure-gauge__fill,
         .tv-arena-pressure-gauge__bars i {
             transition: none;
+        }
+    }
+
+    /* View modes: gauge-only strip and compact balance card (arena redesign). */
+    .tv-arena-pressure-gauge__balance {
+        display: none;
+    }
+
+    .tv-arena-pressure-gauge.is-view-gauge .tv-arena-pressure-gauge__score-value,
+    .tv-arena-pressure-gauge.is-view-gauge .tv-arena-pressure-gauge__score-center strong,
+    .tv-arena-pressure-gauge.is-view-gauge .tv-arena-pressure-gauge__center-copy,
+    .tv-arena-pressure-gauge.is-view-gauge .tv-arena-pressure-gauge__footer,
+    .tv-arena-pressure-gauge.is-view-gauge .tv-arena-pressure-gauge__description {
+        display: none;
+    }
+
+    .tv-arena-pressure-gauge.is-view-gauge .tv-arena-pressure-gauge__panel {
+        min-height: 0;
+    }
+
+    .tv-arena-pressure-gauge.is-view-gauge .tv-arena-pressure-gauge__gauge-shell {
+        width: min(100%, clamp(560px, 58cqi, 880px));
+        max-width: 880px;
+    }
+
+    .tv-arena-pressure-gauge.is-view-balance {
+        min-height: 0;
+        height: auto;
+        overflow: visible;
+    }
+
+    .tv-arena-pressure-gauge.is-view-balance .tv-arena-pressure-gauge__panel {
+        display: none;
+    }
+
+    .tv-arena-pressure-gauge.is-view-balance .tv-arena-pressure-gauge__balance {
+        position: relative;
+        display: grid;
+        gap: clamp(12px, 1.6cqi, 18px);
+        width: 100%;
+        min-width: 0;
+        padding: clamp(14px, 1.8cqi, 22px);
+        overflow: hidden;
+        border: 1px solid var(--pressure-border);
+        border-radius: clamp(18px, 2.4cqi, 24px);
+        color: #f5fbff;
+        background: radial-gradient(circle at 50% 0%, rgba(0, 213, 223, 0.08), transparent 34%), var(--pressure-glass);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 18px 40px rgba(0,0,0,0.26);
+    }
+
+    .tv-arena-pressure-gauge__balance-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .tv-arena-pressure-gauge__balance-badge {
+        display: grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        flex: 0 0 26px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.05);
+        color: var(--pressure-right);
+        font-size: .82rem;
+    }
+
+    .tv-arena-pressure-gauge__balance-head strong {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #f7fbff;
+        font-size: clamp(.72rem, 1.2cqi, .86rem);
+        font-weight: 1000;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+    }
+
+    .tv-arena-pressure-gauge__balance-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: clamp(8px, 1.2cqi, 14px);
+    }
+
+    .tv-arena-pressure-gauge__balance-side {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .tv-arena-pressure-gauge__balance-side--right {
+        justify-content: flex-end;
+    }
+
+    .tv-arena-pressure-gauge__balance-dot {
+        width: 8px;
+        height: 8px;
+        flex: 0 0 8px;
+        border-radius: 50%;
+    }
+
+    .tv-arena-pressure-gauge__balance-side--left .tv-arena-pressure-gauge__balance-dot {
+        background: var(--pressure-left);
+        box-shadow: 0 0 10px color-mix(in srgb, var(--pressure-left) 55%, transparent);
+    }
+
+    .tv-arena-pressure-gauge__balance-side--right .tv-arena-pressure-gauge__balance-dot {
+        background: var(--pressure-right);
+        box-shadow: 0 0 10px color-mix(in srgb, var(--pressure-right) 55%, transparent);
+    }
+
+    .tv-arena-pressure-gauge__balance-side b {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: clamp(.82rem, 1.5cqi, 1.05rem);
+        font-weight: 1000;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .tv-arena-pressure-gauge__balance-side--left b {
+        color: color-mix(in srgb, var(--pressure-left) 88%, white 12%);
+    }
+
+    .tv-arena-pressure-gauge__balance-side--right b {
+        color: color-mix(in srgb, var(--pressure-right) 88%, white 12%);
+    }
+
+    .tv-arena-pressure-gauge__balance-side strong {
+        font-size: clamp(1.25rem, 3cqi, 1.9rem);
+        font-weight: 1000;
+        line-height: 1;
+        letter-spacing: -.04em;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .tv-arena-pressure-gauge__balance-side--left strong {
+        color: var(--pressure-left);
+        text-shadow: 0 0 16px color-mix(in srgb, var(--pressure-left) 32%, transparent);
+    }
+
+    .tv-arena-pressure-gauge__balance-side--right strong {
+        color: var(--pressure-right);
+        text-shadow: 0 0 16px color-mix(in srgb, var(--pressure-right) 32%, transparent);
+    }
+
+    .tv-arena-pressure-gauge__balance-status {
+        justify-self: center;
+        padding: .32rem .85rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.05);
+        color: rgba(226, 238, 251, .88);
+        font-size: clamp(.58rem, 1cqi, .7rem);
+        font-weight: 1000;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .tv-arena-pressure-gauge.left-dominant .tv-arena-pressure-gauge__balance-status {
+        color: var(--pressure-left);
+        border-color: color-mix(in srgb, var(--pressure-left) 40%, transparent);
+        background: color-mix(in srgb, var(--pressure-left) 10%, transparent);
+    }
+
+    .tv-arena-pressure-gauge.right-dominant .tv-arena-pressure-gauge__balance-status {
+        color: var(--pressure-right);
+        border-color: color-mix(in srgb, var(--pressure-right) 40%, transparent);
+        background: color-mix(in srgb, var(--pressure-right) 10%, transparent);
+    }
+
+    .tv-arena-pressure-gauge__balance-metrics {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: clamp(8px, 1.2cqi, 12px);
+    }
+
+    .tv-arena-pressure-gauge__balance-metric {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        min-width: 0;
+        padding: .55rem .85rem;
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 12px;
+        background: rgba(255,255,255,0.03);
+    }
+
+    .tv-arena-pressure-gauge__balance-metric span {
+        color: rgba(210, 226, 245, 0.66);
+        font-size: clamp(.58rem, 1cqi, .68rem);
+        font-weight: 900;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .tv-arena-pressure-gauge__balance-metric strong {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #f7fbff;
+        font-size: clamp(.82rem, 1.5cqi, 1rem);
+        font-weight: 1000;
+        font-variant-numeric: tabular-nums;
+    }
+
+    @@media (max-width: 520px) {
+        .tv-arena-pressure-gauge__balance-row {
+            grid-template-columns: minmax(0, 1fr);
+            justify-items: center;
+        }
+
+        .tv-arena-pressure-gauge__balance-side {
+            justify-content: center;
         }
     }
 </style>

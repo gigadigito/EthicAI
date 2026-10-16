@@ -2016,6 +2016,7 @@
       "dataStatusStatsStale": "Public statistics are temporarily stale. The arena remains online with the most recent available data."
     },
     "pressureGauge": {
+      "balanceTitle": "ARENA PRESSURE BALANCE",
       "title": "ARENA PRESSURE",
       "subtitle": "BALL POSSESSION IN DISPUTE",
       "pressureLabel": "PRESSURE",

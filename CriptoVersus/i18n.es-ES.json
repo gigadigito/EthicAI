@@ -2016,6 +2016,7 @@
       "dataStatusStatsStale": "Las estadísticas públicas están temporalmente obsoletas. La arena permanece en línea con los datos más recientes disponibles."
     },
     "pressureGauge": {
+      "balanceTitle": "BALANCE DE PRESIÓN DE ARENA",
       "title": "ARENA PRESSURE",
       "subtitle": "POSESIÓN EN DISPUTA",
       "pressureLabel": "PRESIÓN",

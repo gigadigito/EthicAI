@@ -2017,6 +2017,7 @@
       "dataStatusStatsStale": "加密货币竞技场信息"
     },
     "pressureGauge": {
+      "balanceTitle": "对战压力平衡",
       "title": "竞技场压力",
       "subtitle": "控场权争夺中",
       "pressureLabel": "压力",

@@ -741,11 +741,200 @@
             width: 34px;
         }
     }
+
+    /* Compact single-line rows for the arena goal log. */
+    .tv-event-feed.is-compact {
+        gap: 10px;
+        max-height: 340px;
+    }
+
+    .tv-event-feed.is-compact .tv-event-feed__score-team,
+    .tv-event-feed.is-compact .tv-event-feed__score-center {
+        min-height: 40px;
+        height: 40px;
+    }
+
+    .tv-event-feed.is-compact .tv-event-feed__score-team {
+        padding: 5px 10px;
+        border-radius: 12px;
+        gap: 8px;
+    }
+
+    .tv-event-feed.is-compact .tv-event-feed__score-logo {
+        width: 24px;
+    }
+
+    .tv-event-feed.is-compact .tv-event-feed__score-logo span {
+        font-size: .58rem;
+    }
+
+    .tv-event-feed.is-compact .tv-event-feed__score-copy small,
+    .tv-event-feed.is-compact .tv-event-feed__score-copy span {
+        display: none;
+    }
+
+    .tv-event-feed.is-compact .tv-event-feed__score-copy strong {
+        font-size: .78rem;
+    }
+
+    .tv-event-feed.is-compact .tv-event-feed__score-count {
+        font-size: 1.25rem;
+        letter-spacing: -.04em;
+    }
+
+    .tv-event-feed.is-compact .tv-event-feed__score-center {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 4px 14px;
+        border-radius: 12px;
+    }
+
+    .tv-event-feed.is-compact .tv-event-feed__score-center strong {
+        font-size: .62rem;
+    }
+
+    .tv-event-feed.is-compact .tv-event-feed__score-center span,
+    .tv-event-feed.is-compact .tv-event-feed__score-center small {
+        font-size: .52rem;
+    }
+
+    .tv-event-feed.is-compact .tv-event-feed__stack {
+        gap: 8px;
+        padding-right: 4px;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card,
+    .tv-event-feed.is-compact .tv-event-card--hero,
+    .tv-event-feed.is-compact .tv-event-card--compact {
+        min-height: 0;
+        height: auto;
+        max-height: none;
+        grid-template-columns: 56px minmax(0, 1fr) auto;
+        grid-template-areas: "event content meta";
+        gap: 10px;
+        padding: 6px 12px;
+        border-radius: 12px;
+        border-left-width: 2px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 0 0 1px color-mix(in srgb, var(--event-accent-start,#53c8ff) 10%, transparent), 0 10px 22px rgba(0,0,0,.22);
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__scanlines,
+    .tv-event-feed.is-compact .tv-event-card__particles {
+        display: none;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__edge-glow {
+        opacity: .35;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__event-icon-shell {
+        width: 36px;
+        min-width: 36px;
+        height: 32px;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__event-icon-art {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__event-icon-fallback {
+        font-size: .8rem;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__team-coin-shell {
+        width: 22px;
+        min-width: 22px;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__team-coin {
+        width: 22px;
+        height: 22px;
+        border-width: 1px;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__team-coin span {
+        font-size: .52rem;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__team-coin img {
+        padding: 1px;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__identity {
+        flex: 0 0 auto;
+        margin-bottom: 0;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__team-symbol {
+        font-size: .68rem;
+        letter-spacing: .12em;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__copy {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__copy h3 {
+        -webkit-line-clamp: 1;
+        flex: 0 1 auto;
+        font-size: .78rem;
+        line-height: 1.15;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__copy p {
+        -webkit-line-clamp: 1;
+        flex: 1 1 auto;
+        font-size: .68rem;
+        color: rgba(230,238,248,.62);
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-left: 0;
+        border-left: 0;
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__reward {
+        order: -1;
+        font-size: 1.02rem;
+        letter-spacing: -.02em;
+        color: color-mix(in srgb, var(--event-accent-start,#53c8ff) 78%, white 22%);
+        text-shadow: 0 0 12px color-mix(in srgb, var(--event-accent-end,#7ff6df) 30%, transparent);
+    }
+
+    .tv-event-feed.is-compact .tv-event-card__timer {
+        min-height: 0;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: .68rem;
+    }
+
+    @@media (max-width: 520px) {
+        .tv-event-feed.is-compact .tv-event-card__copy p {
+            display: none;
+        }
+    }
 </style>
 
 
 <div id="@_resolvedFeedId"
-     class="tv-event-feed"
+     class="tv-event-feed @(Compact ? "is-compact" : string.Empty)"
      style="@BuildFeedVars()">
 
     @if (ShowScoreHeader)
@@ -849,6 +1038,8 @@
         = "Aguardando o proximo evento de pontuacao.";
 
     [Parameter] public bool ShowScoreHeader { get; set; } = true;
+
+    [Parameter] public bool Compact { get; set; }
 
     [Parameter] public string? LeftSymbol { get; set; }
 

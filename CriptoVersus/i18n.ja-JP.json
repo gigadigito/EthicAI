@@ -2016,6 +2016,7 @@
       "dataStatusStatsStale": "公開統計は一時的に古くなっています。アリーナは最新の利用可能データでオンラインを維持しています。"
     },
     "pressureGauge": {
+      "balanceTitle": "ARENA PRESSURE BALANCE",
       "title": "ARENA PRESSURE",
       "subtitle": "ボールポゼッションの争奪中",
       "pressureLabel": "PRESSURE",

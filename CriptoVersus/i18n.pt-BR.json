@@ -1818,6 +1818,7 @@
       "dataStatusStatsStale": "As estatisticas publicas ficaram stale temporariamente. A arena segue no ar com os dados mais recentes disponiveis."
     },
     "pressureGauge": {
+      "balanceTitle": "BALANÇO DA PRESSÃO DA ARENA",
       "title": "ARENA PRESSURE",
       "subtitle": "POSSE DA BOLA EM DISPUTA",
       "pressureLabel": "PRESSÃO",

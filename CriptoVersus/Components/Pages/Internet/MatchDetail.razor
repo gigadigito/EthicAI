@@ -357,8 +357,29 @@
                                         AriaLabel="@($"{_match.TeamA} vs {_match.TeamB} candle battle arena")" />
                     </div>
 
+                    <div class="social-share-card__tv-slot social-share-card__tv-slot--pressure">
+                        <TvArenaPressureGauge LeftSymbol="@RemoveTrailingUsdt(_match.TeamA)"
+                                              LeftDisplayName="@_match.TeamA"
+                                              LeftLogoUrl="@GetCoinIconUrl(_match.TeamA)"
+                                              LeftPressurePercent="@GetArenaPressureScore(_arenaSentimentA)"
+                                              LeftMomentumLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
+                                              LeftColor="#B8FF00"
+                                              RightSymbol="@RemoveTrailingUsdt(_match.TeamB)"
+                                              RightDisplayName="@_match.TeamB"
+                                              RightLogoUrl="@GetCoinIconUrl(_match.TeamB)"
+                                              RightPressurePercent="@GetArenaPressureScore(_arenaSentimentB)"
+                                              RightMomentumLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
+                                              RightColor="#00D5DF"
+                                              CurrentPressurePercent="@GetArenaCurrentPressureScore()"
+                                              StatusLabel="@string.Empty"
+                                              Description="@string.Empty"
+                                              IsCompact="true"
+                                              View="@TvArenaPressureGauge.ViewGauge"
+                                              Culture="@CurrentCulture" />
+                    </div>
+
                     <div class="social-share-card__tv-secondary">
-                        <div class="social-share-card__tv-slot social-share-card__tv-slot--pressure">
+                        <div class="social-share-card__tv-slot social-share-card__tv-slot--balance">
                             <TvArenaPressureGauge LeftSymbol="@RemoveTrailingUsdt(_match.TeamA)"
                                                   LeftDisplayName="@_match.TeamA"
                                                   LeftLogoUrl="@GetCoinIconUrl(_match.TeamA)"
@@ -375,6 +396,7 @@
                                                   StatusLabel="@string.Empty"
                                                   Description="@string.Empty"
                                                   IsCompact="true"
+                                                  View="@TvArenaPressureGauge.ViewBalance"
                                                   Culture="@CurrentCulture" />
                         </div>
 
@@ -387,6 +409,7 @@
                                              ResolveTeamLogoUrl="GetCoinIconUrl"
                                              LeftColor="#B8FF00"
                                              RightColor="#00D5DF"
+                                             Compact="true"
                                              EmptyTitle="@T("scoringLog")"
                                              EmptySubtitle="@T("noScoringEventsHaveBeenRecordedForThisMatchYet")" />
                         </div>
