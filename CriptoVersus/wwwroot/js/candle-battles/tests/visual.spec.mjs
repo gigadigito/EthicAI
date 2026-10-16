@@ -133,14 +133,19 @@ test('a server-finished partial market window displays its confirmed final score
  const final=await page.evaluate(async()=>{
   const {demoRound,PERIOD}=await import('/js/dist/candle-battles/model.js');
   const rounds=Array.from({length:17},(_,i)=>({...demoRound(i),matchId:93,id:`93:5m:${demoRound(i).left.openTime}`}));
-  window.engine.receive({matchId:93,leftSymbol:'AVAX',rightSymbol:'OP',left:null,right:null,rounds,status:'finished',finished:true,
+  window.engine.receive({matchId:93,leftSymbol:'AVAXUSDT',rightSymbol:'OPUSDT',left:null,right:null,rounds,status:'finished',finished:true,
    matchStartTime:rounds[0].left.openTime,matchEndTime:rounds[0].left.openTime+18*PERIOD,expectedRounds:18},true);
   window.engine.command('speed',10);
   for(let i=0;i<500&&!window.engine.terminal;i++) window.engine.update(100);
-  return {terminal:window.engine.terminal,result:window.engine.hud.get('result').text,round:window.engine.hud.get('round').text,score:window.engine.snapshot().score};
+  return {terminal:window.engine.terminal,result:window.engine.hud.get('result').text,status:window.engine.hud.get('status').text,
+   round:window.engine.hud.get('round').text,score:window.engine.snapshot().score,leftName:window.engine.hud.get('leftName').text,
+   rightName:window.engine.hud.get('rightName').text,leftFinal:window.engine.left.finalVisualState,rightFinal:window.engine.right.finalVisualState};
  });
  expect(final.terminal).toBe(true);expect(final.result).toContain('FINAL SCORE');expect(final.result).not.toContain('INCOMPLETE');
- expect(final.round).toContain('17 / 17');expect(final.score).toEqual({left:9,right:8});
+ expect(final.round).toContain('17 / 17');expect(final.score).toEqual({left:9,right:7});
+ expect(final.status).toContain('AVAX WINS');expect(final.status).not.toContain('USDT');
+ expect(final.leftName).toBe('AVAX');expect(final.rightName).toBe('OP');
+ expect(final.leftFinal).toBe('winner');expect(final.rightFinal).toBe('loser');
 });
 
 test('native controls unlock supplied audio, change volume and enter fullscreen',async({page})=>{

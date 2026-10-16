@@ -5,6 +5,7 @@ import { AudioManager } from './audio.js';
 
 export interface Feed { matchId: number; leftSymbol: string; rightSymbol: string; left: Candle | null; right: Candle | null; rounds: Round[]; status: string; finished: boolean; matchStartTime?: number | null; matchEndTime?: number | null; expectedRounds?: number; serverTime?: number | null; }
 export interface Options { mode: 'live' | 'demo'; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; }
+const displaySymbol = (symbol: string): string => symbol.replace(/USDT$/i, '');
 export async function create(host: HTMLElement, options: Options): Promise<GameEngine> {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
     const Phaser: typeof PhaserTypes = await import(url);
@@ -183,7 +184,7 @@ export class GameEngine {
             this.hud.get('status')?.setText(this.text(feed.finished?'finished':feed.status==='live'?'forming':'waiting'));
         } else if (this.mode === 'replay') this.hud.get('status')?.setText(this.text('forming'));
         this.setLogo('left',feed.leftSymbol); this.setLogo('right',feed.rightSymbol);
-        this.hud.get('leftName')?.setText(feed.leftSymbol); this.hud.get('rightName')?.setText(feed.rightSymbol);
+        this.hud.get('leftName')?.setText(displaySymbol(feed.leftSymbol)); this.hud.get('rightName')?.setText(displaySymbol(feed.rightSymbol));
         this.updateMarket();
         if (!this.paused) this.updateClocks();
         if (!this.paused && feed.finished && this.mode==='live' && !this.active && this.clock.count===0) this.finish();
@@ -353,13 +354,24 @@ export class GameEngine {
     private finish(): void {
         if(this.terminal || !this.feed?.finished) return;
         this.terminal=true; this.started=false; this.audio.pause();
-        this.left?.setPose('FORMING_CANDLE',true); this.right?.setPose('FORMING_CANDLE',true);
         const incomplete=this.feed.status==='incomplete' || this.feed.status!=='finished';
         const left=this.territory.score.left,right=this.territory.score.right;
-        const winner=left===right?this.text('draw','DRAW'):(left>right?this.feed.leftSymbol:this.feed.rightSymbol);
+        const winner=left===right?this.text('draw','DRAW'):displaySymbol(left>right?this.feed.leftSymbol:this.feed.rightSymbol);
+        if (!incomplete && left !== right) {
+            const winningSide: Side = left > right ? 'left' : 'right';
+            const losingSide: Side = winningSide === 'left' ? 'right' : 'left';
+            (winningSide === 'left' ? this.left : this.right)?.setFinalState('winner');
+            (losingSide === 'left' ? this.left : this.right)?.setFinalState('loser');
+            this.burst(winningSide === 'left' ? 360 : 920, 385, winningSide);
+            this.burst(winningSide === 'left' ? 390 : 890, 300, winningSide);
+            this.audio.play('big_win');
+        } else {
+            this.left?.setFinalState('draw'); this.right?.setFinalState('draw');
+        }
         this.hud.get('status')?.setText(this.text('matchFinished','MATCH FINISHED')+(incomplete?'':' — '+winner+(left===right?'':' '+this.text('wins','WINS'))));
         this.hud.get('result')?.setText(incomplete?this.text('incomplete','INCOMPLETE RESULT'):`${this.text('finalScore','FINAL SCORE')}: ${left} × ${right}`);
         this.hud.get('nextBattle')?.setText('');
+        this.updateClocks();
     }
     private begin(r:Readonly<Round>): void {
         this.active=r; this.combatElapsed=0; const range=sharedRange([r.left,r.right]);
@@ -384,11 +396,11 @@ export class GameEngine {
         if(phase==='COLLISION') { this.audio.play('punch_impact'); this.burst(640,400,r.winner==='right'?'right':'left'); if(!this.reduced)this.scene?.cameras.main.shake(100,.002); }
         if(phase==='DESTROYING') { this.audio.play('candle_destroy'); this.burst(r.winner==='left'?720:560,400,r.winner==='left'?'right':'left'); }
         if(phase==='VICTORY') {
-            this.hud.get('result')?.setText(r.winner==='draw'?this.text('draw'):(r[r.winner].symbol+' +1'));
-            this.hud.get('status')?.setText(`${this.text('round','ROUND')} ${this.completedRounds+1} — ${r.winner==='draw'?this.text('draw'):r[r.winner].symbol+' '+this.text('wins','WINS')}`);
+            this.hud.get('result')?.setText(r.winner==='draw'?this.text('draw'):(displaySymbol(r[r.winner].symbol)+' +1'));
+            this.hud.get('status')?.setText(`${this.text('round','ROUND')} ${this.completedRounds+1} — ${r.winner==='draw'?this.text('draw'):displaySymbol(r[r.winner].symbol)+' '+this.text('wins','WINS')}`);
             this.audio.play(r.winner==='draw'?'draw':'score_point');
             if(r.winner!=='draw' && Math.abs(r.leftStrength-r.rightStrength)>=(this.options.crushingDifference??25)){
-                this.hud.get('result')?.setText(r[r.winner].symbol+' +1 · '+this.text('crushing'));this.audio.play('big_win');this.burst(640,300,r.winner);
+                this.hud.get('result')?.setText(displaySymbol(r[r.winner].symbol)+' +1 · '+this.text('crushing'));this.audio.play('big_win');this.burst(640,300,r.winner);
             }
         }
         if(phase==='BLOCK_FALLING') {

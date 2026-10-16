@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import { Candle, CombatMotion, FighterAnimation, Geometry, Phase, Side, TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js';
 
 type FighterDirection = keyof typeof OUTLINE;
+export type FinalFighterState = 'none' | 'winner' | 'loser' | 'draw';
 
 const ACTION_FRAME_COUNTS: Record<Exclude<FighterAnimation, 'idle'>, number> = {
     // Hold the damage pose while its alpha fades; cycling the source montage
@@ -55,6 +56,7 @@ export class CandleRenderer {
     private animation: FighterAnimation = 'idle';
     private combat: CombatMotion = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
     private preparation = 0;
+    private finalState: FinalFighterState = 'none';
 
     constructor(private scene: Phaser.Scene, readonly side: Side, x: number, y: number) {
         registerFighterAnimations(scene);
@@ -86,6 +88,7 @@ export class CandleRenderer {
     }
 
     setPose(phase: Phase, winner: boolean, draw = false): void {
+        this.finalState = 'none';
         this.phase = phase;
         if (phase !== 'FORMING_CANDLE') this.preparation = 0;
         this.win = winner;
@@ -97,6 +100,15 @@ export class CandleRenderer {
             this.animation = next;
             this.playAnimation(true);
         }
+    }
+
+    setFinalState(state: FinalFighterState): void {
+        this.finalState = state;
+        this.phase = 'FORMING_CANDLE';
+        this.preparation = 0;
+        this.combat = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
+        const next: FighterAnimation = state === 'winner' ? 'recover' : state === 'loser' ? 'break' : 'idle';
+        if (next !== this.animation) { this.animation = next; this.playAnimation(true); }
     }
 
     setCombatMotion(motion: CombatMotion): void { this.combat = { ...motion }; }
@@ -120,6 +132,7 @@ export class CandleRenderer {
     get financialSnapshot(): Candle | undefined { return this.last && { ...this.last }; }
     get faceSize(): { width: number; height: number } { return { width: this.sprite.width, height: this.sprite.height }; }
     get outlineColor(): number { return OUTLINE[this.direction]; }
+    get finalVisualState(): FinalFighterState { return this.finalState; }
 
     update(time: number, delta: number, progress = 0): void {
         if (!this.target || !this.from) return;
@@ -150,10 +163,14 @@ export class CandleRenderer {
         const facing = this.side === 'left' ? 1 : -1;
         // The candle stays above the fighter. A fixed foot line keeps market
         // updates from resizing or lifting the character mid-fight.
-        const footY = 185 + bounce + this.combat.hit * 2;
+        const celebration = this.finalState === 'winner' && !this.frozen ? Math.abs(Math.sin(time / 190)) * 17 : 0;
+        const defeat = this.finalState === 'loser' ? 18 + (this.frozen ? 0 : Math.sin(time / 800) * 2) : 0;
+        const footY = 185 + bounce + this.combat.hit * 2 - celebration + defeat;
         const spriteX = facing * (this.combat.attack * 5 - this.combat.dodge * 3 + (this.frozen ? 0 : Math.sin(time/900)*(.8+this.preparation*1.5)));
-        this.sprite.setPosition(spriteX, footY).setScale(.8+(this.frozen?0:Math.sin(time/730)*.008)).setFlipX(this.side === 'right');
-        this.sprite.setRotation(this.frozen || this.phase !== 'FORMING_CANDLE' ? 0 : Math.sin(time/1150)*(0.012+this.preparation*.015));
+        const scale = .8 + (this.frozen ? 0 : Math.sin(time / 730) * .008) + (this.finalState === 'winner' ? .035 : 0);
+        const rotation = this.finalState === 'winner' ? Math.sin(time / 190) * .08 : this.finalState === 'loser' ? facing * .27 :
+            this.frozen || this.phase !== 'FORMING_CANDLE' ? 0 : Math.sin(time/1150)*(0.012+this.preparation*.015);
+        this.sprite.setPosition(spriteX, footY).setScale(scale).setFlipX(this.side === 'right').setRotation(rotation);
 
         const breakFrame = Math.min(7, Math.floor(progress * 8));
         const recovery = this.phase === 'SPAWNING' ? (Math.min(2, Math.floor(progress * 3)) + 1) / 3 : 1;
@@ -161,7 +178,12 @@ export class CandleRenderer {
             (!this.draw && !this.win && ['VICTORY', 'BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE'].includes(this.phase)) ? 0 : recovery;
         this.body.setAlpha(alpha);
         this.sprite.setAlpha(alpha);
+        if (this.finalState === 'winner') {
+            for (let i = 0; i < 3; i++) this.aura.lineStyle(2, this.outline, .3 - i * .06)
+                .strokeCircle(0, 178 - celebration, 28 + i * 12 + Math.sin(time / 230 + i) * 5);
+        }
         this.aura.setAlpha(alpha);
+        this.sprite.setAlpha(this.finalState === 'loser' ? alpha * .72 : alpha);
     }
 
     private playAnimation(restart: boolean): void {

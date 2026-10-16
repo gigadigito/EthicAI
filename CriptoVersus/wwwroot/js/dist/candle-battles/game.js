@@ -1,6 +1,7 @@
 import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, combatFrame } from './model.js?v=20261016c';
 import { CandleRenderer } from './renderer.js?v=20261016c';
 import { AudioManager } from './audio.js?v=20261016c';
+const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
     const Phaser = await import(url);
@@ -224,8 +225,8 @@ export class GameEngine {
             this.hud.get('status')?.setText(this.text('forming'));
         this.setLogo('left', feed.leftSymbol);
         this.setLogo('right', feed.rightSymbol);
-        this.hud.get('leftName')?.setText(feed.leftSymbol);
-        this.hud.get('rightName')?.setText(feed.rightSymbol);
+        this.hud.get('leftName')?.setText(displaySymbol(feed.leftSymbol));
+        this.hud.get('rightName')?.setText(displaySymbol(feed.rightSymbol));
         this.updateMarket();
         if (!this.paused)
             this.updateClocks();
@@ -519,14 +520,26 @@ export class GameEngine {
         this.terminal = true;
         this.started = false;
         this.audio.pause();
-        this.left?.setPose('FORMING_CANDLE', true);
-        this.right?.setPose('FORMING_CANDLE', true);
         const incomplete = this.feed.status === 'incomplete' || this.feed.status !== 'finished';
         const left = this.territory.score.left, right = this.territory.score.right;
-        const winner = left === right ? this.text('draw', 'DRAW') : (left > right ? this.feed.leftSymbol : this.feed.rightSymbol);
+        const winner = left === right ? this.text('draw', 'DRAW') : displaySymbol(left > right ? this.feed.leftSymbol : this.feed.rightSymbol);
+        if (!incomplete && left !== right) {
+            const winningSide = left > right ? 'left' : 'right';
+            const losingSide = winningSide === 'left' ? 'right' : 'left';
+            (winningSide === 'left' ? this.left : this.right)?.setFinalState('winner');
+            (losingSide === 'left' ? this.left : this.right)?.setFinalState('loser');
+            this.burst(winningSide === 'left' ? 360 : 920, 385, winningSide);
+            this.burst(winningSide === 'left' ? 390 : 890, 300, winningSide);
+            this.audio.play('big_win');
+        }
+        else {
+            this.left?.setFinalState('draw');
+            this.right?.setFinalState('draw');
+        }
         this.hud.get('status')?.setText(this.text('matchFinished', 'MATCH FINISHED') + (incomplete ? '' : ' — ' + winner + (left === right ? '' : ' ' + this.text('wins', 'WINS'))));
         this.hud.get('result')?.setText(incomplete ? this.text('incomplete', 'INCOMPLETE RESULT') : `${this.text('finalScore', 'FINAL SCORE')}: ${left} × ${right}`);
         this.hud.get('nextBattle')?.setText('');
+        this.updateClocks();
     }
     begin(r) {
         this.active = r;
@@ -568,11 +581,11 @@ export class GameEngine {
             this.burst(r.winner === 'left' ? 720 : 560, 400, r.winner === 'left' ? 'right' : 'left');
         }
         if (phase === 'VICTORY') {
-            this.hud.get('result')?.setText(r.winner === 'draw' ? this.text('draw') : (r[r.winner].symbol + ' +1'));
-            this.hud.get('status')?.setText(`${this.text('round', 'ROUND')} ${this.completedRounds + 1} — ${r.winner === 'draw' ? this.text('draw') : r[r.winner].symbol + ' ' + this.text('wins', 'WINS')}`);
+            this.hud.get('result')?.setText(r.winner === 'draw' ? this.text('draw') : (displaySymbol(r[r.winner].symbol) + ' +1'));
+            this.hud.get('status')?.setText(`${this.text('round', 'ROUND')} ${this.completedRounds + 1} — ${r.winner === 'draw' ? this.text('draw') : displaySymbol(r[r.winner].symbol) + ' ' + this.text('wins', 'WINS')}`);
             this.audio.play(r.winner === 'draw' ? 'draw' : 'score_point');
             if (r.winner !== 'draw' && Math.abs(r.leftStrength - r.rightStrength) >= (this.options.crushingDifference ?? 25)) {
-                this.hud.get('result')?.setText(r[r.winner].symbol + ' +1 · ' + this.text('crushing'));
+                this.hud.get('result')?.setText(displaySymbol(r[r.winner].symbol) + ' +1 · ' + this.text('crushing'));
                 this.audio.play('big_win');
                 this.burst(640, 300, r.winner);
             }
