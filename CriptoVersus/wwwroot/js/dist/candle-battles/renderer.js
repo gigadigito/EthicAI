@@ -1,4 +1,4 @@
-import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js?v=20261016c';
+import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js?v=20261016d';
 const ACTION_FRAME_COUNTS = {
     // Hold the damage pose while its alpha fades; cycling the source montage
     // would reveal neighbouring colour variants.
