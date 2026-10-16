@@ -8,15 +8,20 @@ await copyFile(new URL('node_modules/phaser/LICENSE.md', root), new URL('PHASER-
 
 await writeFile(new URL('wwwroot/js/dist/candle-battles/package.json', root), JSON.stringify({type:'module'}));
 
-// Browser ESM caches each relative import independently of the entrypoint URL.
-// Keep this revision in sync with CandleBattlesHost.razor and the atlas URLs.
-const revision = '20261016b';
+// Browser ESM caches each relative import independently. Publish immutable file
+// names because the production CDN does not vary static assets by query string.
+// Keep this revision in sync with CandleBattlesHost.razor.
+const revision = '20261016c';
 const modules = new URL('wwwroot/js/dist/candle-battles/', root);
-for (const file of await readdir(modules)) {
-    if (!file.endsWith('.js')) continue;
+const runtimeFiles = ['audio.js', 'model.js', 'renderer.js', 'game.js'];
+for (const file of runtimeFiles) {
     const url = new URL(file, modules);
     const source = await readFile(url, 'utf8');
-    const versioned = source.replace(/(from\s+['"])(\.\/[^'"]+\.js)(['"])/g, (_match, before, path, after) =>
+    const queryVersioned = source.replace(/(from\s+['"])(\.\/[^'"]+\.js)(['"])/g, (_match, before, path, after) =>
         `${before}${path}?v=${revision}${after}`);
-    if (versioned !== source) await writeFile(url, versioned);
+    if (queryVersioned !== source) await writeFile(url, queryVersioned);
+
+    const immutableVersioned = source.replace(/(from\s+['"])(\.\/[^'"]+)\.js(['"])/g, (_match, before, path, after) =>
+        `${before}${path}.${revision}.js${after}`);
+    await writeFile(new URL(file.replace(/\.js$/, `.${revision}.js`), modules), immutableVersioned);
 }

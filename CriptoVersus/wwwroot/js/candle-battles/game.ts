@@ -57,6 +57,7 @@ export class GameEngine {
     private replayIndex = 0;
     private replayElapsed = 0;
     private autoplayInitialized = false;
+    private catchUpReplay = false;
     private completedRounds = 0;
     private terminal = false;
     private serverAnchorMs?: number;
@@ -152,7 +153,7 @@ export class GameEngine {
     }
     receive(feed: Feed, reconcile = false): void {
         if (this.disposed) return;
-        if (this.feed && this.feed.matchId !== feed.matchId) { this.history=[]; this.market.clear(); this.clock.clear(); this.territory.reset(); this.active=undefined; this.combatElapsed=0; this.state.reset(); this.autoplayInitialized=false; this.terminal=false; }
+        if (this.feed && this.feed.matchId !== feed.matchId) { this.history=[]; this.market.clear(); this.clock.clear(); this.territory.reset(); this.active=undefined; this.combatElapsed=0; this.state.reset(); this.autoplayInitialized=false; this.catchUpReplay=false; this.terminal=false; }
         this.feed = feed; this.pendingReconcile ||= reconcile;
         if (feed.serverTime != null && Number.isFinite(feed.serverTime)) { this.serverAnchorMs=feed.serverTime; this.serverReceivedAt=performance.now(); }
         if (!this.scene) return;
@@ -166,8 +167,13 @@ export class GameEngine {
         this.history.push(...fresh); this.history.sort((a,b)=>a.left.openTime-b.left.openTime);
         if (!this.autoplayInitialized && feed.matchStartTime != null) {
             this.autoplayInitialized=true;
-            if (this.history.length) { this.mode='replay'; this.replayHistory=this.history.map(r=>({...r,left:{...r.left},right:{...r.right}})); this.restart(); }
-            else { this.mode='live'; this.started=true; this.reconcile(); }
+            if (this.history.length) {
+                this.catchUpReplay=true;
+                this.replayHistory=this.history.map(r=>({...r,left:{...r.left},right:{...r.right}}));
+                this.mode='replay'; this.setSpeed(5); this.restart();
+            } else {
+                this.mode='live'; this.started=true; this.reconcile();
+            }
             this.host.dataset.mode=this.mode;
             this.hud.get('mode')?.setText(this.mode.toUpperCase()+' · 5M');
         }
@@ -217,15 +223,20 @@ export class GameEngine {
         if(action==='volume') this.audio.configure(value??.65,this.audio.musicVolume,this.audio.effectsVolume,this.audio.muted);
         if(action==='music') this.audio.configure(this.audio.master,value??.35,this.audio.effectsVolume,this.audio.muted);
         if(action==='effects') this.audio.configure(this.audio.master,this.audio.musicVolume,value??.7,this.audio.muted);
-        if(action==='speed' && [1,2,5,10].includes(value??0)) this.speed=value!;
+        if(action==='speed' && [1,2,5,10].includes(value??0)) this.setSpeed(value!);
         if(action==='fullscreen') { if(document.fullscreenElement) void document.exitFullscreen().catch(()=>{}); else void this.host.parentElement?.requestFullscreen().catch(()=>{}); }
-        if(action==='replay') { this.replayHistory = this.history.map(r=>({...r,left:{...r.left},right:{...r.right}})); this.mode='replay'; this.restart(); }
-        if(action==='live' && this.options.mode==='live') { this.mode='live'; this.terminal=false; this.reconcile(); }
+        if(action==='replay') { this.catchUpReplay=false; this.replayHistory = this.history.map(r=>({...r,left:{...r.left},right:{...r.right}})); this.mode='replay'; this.restart(); }
+        if(action==='live' && this.options.mode==='live') { this.catchUpReplay=false; this.mode='live'; this.terminal=false; this.setSpeed(1); this.reconcile(); }
         if(action==='restart') this.restart();
         this.host.dataset.paused=String(this.paused); this.host.dataset.mode=this.mode;
         this.hud.get('mode')?.setText(this.mode.toUpperCase()+' · 5M');
         this.controls.querySelector('[data-cb-action="pause"]')?.setAttribute('aria-pressed',String(this.paused));
         this.controls.querySelector('[data-cb-action="mute"]')?.setAttribute('aria-pressed',String(!this.audio.muted));
+    }
+    private setSpeed(speed:number): void {
+        this.speed=speed;
+        const select=this.controls.querySelector<HTMLSelectElement>('[data-cb-action="speed"]');
+        if(select) select.value=String(speed);
     }
     private restart(): void {
         this.active=undefined; this.combatElapsed=0; this.clock.clear(); this.territory.reset(); this.state.reset(); this.market.clear(); this.completedRounds=0; this.replayElapsed=0; this.terminal=false;
@@ -260,7 +271,10 @@ export class GameEngine {
             if(this.mode==='replay' && this.clock.count===0 && this.replayIndex<this.replayHistory.length) {
                 const candidate=this.replayHistory[this.replayIndex];
                 const start=this.feed?.matchStartTime ?? this.replayHistory[0].left.openTime;
-                if(candidate.left.closeTime<=start+this.replayElapsed) { this.clock.enqueue(candidate); this.replayIndex++; }
+                if(this.catchUpReplay || candidate.left.closeTime<=start+this.replayElapsed) {
+                    if(this.catchUpReplay) this.replayElapsed=Math.max(this.replayElapsed,candidate.left.closeTime-start);
+                    this.clock.enqueue(candidate); this.replayIndex++;
+                }
             }
             if(this.mode!=='live' || (this.clock.peek()?.left.closeTime??Infinity)<=this.liveNow()) {
                 const next=this.clock.next(); if(next) this.begin(next);
@@ -296,6 +310,15 @@ export class GameEngine {
             if(e.age>=650){e.image.destroy();this.effects.splice(i,1);}
         }
         this.updateClocks();
+        if(this.mode==='replay' && this.catchUpReplay && !this.active && this.clock.count===0 && this.replayIndex>=this.replayHistory.length) {
+            this.catchUpReplay=false;
+            if(this.feed?.finished) this.finish();
+            else {
+                this.mode='live'; this.setSpeed(1); this.reconcile();
+                this.host.dataset.mode=this.mode;
+                this.hud.get('mode')?.setText(this.mode.toUpperCase()+' · 5M');
+            }
+        }
         if(this.mode==='replay' && !this.active && this.replayElapsed>=this.matchLimit() && this.replayIndex>=this.replayHistory.length) this.finish();
         if(this.mode==='live' && this.feed?.finished && !this.active && this.clock.count===0) this.finish();
     }

@@ -61,9 +61,14 @@ test('LIVE reconciles immutable history and heartbeat never creates points',asyn
  await page.evaluate(async()=>{
  const {demoRound}=await import('/js/dist/candle-battles/model.js');
  window.fixtureRound=i=>{const r=demoRound(i);return {...r,matchId:77,id:'77:5m:'+r.left.openTime,winner:i%2?'right':'left'};};
- window.feed={matchId:77,leftSymbol:'BTC',rightSymbol:'ETH',left:{...window.fixtureRound(3).left,confirmed:false},right:{...window.fixtureRound(3).right,confirmed:false},rounds:[0,1,2].map(window.fixtureRound),status:'live',finished:false};
+ window.feed={matchId:77,leftSymbol:'BTC',rightSymbol:'ETH',left:{...window.fixtureRound(3).left,confirmed:false},right:{...window.fixtureRound(3).right,confirmed:false},rounds:[0,1,2].map(window.fixtureRound),status:'live',finished:false,
+  matchStartTime:window.fixtureRound(0).left.openTime,expectedRounds:18,serverTime:window.fixtureRound(3).left.closeTime};
  window.engine.receive(window.feed,true);window.engine.receive(window.feed,false);
  });
+ expect(await page.evaluate(()=>({mode:window.engine.mode,catchUp:window.engine.catchUpReplay,speed:window.engine.speed})))
+  .toEqual({mode:'replay',catchUp:true,speed:5});
+ await page.evaluate(()=>{for(let i=0;i<200&&window.engine.mode!=='live';i++)window.engine.update(100);});
+ expect(await page.evaluate(()=>window.engine.mode)).toBe('live');
  expect((await page.evaluate(()=>window.engine.snapshot())).score).toEqual({left:2,right:1});
  await page.evaluate(()=>{window.feed.left={...window.feed.left,updatedAt:window.feed.left.updatedAt+1};window.engine.receive(window.feed,false);});
  expect((await page.evaluate(()=>window.engine.snapshot())).tiles).toHaveLength(3);
@@ -90,21 +95,24 @@ test('historical match autoplays, observes pause and 2x, then freezes after eigh
    matchStartTime:rounds[0].left.openTime,matchEndTime:rounds[0].left.openTime+MATCH_DURATION,expectedRounds:18},true);
   window.engine.command('pause');const paused=window.engine.replayElapsed;window.engine.update(1000);
   const held=window.engine.replayElapsed===paused;
-  window.engine.command('pause');window.engine.command('speed',2);window.engine.update(100);
-  const accelerated=window.engine.replayElapsed-paused;
-  window.engine.replayElapsed=PERIOD-300;window.engine.update(100);const beforeClose=!!window.engine.active;
-  window.engine.update(100);const atClose=!!window.engine.active;
-  window.engine.command('speed',10);window.engine.replayElapsed=MATCH_DURATION;
-  return {mode:window.engine.mode,held,accelerated,beforeClose,atClose};
+  window.engine.command('pause');window.engine.update(100);
+  const firstStarted=!!window.engine.active,firstTime=window.engine.replayElapsed===PERIOD;
+  window.engine.command('speed',10);
+  return {mode:window.engine.mode,catchUp:window.engine.catchUpReplay,held,firstStarted,firstTime};
  });
- expect(initial).toEqual({mode:'replay',held:true,accelerated:200,beforeClose:false,atClose:true});
+ expect(initial).toEqual({mode:'replay',catchUp:true,held:true,firstStarted:true,firstTime:true});
  await expect.poll(()=>page.evaluate(()=>window.engine.terminal),{timeout:15000}).toBe(true);
  const final=await page.evaluate(()=>({score:window.engine.snapshot().score,elapsed:window.engine.replayElapsed,status:window.engine.hud.get('status').text}));
  expect(final.score).toEqual(await page.evaluate(()=>window.expectedScore));
  expect(final.elapsed).toBe(90*60*1000);expect(final.status).toContain('MATCH FINISHED');
- await page.evaluate(()=>window.engine.command('replay'));
- expect(await page.evaluate(()=>({terminal:window.engine.terminal,elapsed:window.engine.replayElapsed,score:window.engine.snapshot().score})))
-  .toEqual({terminal:false,elapsed:0,score:{left:0,right:0}});
+ const manual=await page.evaluate(()=>{
+  window.engine.command('replay');window.engine.command('speed',2);window.engine.update(100);
+  const beforeClose=!!window.engine.active;
+  window.engine.replayElapsed=5*60*1000-300;window.engine.update(100);const almostClosed=!!window.engine.active;
+  window.engine.update(100);const atClose=!!window.engine.active;
+  return {terminal:window.engine.terminal,beforeClose,almostClosed,atClose,score:window.engine.snapshot().score};
+ });
+ expect(manual).toEqual({terminal:false,beforeClose:false,almostClosed:false,atClose:true,score:{left:0,right:0}});
 });
 
 

@@ -11,4 +11,4 @@ const server=http.createServer(async(req,res)=>{
  const data=await readFile(p);res.writeHead(200,{'Content-Type':mime[extname(p)]??'application/octet-stream','Cache-Control':'no-store'}).end(data);
  }catch{res.writeHead(404).end();}
 });
-server.listen(4187,'127.0.0.1');
+server.listen(4287,'127.0.0.1');

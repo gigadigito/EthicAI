@@ -1,6 +1,6 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, combatFrame } from './model.js?v=20261016b';
-import { CandleRenderer } from './renderer.js?v=20261016b';
-import { AudioManager } from './audio.js?v=20261016b';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, combatFrame } from './model.js?v=20261016c';
+import { CandleRenderer } from './renderer.js?v=20261016c';
+import { AudioManager } from './audio.js?v=20261016c';
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
     const Phaser = await import(url);
@@ -39,6 +39,7 @@ export class GameEngine {
         this.replayIndex = 0;
         this.replayElapsed = 0;
         this.autoplayInitialized = false;
+        this.catchUpReplay = false;
         this.completedRounds = 0;
         this.terminal = false;
         this.serverReceivedAt = 0;
@@ -166,6 +167,7 @@ export class GameEngine {
             this.combatElapsed = 0;
             this.state.reset();
             this.autoplayInitialized = false;
+            this.catchUpReplay = false;
             this.terminal = false;
         }
         this.feed = feed;
@@ -196,8 +198,10 @@ export class GameEngine {
         if (!this.autoplayInitialized && feed.matchStartTime != null) {
             this.autoplayInitialized = true;
             if (this.history.length) {
-                this.mode = 'replay';
+                this.catchUpReplay = true;
                 this.replayHistory = this.history.map(r => ({ ...r, left: { ...r.left }, right: { ...r.right } }));
+                this.mode = 'replay';
+                this.setSpeed(5);
                 this.restart();
             }
             else {
@@ -303,7 +307,7 @@ export class GameEngine {
         if (action === 'effects')
             this.audio.configure(this.audio.master, this.audio.musicVolume, value ?? .7, this.audio.muted);
         if (action === 'speed' && [1, 2, 5, 10].includes(value ?? 0))
-            this.speed = value;
+            this.setSpeed(value);
         if (action === 'fullscreen') {
             if (document.fullscreenElement)
                 void document.exitFullscreen().catch(() => { });
@@ -311,13 +315,16 @@ export class GameEngine {
                 void this.host.parentElement?.requestFullscreen().catch(() => { });
         }
         if (action === 'replay') {
+            this.catchUpReplay = false;
             this.replayHistory = this.history.map(r => ({ ...r, left: { ...r.left }, right: { ...r.right } }));
             this.mode = 'replay';
             this.restart();
         }
         if (action === 'live' && this.options.mode === 'live') {
+            this.catchUpReplay = false;
             this.mode = 'live';
             this.terminal = false;
+            this.setSpeed(1);
             this.reconcile();
         }
         if (action === 'restart')
@@ -327,6 +334,12 @@ export class GameEngine {
         this.hud.get('mode')?.setText(this.mode.toUpperCase() + ' · 5M');
         this.controls.querySelector('[data-cb-action="pause"]')?.setAttribute('aria-pressed', String(this.paused));
         this.controls.querySelector('[data-cb-action="mute"]')?.setAttribute('aria-pressed', String(!this.audio.muted));
+    }
+    setSpeed(speed) {
+        this.speed = speed;
+        const select = this.controls.querySelector('[data-cb-action="speed"]');
+        if (select)
+            select.value = String(speed);
     }
     restart() {
         this.active = undefined;
@@ -392,7 +405,9 @@ export class GameEngine {
             if (this.mode === 'replay' && this.clock.count === 0 && this.replayIndex < this.replayHistory.length) {
                 const candidate = this.replayHistory[this.replayIndex];
                 const start = this.feed?.matchStartTime ?? this.replayHistory[0].left.openTime;
-                if (candidate.left.closeTime <= start + this.replayElapsed) {
+                if (this.catchUpReplay || candidate.left.closeTime <= start + this.replayElapsed) {
+                    if (this.catchUpReplay)
+                        this.replayElapsed = Math.max(this.replayElapsed, candidate.left.closeTime - start);
                     this.clock.enqueue(candidate);
                     this.replayIndex++;
                 }
@@ -450,6 +465,18 @@ export class GameEngine {
             }
         }
         this.updateClocks();
+        if (this.mode === 'replay' && this.catchUpReplay && !this.active && this.clock.count === 0 && this.replayIndex >= this.replayHistory.length) {
+            this.catchUpReplay = false;
+            if (this.feed?.finished)
+                this.finish();
+            else {
+                this.mode = 'live';
+                this.setSpeed(1);
+                this.reconcile();
+                this.host.dataset.mode = this.mode;
+                this.hud.get('mode')?.setText(this.mode.toUpperCase() + ' · 5M');
+            }
+        }
         if (this.mode === 'replay' && !this.active && this.replayElapsed >= this.matchLimit() && this.replayIndex >= this.replayHistory.length)
             this.finish();
         if (this.mode === 'live' && this.feed?.finished && !this.active && this.clock.count === 0)
