@@ -1,6 +1,6 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, combatFrame } from './model.js?v=20261015d';
-import { CandleRenderer } from './renderer.js?v=20261015d';
-import { AudioManager } from './audio.js?v=20261015d';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, combatFrame } from './model.js?v=20261016b';
+import { CandleRenderer } from './renderer.js?v=20261016b';
+import { AudioManager } from './audio.js?v=20261016b';
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
     const Phaser = await import(url);
