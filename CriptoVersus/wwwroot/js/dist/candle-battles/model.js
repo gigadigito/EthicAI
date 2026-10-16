@@ -1,4 +1,18 @@
 export const PERIOD = 300000;
+export const MATCH_DURATION = 18 * PERIOD;
+export const MATCH_ROUNDS = 18;
+export function matchWindow(start, end) {
+    const firstOpen = Math.floor(start / PERIOD) * PERIOD;
+    return { firstOpen, lastClose: Math.min(firstOpen + MATCH_DURATION, end ?? Number.POSITIVE_INFINITY), durationEnd: start + MATCH_DURATION };
+}
+export function roundInMatch(round, start, end) {
+    const window = matchWindow(start, end);
+    return validRound(round) && round.left.openTime >= window.firstOpen && round.left.closeTime <= window.lastClose;
+}
+export function clockParts(elapsedMs) {
+    const seconds = Math.floor(Math.max(0, elapsedMs) / 1000);
+    return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+}
 export const TEAM = { left: 0xc1f20f, right: 0x185957 };
 export const OUTLINE = { up: 0x54ff72, down: 0xff354f, neutral: 0xc3cddd };
 export function validCandle(c) {
@@ -133,6 +147,7 @@ export class BattleClock {
         return true;
     }
     next() { return this.pending.shift(); }
+    peek() { return this.pending[0]; }
     get count() { return this.pending.length; }
     clear() { this.seen.clear(); this.intervals.clear(); this.pending = []; }
 }

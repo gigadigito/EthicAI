@@ -30,7 +30,7 @@ public sealed class CandleBattlesRoundService(EthicAIDbContext db, BinanceKlineC
         foreach (var m in discovered)
         {
             var start = new DateTimeOffset(DateTime.SpecifyKind(m.StartTime!.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds();
-            var next = DateTimeOffset.FromUnixTimeMilliseconds((start + 299_999) / 300_000 * 300_000).UtcDateTime;
+            var next = DateTimeOffset.FromUnixTimeMilliseconds(CandleBattlesResolver.FirstOpen(start)).UtcDateTime;
             await db.Database.ExecuteSqlInterpolatedAsync($@"INSERT INTO candle_battles_state (""MatchId"", ""NextOpenUtc"", ""UpdatedAtUtc"", ""Complete"", ""Status"")
                 VALUES ({m.MatchId}, {next}, {nowUtc}, false, 'waiting') ON CONFLICT (""MatchId"") DO NOTHING", ct);
         }
@@ -67,8 +67,12 @@ public sealed class CandleBattlesRoundService(EthicAIDbContext db, BinanceKlineC
             .Include(m => m.TeamB).ThenInclude(t => t.Currency).SingleAsync(m => m.MatchId == id, ct);
         var state = await db.Set<CandleBattlesState>().AsNoTracking().SingleAsync(s => s.MatchId == id, ct);
         var cursor = new DateTimeOffset(state.NextOpenUtc).ToUnixTimeMilliseconds();
-        var end = match.EndTime.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(match.EndTime.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds() : serverTime;
-        end = Math.Min(end, serverTime);
+        var start = new DateTimeOffset(DateTime.SpecifyKind(match.StartTime!.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds();
+        var scheduledEnd = CandleBattlesResolver.LastClose(start);
+        var actualEnd = match.EndTime.HasValue
+            ? new DateTimeOffset(DateTime.SpecifyKind(match.EndTime.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds()
+            : scheduledEnd;
+        var end = Math.Min(Math.Min(actualEnd, scheduledEnd), serverTime);
         var from = cursor - CandleBattlesResolver.HistoryLength * 300_000L;
         var to = Math.Min(serverTime, cursor + 64 * 300_000L - 1);
         var aTask = market.GetAsync(match.TeamA.Currency.Symbol, 5, from, to, 85, serverTime, ct);
@@ -102,8 +106,20 @@ public sealed class CandleBattlesRoundService(EthicAIDbContext db, BinanceKlineC
             cursor += 300_000;
         }
         state.NextOpenUtc = DateTimeOffset.FromUnixTimeMilliseconds(cursor).UtcDateTime;
-        state.Complete = match.EndTime.HasValue && match.EndTime.Value <= DateTimeOffset.FromUnixTimeMilliseconds(serverTime).UtcDateTime && cursor + 300_000 > end;
-        if (state.Complete) state.Status = "finished";
+        var finalClose = Math.Min(actualEnd, scheduledEnd);
+        if ((match.Status is MatchStatus.Completed or MatchStatus.Cancelled) && serverTime >= finalClose)
+        {
+            if (cursor + CandleBattlesResolver.PeriodMs > finalClose)
+            {
+                state.Complete = true;
+                state.Status = "finished";
+            }
+            else if (serverTime >= finalClose + CandleBattlesResolver.ConfirmationGraceMs)
+            {
+                state.Complete = true;
+                state.Status = "incomplete";
+            }
+        }
         state.UpdatedAtUtc = nowUtc;
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);

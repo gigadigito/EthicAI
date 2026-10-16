@@ -14,13 +14,14 @@ test('small, medium, large, doji and extreme wicks preserve accessory sizes for 
 });
 test('arcade plays rounds, replays, resizes, pauses and releases the canvas',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(url+'?kind=game');await page.waitForFunction(()=>window.engine&&document.querySelector('#arena').dataset.ready==='true');
+ await page.evaluate(()=>{window.engine.command('restart');window.engine.command('pause');window.engine.showDemoForming(0);window.engine.updateClocks();});
  await expect(page).toHaveScreenshot('arcade-arena.png');
  await page.evaluate(()=>window.engine.command('start'));
  await expect.poll(()=>page.evaluate(()=>window.engine.snapshot().tiles.length),{timeout:12000}).toBeGreaterThan(0);
  await page.evaluate(()=>window.engine.command('pause'));const snapshot=await page.evaluate(()=>window.engine.snapshot());
  await page.setViewportSize({width:390,height:844});await expect(page.locator('canvas')).toBeVisible();
  expect(await page.locator('canvas').evaluate(c=>c.getBoundingClientRect().width)).toBeLessThanOrEqual(390);
- await page.evaluate(()=>{window.engine.command('replay');window.engine.command('speed',10);});
+ await page.evaluate(()=>{window.engine.command('replay');window.engine.command('speed',10);window.engine.replayElapsed=300000-200;});
  await expect.poll(()=>page.evaluate(()=>window.engine.snapshot().tiles.length),{timeout:7000}).toBeGreaterThanOrEqual(snapshot.tiles.length);
  await page.evaluate(()=>window.engine.dispose());await expect(page.locator('canvas')).toHaveCount(0);expect(errors).toEqual([]);
 });
@@ -69,14 +70,55 @@ test('LIVE reconciles immutable history and heartbeat never creates points',asyn
  await page.evaluate(()=>{window.feed.rounds.push(window.fixtureRound(3));window.engine.receive(window.feed,false);window.engine.receive(window.feed,true);});
  expect((await page.evaluate(()=>window.engine.snapshot())).score).toEqual({left:2,right:2});
  expect((await page.evaluate(()=>window.engine.snapshot())).tiles).toHaveLength(4);
- await page.evaluate(()=>{window.engine.command('replay');window.engine.command('speed',10);window.feed.rounds.push(window.fixtureRound(4));window.engine.receive(window.feed,false);});
+ await page.evaluate(()=>{window.engine.command('replay');window.engine.command('speed',10);window.engine.replayElapsed=4*300000-200;window.feed.rounds.push(window.fixtureRound(4));window.engine.receive(window.feed,false);});
  await expect.poll(()=>page.evaluate(()=>window.engine.snapshot().tiles.length),{timeout:8000}).toBe(4);
  await page.evaluate(()=>window.engine.command('live'));
  expect((await page.evaluate(()=>window.engine.snapshot())).tiles).toHaveLength(5);
  expect(await page.evaluate(()=>window.engine.tileImages.every(t=>t.displayWidth===30&&t.displayHeight===30))).toBe(true);
+ await page.evaluate(()=>{window.engine.command('pause');window.engine.left.root.setPosition(330,260);window.engine.right.root.setPosition(950,260);window.engine.updateClocks();});
  await expect(page).toHaveScreenshot('persisted-history-arena.png');
 });
 
+test('historical match autoplays, observes pause and 2x, then freezes after eighteen rounds',async({page})=>{
+ test.setTimeout(30000);
+ await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine);
+ const initial=await page.evaluate(async()=>{
+  const {demoRound,PERIOD,MATCH_DURATION}=await import('/js/dist/candle-battles/model.js');
+  const rounds=Array.from({length:18},(_,i)=>({...demoRound(i),matchId:91,id:`91:5m:${demoRound(i).left.openTime}`}));
+  window.expectedScore={left:rounds.filter(r=>r.winner==='left').length,right:rounds.filter(r=>r.winner==='right').length};
+  window.engine.receive({matchId:91,leftSymbol:'BTC',rightSymbol:'ETH',left:null,right:null,rounds,status:'finished',finished:true,
+   matchStartTime:rounds[0].left.openTime,matchEndTime:rounds[0].left.openTime+MATCH_DURATION,expectedRounds:18},true);
+  window.engine.command('pause');const paused=window.engine.replayElapsed;window.engine.update(1000);
+  const held=window.engine.replayElapsed===paused;
+  window.engine.command('pause');window.engine.command('speed',2);window.engine.update(100);
+  const accelerated=window.engine.replayElapsed-paused;
+  window.engine.replayElapsed=PERIOD-300;window.engine.update(100);const beforeClose=!!window.engine.active;
+  window.engine.update(100);const atClose=!!window.engine.active;
+  window.engine.command('speed',10);window.engine.replayElapsed=MATCH_DURATION;
+  return {mode:window.engine.mode,held,accelerated,beforeClose,atClose};
+ });
+ expect(initial).toEqual({mode:'replay',held:true,accelerated:200,beforeClose:false,atClose:true});
+ await expect.poll(()=>page.evaluate(()=>window.engine.terminal),{timeout:15000}).toBe(true);
+ const final=await page.evaluate(()=>({score:window.engine.snapshot().score,elapsed:window.engine.replayElapsed,status:window.engine.hud.get('status').text}));
+ expect(final.score).toEqual(await page.evaluate(()=>window.expectedScore));
+ expect(final.elapsed).toBe(90*60*1000);expect(final.status).toContain('MATCH FINISHED');
+ await page.evaluate(()=>window.engine.command('replay'));
+ expect(await page.evaluate(()=>({terminal:window.engine.terminal,elapsed:window.engine.replayElapsed,score:window.engine.snapshot().score})))
+  .toEqual({terminal:false,elapsed:0,score:{left:0,right:0}});
+});
+
+
+test('LIVE holds at the missing candle close without awarding a point',async({page})=>{
+ await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine);
+ const state=await page.evaluate(()=>{
+  const now=Date.now(),start=Math.floor(now/300000)*300000-300000+1000;
+  const feed={matchId:92,leftSymbol:'BTC',rightSymbol:'ETH',left:null,right:null,rounds:[],status:'waiting-confirmation',finished:false,
+   matchStartTime:start,expectedRounds:18,serverTime:now};
+  window.engine.receive(feed,true);window.engine.receive(feed,false);
+  return {mode:window.engine.mode,score:window.engine.snapshot().score,next:window.engine.hud.get('nextBattle').text};
+ });
+ expect(state.mode).toBe('live');expect(state.score).toEqual({left:0,right:0});expect(state.next).toContain('00:00');
+});
 
 test('native controls unlock supplied audio, change volume and enter fullscreen',async({page})=>{
  const failures=[];page.on('pageerror',e=>failures.push(e.message));

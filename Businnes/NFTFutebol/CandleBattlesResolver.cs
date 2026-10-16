@@ -9,6 +9,10 @@ public static class CandleBattlesResolver
     public const decimal ComparisonTolerance = .000001m;
     public const int HistoryLength = 20;
     public const long PeriodMs = 300_000;
+    public const int ExpectedRounds = 18;
+    public const long ConfirmationGraceMs = 15 * 60_000;
+    public static long FirstOpen(long matchStartMs) => matchStartMs / PeriodMs * PeriodMs;
+    public static long LastClose(long matchStartMs) => FirstOpen(matchStartMs) + ExpectedRounds * PeriodMs;
     public static decimal Strength(CandleBattlesCandleDto candle, IReadOnlyList<CandleBattlesCandleDto> history)
         => CalculateStrength(candle, history, requireConfirmation: true);
 

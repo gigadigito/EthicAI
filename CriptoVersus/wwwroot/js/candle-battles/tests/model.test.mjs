@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase } from '../../dist/candle-battles/model.js';
+import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase, matchWindow, roundInMatch, clockParts, MATCH_DURATION, PERIOD } from '../../dist/candle-battles/model.js';
 import { registerFighterAnimations } from '../../dist/candle-battles/renderer.js';
 
 test('idle holds one upright fighter frame without cycling through stun poses', () => {
@@ -47,6 +47,21 @@ test('battle clock validates both confirmed UTC intervals and deduplicates by ma
     assert.equal(b.enqueue({...r,right:demoRound(1).right}),false);
     assert.ok(b.enqueue(demoRound(1)));assert.ok(b.enqueue(r));assert.equal(b.enqueue({...r,id:'another-id'}),false);
     assert.equal(b.next().id,r.id);assert.equal(b.next().id,demoRound(1).id);
+});
+test('a non-aligned 90-minute match admits exactly 18 confirmed market intervals',()=>{
+    const first=demoRound(0).left.openTime;
+    const start=first+42_000;
+    const window=matchWindow(start);
+    assert.equal(window.firstOpen,first);
+    assert.equal(window.lastClose,first+MATCH_DURATION);
+    assert.equal(window.durationEnd,start+MATCH_DURATION);
+    for(let i=0;i<18;i++)assert.equal(roundInMatch(demoRound(i),start),true);
+    assert.equal(roundInMatch(demoRound(18),start),false);
+    assert.equal(roundInMatch(demoRound(1),start,first+PERIOD),false);
+    assert.equal(roundInMatch({...demoRound(0),right:{...demoRound(0).right,confirmed:false}},start),false);
+    assert.equal(clockParts(0),'00:00');
+    assert.equal(clockParts(5*PERIOD),'25:00');
+    assert.equal(clockParts(MATCH_DURATION),'90:00');
 });
 test('queued snapshots are immutable while next-candle heartbeat continues',()=>{
     const b=new BattleClock(),r=demoRound(0),h=new MarketHeartbeat();b.enqueue(r);

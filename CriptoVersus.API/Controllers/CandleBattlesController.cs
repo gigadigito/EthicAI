@@ -23,6 +23,17 @@ public sealed class CandleBattlesController(EthicAIDbContext db) : ControllerBas
         if (match is null) return NotFound();
         var state = await db.Set<CandleBattlesState>().AsNoTracking().SingleOrDefaultAsync(x => x.MatchId == matchId, ct);
         var all = db.Set<CandleBattlesRound>().AsNoTracking().Where(r => r.MatchId == matchId);
+        if (match.StartTime.HasValue)
+        {
+            var startMs = new DateTimeOffset(DateTime.SpecifyKind(match.StartTime.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds();
+            var firstMs = CandleBattlesResolver.FirstOpen(startMs);
+            var lastCloseMs = CandleBattlesResolver.LastClose(startMs);
+            if (match.EndTime.HasValue)
+                lastCloseMs = Math.Min(lastCloseMs, new DateTimeOffset(DateTime.SpecifyKind(match.EndTime.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds());
+            var firstUtc = DateTimeOffset.FromUnixTimeMilliseconds(firstMs).UtcDateTime;
+            var lastOpenUtc = DateTimeOffset.FromUnixTimeMilliseconds(lastCloseMs - CandleBattlesResolver.PeriodMs).UtcDateTime;
+            all = all.Where(r => r.OpenTimeUtc >= firstUtc && r.OpenTimeUtc <= lastOpenUtc);
+        }
         var legacy = await all.Where(r => r.RuleVersion != CandleBattlesResolver.Version).ToListAsync(ct);
         var scoreLeft = await all.CountAsync(r => r.RuleVersion == CandleBattlesResolver.Version && r.Winner == "left", ct)
             + legacy.Count(r => EffectiveWinner(r) == "left");
@@ -46,13 +57,17 @@ public sealed class CandleBattlesController(EthicAIDbContext db) : ControllerBas
                 $"{r.MatchId}:5m:{new DateTimeOffset(r.OpenTimeUtc).ToUnixTimeMilliseconds()}", r.MatchId,
                 left, right, legacyWinner, ruleVersion, r.LeftStrength, r.RightStrength);
         }).ToArray();
-        var status = state?.Status ?? "waiting";
+        var finished = state?.Complete ?? match.Status is MatchStatus.Completed or MatchStatus.Cancelled;
+        var status = state?.Status ?? (finished ? "unavailable" : "waiting");
         if (state is { Complete: false } && state.UpdatedAtUtc < DateTime.UtcNow.AddMinutes(-2)) status = "delayed";
         return Ok(new CandleBattlesFeedDto(matchId, match.TeamA.Currency.Symbol, match.TeamB.Currency.Symbol,
-            scoreLeft, scoreRight, state?.Complete ?? false, status,
+            scoreLeft, scoreRight, finished, status,
             state?.LeftFormingJson is { } a ? JsonSerializer.Deserialize<CandleBattlesCandleDto>(a) : null,
             state?.RightFormingJson is { } b ? JsonSerializer.Deserialize<CandleBattlesCandleDto>(b) : null,
-            rounds, records.Count > take, rounds.LastOrDefault()?.Left.OpenTime ?? after));
+            rounds, records.Count > take, rounds.LastOrDefault()?.Left.OpenTime ?? after,
+            match.StartTime.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(match.StartTime.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds() : null,
+            match.EndTime.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(match.EndTime.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds() : null,
+            CandleBattlesResolver.ExpectedRounds, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
     }
 
     private static string EffectiveWinner(CandleBattlesRound round)

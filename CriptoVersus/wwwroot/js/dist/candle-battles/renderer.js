@@ -1,7 +1,7 @@
 import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js?v=20261015d';
 const ACTION_FRAME_COUNTS = {
-    // Later cells in the supplied montage overlap adjacent colour variants.
-    // Use the clean motion cells instead of flashing clipped neighbours.
+    // Hold the damage pose while its alpha fades; cycling the source montage
+    // would reveal neighbouring colour variants.
     run: 4,
     punch: 4,
     break: 1,
@@ -41,6 +41,7 @@ export class CandleRenderer {
         this.outline = OUTLINE.neutral;
         this.animation = 'idle';
         this.combat = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
+        this.preparation = 0;
         registerFighterAnimations(scene);
         this.aura = scene.add.graphics();
         this.body = scene.add.graphics();
@@ -72,6 +73,8 @@ export class CandleRenderer {
     }
     setPose(phase, winner, draw = false) {
         this.phase = phase;
+        if (phase !== 'FORMING_CANDLE')
+            this.preparation = 0;
         this.win = winner;
         this.draw = draw;
         let next = fighterAnimationForPhase(phase);
@@ -85,6 +88,20 @@ export class CandleRenderer {
         }
     }
     setCombatMotion(motion) { this.combat = { ...motion }; }
+    setPreparation(tension, time) {
+        this.preparation = Math.max(0, Math.min(1, tension));
+        this.combat = { attack: 0, block: .2 + this.preparation * .35, dodge: .12 * Math.abs(Math.sin(time / 1700)), hit: 0, counter: 0,
+            taunt: this.preparation > .8 ? .18 : .08 * Math.abs(Math.sin(time / 2100)) };
+        const next = this.preparation > .8 && Math.sin(time / 1400) > .8 ? 'run' : 'idle';
+        if (this.phase === 'FORMING_CANDLE' && next !== this.animation) {
+            this.animation = next;
+            this.playAnimation(true);
+        }
+        if (!this.target && !this.frozen) {
+            this.sprite.setPosition(Math.sin(time / 900) * (.8 + this.preparation * 1.5), 185 + Math.sin(time / 650) * (1.2 + this.preparation * 1.8));
+            this.sprite.setRotation(Math.sin(time / 1150) * (0.012 + this.preparation * .015));
+        }
+    }
     setReducedMotion(reduced) {
         this.frozen = reduced;
         if (reduced)
@@ -105,7 +122,7 @@ export class CandleRenderer {
         const g = this.visibleGeometry;
         const color = TEAM[this.side];
         this.outline = OUTLINE[this.direction];
-        const bounce = this.frozen ? 0 : Math.sin(time / 650) * .7;
+        const bounce = this.frozen ? 0 : Math.sin(time / (650 - this.preparation * 250)) * (1.2 + this.preparation * 1.8);
         // This layer is the exact financial OHLC body/wick. It is never scaled
         // or transformed with the illustrated fighter sprite.
         this.body.clear().lineStyle(6, 0x071317, 1).lineBetween(0, g.highY, 0, g.lowY);
@@ -128,8 +145,9 @@ export class CandleRenderer {
         // The candle stays above the fighter. A fixed foot line keeps market
         // updates from resizing or lifting the character mid-fight.
         const footY = 185 + bounce + this.combat.hit * 2;
-        const spriteX = facing * (this.combat.attack * 5 - this.combat.dodge * 3);
-        this.sprite.setPosition(spriteX, footY).setScale(.8).setFlipX(this.side === 'right');
+        const spriteX = facing * (this.combat.attack * 5 - this.combat.dodge * 3 + (this.frozen ? 0 : Math.sin(time / 900) * (.8 + this.preparation * 1.5)));
+        this.sprite.setPosition(spriteX, footY).setScale(.8 + (this.frozen ? 0 : Math.sin(time / 730) * .008)).setFlipX(this.side === 'right');
+        this.sprite.setRotation(this.frozen || this.phase !== 'FORMING_CANDLE' ? 0 : Math.sin(time / 1150) * (0.012 + this.preparation * .015));
         const breakFrame = Math.min(7, Math.floor(progress * 8));
         const recovery = this.phase === 'SPAWNING' ? (Math.min(2, Math.floor(progress * 3)) + 1) / 3 : 1;
         const alpha = (this.phase === 'DESTROYING' && !this.win) ? 1 - breakFrame / 7 :

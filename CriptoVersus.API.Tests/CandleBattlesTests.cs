@@ -129,20 +129,45 @@ public sealed class CandleBattlesTests
         var options=new DbContextOptionsBuilder<EthicAIDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
         await using var db=new EthicAIDbContext(options);
         db.Match.Add(new Match {MatchId=7,ScoreA=99,ScoreB=88,Status=MatchStatus.Ongoing,
+            StartTime=DateTimeOffset.FromUnixTimeMilliseconds(Start+42_000).UtcDateTime,
             TeamA=new Team {TeamId=1,Currency=new Currency {CurrencyId=1,Symbol="AAAUSDT"}},
             TeamB=new Team {TeamId=2,Currency=new Currency {CurrencyId=2,Symbol="BBBUSDT"}}});
         foreach(var i in Enumerable.Range(0,3))db.Add(new CandleBattlesRound {MatchId=7,OpenTimeUtc=DateTimeOffset.FromUnixTimeMilliseconds(Start+i*300000).UtcDateTime,
             Winner=i==0?"left":i==1?"draw":"right",RuleVersion=CandleBattlesResolver.Version,
             LeftCandleJson=JsonSerializer.Serialize(Candle(Start+i*300000)),RightCandleJson=JsonSerializer.Serialize(Candle(Start+i*300000,symbol:"BBBUSDT"))});
+        db.Add(new CandleBattlesRound {MatchId=7,OpenTimeUtc=DateTimeOffset.FromUnixTimeMilliseconds(Start+18*300000).UtcDateTime,
+            Winner="left",RuleVersion=CandleBattlesResolver.Version,
+            LeftCandleJson=JsonSerializer.Serialize(Candle(Start+18*300000)),RightCandleJson=JsonSerializer.Serialize(Candle(Start+18*300000,symbol:"BBBUSDT"))});
         await db.SaveChangesAsync();
         var controller=new CandleBattlesController(db);
         var result=Assert.IsType<OkObjectResult>((await controller.Get(7,take:2)).Result);
         var feed=Assert.IsType<CandleBattlesFeedDto>(result.Value);
         Assert.Equal(1,feed.ScoreLeft);Assert.Equal(1,feed.ScoreRight);Assert.Equal(2,feed.Rounds.Count);Assert.True(feed.HasMore);
+        Assert.Equal(Start+42_000,feed.MatchStartTime);
+        Assert.Equal(18,feed.ExpectedRounds);
         var second=Assert.IsType<CandleBattlesFeedDto>(Assert.IsType<OkObjectResult>((await controller.Get(7,feed.NextCursor,2)).Result).Value);
         Assert.Single(second.Rounds);Assert.False(second.HasMore);Assert.Equal("right",second.Rounds[0].Winner);
         Assert.Equal(99,(await db.Match.SingleAsync()).ScoreA);
         Assert.IsType<BadRequestResult>((await controller.Get(7,take:501)).Result);
+    }
+
+    [Fact]
+    public async Task CompletedMatchWithoutArcadeHistoryReturnsTerminalUnavailableFeed()
+    {
+        var options = new DbContextOptionsBuilder<EthicAIDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        await using var db = new EthicAIDbContext(options);
+        db.Match.Add(new Match { MatchId = 71, Status = MatchStatus.Completed,
+            StartTime = DateTimeOffset.FromUnixTimeMilliseconds(Start).UtcDateTime,
+            EndTime = DateTimeOffset.FromUnixTimeMilliseconds(Start + 18 * 300000).UtcDateTime,
+            TeamA = new Team { TeamId = 71, Currency = new Currency { CurrencyId = 71, Symbol = "AAAUSDT" } },
+            TeamB = new Team { TeamId = 72, Currency = new Currency { CurrencyId = 72, Symbol = "BBBUSDT" } } });
+        await db.SaveChangesAsync();
+        var feed = Assert.IsType<CandleBattlesFeedDto>(Assert.IsType<OkObjectResult>(
+            (await new CandleBattlesController(db).Get(71)).Result).Value);
+        Assert.True(feed.Finished);
+        Assert.Equal("unavailable", feed.Status);
+        Assert.Empty(feed.Rounds);
+        Assert.Equal(0, feed.ScoreLeft + feed.ScoreRight);
     }
 
     [Fact]

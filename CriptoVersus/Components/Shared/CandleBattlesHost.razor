@@ -49,9 +49,10 @@
     private bool _disposed;
     private bool _failed;
     private bool _baseline;
+    private bool _finished;
     private string _status = string.Empty;
     private string _renderedCulture = string.Empty;
-    private static readonly string[] LabelKeys = ["arcade", "forming", "waiting", "finished", "recent", "lines", "page", "territory", "draw", "strength", "nextStrength", "crushing", "combo", "domination", "comeback"];
+    private static readonly string[] LabelKeys = ["arcade", "forming", "waiting", "finished", "matchTime", "nextBattle", "round", "fight", "wins", "matchFinished", "finalScore", "incomplete", "recent", "lines", "page", "territory", "draw", "strength", "nextStrength", "crushing", "combo", "domination", "comeback"];
     private string T(string key) => L.T($"candleBattles.{key}", Culture);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -68,7 +69,7 @@
     {
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.js?v=20261015d");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.js?v=20261016a");
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
                 new { mode = MatchId == 0 ? "demo" : "live", labels = LabelKeys.ToDictionary(k => k, T), battleDurationMs = Math.Clamp(Config.GetValue("CandleBattles:AnimationDurationMs", 3800), 3000, 5000), crushingDifference = Math.Clamp(Config.GetValue("CandleBattles:CrushingDifference", 25), 0, 100) });
             if (_disposed) return;
@@ -77,10 +78,13 @@
             {
                 await RefreshAsync();
                 if (_disposed) return;
-                Hub.DashboardChanged -= OnDashboardChanged;
-                Hub.DashboardChanged += OnDashboardChanged;
-                _poll ??= PollAsync(_lifetime.Token);
-                try { await Hub.EnsureStartedAsync(_lifetime.Token); } catch (OperationCanceledException) { } catch { _status = T("polling"); }
+                if (!_finished)
+                {
+                    Hub.DashboardChanged -= OnDashboardChanged;
+                    Hub.DashboardChanged += OnDashboardChanged;
+                    _poll ??= PollAsync(_lifetime.Token);
+                    try { await Hub.EnsureStartedAsync(_lifetime.Token); } catch (OperationCanceledException) { } catch { _status = T("polling"); }
+                }
             }
         }
         catch (JSDisconnectedException) { }
@@ -91,7 +95,7 @@
     private async Task PollAsync(CancellationToken ct)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
-        try { while (await timer.WaitForNextTickAsync(ct)) await InvokeAsync(RefreshAsync); }
+        try { while (!_finished && await timer.WaitForNextTickAsync(ct)) await InvokeAsync(RefreshAsync); }
         catch (OperationCanceledException) { }
     }
     private async Task RefreshAsync()
@@ -114,6 +118,8 @@
             if (_disposed) return;
             await _engine.InvokeVoidAsync("receive", feed with { Rounds = _rounds.ToArray() }, !_baseline || _failed);
             _baseline = true; _failed = false;
+            _finished = feed.Finished;
+            if (_finished) Hub.DashboardChanged -= OnDashboardChanged;
             _status = feed.Finished ? T("finished") : feed.Status == "live" ? T("forming") : T("waiting");
         }
         catch (OperationCanceledException) { }

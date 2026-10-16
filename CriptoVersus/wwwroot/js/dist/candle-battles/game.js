@@ -1,4 +1,4 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, demoRound, sharedRange, validRound, combatFrame } from './model.js?v=20261015d';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, combatFrame } from './model.js?v=20261015d';
 import { CandleRenderer } from './renderer.js?v=20261015d';
 import { AudioManager } from './audio.js?v=20261015d';
 export async function create(host, options) {
@@ -37,6 +37,11 @@ export class GameEngine {
         this.demoIndex = 0;
         this.demoElapsed = 0;
         this.replayIndex = 0;
+        this.replayElapsed = 0;
+        this.autoplayInitialized = false;
+        this.completedRounds = 0;
+        this.terminal = false;
+        this.serverReceivedAt = 0;
         this.flash = 0;
         this.disposed = false;
         this.pendingReconcile = false;
@@ -105,18 +110,21 @@ export class GameEngine {
         for (let y = 170; y < 460; y += 40)
             g.lineBetween(0, y, 1280, y);
         g.lineStyle(3, 0x668789, .5).lineBetween(35, 451, 1245, 451);
-        g.fillStyle(0x1e2430, .9).fillRoundedRect(24, 24, 1232, 126, 16);
-        g.lineStyle(1, 0x4c6069, .45).strokeRoundedRect(24, 24, 1232, 126, 16);
+        g.fillStyle(0x1e2430, .9).fillRoundedRect(24, 24, 1232, 154, 16);
+        g.lineStyle(1, 0x4c6069, .45).strokeRoundedRect(24, 24, 1232, 154, 16);
         this.label('brand', 'CANDLE BATTLES', 640, 42, 30, '#f3f5f7', .5);
         this.label('subtitle', this.text('arcade'), 640, 80, 14, '#94a3b8', .5);
-        this.label('mode', this.mode.toUpperCase() + ' · 5M', 640, 155, 13, '#c1f20f', .5);
+        this.label('mode', this.mode.toUpperCase() + ' · 5M', 640, 181, 13, '#c1f20f', .5);
         this.label('leftName', '—', 124, 48, 30, '#c1f20f');
         this.label('rightName', '—', 1150, 48, 30, '#30d7ca', 1);
         this.label('leftPrice', '—', 62, 120, 18);
         this.label('rightPrice', '—', 1218, 120, 18, '#f3f5f7', 1);
         this.label('score', '0 : 0', 640, 105, 34, '#f3f5f7', .5);
-        this.label('status', this.text('waiting'), 640, 182, 16, '#94a3b8', .5);
-        this.label('result', '', 640, 208, 27, '#f3f5f7', .5);
+        this.label('status', this.text('waiting'), 640, 201, 16, '#94a3b8', .5);
+        this.label('result', '', 640, 225, 24, '#f3f5f7', .5);
+        this.label('matchTime', '', 265, 145, 16, '#f3f5f7', .5);
+        this.label('nextBattle', '', 1015, 145, 16, '#c1f20f', .5);
+        this.label('round', '', 640, 151, 15, '#94a3b8', .5);
         this.label('leftStrength', '', 70, 411, 17, '#c1f20f');
         this.label('rightStrength', '', 1210, 411, 17, '#30d7ca', 1);
         this.label('history', this.text('recent'), 48, 470, 17);
@@ -133,8 +141,10 @@ export class GameEngine {
         this.drawTerritory();
         if (this.feed)
             this.receive(this.feed, this.pendingReconcile);
-        if (this.mode === 'demo')
+        if (this.mode === 'demo') {
             this.showDemoForming(0);
+            this.command('start');
+        }
         if (this.readyTimer)
             clearTimeout(this.readyTimer);
         this.readyResolve();
@@ -155,9 +165,15 @@ export class GameEngine {
             this.active = undefined;
             this.combatElapsed = 0;
             this.state.reset();
+            this.autoplayInitialized = false;
+            this.terminal = false;
         }
         this.feed = feed;
         this.pendingReconcile || (this.pendingReconcile = reconcile);
+        if (feed.serverTime != null && Number.isFinite(feed.serverTime)) {
+            this.serverAnchorMs = feed.serverTime;
+            this.serverReceivedAt = performance.now();
+        }
         if (!this.scene)
             return;
         for (const side of ['left', 'right']) {
@@ -173,9 +189,25 @@ export class GameEngine {
             }
         }
         const known = new Set(this.history.map(r => r.id));
-        const fresh = feed.rounds.filter(r => r.matchId === feed.matchId && validRound(r) && !known.has(r.id));
+        const fresh = feed.rounds.filter(r => r.matchId === feed.matchId && validRound(r) && !known.has(r.id)
+            && (feed.matchStartTime == null || roundInMatch(r, feed.matchStartTime, feed.matchEndTime)));
         this.history.push(...fresh);
         this.history.sort((a, b) => a.left.openTime - b.left.openTime);
+        if (!this.autoplayInitialized && feed.matchStartTime != null) {
+            this.autoplayInitialized = true;
+            if (this.history.length) {
+                this.mode = 'replay';
+                this.replayHistory = this.history.map(r => ({ ...r, left: { ...r.left }, right: { ...r.right } }));
+                this.restart();
+            }
+            else {
+                this.mode = 'live';
+                this.started = true;
+                this.reconcile();
+            }
+            this.host.dataset.mode = this.mode;
+            this.hud.get('mode')?.setText(this.mode.toUpperCase() + ' · 5M');
+        }
         if (this.mode === 'live') {
             if (this.pendingReconcile)
                 this.reconcile();
@@ -184,11 +216,17 @@ export class GameEngine {
                     this.clock.enqueue(round);
             this.hud.get('status')?.setText(this.text(feed.finished ? 'finished' : feed.status === 'live' ? 'forming' : 'waiting'));
         }
+        else if (this.mode === 'replay')
+            this.hud.get('status')?.setText(this.text('forming'));
         this.setLogo('left', feed.leftSymbol);
         this.setLogo('right', feed.rightSymbol);
         this.hud.get('leftName')?.setText(feed.leftSymbol);
         this.hud.get('rightName')?.setText(feed.rightSymbol);
         this.updateMarket();
+        if (!this.paused)
+            this.updateClocks();
+        if (!this.paused && feed.finished && this.mode === 'live' && !this.active && this.clock.count === 0)
+            this.finish();
     }
     reconcile() {
         this.active = undefined;
@@ -212,6 +250,9 @@ export class GameEngine {
         this.right?.setPose('FORMING_CANDLE', true);
         this.drawTerritory();
         this.updateMarket();
+        this.completedRounds = this.history.length;
+        if (this.feed?.finished)
+            this.finish();
     }
     updateMarket() {
         if (this.mode === "replay")
@@ -276,6 +317,7 @@ export class GameEngine {
         }
         if (action === 'live' && this.options.mode === 'live') {
             this.mode = 'live';
+            this.terminal = false;
             this.reconcile();
         }
         if (action === 'restart')
@@ -293,6 +335,9 @@ export class GameEngine {
         this.territory.reset();
         this.state.reset();
         this.market.clear();
+        this.completedRounds = 0;
+        this.replayElapsed = 0;
+        this.terminal = false;
         this.tile?.destroy();
         this.tile = undefined;
         this.dropTarget = undefined;
@@ -308,6 +353,7 @@ export class GameEngine {
             this.reconcile();
         if (this.mode === 'demo')
             this.history = [];
+        this.updateClocks();
     }
     showDemoForming(fraction) {
         const r = demoRound(this.demoIndex);
@@ -329,7 +375,9 @@ export class GameEngine {
         if (this.disposed || this.paused || this.backgrounded)
             return;
         const dt = Math.min(delta, 100), battleDt = dt * (this.mode === 'replay' ? this.speed : 1);
-        this.time += dt;
+        this.time += battleDt;
+        if (this.mode === 'replay' && this.started && !this.terminal)
+            this.replayElapsed = Math.min(this.matchLimit(), this.replayElapsed + battleDt);
         if (this.mode === 'demo' && this.started) {
             this.demoElapsed += dt;
             this.showDemoForming(Math.min(1, this.demoElapsed / (this.state.durationMs + 400)));
@@ -340,12 +388,20 @@ export class GameEngine {
                 this.demoElapsed = 0;
             }
         }
-        if (!this.active && (this.started || this.mode === 'live')) {
-            if (this.mode === 'replay' && this.clock.count === 0 && this.replayIndex < this.replayHistory.length)
-                this.clock.enqueue(this.replayHistory[this.replayIndex++]);
-            const next = this.clock.next();
-            if (next)
-                this.begin(next);
+        if (!this.active && !this.terminal && (this.started || this.mode === 'live')) {
+            if (this.mode === 'replay' && this.clock.count === 0 && this.replayIndex < this.replayHistory.length) {
+                const candidate = this.replayHistory[this.replayIndex];
+                const start = this.feed?.matchStartTime ?? this.replayHistory[0].left.openTime;
+                if (candidate.left.closeTime <= start + this.replayElapsed) {
+                    this.clock.enqueue(candidate);
+                    this.replayIndex++;
+                }
+            }
+            if (this.mode !== 'live' || (this.clock.peek()?.left.closeTime ?? Infinity) <= this.liveNow()) {
+                const next = this.clock.next();
+                if (next)
+                    this.begin(next);
+            }
         }
         if (this.active)
             this.state.advance(battleDt, p => this.enter(p));
@@ -362,11 +418,12 @@ export class GameEngine {
             this.right?.setCombatMotion(frame.right);
         }
         else {
-            // A forming candle has no confirmed opponent action yet.
-            this.left?.root.setPosition(330, 260);
-            this.right?.root.setPosition(950, 260);
-            this.left?.setCombatMotion({ attack: 0, block: .2, dodge: 0, hit: 0, counter: 0, taunt: 0 });
-            this.right?.setCombatMotion({ attack: 0, block: .2, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+            const remaining = this.nextBattleRemaining();
+            const tension = remaining == null ? 0 : remaining <= 10000 ? 1 : remaining <= 60000 ? 1 - (remaining - 10000) / 50000 : 0;
+            this.left?.root.setPosition(330 + Math.sin(this.time / 1100) * Math.min(5, 2 + tension * 3), 260);
+            this.right?.root.setPosition(950 - Math.sin(this.time / 1170) * Math.min(5, 2 + tension * 3), 260);
+            this.left?.setPreparation(tension, this.time);
+            this.right?.setPreparation(tension, this.time + 650);
         }
         this.left?.update(this.time, dt, p);
         this.right?.update(this.time, dt, p);
@@ -392,11 +449,61 @@ export class GameEngine {
                 this.effects.splice(i, 1);
             }
         }
+        this.updateClocks();
+        if (this.mode === 'replay' && !this.active && this.replayElapsed >= this.matchLimit() && this.replayIndex >= this.replayHistory.length)
+            this.finish();
+        if (this.mode === 'live' && this.feed?.finished && !this.active && this.clock.count === 0)
+            this.finish();
+    }
+    matchLimit() {
+        const start = this.feed?.matchStartTime, end = this.feed?.matchEndTime;
+        return this.feed?.finished && start != null && end != null ? Math.max(0, Math.min(MATCH_DURATION, end - start)) : MATCH_DURATION;
+    }
+    liveNow() { return this.serverAnchorMs == null ? Date.now() : this.serverAnchorMs + performance.now() - this.serverReceivedAt; }
+    nextBattleRemaining() {
+        if (this.mode === 'demo')
+            return Math.max(0, PERIOD - this.demoElapsed / (this.state.durationMs + 500) * PERIOD);
+        const start = this.feed?.matchStartTime;
+        if (start == null || this.terminal)
+            return null;
+        const now = this.mode === 'replay' ? start + this.replayElapsed : this.liveNow();
+        if (now >= start + this.matchLimit())
+            return 0;
+        const first = Math.floor(start / PERIOD) * PERIOD;
+        const next = first + (this.completedRounds + 1) * PERIOD;
+        return Math.max(0, next - now);
+    }
+    updateClocks() {
+        const start = this.feed?.matchStartTime;
+        const elapsed = this.mode === 'demo' ? Math.min(MATCH_DURATION, this.demoIndex * PERIOD + this.demoElapsed / (this.state.durationMs + 500) * PERIOD)
+            : start == null ? 0 : this.mode === 'replay' ? this.replayElapsed : this.feed?.finished ? this.matchLimit() : Math.max(0, this.liveNow() - start);
+        const capped = Math.min(MATCH_DURATION, elapsed);
+        this.hud.get('matchTime')?.setText(this.text('matchTime', 'MATCH TIME') + '  ' + clockParts(capped) + ' / 90:00');
+        const remaining = this.nextBattleRemaining();
+        this.hud.get('nextBattle')?.setText(this.terminal ? '' : this.text('nextBattle', 'NEXT BATTLE') + '  ' + (this.active ? '00:00' : remaining == null ? '--:--' : clockParts(Math.ceil(remaining / 1000) * 1000)));
+        const round = this.terminal ? this.completedRounds : Math.min(MATCH_ROUNDS, this.completedRounds + 1);
+        this.hud.get('round')?.setText(this.text('round', 'ROUND') + '  ' + round + ' / ' + (this.feed?.expectedRounds ?? MATCH_ROUNDS));
+    }
+    finish() {
+        if (this.terminal || !this.feed?.finished)
+            return;
+        this.terminal = true;
+        this.started = false;
+        this.audio.pause();
+        this.left?.setPose('FORMING_CANDLE', true);
+        this.right?.setPose('FORMING_CANDLE', true);
+        const enough = this.completedRounds === (this.feed.expectedRounds ?? MATCH_ROUNDS);
+        const left = this.territory.score.left, right = this.territory.score.right;
+        const winner = left === right ? this.text('draw', 'DRAW') : (left > right ? this.feed.leftSymbol : this.feed.rightSymbol);
+        this.hud.get('status')?.setText(this.text('matchFinished', 'MATCH FINISHED') + (enough ? ' — ' + winner + (left === right ? '' : ' ' + this.text('wins', 'WINS')) : ''));
+        this.hud.get('result')?.setText(enough ? `${this.text('finalScore', 'FINAL SCORE')}: ${left} × ${right}` : this.text('incomplete', 'INCOMPLETE RESULT'));
+        this.hud.get('nextBattle')?.setText('');
     }
     begin(r) {
         this.active = r;
         this.combatElapsed = 0;
         const range = sharedRange([r.left, r.right]);
+        this.hud.get('status')?.setText(`${this.text('round', 'ROUND')} ${this.completedRounds + 1} — ${this.text('fight', 'FIGHT!')}`);
         this.left?.setCandle(r.left, range, true);
         this.right?.setCandle(r.right, range, true);
         if (this.mode === 'replay') {
@@ -433,6 +540,7 @@ export class GameEngine {
         }
         if (phase === 'VICTORY') {
             this.hud.get('result')?.setText(r.winner === 'draw' ? this.text('draw') : (r[r.winner].symbol + ' +1'));
+            this.hud.get('status')?.setText(`${this.text('round', 'ROUND')} ${this.completedRounds + 1} — ${r.winner === 'draw' ? this.text('draw') : r[r.winner].symbol + ' ' + this.text('wins', 'WINS')}`);
             this.audio.play(r.winner === 'draw' ? 'draw' : 'score_point');
             if (r.winner !== 'draw' && Math.abs(r.leftStrength - r.rightStrength) >= (this.options.crushingDifference ?? 25)) {
                 this.hud.get('result')?.setText(r[r.winner].symbol + ' +1 · ' + this.text('crushing'));
@@ -475,6 +583,8 @@ export class GameEngine {
         if (phase === 'FORMING_CANDLE') {
             this.active = undefined;
             this.combatElapsed = 0;
+            this.completedRounds++;
+            this.hud.get('status')?.setText(this.text('forming'));
             this.left?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
             this.right?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
             this.left?.setPose(phase, true);

@@ -24,6 +24,20 @@ export interface Round {
     rightStrength: number;
 }
 export const PERIOD = 300_000;
+export const MATCH_DURATION = 18 * PERIOD;
+export const MATCH_ROUNDS = 18;
+export function matchWindow(start: number, end?: number | null): { firstOpen: number; lastClose: number; durationEnd: number } {
+    const firstOpen = Math.floor(start / PERIOD) * PERIOD;
+    return { firstOpen, lastClose: Math.min(firstOpen + MATCH_DURATION, end ?? Number.POSITIVE_INFINITY), durationEnd: start + MATCH_DURATION };
+}
+export function roundInMatch(round: Round, start: number, end?: number | null): boolean {
+    const window = matchWindow(start, end);
+    return validRound(round) && round.left.openTime >= window.firstOpen && round.left.closeTime <= window.lastClose;
+}
+export function clockParts(elapsedMs: number): string {
+    const seconds = Math.floor(Math.max(0, elapsedMs) / 1000);
+    return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+}
 export const TEAM = { left: 0xc1f20f, right: 0x185957 };
 export const OUTLINE = { up: 0x54ff72, down: 0xff354f, neutral: 0xc3cddd };
 export function validCandle(c: Candle): boolean {
@@ -194,6 +208,7 @@ export class BattleClock {
         return true;
     }
     next(): Readonly<Round> | undefined { return this.pending.shift(); }
+    peek(): Readonly<Round> | undefined { return this.pending[0]; }
     get count(): number { return this.pending.length; }
     clear(): void { this.seen.clear(); this.intervals.clear(); this.pending = []; }
 }
