@@ -1,4 +1,4 @@
-import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js?v=20261017c';
+import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js?v=20261017d';
 const CANDLE_LIFT = 60;
 const ACTION_FRAME_COUNTS = {
     // Hold the damage pose while its alpha fades; cycling the source montage
@@ -103,6 +103,14 @@ export class CandleRenderer {
             this.animation = next;
             this.playAnimation(true);
         }
+    }
+    resetPresentation() {
+        this.setPose('FORMING_CANDLE', true);
+        this.combat = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
+        this.sprite.setPosition(0, 185).setScale(this.presentationScale).setRotation(0).setAlpha(1);
+        this.body.setAlpha(1);
+        this.aura.clear().setAlpha(1);
+        this.root.setVisible(true);
     }
     setCombatMotion(motion) { this.combat = { ...motion }; }
     setPresentationScale(scale) { this.presentationScale = scale; }

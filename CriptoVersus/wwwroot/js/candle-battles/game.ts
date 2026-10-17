@@ -254,7 +254,8 @@ export class GameEngine {
         for (const r of this.history) { this.territory.apply(r); this.clock.enqueue(r); }
         while(this.clock.next()) { /* establish deduplication baseline without cinematics */ }
         this.pendingReconcile=false; this.hud.get('result')?.setText('');
-        this.left?.setPose('FORMING_CANDLE',true); this.right?.setPose('FORMING_CANDLE',true);
+        this.left?.resetPresentation(); this.right?.resetPresentation();
+        this.left?.root.setPosition(330,this.shell?185:260); this.right?.root.setPosition(950,this.shell?185:260);
         this.drawTerritory(); this.updateMarket();
         this.completedRounds=this.history.length;
         if(this.feed?.finished)this.finish();
@@ -304,6 +305,9 @@ export class GameEngine {
         this.clearDialogue();
         this.active=undefined; this.combatElapsed=0; this.clock.clear(); this.territory.reset(); this.state.reset(); this.market.clear(); this.completedRounds=0; this.replayElapsed=0; this.terminal=false;
         this.tile?.destroy(); this.tile=undefined; this.dropTarget=undefined; this.demoIndex=0; this.demoElapsed=0; this.replayIndex=0;
+        for(const effect of this.effects)effect.image.destroy(); this.effects=[]; this.flash=0; this.lineFlash?.clear();
+        this.left?.resetPresentation(); this.right?.resetPresentation();
+        this.left?.root.setPosition(330,this.shell?185:260); this.right?.root.setPosition(950,this.shell?185:260);
         this.started=true; this.paused=false; this.hud.get('result')?.setText(''); this.drawTerritory(); this.audio.loop('arena');
         if(this.mode==='live') this.reconcile();
         if(this.mode==='demo') this.history=[];

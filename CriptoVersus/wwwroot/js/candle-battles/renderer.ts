@@ -115,6 +115,15 @@ export class CandleRenderer {
         if (next !== this.animation) { this.animation = next; this.playAnimation(true); }
     }
 
+    resetPresentation(): void {
+        this.setPose('FORMING_CANDLE', true);
+        this.combat = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
+        this.sprite.setPosition(0, 185).setScale(this.presentationScale).setRotation(0).setAlpha(1);
+        this.body.setAlpha(1);
+        this.aura.clear().setAlpha(1);
+        this.root.setVisible(true);
+    }
+
     setCombatMotion(motion: CombatMotion): void { this.combat = { ...motion }; }
     setPresentationScale(scale: number): void { this.presentationScale = scale; }
     setPreparation(tension: number, time: number): void {

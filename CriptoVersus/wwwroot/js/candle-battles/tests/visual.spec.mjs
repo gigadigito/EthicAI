@@ -183,7 +183,7 @@ test('LIVE restarts the five-minute clock without awarding a point while confirm
  expect(state.mode).toBe('live');expect(state.score).toEqual({left:0,right:0});expect(state.next).toMatch(/04:5[89]/);
 });
 
-test('a server-finished partial market window displays its confirmed final score',async({page})=>{
+test('a server-finished partial market window displays its confirmed final score and resets the finale for replay',async({page})=>{
  await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine);
  const final=await page.evaluate(async()=>{
   const {demoRound,PERIOD}=await import('/js/dist/candle-battles/model.js');
@@ -206,6 +206,11 @@ test('a server-finished partial market window displays its confirmed final score
  const dialogue=await page.evaluate(()=>{const e=window.engine;e.command('pause');const line=e.currentLine;e.update(1000);const held=e.currentLine===line;
   e.command('pause');for(let i=0;i<3;i++)e.update(100);return {held,reply:e.currentLine};});
  expect(dialogue.held).toBe(true);expect(dialogue.reply.side).not.toBe(final.finalLine.side);
+ const replay=await page.evaluate(()=>{const e=window.engine;e.command('replay');
+  const fighter=(side)=>{const f=e[side],sprite=f.root.list[2];return {state:f.finalVisualState,animation:sprite.anims.currentAnim?.key,alpha:sprite.alpha,rotation:sprite.rotation,x:f.root.x};};
+  return {left:fighter('left'),right:fighter('right')};});
+ expect(replay.left).toEqual({state:'none',animation:'candle-left-neutral-idle',alpha:1,rotation:0,x:330});
+ expect(replay.right).toEqual({state:'none',animation:'candle-right-neutral-idle',alpha:1,rotation:0,x:950});
 });
 
 test('native controls unlock supplied audio, change volume and enter fullscreen',async({page})=>{

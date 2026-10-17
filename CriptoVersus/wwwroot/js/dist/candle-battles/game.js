@@ -1,7 +1,7 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261017c';
-import { CandleRenderer } from './renderer.js?v=20261017c';
-import { AudioManager } from './audio.js?v=20261017c';
-import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261017c';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261017d';
+import { CandleRenderer } from './renderer.js?v=20261017d';
+import { AudioManager } from './audio.js?v=20261017d';
+import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261017d';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -312,8 +312,10 @@ export class GameEngine {
         while (this.clock.next()) { /* establish deduplication baseline without cinematics */ }
         this.pendingReconcile = false;
         this.hud.get('result')?.setText('');
-        this.left?.setPose('FORMING_CANDLE', true);
-        this.right?.setPose('FORMING_CANDLE', true);
+        this.left?.resetPresentation();
+        this.right?.resetPresentation();
+        this.left?.root.setPosition(330, this.shell ? 185 : 260);
+        this.right?.root.setPosition(950, this.shell ? 185 : 260);
         this.drawTerritory();
         this.updateMarket();
         this.completedRounds = this.history.length;
@@ -424,6 +426,15 @@ export class GameEngine {
         this.demoIndex = 0;
         this.demoElapsed = 0;
         this.replayIndex = 0;
+        for (const effect of this.effects)
+            effect.image.destroy();
+        this.effects = [];
+        this.flash = 0;
+        this.lineFlash?.clear();
+        this.left?.resetPresentation();
+        this.right?.resetPresentation();
+        this.left?.root.setPosition(330, this.shell ? 185 : 260);
+        this.right?.root.setPosition(950, this.shell ? 185 : 260);
         this.started = true;
         this.paused = false;
         this.hud.get('result')?.setText('');
