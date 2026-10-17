@@ -2852,6 +2852,16 @@
     "combo": "COMBO!",
     "domination": "DOMINATION!",
     "comeback": "COMEBACK!",
-    "classic": "Classic view"
+    "classic": "Classic view",
+    "candleClose": "5-minute candle close",
+    "awaitingClose": "Waiting for confirmed candle close",
+    "viewAll": "View all",
+    "information": "MATCH INFORMATION",
+    "candleState": "Candle status",
+    "champion": "Champion",
+    "watchReplay": "Watch replay",
+    "change5m": "5M CHANGE",
+    "currentBattle": "Current battle",
+    "status": "Status"
   }
 }

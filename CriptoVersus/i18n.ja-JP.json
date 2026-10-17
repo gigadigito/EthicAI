@@ -2851,6 +2851,16 @@
     "combo": "コンボ！",
     "domination": "圧倒！",
     "comeback": "逆転！",
-    "classic": "従来の表示"
+    "classic": "従来の表示",
+    "candleClose": "5分足の確定まで",
+    "awaitingClose": "ローソク足の確定待ち",
+    "viewAll": "すべて表示",
+    "information": "試合情報",
+    "candleState": "足の状態",
+    "champion": "優勝",
+    "watchReplay": "リプレイを見る",
+    "change5m": "5分変動",
+    "currentBattle": "現在の対戦",
+    "status": "状態"
   }
 }

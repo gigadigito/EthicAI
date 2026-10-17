@@ -13,6 +13,13 @@ export function clockParts(elapsedMs) {
     const seconds = Math.floor(Math.max(0, elapsedMs) / 1000);
     return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
+/** Uses the persisted match window and confirmed-round cursor, never page-entry time. */
+export function nextCandleCountdown(nowMs, matchStartMs, completedRounds, expectedRounds = MATCH_ROUNDS, durationMs = MATCH_DURATION) {
+    if (!Number.isFinite(nowMs) || !Number.isFinite(matchStartMs) || completedRounds >= expectedRounds || nowMs >= matchStartMs + durationMs)
+        return 0;
+    const nextClose = Math.floor(matchStartMs / PERIOD) * PERIOD + (completedRounds + 1) * PERIOD;
+    return Math.max(0, nextClose - nowMs);
+}
 export const TEAM = { left: 0xc1f20f, right: 0x185957 };
 export const OUTLINE = { up: 0x54ff72, down: 0xff354f, neutral: 0xc3cddd };
 export function validCandle(c) {

@@ -1,4 +1,4 @@
-import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js?v=20261016e';
+import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js?v=20261017b';
 const ACTION_FRAME_COUNTS = {
     // Hold the damage pose while its alpha fades; cycling the source montage
     // would reveal neighbouring colour variants.
@@ -43,6 +43,7 @@ export class CandleRenderer {
         this.combat = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
         this.preparation = 0;
         this.finalState = 'none';
+        this.presentationScale = .8;
         registerFighterAnimations(scene);
         this.aura = scene.add.graphics();
         this.body = scene.add.graphics();
@@ -101,6 +102,7 @@ export class CandleRenderer {
         }
     }
     setCombatMotion(motion) { this.combat = { ...motion }; }
+    setPresentationScale(scale) { this.presentationScale = scale; }
     setPreparation(tension, time) {
         this.preparation = Math.max(0, Math.min(1, tension));
         this.combat = { attack: 0, block: .2 + this.preparation * .35, dodge: .12 * Math.abs(Math.sin(time / 1700)), hit: 0, counter: 0,
@@ -166,7 +168,7 @@ export class CandleRenderer {
         const defeat = this.finalState === 'loser' ? 18 + (this.frozen ? 0 : Math.sin(time / 800) * 2) : 0;
         const footY = 185 + bounce + this.combat.hit * 2 - celebration + defeat;
         const spriteX = facing * (this.combat.attack * 5 - this.combat.dodge * 3 + (this.frozen ? 0 : Math.sin(time / 900) * (.8 + this.preparation * 1.5)));
-        const scale = .8 + (this.frozen ? 0 : Math.sin(time / 730) * .008) + (this.finalState === 'winner' ? .035 : 0);
+        const scale = this.presentationScale + (this.frozen ? 0 : Math.sin(time / 730) * .008) + (this.finalState === 'winner' ? .035 : 0);
         const rotation = this.finalState === 'winner' ? Math.sin(time / 190) * .08 : this.finalState === 'loser' ? facing * .27 :
             this.frozen || this.phase !== 'FORMING_CANDLE' ? 0 : Math.sin(time / 1150) * (0.012 + this.preparation * .015);
         this.sprite.setPosition(spriteX, footY).setScale(scale).setFlipX(this.side === 'right').setRotation(rotation);

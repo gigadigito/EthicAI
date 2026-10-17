@@ -1,5 +1,38 @@
 import { test, expect } from '@playwright/test';
 const url='/js/candle-battles/tests/visual.html';
+test('dashboard shows server-aligned countdown, confirmed history and mobile layout',async({page},testInfo)=>{
+ await page.goto('/js/candle-battles/tests/shell.html');
+ await page.addStyleTag({path:'Components/Shared/CandleBattlesHost.razor.css'});
+ await page.waitForFunction(()=>window.engine&&window.ready);
+ const initial=await page.evaluate(async()=>{
+  const {demoRound,PERIOD}=await import('/js/dist/candle-battles/model.js');
+  const aligned=Math.floor(Date.now()/PERIOD)*PERIOD;
+  const source=demoRound(0);
+  const forming=(c)=>({...c,openTime:aligned,closeTime:aligned+PERIOD,updatedAt:aligned+145000,confirmed:false});
+  window.fixtureRound={...source,id:`44:5m:${aligned}`,matchId:44,left:{...source.left,openTime:aligned,closeTime:aligned+PERIOD,updatedAt:aligned+PERIOD},right:{...source.right,openTime:aligned,closeTime:aligned+PERIOD,updatedAt:aligned+PERIOD}};
+  window.fixtureFeed={matchId:44,leftSymbol:'BTC',rightSymbol:'ETH',left:forming(source.left),right:forming(source.right),rounds:[],status:'live',finished:false,matchStartTime:aligned+60000,expectedRounds:18,serverTime:aligned+145000};
+  window.engine.receive(window.fixtureFeed,true);
+  return {countdown:document.querySelector('[data-cb="countdown"]').textContent,progress:document.querySelector('[data-cb="progress"]').getAttribute('aria-valuenow'),match:document.querySelector('[data-cb="matchTime"]').textContent};
+ });
+ expect(initial.countdown).toMatch(/^02:3[45]$/);expect(Number(initial.progress)).toBe(48);expect(initial.match).toContain('01:25');
+ await page.screenshot({path:testInfo.outputPath('candle-battles-desktop.png'),fullPage:true});
+ const confirmed=await page.evaluate(()=>{
+  window.fixtureFeed.serverTime=window.fixtureRound.left.closeTime+1000;
+  window.engine.receive(window.fixtureFeed,false);
+  const waiting=document.querySelector('[data-cb="countdown"]').textContent;
+  window.fixtureFeed.rounds=[window.fixtureRound];window.engine.receive(window.fixtureFeed,false);window.engine.receive(window.fixtureFeed,false);
+  window.engine.update(100);
+  return {waiting,active:!!window.engine.active,rounds:window.engine.history.length};
+ });
+ expect(confirmed).toEqual({waiting:'00:00',active:true,rounds:1});
+ await page.evaluate(()=>{window.engine.command('replay');window.engine.command('pause');});
+ const held=await page.evaluate(()=>{const before=window.engine.replayElapsed;window.engine.update(1000);return window.engine.replayElapsed===before;});
+ expect(held).toBe(true);
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:testInfo.outputPath('candle-battles-mobile.png'),fullPage:true});
+ const overflow=await page.evaluate(()=>({width:window.innerWidth,scroll:document.documentElement.scrollWidth,items:[...document.querySelectorAll('*')].filter(e=>e.getBoundingClientRect().right>window.innerWidth+1).slice(0,8).map(e=>({tag:e.tagName,cls:e.className,right:e.getBoundingClientRect().right}))}));
+ expect(overflow.scroll,JSON.stringify(overflow)).toBeLessThanOrEqual(overflow.width);
+});
 test('comic bubbles follow fighters, pause with playback and clear for combat and restart',async({page})=>{
  await page.goto(url+'?kind=game');await page.waitForFunction(()=>window.engine&&window.ready);
  const first=await page.evaluate(()=>{const e=window.engine;e.command('restart');e.update(100);e.update(100);e.update(100);e.update(100);return {text:e.bubble.textContent,visible:!e.bubble.hidden,left:parseFloat(e.bubble.style.left)};});

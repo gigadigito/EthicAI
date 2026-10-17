@@ -2851,6 +2851,16 @@
     "combo": "KOMBO!",
     "domination": "DOMINANZ!",
     "comeback": "COMEBACK!",
-    "classic": "Klassische Ansicht"
+    "classic": "Klassische Ansicht",
+    "candleClose": "Schluss der 5-Minuten-Kerze",
+    "awaitingClose": "Warte auf bestätigten Kerzenschluss",
+    "viewAll": "Alle ansehen",
+    "information": "SPIELINFORMATIONEN",
+    "candleState": "Kerzenstatus",
+    "champion": "Sieger",
+    "watchReplay": "Wiederholung ansehen",
+    "change5m": "ÄNDERUNG 5M",
+    "currentBattle": "Aktueller Kampf",
+    "status": "Status"
   }
 }

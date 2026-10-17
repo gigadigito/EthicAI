@@ -2851,6 +2851,16 @@
     "combo": "COMBO !",
     "domination": "DOMINATION !",
     "comeback": "RETOUR !",
-    "classic": "Vue classique"
+    "classic": "Vue classique",
+    "candleClose": "Clôture de la bougie de 5 minutes",
+    "awaitingClose": "En attente de confirmation de clôture",
+    "viewAll": "Voir tout",
+    "information": "INFORMATIONS DU MATCH",
+    "candleState": "État de la bougie",
+    "champion": "Champion",
+    "watchReplay": "Voir le replay",
+    "change5m": "VARIATION 5M",
+    "currentBattle": "Combat en cours",
+    "status": "Statut"
   }
 }

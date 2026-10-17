@@ -2851,6 +2851,16 @@
     "combo": "¡COMBO!",
     "domination": "¡DOMINIO!",
     "comeback": "¡REMONTADA!",
-    "classic": "Vista clásica"
+    "classic": "Vista clásica",
+    "candleClose": "Cierre de vela de 5 minutos",
+    "awaitingClose": "Esperando confirmación del cierre",
+    "viewAll": "Ver todos",
+    "information": "INFORMACIÓN DEL PARTIDO",
+    "candleState": "Estado de la vela",
+    "champion": "Campeón",
+    "watchReplay": "Ver repetición",
+    "change5m": "CAMBIO 5M",
+    "currentBattle": "Combate actual",
+    "status": "Estado"
   }
 }

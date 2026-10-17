@@ -2853,6 +2853,16 @@
     "combo": "连击！",
     "domination": "统治！",
     "comeback": "逆转！",
-    "classic": "经典视图"
+    "classic": "经典视图",
+    "candleClose": "距离5分钟蜡烛收盘",
+    "awaitingClose": "等待确认收盘",
+    "viewAll": "查看全部",
+    "information": "比赛信息",
+    "candleState": "蜡烛状态",
+    "champion": "冠军",
+    "watchReplay": "观看回放",
+    "change5m": "5分钟涨跌",
+    "currentBattle": "当前对战",
+    "status": "状态"
   }
 }
