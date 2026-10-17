@@ -233,7 +233,7 @@ public sealed class CriptoVersusApiClient
                         response.StatusCode,
                         null,
                         "invalidSuccessResponse",
-                        $"A API retornou HTTP {(int)response.StatusCode}, mas a resposta não pôde ser interpretada.",
+                        $"A API retornou HTTP {(int)response.StatusCode}, mas a resposta nï¿½o pï¿½de ser interpretada.",
                         null,
                         TruncateForDisplay(rawBody));
                 }
@@ -274,7 +274,7 @@ public sealed class CriptoVersusApiClient
                 : !string.IsNullOrWhiteSpace(error.Detail)
                     ? error.Detail
                     : string.IsNullOrWhiteSpace(rawBody)
-                        ? $"A API retornou HTTP {(int)response.StatusCode} sem conteúdo."
+                        ? $"A API retornou HTTP {(int)response.StatusCode} sem conteï¿½do."
                         : $"HTTP {(int)response.StatusCode}: {TruncateForDisplay(rawBody)}";
 
             _logger.LogWarning(
@@ -308,7 +308,7 @@ public sealed class CriptoVersusApiClient
                 HttpStatusCode.RequestTimeout,
                 null,
                 "requestTimeout",
-                $"A API não respondeu em até {(int)RequestTimeout.TotalSeconds} segundos.",
+                $"A API nï¿½o respondeu em atï¿½ {(int)RequestTimeout.TotalSeconds} segundos.",
                 null,
                 ex.Message);
         }
@@ -353,6 +353,40 @@ public sealed class CriptoVersusApiClient
         => await GetFromJsonWithBearerAsync<List<SocialHotMatchDto>>("api/social/hot-matches", ct);
     public async Task<SocialWinRate24hDto?> GetSocialWinRate24hAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<SocialWinRate24hDto>("api/social/win-rate-24h", ct);
+
+    /// <summary>
+    /// Leitura da analise social do Price Crossover de uma partida. Endpoint somente leitura,
+    /// sem efeito colateral sobre reservas ou publicacoes.
+    /// Retorna null quando a partida nao existe (HTTP 404). Demais falhas lancam excecao.
+    /// </summary>
+    public async Task<PriceCrossoverSocialResponse?> GetPriceCrossoverSocialAsync(
+        int matchId,
+        string language,
+        bool includeSeries,
+        CancellationToken ct = default)
+    {
+        if (matchId <= 0)
+            return null;
+
+        var safeLanguage = string.IsNullOrWhiteSpace(language) ? "pt-BR" : language.Trim();
+        var path =
+            $"api/social/price-crossover/{matchId}" +
+            $"?language={Uri.EscapeDataString(safeLanguage)}" +
+            $"&includeSeries={(includeSeries ? "true" : "false")}";
+
+        try
+        {
+            return await GetFromJsonWithBearerAsync<PriceCrossoverSocialResponse>(path, ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogInformation(
+                "[PRICE_CROSSOVER_SOCIAL] Match {MatchId} not found (HTTP 404).",
+                matchId);
+            return null;
+        }
+    }
+
     public async Task<List<MatchDto>?> GetDailyHotMatchCandidatesAsync(
     int hours = 24,
     int take = 100,

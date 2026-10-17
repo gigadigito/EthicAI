@@ -62,6 +62,12 @@ public sealed class RegisterSocialPostRequest
     public string? ExternalPostId { get; set; }
     public int HotScore { get; set; }
     public string Reason { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Categoria da publicacao (ex.: <c>price_crossover_highlight</c>). Nulo representa o caminho
+    /// legado de hot matches. O cooldown e isolado por categoria.
+    /// </summary>
+    public string? Category { get; set; }
 }
 
 public sealed class SocialWinRate24hDto

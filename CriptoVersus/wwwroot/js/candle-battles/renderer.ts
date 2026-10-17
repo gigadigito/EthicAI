@@ -3,6 +3,7 @@ import { Candle, CombatMotion, FighterAnimation, Geometry, Phase, Side, TEAM, OU
 
 type FighterDirection = keyof typeof OUTLINE;
 export type FinalFighterState = 'none' | 'winner' | 'loser' | 'draw';
+const CANDLE_LIFT = 60;
 
 const ACTION_FRAME_COUNTS: Record<Exclude<FighterAnimation, 'idle'>, number> = {
     // Hold the damage pose while its alpha fades; cycling the source montage
@@ -57,11 +58,14 @@ export class CandleRenderer {
     private combat: CombatMotion = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
     private preparation = 0;
     private finalState: FinalFighterState = 'none';
+    private presentationScale = .8;
 
     constructor(private scene: Phaser.Scene, readonly side: Side, x: number, y: number) {
         registerFighterAnimations(scene);
         this.aura = scene.add.graphics();
         this.body = scene.add.graphics();
+        this.aura.setY(-CANDLE_LIFT);
+        this.body.setY(-CANDLE_LIFT);
         this.sprite = scene.add.sprite(0, 0, 'modular', fighterFrame(side, 'neutral', 'idle', 1));
         this.sprite.setOrigin(.5, 1);
         this.root = scene.add.container(x, y, [this.aura, this.body, this.sprite]);
@@ -111,7 +115,17 @@ export class CandleRenderer {
         if (next !== this.animation) { this.animation = next; this.playAnimation(true); }
     }
 
+    resetPresentation(): void {
+        this.setPose('FORMING_CANDLE', true);
+        this.combat = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
+        this.sprite.setPosition(0, 185).setScale(this.presentationScale).setRotation(0).setAlpha(1);
+        this.body.setAlpha(1);
+        this.aura.clear().setAlpha(1);
+        this.root.setVisible(true);
+    }
+
     setCombatMotion(motion: CombatMotion): void { this.combat = { ...motion }; }
+    setPresentationScale(scale: number): void { this.presentationScale = scale; }
     setPreparation(tension: number, time: number): void {
         this.preparation = Math.max(0, Math.min(1, tension));
         this.combat = { attack: 0, block: .2 + this.preparation * .35, dodge: .12 * Math.abs(Math.sin(time / 1700)), hit: 0, counter: 0,
@@ -135,7 +149,7 @@ export class CandleRenderer {
     get finalVisualState(): FinalFighterState { return this.finalState; }
     get speechAnchor(): { x: number; y: number } {
         // The atlas frame includes transparent padding above the illustrated face.
-        return { x: this.root.x + this.sprite.x, y: this.root.y + this.sprite.y - 72 };
+        return { x: this.root.x + this.sprite.x, y: this.root.y + this.sprite.y - 165 };
     }
 
     update(time: number, delta: number, progress = 0): void {
@@ -171,7 +185,7 @@ export class CandleRenderer {
         const defeat = this.finalState === 'loser' ? 18 + (this.frozen ? 0 : Math.sin(time / 800) * 2) : 0;
         const footY = 185 + bounce + this.combat.hit * 2 - celebration + defeat;
         const spriteX = facing * (this.combat.attack * 5 - this.combat.dodge * 3 + (this.frozen ? 0 : Math.sin(time/900)*(.8+this.preparation*1.5)));
-        const scale = .8 + (this.frozen ? 0 : Math.sin(time / 730) * .008) + (this.finalState === 'winner' ? .035 : 0);
+        const scale = this.presentationScale + (this.frozen ? 0 : Math.sin(time / 730) * .008) + (this.finalState === 'winner' ? .035 : 0);
         const rotation = this.finalState === 'winner' ? Math.sin(time / 190) * .08 : this.finalState === 'loser' ? facing * .27 :
             this.frozen || this.phase !== 'FORMING_CANDLE' ? 0 : Math.sin(time/1150)*(0.012+this.preparation*.015);
         this.sprite.setPosition(spriteX, footY).setScale(scale).setFlipX(this.side === 'right').setRotation(rotation);

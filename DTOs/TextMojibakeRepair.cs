@@ -64,7 +64,7 @@ public static class TextMojibakeRepair
         try
         {
             var bytes = Windows1252Encoding.Value.GetBytes(text);
-            return Encoding.UTF8.GetString(bytes);
+            return new UTF8Encoding(false, true).GetString(bytes);
         }
         catch
         {

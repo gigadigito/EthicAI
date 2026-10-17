@@ -1222,7 +1222,7 @@
         // pode criar um ciclo de navegação/hidratação no Interactive Server.
         _resolvedCulture = !string.IsNullOrWhiteSpace(Culture)
             ? AppCulture.NormalizeRouteCulture(Culture)
-            : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+            : AppCulture.ResolveNavigationCulture(Nav, HttpContextAccessor.HttpContext);
 
         var nextLoadKey = $"{_resolvedCulture}|{WindowHours}|{DisplayLimit}|{CaptureMode}";
         if (string.Equals(nextLoadKey, _loadKey, StringComparison.Ordinal))

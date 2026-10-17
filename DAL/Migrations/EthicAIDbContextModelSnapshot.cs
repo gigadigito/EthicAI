@@ -1796,6 +1796,11 @@ namespace DAL.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("Category")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("category");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -1809,6 +1814,19 @@ namespace DAL.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("hot_score");
 
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTime?>("LeaseExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_expires_at_utc");
+
                     b.Property<int>("MatchId")
                         .HasColumnType("integer")
                         .HasColumnName("match_id");
@@ -1818,6 +1836,10 @@ namespace DAL.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasColumnName("platform");
+
+                    b.Property<DateTime?>("PostedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("posted_at_utc");
 
                     b.Property<string>("PostText")
                         .IsRequired()
@@ -1833,9 +1855,24 @@ namespace DAL.Migrations
                         .HasColumnType("text")
                         .HasColumnName("reason");
 
+                    b.Property<DateTime?>("ReservedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reserved_at_utc");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("idempotency_key IS NOT NULL");
+
                     b.HasIndex("MatchId", "Platform", "CreatedAt");
+
+                    b.HasIndex("Category", "Status", "MatchId");
 
                     b.ToTable("social_post_history", (string)null);
                 });

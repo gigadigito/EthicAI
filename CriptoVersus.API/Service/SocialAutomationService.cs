@@ -149,10 +149,17 @@ public sealed class SocialAutomationService : ISocialAutomationService
         if (request.HotScore < _options.MinimumHotScore)
             return SocialPostHistoryRegistrationResult.Blocked($"HotScore abaixo do minimo configurado ({_options.MinimumHotScore}).");
 
+        // Cooldown ISOLADO POR CATEGORIA: categorias diferentes de publicacao nao se bloqueiam
+        // mutuamente. Registros legados possuem Category == null e continuam casando exatamente
+        // como antes quando a requisicao tambem nao informa categoria.
+        var category = NormalizeCategory(request.Category);
+
         var cooldownSince = DateTime.UtcNow.AddMinutes(-Math.Max(0, _options.CooldownMinutesPerMatch));
         var lastPost = await _db.SocialPostHistory
             .AsNoTracking()
-            .Where(x => x.MatchId == request.MatchId && x.Platform == platform)
+            .Where(x => x.MatchId == request.MatchId
+                && x.Platform == platform
+                && x.Category == category)
             .OrderByDescending(x => x.CreatedAt)
             .FirstOrDefaultAsync(ct);
 
@@ -184,7 +191,8 @@ public sealed class SocialAutomationService : ISocialAutomationService
             ExternalPostId = request.ExternalPostId?.Trim(),
             HotScore = request.HotScore,
             Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Category = category
         };
 
         _db.SocialPostHistory.Add(entity);
@@ -375,7 +383,9 @@ public sealed class SocialAutomationService : ISocialAutomationService
         var cooldownSince = DateTime.UtcNow.AddMinutes(-Math.Max(0, _options.CooldownMinutesPerMatch));
         var recentlyPosted = await _db.SocialPostHistory
             .AsNoTracking()
-            .Where(x => x.MatchId == match.MatchId && x.CreatedAt >= cooldownSince)
+            .Where(x => x.MatchId == match.MatchId
+                && x.CreatedAt >= cooldownSince
+                && x.Category == null)
             .OrderByDescending(x => x.CreatedAt)
             .FirstOrDefaultAsync(ct);
 
@@ -390,6 +400,13 @@ public sealed class SocialAutomationService : ISocialAutomationService
 
     private static string NormalizePlatform(string? platform)
         => string.IsNullOrWhiteSpace(platform) ? string.Empty : platform.Trim();
+
+    /// <summary>
+    /// Categoria nula representa o caminho legado (hot matches / Win Rate 24H).
+    /// Isolar a categoria evita que publicacoes de categorias diferentes se bloqueiem por cooldown.
+    /// </summary>
+    private static string? NormalizeCategory(string? category)
+        => string.IsNullOrWhiteSpace(category) ? null : category.Trim();
 
     private string BuildPublicUrl(int matchId, string homeSymbol, string awaySymbol)
         => $"{_options.PublicBaseUrl.TrimEnd('/')}/match/{matchId}/{Slugify(homeSymbol)}-vs-{Slugify(awaySymbol)}";

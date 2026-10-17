@@ -1,9 +1,46 @@
 import { test, expect } from '@playwright/test';
 const url='/js/candle-battles/tests/visual.html';
+test('dashboard shows server-aligned countdown, confirmed history and mobile layout',async({page},testInfo)=>{
+ await page.goto('/js/candle-battles/tests/shell.html');
+ await page.addStyleTag({path:'Components/Shared/CandleBattlesHost.razor.css'});
+ await page.waitForFunction(()=>window.engine&&window.ready);
+ const initial=await page.evaluate(async()=>{
+  const {demoRound,PERIOD}=await import('/js/dist/candle-battles/model.js');
+  const aligned=Math.floor(Date.now()/PERIOD)*PERIOD;
+  const source=demoRound(0);
+  const forming=(c)=>({...c,openTime:aligned,closeTime:aligned+PERIOD,updatedAt:aligned+145000,confirmed:false});
+  window.fixtureRound={...source,id:`44:5m:${aligned}`,matchId:44,left:{...source.left,openTime:aligned,closeTime:aligned+PERIOD,updatedAt:aligned+PERIOD},right:{...source.right,openTime:aligned,closeTime:aligned+PERIOD,updatedAt:aligned+PERIOD}};
+  window.fixtureFeed={matchId:44,leftSymbol:'BTC',rightSymbol:'ETH',left:forming(source.left),right:forming(source.right),rounds:[],status:'live',finished:false,matchStartTime:aligned+60000,expectedRounds:18,serverTime:aligned+145000};
+  window.engine.receive(window.fixtureFeed,true);
+  return {countdown:document.querySelector('[data-cb="countdown"]').textContent,progress:document.querySelector('[data-cb="progress"]').getAttribute('aria-valuenow'),match:document.querySelector('[data-cb="matchTime"]').textContent};
+ });
+ expect(initial.countdown).toMatch(/^02:3[45]$/);expect(Number(initial.progress)).toBe(48);expect(initial.match).toContain('01:25');
+ await page.screenshot({path:testInfo.outputPath('candle-battles-desktop.png'),fullPage:true});
+ const confirmed=await page.evaluate(()=>{
+  window.fixtureFeed.serverTime=window.fixtureRound.left.closeTime+1000;
+  window.engine.receive(window.fixtureFeed,false);
+  const waiting=document.querySelector('[data-cb="countdown"]').textContent;
+  window.fixtureFeed.rounds=[window.fixtureRound];window.engine.receive(window.fixtureFeed,false);window.engine.receive(window.fixtureFeed,false);
+  window.engine.update(100);
+  return {waiting,active:!!window.engine.active,rounds:window.engine.history.length};
+ });
+ expect(confirmed.waiting).toMatch(/^04:5[89]$/);expect(confirmed.active).toBe(true);expect(confirmed.rounds).toBe(1);
+ await page.evaluate(()=>{window.engine.command('replay');window.engine.command('pause');});
+ const held=await page.evaluate(()=>{const before=window.engine.replayElapsed;window.engine.update(1000);return window.engine.replayElapsed===before;});
+ expect(held).toBe(true);
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:testInfo.outputPath('candle-battles-mobile.png'),fullPage:true});
+ const overflow=await page.evaluate(()=>({width:window.innerWidth,scroll:document.documentElement.scrollWidth,items:[...document.querySelectorAll('*')].filter(e=>e.getBoundingClientRect().right>window.innerWidth+1).slice(0,8).map(e=>({tag:e.tagName,cls:e.className,right:e.getBoundingClientRect().right}))}));
+ expect(overflow.scroll,JSON.stringify(overflow)).toBeLessThanOrEqual(overflow.width);
+});
 test('comic bubbles follow fighters, pause with playback and clear for combat and restart',async({page})=>{
  await page.goto(url+'?kind=game');await page.waitForFunction(()=>window.engine&&window.ready);
  const first=await page.evaluate(()=>{const e=window.engine;e.command('restart');e.update(100);e.update(100);e.update(100);e.update(100);return {text:e.bubble.textContent,visible:!e.bubble.hidden,left:parseFloat(e.bubble.style.left)};});
  expect(first.visible).toBe(true);expect(first.text.length).toBeGreaterThan(0);
+ const clearance=await page.evaluate(()=>{const e=window.engine,canvas=e.game.canvas.getBoundingClientRect(),speaker=e.currentLine.side==='left'?e.left:e.right;
+  const bubble=e.bubble.getBoundingClientRect(),foot=canvas.top+(speaker.root.y+speaker.root.list[2].y)*canvas.height/480;
+  return foot-bubble.bottom;});
+ expect(clearance).toBeGreaterThan(100);
  const held=await page.evaluate(firstText=>{const e=window.engine;e.command('pause');e.update(5000);return e.bubble.textContent===firstText&& !e.bubble.hidden;},first.text);
  expect(held).toBe(true);
  await page.evaluate(()=>{const e=window.engine;e.left.root.x+=45;e.right.root.x+=45;e.positionBubble();});
@@ -134,19 +171,19 @@ test('historical match autoplays, observes pause and 2x, then freezes after eigh
 });
 
 
-test('LIVE holds at the missing candle close without awarding a point',async({page})=>{
+test('LIVE restarts the five-minute clock without awarding a point while confirmation is missing',async({page})=>{
  await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine);
  const state=await page.evaluate(()=>{
-  const now=Date.now(),start=Math.floor(now/300000)*300000-300000+1000;
+  const now=Math.floor(Date.now()/300000)*300000+1000,start=now-300000;
   const feed={matchId:92,leftSymbol:'BTC',rightSymbol:'ETH',left:null,right:null,rounds:[],status:'waiting-confirmation',finished:false,
    matchStartTime:start,expectedRounds:18,serverTime:now};
   window.engine.receive(feed,true);window.engine.receive(feed,false);
   return {mode:window.engine.mode,score:window.engine.snapshot().score,next:window.engine.hud.get('nextBattle').text};
  });
- expect(state.mode).toBe('live');expect(state.score).toEqual({left:0,right:0});expect(state.next).toContain('00:00');
+ expect(state.mode).toBe('live');expect(state.score).toEqual({left:0,right:0});expect(state.next).toMatch(/04:5[89]/);
 });
 
-test('a server-finished partial market window displays its confirmed final score',async({page})=>{
+test('a server-finished partial market window displays its confirmed final score and resets the finale for replay',async({page})=>{
  await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine);
  const final=await page.evaluate(async()=>{
   const {demoRound,PERIOD}=await import('/js/dist/candle-battles/model.js');
@@ -169,6 +206,11 @@ test('a server-finished partial market window displays its confirmed final score
  const dialogue=await page.evaluate(()=>{const e=window.engine;e.command('pause');const line=e.currentLine;e.update(1000);const held=e.currentLine===line;
   e.command('pause');for(let i=0;i<3;i++)e.update(100);return {held,reply:e.currentLine};});
  expect(dialogue.held).toBe(true);expect(dialogue.reply.side).not.toBe(final.finalLine.side);
+ const replay=await page.evaluate(()=>{const e=window.engine;e.command('replay');
+  const fighter=(side)=>{const f=e[side],sprite=f.root.list[2];return {state:f.finalVisualState,animation:sprite.anims.currentAnim?.key,alpha:sprite.alpha,rotation:sprite.rotation,x:f.root.x};};
+  return {left:fighter('left'),right:fighter('right')};});
+ expect(replay.left).toEqual({state:'none',animation:'candle-left-neutral-idle',alpha:1,rotation:0,x:330});
+ expect(replay.right).toEqual({state:'none',animation:'candle-right-neutral-idle',alpha:1,rotation:0,x:950});
 });
 
 test('native controls unlock supplied audio, change volume and enter fullscreen',async({page})=>{

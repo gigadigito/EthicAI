@@ -17,6 +17,8 @@ public sealed record SupportedLanguage(
 /// </summary>
 public sealed class SupportedLanguageCatalog
 {
+    private const string DefaultCultureCode = "en-US";
+
     private static readonly IReadOnlyList<SupportedLanguage> Languages =
     [
         new("en", "en-US", "English", "English", "EN", "en_US", true, true, "en-us"),
@@ -29,11 +31,15 @@ public sealed class SupportedLanguageCatalog
         new("ja", "ja-JP", "Japanese", "日本語", "JA", "ja_JP", false, true, "ja-jp")
     ];
 
+    private static readonly SupportedLanguage Default =
+        Languages.First(language => language.Culture.Equals(DefaultCultureCode, StringComparison.OrdinalIgnoreCase));
+
     public IReadOnlyList<SupportedLanguage> EnabledLanguages => Languages.Where(language => language.Enabled).ToArray();
 
     public IReadOnlyList<SupportedLanguage> AdditionalLanguages => Languages.Where(language => language.Enabled && !language.IsEstablished).ToArray();
 
-    public SupportedLanguage DefaultLanguage => Languages[0];
+    // The default is resolved by explicit culture code, never by catalog ordering.
+    public SupportedLanguage DefaultLanguage => Default;
 
     public bool TryGet(string? value, out SupportedLanguage language)
     {

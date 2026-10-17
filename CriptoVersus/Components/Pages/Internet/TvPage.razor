@@ -212,7 +212,7 @@
     {
         _culture = !string.IsNullOrWhiteSpace(Culture)
             ? AppCulture.NormalizeRouteCulture(Culture)
-            : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+            : AppCulture.ResolveNavigationCulture(Nav, HttpContextAccessor.HttpContext);
 
         var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
         var isBroadcastAlias = currentPath.EndsWith("/tv/broadcast", StringComparison.OrdinalIgnoreCase);

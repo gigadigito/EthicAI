@@ -1,6 +1,8 @@
 @using System.Globalization
 @using CriptoVersus.Web.Services
 @inject LocalizationService L
+@inject AppCultureService AppCulture
+@inject NavigationManager Nav
 
 <div class="arena-sentiment-gauge @(IsLoading ? "arena-sentiment-gauge--loading" : string.Empty)" style="@GaugeStyle">
     @if (IsLoading)
@@ -59,7 +61,7 @@
 
     private int NormalizedSize => Math.Clamp(Size, 220, 520);
     private int DisplayScore => Math.Clamp(Score ?? 50, 0, 100);
-    private string CurrentCulture => CultureInfo.CurrentUICulture.Name;
+    private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private string DisplayClassification => string.IsNullOrWhiteSpace(Classification) ? "Neutral" : Classification!;
     private string DisplayClassificationLabel => string.IsNullOrWhiteSpace(ClassificationLabel) ? L.T("arenaNeutral", CurrentCulture) : ClassificationLabel!;
     private string DisplayLabelText => string.IsNullOrWhiteSpace(LabelText) ? L.T("arenaPressureLabel", CurrentCulture) : LabelText;

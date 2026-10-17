@@ -10,13 +10,13 @@
 <link rel="stylesheet" href="/css/candle-battles-dialogue.css?v=20261016e" />
 <section class="candle-battles" aria-label="Candle Battles">
     <header class="candle-battles__toolbar">
-        <strong>CANDLE BATTLES <small>@T("arcade")</small></strong>
+        <strong class="candle-battles__brand"><span aria-hidden="true">▂▅▇</span> CANDLE BATTLES <small>@T("arcade")</small></strong>
         <div class="candle-battles__controls">
             <button type="button" data-cb-action="start">▶ @T("start")</button>
             <button type="button" data-cb-action="pause">Ⅱ @T("pause")</button>
             <button type="button" data-cb-action="restart">↻ @T("restart")</button>
             <button type="button" data-cb-action="replay">@T("replay")</button>
-            @if (MatchId > 0) { <button type="button" data-cb-action="live">LIVE</button> }
+            @if (MatchId > 0) { <button type="button" data-cb-action="live" class="candle-battles__live">● LIVE</button> }
             <label>@T("speed") <select data-cb-action="speed"><option value="1">1x</option><option value="2">2x</option><option value="5">5x</option><option value="10">10x</option></select></label>
             <button type="button" data-cb-action="mute">♫ @T("sound")</button>
             <button type="button" data-cb-action="fullscreen" aria-label='@T("fullscreen")'>⛶</button>
@@ -27,9 +27,36 @@
         <label>@T("music") <input type="range" min="0" max="1" step="0.05" value="0.35" data-cb-action="music" /></label>
         <label>@T("effects") <input type="range" min="0" max="1" step="0.05" value="0.7" data-cb-action="effects" /></label>
     </div>
+    <div class="candle-battles__dashboard" data-cb-shell>
+        <div class="candle-battles__top">
+            @AssetPanel("left")
+            <section class="candle-battles__countdown" aria-label='@T("nextBattle")'>
+                <h2>@T("nextBattle")</h2>
+                <div class="candle-battles__clock" data-cb="countdown">--:--</div>
+                <p data-cb="countdownCaption">@T("candleClose")</p>
+                <div class="candle-battles__progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-cb="progress"><i></i></div>
+                <small data-cb="countdownNote">@T("forming")</small>
+            </section>
+            @AssetPanel("right")
+        </div>
+        <div class="candle-battles__score-row">
+            <div class="candle-battles__match-clock"><small>@T("matchTime")</small><strong data-cb="matchTime">--:-- / 90:00</strong></div>
+            <div class="candle-battles__scoreboard"><div><span data-cb="leftSymbol">—</span><strong data-cb="leftScore">0</strong><b>VS</b><strong data-cb="rightScore">0</strong><span data-cb="rightSymbol">—</span></div><small data-cb="round">@T("round") — / 18</small></div>
+            <div class="candle-battles__mode" data-cb="mode">LIVE</div>
+        </div>
+    </div>
     <div class="candle-battles__canvas" @ref="_canvas" role="img" aria-label="@T("arena")">
         <div class="candle-battles__bubble" data-cb-bubble hidden aria-hidden="true"><span data-cb-bubble-text></span></div>
+        <div class="candle-battles__arena-status" data-cb="battleStatus" aria-live="polite"></div>
+        <div class="candle-battles__force candle-battles__force--left"><small>@T("strength")</small><strong data-cb="leftArenaStrength">—</strong><div><i data-cb="leftForceFill"></i></div></div>
+        <div class="candle-battles__force candle-battles__force--right"><small>@T("strength")</small><strong data-cb="rightArenaStrength">—</strong><div><i data-cb="rightForceFill"></i></div></div>
     </div>
+    <div class="candle-battles__bottom" data-cb-shell-bottom>
+        <section class="candle-battles__card candle-battles__recent"><h2>@T("recent") <button type="button" data-cb-action="history">@T("viewAll")</button></h2><div data-cb="history"></div></section>
+        <section class="candle-battles__card candle-battles__territory"><h2>@T("territory") <small data-cb="territoryCount">0 / 18</small></h2><div class="candle-battles__tiles" data-cb="territory"></div><strong data-cb="territoryPercent">0% / 0%</strong><div class="candle-battles__domain"><i data-cb="domainFill"></i></div></section>
+        <section class="candle-battles__card candle-battles__info"><h2>@T("information")</h2><dl><div><dt>@T("candleState")</dt><dd data-cb="candleState">—</dd></div><div><dt>@T("matchTime")</dt><dd data-cb="infoMatchTime">—</dd></div><div><dt>@T("round")</dt><dd data-cb="infoRound">—</dd></div><div><dt>@T("finalScore")</dt><dd data-cb="infoScore">—</dd></div><div><dt>@T("status")</dt><dd data-cb="infoStatus">—</dd></div></dl></section>
+    </div>
+    <div class="candle-battles__final" data-cb="finalPanel" hidden><div><small>@T("matchFinished")</small><h2 data-cb="champion">—</h2><strong data-cb="finalScore">—</strong><p data-cb="finalDetails"></p><button type="button" data-cb-action="replay">@T("watchReplay")</button></div></div>
     <footer class="candle-battles__footer" role="status" aria-live="polite">
         <span>@(MatchId == 0 ? T("demo") : T("independent"))</span>
         <span>@_status</span>
@@ -55,8 +82,13 @@
     private bool _finished;
     private string _status = string.Empty;
     private string _renderedCulture = string.Empty;
-    private static readonly string[] LabelKeys = ["arcade", "forming", "waiting", "finished", "matchTime", "nextBattle", "round", "fight", "wins", "matchFinished", "finalScore", "incomplete", "recent", "lines", "page", "territory", "draw", "strength", "nextStrength", "crushing", "combo", "domination", "comeback"];
+    private static readonly string[] LabelKeys = ["arcade", "forming", "waiting", "finished", "matchTime", "nextBattle", "round", "fight", "wins", "matchFinished", "finalScore", "incomplete", "recent", "lines", "page", "territory", "draw", "strength", "nextStrength", "crushing", "combo", "domination", "comeback", "candleClose", "awaitingClose", "viewAll", "information", "candleState", "status", "champion", "watchReplay", "volume", "change5m", "currentBattle"];
     private string T(string key) => L.T($"candleBattles.{key}", Culture);
+
+    private RenderFragment AssetPanel(string side) => @<section class="candle-battles__asset candle-battles__asset--@side">
+        <div class="candle-battles__asset-heading"><img data-cb="@(side)Logo" alt="" /><span class="candle-battles__logo-fallback" data-cb="@(side)LogoFallback" hidden>—</span><div><h2 data-cb="@(side)Asset">—</h2><strong data-cb="@(side)Price">—</strong><em data-cb="@(side)Change">—</em></div></div>
+        <div class="candle-battles__metrics"><div><small>@T("strength")</small><strong data-cb="@(side)Strength">—</strong></div><div><small>@T("marketVolume")</small><strong data-cb="@(side)Volume">—</strong></div><div><small>@T("change5m")</small><strong data-cb="@(side)Delta">—</strong></div></div>
+    </section>;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -72,7 +104,7 @@
     {
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261016e.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261017d.js");
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
                 new { mode = MatchId == 0 ? "demo" : "live", culture = Culture, labels = LabelKeys.ToDictionary(k => k, T), battleDurationMs = Math.Clamp(Config.GetValue("CandleBattles:AnimationDurationMs", 3800), 3000, 5000), crushingDifference = Math.Clamp(Config.GetValue("CandleBattles:CrushingDifference", 25), 0, 100) });
             if (_disposed) return;

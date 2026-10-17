@@ -1465,7 +1465,7 @@
     private CancellationTokenSource? _assetSearchDebounceCts;
 
     private string CurrentCulture
-        => AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+        => AppCulture.ResolveNavigationCulture(Nav, HttpContextAccessor.HttpContext);
     private string SeoTitle => T("seo.title");
     private string SeoDescription => T("seo.description");
     private string CanonicalUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildWalletPath(CurrentCulture));

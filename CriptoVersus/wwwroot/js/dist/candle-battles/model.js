@@ -13,6 +13,13 @@ export function clockParts(elapsedMs) {
     const seconds = Math.floor(Math.max(0, elapsedMs) / 1000);
     return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
+/** Tracks exchange five-minute boundaries; confirmation controls scoring, not the market clock. */
+export function nextCandleCountdown(nowMs, matchStartMs, durationMs = MATCH_DURATION) {
+    if (!Number.isFinite(nowMs) || !Number.isFinite(matchStartMs) || !Number.isFinite(durationMs) || durationMs <= 0 || nowMs >= matchStartMs + durationMs)
+        return 0;
+    const nextClose = (Math.floor(nowMs / PERIOD) + 1) * PERIOD;
+    return Math.min(PERIOD, Math.max(0, nextClose - nowMs));
+}
 export const TEAM = { left: 0xc1f20f, right: 0x185957 };
 export const OUTLINE = { up: 0x54ff72, down: 0xff354f, neutral: 0xc3cddd };
 export function validCandle(c) {

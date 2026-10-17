@@ -87,6 +87,11 @@ builder.Services.AddSingleton<ISocialVsRenderService, SocialVsRenderService>();
 builder.Services.AddSingleton<ISocialComposeFinalService, SocialComposeFinalService>();
 builder.Services.AddSingleton<BLL.NFTFutebol.IMatchScoringEngine, BLL.NFTFutebol.MatchScoringEngine>();
 builder.Services.AddScoped<BLL.NFTFutebol.ICandleBattleScoringService, BLL.NFTFutebol.CandleBattleScoringService>();
+builder.Services.AddSingleton<BLL.NFTFutebol.PriceCrossoverAnalyzer>();
+builder.Services.AddScoped<IPriceCrossoverSocialNarrativeService, PriceCrossoverSocialNarrativeService>();
+builder.Services.AddScoped<IPriceCrossoverPublicationService, PriceCrossoverPublicationService>();
+builder.Services.AddScoped<IPriceCrossoverSocialService, PriceCrossoverSocialService>();
+builder.Services.AddScoped<IPriceCrossoverHighlightSelector, PriceCrossoverHighlightSelector>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient(nameof(SocialVsRenderService));
 builder.Services.AddHttpClient(nameof(SocialComposeFinalService));
@@ -96,6 +101,8 @@ builder.Services.Configure<ArenaSentimentOptions>(
     builder.Configuration.GetSection(ArenaSentimentOptions.ConfigSection));
 builder.Services.Configure<SocialAutomationOptions>(
     builder.Configuration.GetSection(SocialAutomationOptions.SectionName));
+builder.Services.Configure<PriceCrossoverOptions>(
+    builder.Configuration.GetSection(PriceCrossoverOptions.SectionName));
 builder.Services.Configure<CriptoVersusAiOptions>(
     builder.Configuration.GetSection(CriptoVersusAiOptions.SectionName));
 builder.Services.Configure<AudioGenerationOptions>(

@@ -1,0 +1,943 @@
+@layout BlankLayout
+@page "/social/price-crossover/{MatchId:int}"
+@page "/en/social/price-crossover/{MatchId:int}"
+@page "/pt/social/price-crossover/{MatchId:int}"
+@page "/zh/social/price-crossover/{MatchId:int}"
+@page "/es/social/price-crossover/{MatchId:int}"
+@page "/fr/social/price-crossover/{MatchId:int}"
+@page "/de/social/price-crossover/{MatchId:int}"
+@page "/it/social/price-crossover/{MatchId:int}"
+@page "/ja/social/price-crossover/{MatchId:int}"
+@using System.Globalization
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+@inject NavigationManager Nav
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IConfiguration Config
+@inject IJSRuntime JS
+@inject ILogger<PriceCrossoverSocial> Logger
+@rendermode @(new Microsoft.AspNetCore.Components.Web.InteractiveServerRenderMode(prerender: false))
+@implements IAsyncDisposable
+
+<PageTitle>@PageTitleText</PageTitle>
+<HeadContent>
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="description" content="@SeoDescription" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
+    <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="zh-CN" href="@ChineseUrl" />
+    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
+    <meta property="og:title" content="@PageTitleText" />
+    <meta property="og:description" content="@SeoDescription" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(ResolvedCulture)" />
+    <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(ResolvedCulture)" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@PageTitleText" />
+    <meta name="twitter:description" content="@SeoDescription" />
+</HeadContent>
+
+<div class="price-crossover-social__stage">
+    <section id="price-crossover-social-card"
+             class="price-crossover-social"
+             data-capture-state="@CaptureStateName"
+             data-cs-ready="@CsReadyAttr"
+             data-render-complete="false"
+             data-fonts-ready="false"
+             data-images-ready="false"
+             data-can-post="@CanPostAttr"
+             data-match-id="@MatchIdAttr"
+             data-match-status="@MatchStatusAttr"
+             data-generated-at-utc="@GeneratedAtUtcAttr"
+             data-skip-reason="@SkipReasonAttr"
+             data-total-crossovers="@TotalCrossoversAttr"
+             data-relevant-crossovers="@RelevantCrossoversAttr"
+             aria-label="@PageTitleText">
+
+        @if (_model is null)
+        {
+            <section class="price-crossover-social__state" aria-live="polite">
+                <strong>@T("states.loadingTitle")</strong>
+                <p>@T("states.loadingBody")</p>
+            </section>
+        }
+        else if (_model.CaptureState == PriceCrossoverSocialCaptureState.Error)
+        {
+            <section class="price-crossover-social__state price-crossover-social__state--error" role="alert">
+                <strong>@T("states.errorTitle")</strong>
+                <p>@T("states.errorBody")</p>
+            </section>
+        }
+        else
+        {
+            <header class="price-crossover-social__header">
+                <div class="price-crossover-social__brand">
+                    <span class="price-crossover-social__brand-crypto">Cripto</span><span class="price-crossover-social__brand-versus">Versus</span>
+                </div>
+
+                <div class="price-crossover-social__title-block">
+                    <h1>@T("chart.title")</h1>
+                    <p class="price-crossover-social__match-line">
+                        <span class="price-crossover-social__tag price-crossover-social__tag--a">@_model.AssetA.DisplaySymbol</span>
+                        <span class="price-crossover-social__vs">@T("chart.versus")</span>
+                        <span class="price-crossover-social__tag price-crossover-social__tag--b">@_model.AssetB.DisplaySymbol</span>
+                    </p>
+                </div>
+
+                <div class="price-crossover-social__meta">
+                    <span class="price-crossover-social__date">@_model.MatchDateLabel</span>
+                    <span class="price-crossover-social__utc-note">@T("hero.utcNote")</span>
+                </div>
+            </header>
+
+            <section class="price-crossover-social__chart-shell" aria-label="@T("chart.ariaLabel")">
+                <canvas id="price-crossover-social-canvas"
+                        class="price-crossover-social__canvas"
+                        aria-label="@T("chart.ariaLabel")"></canvas>
+                <div id="price-crossover-social-markers"
+                     class="price-crossover-social__marker-layer"
+                     aria-hidden="true"></div>
+
+                @if (_model.Chart.Points.Count < 2)
+                {
+                    <div class="price-crossover-social__chart-empty">@T("chart.empty")</div>
+                }
+            </section>
+
+            <section class="price-crossover-social__summary" aria-label="@T("summary.ariaLabel")">
+                <article class="price-crossover-social__asset price-crossover-social__asset--a">
+                    <div class="price-crossover-social__asset-logo">
+                        @if (!string.IsNullOrWhiteSpace(_model.AssetA.LogoUrl))
+                        {
+                            <img src="@_model.AssetA.LogoUrl"
+                                 alt="@_model.AssetA.DisplaySymbol"
+                                 width="46" height="46" loading="eager" decoding="sync"
+                                 onerror="this.remove(); this.nextElementSibling?.classList.add('is-visible');" />
+                        }
+                        <span class="price-crossover-social__asset-fallback @(!string.IsNullOrWhiteSpace(_model.AssetA.LogoUrl) ? string.Empty : "is-visible")">@Initials(_model.AssetA.DisplaySymbol)</span>
+                    </div>
+                    <div class="price-crossover-social__asset-copy">
+                        <strong>@_model.AssetA.DisplaySymbol</strong>
+                        <small>@PairLabel(_model.AssetA)</small>
+                    </div>
+                    <div class="price-crossover-social__asset-perf">@_model.AssetA.PerformanceText</div>
+                    <div class="price-crossover-social__asset-score">
+                        <b>@_model.AssetA.OfficialScore</b>
+                        <small>@T("summary.officialScore")</small>
+                    </div>
+                </article>
+
+                <div class="price-crossover-social__result">
+                    <span class="price-crossover-social__result-label">@T("summary.officialWinner")</span>
+                    <strong class="price-crossover-social__result-winner">@WinnerLabel</strong>
+                    <span class="price-crossover-social__result-score">@_model.OfficialScoreText</span>
+                </div>
+
+                <article class="price-crossover-social__asset price-crossover-social__asset--b">
+                    <div class="price-crossover-social__asset-logo">
+                        @if (!string.IsNullOrWhiteSpace(_model.AssetB.LogoUrl))
+                        {
+                            <img src="@_model.AssetB.LogoUrl"
+                                 alt="@_model.AssetB.DisplaySymbol"
+                                 width="46" height="46" loading="eager" decoding="sync"
+                                 onerror="this.remove(); this.nextElementSibling?.classList.add('is-visible');" />
+                        }
+                        <span class="price-crossover-social__asset-fallback @(!string.IsNullOrWhiteSpace(_model.AssetB.LogoUrl) ? string.Empty : "is-visible")">@Initials(_model.AssetB.DisplaySymbol)</span>
+                    </div>
+                    <div class="price-crossover-social__asset-copy">
+                        <strong>@_model.AssetB.DisplaySymbol</strong>
+                        <small>@PairLabel(_model.AssetB)</small>
+                    </div>
+                    <div class="price-crossover-social__asset-perf">@_model.AssetB.PerformanceText</div>
+                    <div class="price-crossover-social__asset-score">
+                        <b>@_model.AssetB.OfficialScore</b>
+                        <small>@T("summary.officialScore")</small>
+                    </div>
+                </article>
+            </section>
+
+            <section class="price-crossover-social__metrics" aria-label="@T("metrics.ariaLabel")">
+                @if (_model.PerformanceDifferenceText is not null)
+                {
+                    <div class="price-crossover-social__metric">
+                        <span>@T("metrics.performanceDifference")</span>
+                        <strong>@_model.PerformanceDifferenceText</strong>
+                    </div>
+                }
+                <div class="price-crossover-social__metric">
+                    <span>@T("metrics.relevantCrossovers")</span>
+                    <strong>@_model.RelevantCrossovers</strong>
+                </div>
+                <div class="price-crossover-social__metric">
+                    <span>@T("metrics.chartRoundPoints")</span>
+                    <strong>@_model.ChartRoundPointsA - @_model.ChartRoundPointsB</strong>
+                </div>
+                @if (_model.HasComeback)
+                {
+                    <div class="price-crossover-social__metric price-crossover-social__metric--accent">
+                        <span>@T("metrics.comeback")</span>
+                        <strong>@T("metrics.comebackValue")</strong>
+                    </div>
+                }
+            </section>
+
+            @if (_model.CaptureState == PriceCrossoverSocialCaptureState.NotPublishable)
+            {
+                <section class="price-crossover-social__notice" role="status">
+                    <strong>@T("states.notPublishableTitle")</strong>
+                    <p>@NotPublishableBody</p>
+                </section>
+            }
+
+            <footer class="price-crossover-social__footer">
+                <span class="price-crossover-social__site">criptoversus.com</span>
+                <span class="price-crossover-social__disclaimer">@T("footer.disclaimer")</span>
+            </footer>
+        }
+    </section>
+</div>
+
+<style>
+    .price-crossover-social__stage {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 12px;
+        overflow: hidden;
+        background: radial-gradient(circle at 8% 10%, rgba(184, 255, 0, 0.10), transparent 26%), radial-gradient(circle at 92% 8%, rgba(0, 213, 223, 0.10), transparent 26%), linear-gradient(180deg, #02060c 0%, #06101a 55%, #02050a 100%);
+    }
+
+    .price-crossover-social {
+        --pc-left: #B8FF00;
+        --pc-right: #00D5DF;
+        --pc-left-rgb: 184, 255, 0;
+        --pc-right-rgb: 0, 213, 223;
+        --pc-text: #f5fbff;
+        --pc-muted: #aebdcd;
+        --pc-soft: #7890a7;
+
+        position: relative;
+        box-sizing: border-box;
+
+        /* Dimensoes fixas: a captura Browserless usa 1200x675 (16:9).
+           O elemento engloba todo o conteudo divulgado. */
+        width: 1200px;
+        height: 675px;
+        min-width: 1200px;
+        min-height: 675px;
+
+        display: grid;
+        grid-template-rows: 92px minmax(0, 1fr) 116px 62px 46px;
+        gap: 10px;
+        padding: 18px 24px 14px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        border-radius: 26px;
+        color: var(--pc-text);
+        background: radial-gradient(circle at top left, rgba(var(--pc-left-rgb), 0.08), transparent 22%), radial-gradient(circle at top right, rgba(var(--pc-right-rgb), 0.08), transparent 22%), linear-gradient(180deg, rgba(7, 12, 18, 0.99), rgba(4, 8, 13, 0.99));
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+
+        .price-crossover-social::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border-radius: inherit;
+            background: linear-gradient(115deg, rgba(255,255,255,.022), transparent 26%, transparent 74%, rgba(255,255,255,.014));
+        }
+
+    .price-crossover-social__header {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 210px minmax(0, 1fr) 210px;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .price-crossover-social__brand {
+        font-size: 27px;
+        font-weight: 800;
+        letter-spacing: -0.6px;
+    }
+
+    .price-crossover-social__brand-crypto {
+        color: var(--pc-left);
+    }
+
+    .price-crossover-social__brand-versus {
+        color: var(--pc-right);
+    }
+
+    .price-crossover-social__title-block {
+        text-align: center;
+    }
+
+        .price-crossover-social__title-block h1 {
+            margin: 0;
+            font-size: 25px;
+            font-weight: 800;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+    .price-crossover-social__match-line {
+        margin: 7px 0 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font-size: 16px;
+    }
+
+    .price-crossover-social__tag {
+        padding: 4px 14px;
+        border-radius: 999px;
+        font-weight: 800;
+        letter-spacing: 1.4px;
+    }
+
+    .price-crossover-social__tag--a {
+        color: #0a1200;
+        background: var(--pc-left);
+        box-shadow: 0 0 22px rgba(var(--pc-left-rgb), 0.45);
+    }
+
+    .price-crossover-social__tag--b {
+        color: #00191b;
+        background: var(--pc-right);
+        box-shadow: 0 0 22px rgba(var(--pc-right-rgb), 0.45);
+    }
+
+    .price-crossover-social__vs {
+        color: var(--pc-soft);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 3px;
+    }
+
+    .price-crossover-social__meta {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .price-crossover-social__date {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--pc-text);
+    }
+
+    .price-crossover-social__utc-note {
+        font-size: 11px;
+        color: var(--pc-soft);
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+    }
+
+    .price-crossover-social__chart-shell {
+        position: relative;
+        z-index: 1;
+        min-height: 0;
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 18px;
+        overflow: hidden;
+        background: #030a13;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .price-crossover-social__canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
+    .price-crossover-social__marker-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .price-crossover-social__chart-empty {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: var(--pc-soft);
+        font-size: 15px;
+        letter-spacing: 1px;
+    }
+
+    .price-crossover-social__summary {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 190px minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+    }
+
+    .price-crossover-social__asset {
+        display: grid;
+        grid-template-columns: 46px minmax(0, 1fr) auto auto;
+        gap: 12px;
+        align-items: center;
+        padding: 12px 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .price-crossover-social__asset--a {
+        border-color: rgba(var(--pc-left-rgb), 0.30);
+        background: rgba(var(--pc-left-rgb), 0.07);
+    }
+
+    .price-crossover-social__asset--b {
+        border-color: rgba(var(--pc-right-rgb), 0.30);
+        background: rgba(var(--pc-right-rgb), 0.07);
+    }
+
+    .price-crossover-social__asset-logo {
+        width: 46px;
+        height: 46px;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.06);
+        overflow: hidden;
+    }
+
+        .price-crossover-social__asset-logo img {
+            width: 46px;
+            height: 46px;
+            object-fit: contain;
+        }
+
+    .price-crossover-social__asset-fallback {
+        display: none;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        color: var(--pc-text);
+    }
+
+        .price-crossover-social__asset-fallback.is-visible {
+            display: inline-flex;
+        }
+
+    .price-crossover-social__asset-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+        .price-crossover-social__asset-copy strong {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .price-crossover-social__asset-copy small {
+            font-size: 11px;
+            color: var(--pc-soft);
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+        }
+
+    .price-crossover-social__asset-perf {
+        font-size: 25px;
+        font-weight: 800;
+        letter-spacing: -0.4px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .price-crossover-social__asset--a .price-crossover-social__asset-perf {
+        color: var(--pc-left);
+    }
+
+    .price-crossover-social__asset--b .price-crossover-social__asset-perf {
+        color: var(--pc-right);
+    }
+
+    .price-crossover-social__asset-score {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 46px;
+    }
+
+        .price-crossover-social__asset-score b {
+            font-size: 26px;
+            font-weight: 800;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .price-crossover-social__asset-score small {
+            font-size: 9px;
+            color: var(--pc-soft);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+    .price-crossover-social__result {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        padding: 8px 10px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .price-crossover-social__result-label {
+        font-size: 10px;
+        color: var(--pc-soft);
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+    }
+
+    .price-crossover-social__result-winner {
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 1.2px;
+    }
+
+    .price-crossover-social__result-score {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--pc-muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .price-crossover-social__metrics {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .price-crossover-social__metric {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 8px 10px;
+        border-radius: 13px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.025);
+    }
+
+        .price-crossover-social__metric span {
+            font-size: 10px;
+            color: var(--pc-soft);
+            letter-spacing: 1.3px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .price-crossover-social__metric strong {
+            font-size: 19px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
+
+    .price-crossover-social__metric--accent {
+        border-color: rgba(var(--pc-left-rgb), 0.35);
+        background: rgba(var(--pc-left-rgb), 0.08);
+    }
+
+        .price-crossover-social__metric--accent strong {
+            color: var(--pc-left);
+        }
+
+    .price-crossover-social__notice {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 176, 32, 0.35);
+        background: rgba(255, 176, 32, 0.10);
+    }
+
+        .price-crossover-social__notice strong {
+            font-size: 12px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: #ffcf7a;
+            white-space: nowrap;
+        }
+
+        .price-crossover-social__notice p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--pc-muted);
+        }
+
+    .price-crossover-social__footer {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        padding-top: 10px;
+    }
+
+    .price-crossover-social__site {
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 1.6px;
+        color: var(--pc-text);
+    }
+
+    .price-crossover-social__disclaimer {
+        font-size: 11px;
+        color: var(--pc-soft);
+        letter-spacing: 0.4px;
+    }
+
+    .price-crossover-social__state {
+        grid-row: 1 / -1;
+        display: grid;
+        place-content: center;
+        gap: 10px;
+        text-align: center;
+        padding: 40px;
+    }
+
+        .price-crossover-social__state strong {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .price-crossover-social__state p {
+            margin: 0;
+            font-size: 15px;
+            color: var(--pc-muted);
+            max-width: 640px;
+        }
+
+    .price-crossover-social__state--error strong {
+        color: #ff8f8f;
+    }
+
+    /* Captura deterministica: congela qualquer animacao/transicao. */
+    .price-crossover-social *,
+    .price-crossover-social *::before,
+    .price-crossover-social *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .price-crossover-social *, .price-crossover-social *::before, .price-crossover-social *::after {
+            animation: none !important;
+            transition: none !important;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public int MatchId { get; set; }
+    [Parameter] public string? Culture { get; set; }
+
+    private CancellationTokenSource? _loadCts;
+    private IJSObjectReference? _module;
+    private PriceCrossoverSocialCardModel? _model;
+    private string? _error;
+    private bool _loading = true;
+    private string _resolvedCulture = AppCultureService.DefaultRouteCulture;
+    private string _loadKey = string.Empty;
+
+    private string T(string key, params object?[] args)
+        => L.T($"social.priceCrossover.{key}", _resolvedCulture, args);
+
+    private string PageTitleText => _model is null
+        ? T("seo.title")
+        : T("seo.titleWithMatch", _model.AssetA.DisplaySymbol, _model.AssetB.DisplaySymbol);
+
+    private string SeoDescription => T("seo.description");
+
+    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(
+        Config, RouteLocalization.BuildPriceCrossoverSocialPath(_resolvedCulture, MatchId));
+    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(
+        Config, RouteLocalization.BuildPriceCrossoverSocialPath(AppCultureService.DefaultRouteCulture, MatchId));
+    private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(
+        Config, RouteLocalization.BuildPriceCrossoverSocialPath(AppCultureService.SecondaryRouteCulture, MatchId));
+    private string ChineseUrl => SeoDefaults.BuildPublicAbsoluteUrl(
+        Config, RouteLocalization.BuildPriceCrossoverSocialPath(AppCultureService.TertiaryRouteCulture, MatchId));
+
+    private string ResolvedCulture => _resolvedCulture;
+
+    private string CaptureStateName => _model?.CaptureStateName
+        ?? (_loading ? PriceCrossoverSocialCardModelBuilder.StateLoading : PriceCrossoverSocialCardModelBuilder.StateError);
+
+    private string? CsReadyAttr => _model is not null && _model.IsSocialReady ? "true" : "false";
+    private string? CanPostAttr => _model?.CanPost.ToString().ToLowerInvariant();
+    private string MatchIdAttr => MatchId.ToString(CultureInfo.InvariantCulture);
+    private string? MatchStatusAttr => _model?.StatusName;
+    private string? GeneratedAtUtcAttr => _model?.GeneratedAtUtc.ToString("o", CultureInfo.InvariantCulture);
+    private string? SkipReasonAttr => _model?.SkipReason;
+    private string? TotalCrossoversAttr => _model?.TotalCrossovers.ToString(CultureInfo.InvariantCulture);
+    private string? RelevantCrossoversAttr => _model?.RelevantCrossovers.ToString(CultureInfo.InvariantCulture);
+
+    private string WinnerLabel => _model is null
+        ? string.Empty
+        : _model.HasOfficialWinner
+            ? _model.OfficialWinnerLabel
+            : T("summary.draw");
+
+    private string NotPublishableBody => _model?.SkipReason switch
+    {
+        "match_not_completed" => T("states.notPublishableNotFinished"),
+        "already_published" => T("states.notPublishableAlreadyPublished"),
+        "already_reserved" => T("states.notPublishableReserved"),
+        "reconciliation_required" => T("states.notPublishableReconciliation"),
+        "insufficient_data_quality" => T("states.notPublishableDataQuality"),
+        "cannot_reconstruct_chart" => T("states.notPublishableNoChart"),
+        "missing_baseline_price" => T("states.notPublishableNoBaseline"),
+        null or "" => T("states.notPublishableGeneric"),
+        var other => T("states.notPublishableGeneric") + " (" + other + ")"
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _resolvedCulture = !string.IsNullOrWhiteSpace(Culture)
+            ? AppCulture.NormalizeRouteCulture(Culture)
+            : AppCulture.ResolveNavigationCulture(Nav, HttpContextAccessor.HttpContext);
+
+        var loadKey = $"{_resolvedCulture}:{MatchId}";
+        if (string.Equals(loadKey, _loadKey, StringComparison.Ordinal))
+            return;
+
+        _loadKey = loadKey;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+        _loadCts = new CancellationTokenSource();
+        _loadCts.CancelAfter(TimeSpan.FromSeconds(20));
+
+        _loading = true;
+        _error = null;
+        _model = null;
+
+        try
+        {
+            var response = await Api.GetPriceCrossoverSocialAsync(
+                MatchId, _resolvedCulture, includeSeries: true, _loadCts.Token);
+
+            if (response is null)
+            {
+                _error = T("states.notFoundBody");
+                _model = PriceCrossoverSocialCardModelBuilder.BuildError("NotFound", DateTime.UtcNow);
+                return;
+            }
+
+            _model = PriceCrossoverSocialCardModelBuilder.Build(
+                response,
+                CultureInfo.GetCultureInfo(NormalizeCultureName(_resolvedCulture)),
+                symbol => Api.BuildBinanceIconUrl(symbol));
+        }
+        catch (OperationCanceledException) when (_loadCts.IsCancellationRequested)
+        {
+            _error = T("states.errorBody");
+            _model = PriceCrossoverSocialCardModelBuilder.BuildError("Error", DateTime.UtcNow);
+        }
+        catch (Exception ex)
+        {
+            _error = T("states.errorBody");
+            _model = PriceCrossoverSocialCardModelBuilder.BuildError("Error", DateTime.UtcNow);
+            Logger.LogWarning(
+                ex,
+                "[PRICE_CROSSOVER_SOCIAL] Load failed. MatchId={MatchId} Culture={Culture}",
+                MatchId,
+                _resolvedCulture);
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+        await RenderChartAsync();
+    }
+
+    private async Task RenderChartAsync()
+    {
+        if (_model is null)
+            return;
+
+        try
+        {
+            _module ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "/js/priceCrossoverSocialCard.mjs?v=20261017-price-crossover-social-1");
+
+            var seriesPayload = new
+            {
+                points = _model.Chart.Points.Select(p => new
+                {
+                    timeUnixSeconds = p.TimeUnixSeconds,
+                    normalizedValueA = p.NormalizedValueA,
+                    normalizedValueB = p.NormalizedValueB,
+                    relativeLeadPercent = p.RelativeLeadPercent,
+                    secondsFromPrevious = p.SecondsFromPrevious
+                }).ToArray(),
+                markers = _model.Chart.Markers.Select(m => new
+                {
+                    timeUnixSeconds = m.TimeUnixSeconds,
+                    normalizedValue = m.NormalizedValue,
+                    direction = m.Direction,
+                    isRelevant = m.IsRelevant,
+                    winnerSymbol = m.WinnerSymbol,
+                    winnerTeamId = m.WinnerTeamId
+                }).ToArray(),
+                minNormalizedValue = _model.Chart.MinNormalizedValue,
+                maxNormalizedValue = _model.Chart.MaxNormalizedValue
+            };
+
+            var result = await _module.InvokeAsync<JsRenderResult>(
+                "renderPriceCrossoverSocialCard",
+                new
+                {
+                    canvasId = "price-crossover-social-canvas",
+                    markerLayerId = "price-crossover-social-markers",
+                    series = seriesPayload,
+                    options = new
+                    {
+                        leftColor = "#B8FF00",
+                        rightColor = "#00D5DF",
+                        leftLabel = _model.AssetA.DisplaySymbol,
+                        rightLabel = _model.AssetB.DisplaySymbol,
+                        minNormalizedValue = _model.Chart.MinNormalizedValue,
+                        maxNormalizedValue = _model.Chart.MaxNormalizedValue
+                    }
+                });
+
+            // Imagens (logos) com fallback: o fallback nunca bloqueia a captura.
+            await _module.InvokeAsync<bool>("waitForImages", "price-crossover-social-card");
+
+            await _module.InvokeVoidAsync(
+                "syncPriceCrossoverSocialReadiness",
+                "price-crossover-social-card",
+                new
+                {
+                    renderComplete = result?.Ok == true,
+                    fontsReady = true,
+                    imagesReady = true
+                });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(
+                ex,
+                "[PRICE_CROSSOVER_SOCIAL] Chart render failed. MatchId={MatchId}",
+                MatchId);
+
+            try
+            {
+                if (_module is not null)
+                {
+                    await _module.InvokeVoidAsync(
+                        "syncPriceCrossoverSocialReadiness",
+                        "price-crossover-social-card",
+                        new { renderComplete = false, fontsReady = true, imagesReady = true });
+                }
+            }
+            catch (Exception inner)
+            {
+                Logger.LogDebug(inner, "[PRICE_CROSSOVER_SOCIAL] Readiness sync failed after render error.");
+            }
+        }
+    }
+
+    private static string NormalizeCultureName(string culture)
+        => culture switch
+        {
+            "en" => "en-US",
+            "pt" => "pt-BR",
+            "zh" => "zh-CN",
+            "es" => "es-ES",
+            "fr" => "fr-FR",
+            "de" => "de-DE",
+            "it" => "it-IT",
+            "ja" => "ja-JP",
+            _ => culture
+        };
+
+    private static string Initials(string symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "--";
+
+        var letters = new string(symbol.Where(char.IsLetterOrDigit).Take(3).ToArray());
+        return letters.Length == 0 ? "--" : letters.ToUpperInvariant();
+    }
+
+    private static string PairLabel(PriceCrossoverSocialCardAsset asset)
+    {
+        if (string.IsNullOrWhiteSpace(asset.QuoteAsset))
+            return asset.Symbol;
+
+        return $"{asset.BaseAsset} / {asset.QuoteAsset}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+
+        if (_module is not null)
+        {
+            try
+            {
+                await _module.InvokeVoidAsync("disposePriceCrossoverSocialCard", "price-crossover-social-card");
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuito encerrado: nada a liberar no navegador.
+            }
+            catch (Exception ex)
+            {
+                Logger.LogDebug(ex, "[PRICE_CROSSOVER_SOCIAL] Module dispose failed.");
+            }
+        }
+    }
+
+    private sealed class JsRenderResult
+    {
+        public bool Ok { get; set; }
+        public int PointCount { get; set; }
+        public int MarkerCount { get; set; }
+    }
+}

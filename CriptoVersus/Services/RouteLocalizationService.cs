@@ -68,6 +68,13 @@ public sealed class RouteLocalizationService
     public string BuildWinRate24hSocialPath(string? culture)
         => BuildGenericLocalizedPath(culture, "social/win-rate-24h");
 
+    /// <summary>
+    /// Rota social do Price Crossover. Usa o mesmo slug em todos os idiomas; o identificador
+    /// da parte faz parte do caminho (a pagina e especifica de uma partida encerrada).
+    /// </summary>
+    public string BuildPriceCrossoverSocialPath(string? culture, int matchId)
+        => BuildGenericLocalizedPath(culture, $"social/price-crossover/{matchId}");
+
     public string BuildHowItWorksPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/como-funciona"
@@ -206,6 +213,10 @@ public sealed class RouteLocalizationService
             || cleanPath.Equals("/pt/social/win-rate-24h", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/zh/social/win-rate-24h", StringComparison.OrdinalIgnoreCase))
             return BuildWinRate24hSocialPath(normalizedTarget) + querySuffix;
+
+        var priceCrossoverMatchId = TryGetPriceCrossoverMatchId(cleanPath);
+        if (priceCrossoverMatchId is not null)
+            return BuildPriceCrossoverSocialPath(normalizedTarget, priceCrossoverMatchId.Value) + querySuffix;
 
         if (cleanPath.Equals("/tokenomics", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/how-it-works", StringComparison.OrdinalIgnoreCase)
@@ -367,6 +378,37 @@ public sealed class RouteLocalizationService
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? $"/pt/{slug}"
             : $"/{NormalizeCulture(culture)}/{slug}";
+
+    /// <summary>
+    /// Reconhece caminhos <c>[/{cultura}]social/price-crossover/{matchId}</c> em qualquer cultura
+    /// registrada, para que o seletor de idioma funcione sem lista fixa de prefixos.
+    /// </summary>
+    internal static int? TryGetPriceCrossoverMatchId(string cleanPath)
+    {
+        if (string.IsNullOrWhiteSpace(cleanPath))
+            return null;
+
+        var segments = cleanPath.Trim('/')
+            .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (segments.Length < 3)
+            return null;
+
+        var slugIndex = segments.Length == 3 ? 0 : 1;
+        if (slugIndex >= segments.Length)
+            return null;
+
+        if (!string.Equals(segments[slugIndex], "social", StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(segments[slugIndex + 1], "price-crossover", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        if (segments.Length <= slugIndex + 2)
+            return null;
+
+        return int.TryParse(segments[slugIndex + 2], out var matchId) && matchId > 0
+            ? matchId
+            : null;
+    }
 
     private static string NormalizeRouteSegment(string? value)
     {

@@ -4,6 +4,7 @@
 @inject IJSRuntime JS
 @inject IConfiguration Config
 @inject CriptoVersus.Web.Services.LocalizationService L
+@inject CriptoVersus.Web.Services.AppCultureService AppCulture
 @inject ILogger<CommunityMatchCreationCard> Logger
 @implements IDisposable
 
@@ -1558,8 +1559,8 @@
         };
     }
 
-    private string T(string key, params object?[] args)
-        => L.T($"communityMatch.{key}", null, args);
+private string T(string key, params object?[] args)
+=> L.T($"communityMatch.{key}", AppCulture.GetCurrentRouteCulture(Nav), args);
 
     public void Dispose()
     {

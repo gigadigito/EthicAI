@@ -27,6 +27,39 @@ public sealed class MatchRouteRedirectResolver
         if (cleanPath.Equals("/tokenomics", StringComparison.OrdinalIgnoreCase))
             return AppendQueryString(routeLocalization.BuildHowItWorksPath(preferredCulture), queryString);
 
+        if (cleanPath.Equals("/token", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildTokenPath(preferredCulture), queryString);
+
+        if (cleanPath.Equals("/about", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildAboutPath(preferredCulture), queryString);
+
+        if (cleanPath.Equals("/scoring-rules", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildScoringRulesPath(preferredCulture), queryString);
+
+        if (cleanPath.Equals("/risk-disclaimer", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildRiskDisclaimerPath(preferredCulture), queryString);
+
+        if (cleanPath.Equals("/stats", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildStatsPath(preferredCulture), queryString);
+
+        if (cleanPath.Equals("/minha-carteira", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildWalletPath(preferredCulture), queryString);
+
+        if (cleanPath.Equals("/social/hot-matches", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildHotMatchesSocialPath(preferredCulture), queryString);
+
+        if (cleanPath.Equals("/social/win-rate-24h", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildWinRate24hSocialPath(preferredCulture), queryString);
+
+        // Somente a forma SEM prefixo de cultura redireciona; as formas ja localizadas
+        // (/pt/social/price-crossover/123) devem cair direto no roteamento.
+        if (IsCulturelessPriceCrossoverPath(cleanPath))
+        {
+            var priceCrossoverMatchId = RouteLocalizationService.TryGetPriceCrossoverMatchId(cleanPath);
+            if (priceCrossoverMatchId is not null)
+                return AppendQueryString(routeLocalization.BuildPriceCrossoverSocialPath(preferredCulture, priceCrossoverMatchId.Value), queryString);
+        }
+
         if (cleanPath.Equals("/tv", StringComparison.OrdinalIgnoreCase))
             return AppendQueryString(routeLocalization.BuildTvPath(preferredCulture), queryString);
 
@@ -223,4 +256,18 @@ public sealed class MatchRouteRedirectResolver
 
     private static string AppendQueryString(string path, string? queryString)
         => string.IsNullOrWhiteSpace(queryString) ? path : $"{path}{queryString}";
+
+    /// <summary>
+    /// <c>/social/price-crossover/{matchId}</c> sem prefixo de cultura. Somente esta forma
+    /// redireciona; as formas ja localizadas seguem direto para o roteamento.
+    /// </summary>
+    private static bool IsCulturelessPriceCrossoverPath(string cleanPath)
+    {
+        var segments = cleanPath.Trim('/')
+            .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        return segments.Length == 3
+            && string.Equals(segments[0], "social", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(segments[1], "price-crossover", StringComparison.OrdinalIgnoreCase);
+    }
 }

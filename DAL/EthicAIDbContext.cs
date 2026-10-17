@@ -1140,7 +1140,40 @@ namespace EthicAI.EntityModel
                       .HasColumnName("created_at")
                       .HasColumnType("timestamp with time zone");
 
+                entity.Property(e => e.Category)
+                      .HasColumnName("category")
+                      .HasMaxLength(64);
+
+                entity.Property(e => e.Status)
+                      .HasColumnName("status")
+                      .HasMaxLength(32);
+
+                entity.Property(e => e.IdempotencyKey)
+                      .HasColumnName("idempotency_key")
+                      .HasMaxLength(200);
+
+                entity.Property(e => e.ReservedAtUtc)
+                      .HasColumnName("reserved_at_utc")
+                      .HasColumnType("timestamp with time zone");
+
+                entity.Property(e => e.LeaseExpiresAtUtc)
+                      .HasColumnName("lease_expires_at_utc")
+                      .HasColumnType("timestamp with time zone");
+
+                entity.Property(e => e.PostedAtUtc)
+                      .HasColumnName("posted_at_utc")
+                      .HasColumnType("timestamp with time zone");
+
+                entity.Property(e => e.LastError)
+                      .HasColumnName("last_error");
+
                 entity.HasIndex(e => new { e.MatchId, e.Platform, e.CreatedAt });
+
+                entity.HasIndex(e => e.IdempotencyKey)
+                      .IsUnique()
+                      .HasFilter("idempotency_key IS NOT NULL");
+
+                entity.HasIndex(e => new { e.Category, e.Status, e.MatchId });
 
                 entity.HasOne(e => e.Match)
                       .WithMany()

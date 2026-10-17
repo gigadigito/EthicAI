@@ -254,7 +254,7 @@
     {
         _culture = !string.IsNullOrWhiteSpace(Culture)
             ? AppCulture.NormalizeRouteCulture(Culture)
-            : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+            : AppCulture.ResolveNavigationCulture(Nav, HttpContextAccessor.HttpContext);
 
         var nextRouteKey = BuildRouteKey();
         if (string.Equals(_activeRouteKey, nextRouteKey, StringComparison.Ordinal))

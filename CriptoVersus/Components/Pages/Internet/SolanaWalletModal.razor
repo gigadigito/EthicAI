@@ -7,6 +7,7 @@
 @inject IConfiguration Config
 @inject AppCultureService AppCulture
 @inject LocalizationService L
+@inject NavigationManager Nav
 @using Microsoft.AspNetCore.Components
 
 @if (isOpen)
@@ -224,7 +225,7 @@
     private string statusTitle = string.Empty;
     private string statusKind = "info";
     private List<WalletViewModel> wallets = new();
-    private string CurrentCulture => CultureInfo.CurrentUICulture.Name;
+    private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
 
     private string BlockchainMode
         => Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";

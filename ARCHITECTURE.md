@@ -171,13 +171,23 @@ Responsibilities:
 - Public match, statistics, ranking, token, roadmap, FAQ, and risk pages.
 - TV and broadcast presentation.
 - Wallet, position, dashboard, and administration pages.
-- Localized routes and content for English, Portuguese, and Chinese.
+- Localized routes and content for the cultures registered in `CriptoVersus/Services/SupportedLanguageCatalog.cs` (en-US, pt-BR, zh-CN, es-ES, fr-FR, de-DE, it-IT, ja-JP).
 - SEO, canonical URLs, sitemaps, redirects, and social images.
 - Futurebol experimental 3D frontend.
 - HTTP client facade for the API.
 - Server-side SignalR client for dashboard invalidation events.
 
 The application is an Interactive Server Blazor application. Component C# runs on the Web server. Browser-side JavaScript is used for wallet providers, media, charts, audio, TV effects, and Futurebol.
+
+Culture resolution is owned by `CriptoVersus/Services/AppCultureService.cs` and uses this priority:
+
+1. Explicit culture segment in the request path.
+2. Persisted user preference (`cv_culture` cookie, mirrored from `localStorage` by `wwwroot/js/culturePreference.mjs`).
+3. Browser language (`Accept-Language` on the server, `navigator.languages` in the browser module).
+4. Approximate region from the infrastructure-provided `CF-IPCountry` header (Cloudflare). No GPS and no external geolocation API are used.
+5. `en-US`.
+
+`Program.cs` pins `CultureInfo.DefaultThreadCurrentCulture`/`DefaultThreadCurrentUICulture` to `en-US` so interactive Blazor rendering can never inherit the host OS culture. Components must resolve culture from the route or `AppCultureService`, never from `CultureInfo.CurrentUICulture`. Culture-selection redirects are temporary (302) because they depend on the visitor; canonical slug corrections stay permanent (301).
 
 ### CriptoVersus.API
 
@@ -550,7 +560,89 @@ The arcade match window uses the exchange five-minute interval containing Match.
 
 The TypeScript renderer draws financial body/wicks and keeps the OHLC geometry separate from real, alpha-trimmed fighter action sprites. The atlas registers team and OHLC-direction variants for RUN, PUNCH, BREAK and RECOVER; uniform sprite scaling preserves artwork proportions while candle body size remains financial. A snapshot for an active battle is immutable while the independent heartbeat receives the next candle. Audio, resize and browser listeners are instance-owned and disposed. The build emits versioned local Phaser and native ESM modules; generated JS is not hand-edited. User-supplied source art stays outside wwwroot, and visual-test fixtures are excluded from publication. See docs/candle-battles.md for formula parameters, schema ownership, asset preparation and verification limits.
 
+The arcade host now renders the market cards, one five-minute countdown, match clock, score, recent confirmed rounds, territory grid, and final result as localized HTML around the Phaser canvas. `game.ts` projects its existing LIVE server-time anchor or Replay virtual clock into that DOM; the countdown holds at zero until a confirmed round arrives and does not generate a round itself. Phaser remains responsible for the stadium, OHLC geometry, sprite combat, audio, and comic dialogue. The DOM territory grid is reconstructed from the same immutable rounds and score used by the engine.
+
 `candle-battles/dialogue.ts` owns the local, eight-language comic dialogue catalog and deterministic selection by match, round and idle slot. `game.ts` advances one two-line conversation on the existing presentation clock, including Replay speed and pause, and interrupts it at combat. The HTML bubble tracks the Phaser sprite anchor through the fitted canvas and stays separate from scoring, market data, and the persisted round timeline. Final winner, loser and draw lines use the same presentation layer.
+
+## Price Crossover Social Flow
+
+Read-only social analysis of a completed match, consumed by a future n8n workflow. Scope is API only: no n8n workflow, no screenshot generation and no Binance Square publishing is implemented here.
+
+### Ownership of the two metric families
+
+The Match screen shows two different "points" that must never be conflated. The API exposes both, separately labelled:
+
+| Family | Source | Meaning |
+|---|---|---|
+| `PriceCrossoverSocialResponse.PriceCrossover`, `CrossoverEvents`, `Series` | Rebuilt by `BLL.NFTFutebol.PriceCrossoverAnalyzer` from `MatchMetricSnapshot.LastPrice` | Relative-performance analysis of the two curves. Basis for narrative and the future social chart. |
+| `AssetA/AssetB.ChartRoundPoints` | Same reconstruction | Visual equivalent of the screen's "PONTOS DA RODADA". Explicitly not the official score. |
+| `Official`, `OfficialEvents`, `AssetA/AssetB.OfficialScore` | `Match.ScoreA/ScoreB/WinnerTeamId/EndReasonCode` and `MatchScoreEvent`, read-only | The real match result. Never recalculated. |
+| `ChartDivergence` | Compares the two above against what `TvMatchPriceBattleChart` would render today | Lets the future social chart reproduce the match faithfully. |
+
+`PriceCrossoverAnalyzer` reproduces the chart rule: normalization `price / baselinePrice`, relative lead `normalizedA - normalizedB`, and a crossover on each sign change of that lead with the non-strict semantics of `CriptoVersus/Services/TvBattleScoreEvaluator.EvaluatePriceBattle` (`prev <= 0 && curr > 0` / `prev >= 0 && curr < 0`). Because the baseline is `1.0` for both sides at the first point, the first departure from equality counts as a crossover — the same behaviour the Match screen shows. Touching exactly zero counts as no crossover in either direction. There is no debounce.
+
+Three deliberate deviations from the screen, all reported in `ChartDivergence`:
+
+1. **Fixed baseline** (`first_complete_pair`) instead of the screen's sliding 500-row window. Required for determinism: the same finished match must always produce the same numbers. For a standard 90-minute match at 30-second cadence the window covers the whole match and the baselines coincide.
+2. **Timestamp pairing** instead of index pairing. `MatchesController.GetMetricSnapshots` returns the latest N rows across both teams, so per-side counts differ and the screen's index pairing drifts. The analyzer pairs rows on exact `CapturedAtUtc`, following `MatchScoreRebuildService.PairSnapshots`; unpaired timestamps are excluded from metrics and reported.
+3. **`LastPrice` only**, never `LastPrice ?? PercentageChange`, so a series never mixes dollars and percentages on one axis.
+
+`PriceCrossoverAnalyzer` is pure: no EF Core, no I/O, no clock. It never touches match rules, scoring or settlement.
+
+### Data flow
+
+```text
+MatchMetricSnapshot (Worker writes 2 rows per cycle, same CapturedAtUtc)
+        |
+        v
+PriceCrossoverSocialService  --->  PriceCrossoverAnalyzer (pure)
+        |                                |
+        |                                +--> Series, CrossoverEvents, comparative metrics
+        +--> Match + MatchScoreEvent ----+--> Official score/winner/events (read-only)
+        |
+        +--> PriceCrossoverSocialNarrativeService --> headline/summary/highlights/suggestedPostText
+        |
+        +--> PriceCrossoverPublicationService --> social_post_history (category-scoped)
+
+PriceCrossoverHighlightSelector scans completed matches in the lookback window,
+scores each with the interest index, and picks the highest-ranked eligible one.
+```
+
+No Binance call is ever made to reconstruct a historical result. The series always comes from persisted snapshots.
+
+### Interest index
+
+`GET /api/social/price-crossover/highlight` selects the most publishable finished match in `lookbackHours` (default 6, clamped 1..48), not merely the latest. Weights are 30/25/20/15/10 and live in `PriceCrossoverOptions`:
+
+| Component | Weight | Basis |
+|---|---:|---|
+| Crossovers and comeback | 30 | relevant crossovers per hour + effective lead-reversal-and-win bonus |
+| Competitiveness | 25 | closeness of the official score, of the visual round points, and of relative performance |
+| Performance spread | 20 | readability of the relative gap (peaked at `IdealPerformanceGapPercent`) |
+| Movement intensity | 15 | total variation of relative lead per hour on a fixed resampling grid |
+| Remarkable events | 10 | official scoring events per hour + KO/WO end reason |
+
+All rates are normalised by **observed time span**, and movement intensity is measured on a fixed 60-second resampling grid, so a match does not score higher merely because it received more updates. Ties break deterministically: smaller official score gap, then more recent, then lower `MatchId`.
+
+Eligibility requires `MatchStatus.Completed`, a valid official result, sufficient data quality, a reconstructable chart, and no active publication. When nothing qualifies the response carries `skipReason` instead of a weak pick.
+
+### Publication control
+
+`social_post_history` is extended (expand-only migration `20261017000000_AddSocialPublicationControl`) with nullable `category`, `status`, `idempotency_key`, `reserved_at_utc`, `lease_expires_at_utc`, `posted_at_utc`, `last_error`, plus a **partial unique index** on `idempotency_key`. Legacy rows keep all of these `NULL` and behave exactly as before; `post_text` stays `NOT NULL` and is never used as a reservation marker.
+
+- Idempotency key: `price_crossover_highlight:{matchId}`.
+- States: `reserved`, `publishing`, `posted`, `failed`, `reconciliation_required`.
+- Reservation is atomic; a concurrent insert loses on the unique index. An expired `reserved`/`publishing` lease can be reclaimed.
+- `outcome=unknown` on confirm sets `reconciliation_required`, which **blocks** any new reserve or confirm until explicitly released. Unknown outcomes never trigger automatic reposting.
+- `SocialAutomationService` cooldown queries are scoped by `Category` (`null` matches legacy rows), so Win Rate 24H and other categories cannot block each other.
+
+`GET /api/social/price-crossover/highlight` and `GET /api/social/price-crossover/{matchId}` are `[AllowAnonymous]` and side-effect free. `GET /highlights/candidates` and the `reserve`/`confirm`/`release` mutations require authentication under the API fallback policy.
+
+`publicUrl` is reserved in the contract with `publicUrlAvailable: false`; the social capture page does not exist yet.
+
+### Testing
+
+`CriptoVersus.API.Tests` covers crossover rules (including the non-strict zero semantics), statistics, selection, publication state machine, concurrency, and a cross-check that `ChartRoundPoints` matches `TvBattleScoreEvaluator.EvaluatePriceBattle` on the same points.
 
 ## MCP Flow
 

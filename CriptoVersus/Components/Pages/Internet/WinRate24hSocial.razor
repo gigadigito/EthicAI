@@ -16,6 +16,7 @@
 @inject AppCultureService AppCulture
 @inject LocalizationService L
 @inject RouteLocalizationService RouteLocalization
+@inject NavigationManager Nav
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IConfiguration Config
 @inject ILogger<WinRate24hSocial> Logger
@@ -627,7 +628,7 @@
     {
         _resolvedCulture = !string.IsNullOrWhiteSpace(Culture)
             ? AppCulture.NormalizeRouteCulture(Culture)
-            : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+            : AppCulture.ResolveNavigationCulture(Nav, HttpContextAccessor.HttpContext);
 
         var nextLoadKey = _resolvedCulture;
         if (string.Equals(nextLoadKey, _loadKey, StringComparison.Ordinal))

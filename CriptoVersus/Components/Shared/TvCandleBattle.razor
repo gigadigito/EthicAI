@@ -1288,7 +1288,7 @@
     public IReadOnlyList<TvPriceChartPoint> RightPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
 
     [Parameter]
-    public string Culture { get; set; } = CultureInfo.CurrentUICulture.Name;
+    public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
 
     [Parameter]
     public string? AriaLabel { get; set; }
@@ -1655,7 +1655,7 @@ private static string GetChangeClass(decimal? value)
     };
 
 private string T(string key, params object?[] args)
-    => L.T($"tv.{key}", string.IsNullOrWhiteSpace(Culture) ? CultureInfo.CurrentUICulture.Name : Culture, args);
+    => L.T($"tv.{key}", string.IsNullOrWhiteSpace(Culture) ? AppCultureService.DefaultRouteCulture : Culture, args);
 
 private static string N(double value)
     => value.ToString("0.##", CultureInfo.InvariantCulture);

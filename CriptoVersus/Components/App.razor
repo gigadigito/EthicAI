@@ -2,9 +2,10 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @using CriptoVersus.Web.Services
 @inject AppCultureService AppCulture
+@inject NavigationManager Nav
 @inject LocalizationService L
 @inject IConfiguration Config
-<html lang="@AppCulture.ToHtmlLang(AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext))">
+<html lang="@AppCulture.ToHtmlLang(AppCulture.ResolveNavigationCulture(Nav, HttpContextAccessor.HttpContext))">
 
 <head>
     <meta charset="utf-8" />
@@ -13,7 +14,7 @@
     <base href="/" />
     <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="CriptoVersus.Web.styles.css" />
+    <link rel="stylesheet" href="CriptoVersus.Web.styles.css?v=20261017b" />
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2" />
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=2" />
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=2" />
@@ -26,20 +27,16 @@
     <meta charset="utf-8" />
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-4B737GWQYX"></script>
     <script>
-        (function () {
-            try {
-                var key = 'cv_culture';
-                var culture = localStorage.getItem(key);
-                if (culture) {
-                    document.cookie = key + '=' + encodeURIComponent(culture) + '; path=/; max-age=31536000; SameSite=Lax';
-                }
-            } catch (e) { }
-        })();
-
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date());
         gtag('config', 'G-4B737GWQYX');
+    </script>
+    <script type="module">
+        import { syncPreferredCulture } from '/js/culturePreference.mjs?v=20261017';
+        try {
+            syncPreferredCulture(@((MarkupString)SupportedLanguagesJson));
+        } catch (e) { }
     </script>
 @*     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="/js/dashboardHubWs.js"></script> *@
@@ -107,7 +104,15 @@
 </body>
 
 @code {
-    private string ReconnectCulture => AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+    private string ReconnectCulture => AppCulture.ResolveNavigationCulture(Nav, HttpContextAccessor.HttpContext);
+
+    private string SupportedLanguagesJson => System.Text.Json.JsonSerializer.Serialize(
+        AppCulture.SupportedLanguages.Select(language => new
+        {
+            route = language.RouteCulture,
+            culture = language.Culture,
+            aliases = language.Aliases
+        }));
 }
 
 </html>

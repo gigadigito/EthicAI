@@ -1,8 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase, matchWindow, roundInMatch, clockParts, MATCH_DURATION, PERIOD } from '../../dist/candle-battles/model.js';
+import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase, matchWindow, roundInMatch, clockParts, nextCandleCountdown, MATCH_DURATION, PERIOD } from '../../dist/candle-battles/model.js';
 import { registerFighterAnimations } from '../../dist/candle-battles/renderer.js';
 import { DialogueClock, dialogueLines, finalLines } from '../../dist/candle-battles/dialogue.js';
+
+test('five-minute clock joins an existing candle and resets without a confirmed round', () => {
+    const start = Date.UTC(2026, 0, 1, 0, 1);
+    assert.equal(nextCandleCountdown(start + 85_000, start), 155_000);
+    assert.equal(nextCandleCountdown(start + 240_000, start), 300_000);
+    assert.equal(nextCandleCountdown(start + 241_000, start), 299_000);
+    assert.equal(nextCandleCountdown(start + MATCH_DURATION - 1, start), 240_001);
+    assert.equal(nextCandleCountdown(start + MATCH_DURATION, start), 0);
+});
 
 test('comic dialogue uses available match data, localization and a repeatable sequence', () => {
     const round=demoRound(2);

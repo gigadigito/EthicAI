@@ -26,11 +26,11 @@ public sealed class TextMojibakeRepairTests
         Assert.False(TextMojibakeRepair.LooksLikeMojibake(actual));
     }
 
-    [Fact]
-    public void Normalize_DoesNotChangeAlreadyCorrectText()
+    [Theory]
+    [InlineData("MANA protege bem a sua área.")]
+    [InlineData("VARIAÇÃO 5M")]
+    public void Normalize_DoesNotChangeAlreadyCorrectText(string value)
     {
-        const string value = "MANA protege bem a sua área.";
-
         var actual = TextMojibakeRepair.Normalize(value);
 
         Assert.Equal(value, actual);

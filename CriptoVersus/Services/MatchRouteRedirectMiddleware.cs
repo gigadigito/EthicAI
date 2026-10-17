@@ -45,7 +45,13 @@ public sealed class MatchRouteRedirectMiddleware
 
         if (!string.IsNullOrWhiteSpace(redirectPath))
         {
-            context.Response.Redirect(redirectPath, permanent: true);
+            // Culture selection depends on the visitor (cookie/browser language/region), so it must not
+            // be cached by browsers or CDNs. Canonical slug/id corrections remain permanent.
+            var requestHasExplicitCulture = appCultureService.TryGetExplicitCultureFromPath(path) is not null;
+            var redirectHasExplicitCulture = appCultureService.TryGetExplicitCultureFromPath(redirectPath) is not null;
+            var isCultureSelection = !requestHasExplicitCulture && redirectHasExplicitCulture;
+
+            context.Response.Redirect(redirectPath, permanent: !isCultureSelection);
             return;
         }
 

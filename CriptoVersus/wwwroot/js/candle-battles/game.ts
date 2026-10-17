@@ -1,5 +1,5 @@
 import type PhaserTypes from 'phaser';
-import { Candle, Round, Side, Phase, MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, combatFrame } from './model.js';
+import { Candle, Round, Side, Phase, MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js';
 import { CandleRenderer } from './renderer.js';
 import { AudioManager } from './audio.js';
 import { DialogueClock, dialogueLines, finalLines, Line } from './dialogue.js';
@@ -20,6 +20,10 @@ export class GameEngine {
     private readyReject!: (error:Error) => void;
     private readyTimer?: ReturnType<typeof setTimeout>;
     private controls: HTMLElement;
+    private readonly dashboard: HTMLElement | null;
+    private readonly shell: boolean;
+    private showAllHistory = false;
+    private lastDashboardSecond = -1;
     private controlClick: (event:Event)=>void;
     private controlInput: (event:Event)=>void;
     private game: PhaserTypes.Game;
@@ -85,6 +89,8 @@ export class GameEngine {
         this.ready = new Promise((resolve,reject)=>{this.readyResolve=resolve;this.readyReject=reject;});
         this.readyTimer=setTimeout(()=>this.readyReject(new Error('Candle Battles asset load timeout')),20000);
         this.controls=host.closest<HTMLElement>('.candle-battles')??host;
+        this.dashboard=this.controls.querySelector<HTMLElement>('[data-cb-shell]');
+        this.shell=!!this.dashboard;
         this.controlClick=(event:Event)=>{const button=(event.target as Element).closest<HTMLElement>('button[data-cb-action]');if(button)this.command(button.dataset.cbAction!);};
         this.controlInput=(event:Event)=>{const element=event.target as HTMLInputElement;if(element.dataset.cbAction)this.command(element.dataset.cbAction,Number(element.value));};
         this.controls.addEventListener('click',this.controlClick);this.controls.addEventListener('input',this.controlInput);
@@ -97,7 +103,7 @@ export class GameEngine {
             create(): void { owner.setup(this); }
             update(_time: number, delta: number): void { owner.update(delta); }
         }
-        this.game = new Phaser.Game({ type: Phaser.AUTO, parent: host, width:1280, height:800,
+        this.game = new Phaser.Game({ type: Phaser.AUTO, parent: host, width:1280, height:this.shell?480:800,
             backgroundColor:'#101722', transparent:false, antialias:true,
             scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
             render:{preserveDrawingBuffer:false}, audio:{noAudio:true}, scene:BattleScene,
@@ -119,6 +125,8 @@ export class GameEngine {
         if (this.disposed) return;
         this.scene = scene;
         this.scenery = scene.add.graphics(); this.grid = scene.add.graphics();
+        if (this.shell) this.drawStadium();
+        else {
         const g = this.scenery;
         g.fillGradientStyle(0x182430,0x182430,0x080e16,0x080e16).fillRect(0,0,1280,800);
         for (let i=0;i<7;i++) {
@@ -130,6 +138,7 @@ export class GameEngine {
         g.lineStyle(3,0x668789,.5).lineBetween(35,451,1245,451);
         g.fillStyle(0x1e2430,.9).fillRoundedRect(24,24,1232,154,16);
         g.lineStyle(1,0x4c6069,.45).strokeRoundedRect(24,24,1232,154,16);
+        }
         this.label('brand','CANDLE BATTLES',640,42,30,'#f3f5f7',.5);
         this.label('subtitle',this.text('arcade'),640,80,14,'#94a3b8',.5);
         this.label('mode',this.mode.toUpperCase()+' · 5M',640,181,13,'#c1f20f',.5);
@@ -148,8 +157,14 @@ export class GameEngine {
         this.label('territory',this.text('territory'),640,744,16,'#94a3b8',.5);
         this.label('percent','50% / 50%',640,772,16,'#f3f5f7',.5);
         this.chart = scene.add.graphics(); this.lineFlash = scene.add.graphics().setDepth(20);
-        this.left = new CandleRenderer(scene,'left',330,260); this.right = new CandleRenderer(scene,'right',950,260);
+        this.left = new CandleRenderer(scene,'left',330,this.shell?185:260); this.right = new CandleRenderer(scene,'right',950,this.shell?185:260);
         this.left.setReducedMotion(this.reduced); this.right.setReducedMotion(this.reduced);
+        if (this.shell) { this.left.setPresentationScale(1.55); this.right.setPresentationScale(1.55); }
+        if (this.shell) {
+            for (const label of this.hud.values()) label.setVisible(false);
+            this.chart?.setVisible(false);
+            this.grid?.setVisible(false);
+        }
         this.drawTerritory();
         if (this.feed) this.receive(this.feed,this.pendingReconcile);
         if (this.mode === 'demo') { this.showDemoForming(0); this.command('start'); }
@@ -159,6 +174,39 @@ export class GameEngine {
     }
     private label(id:string,text:string,x:number,y:number,size=18,color='#f3f5f7',origin=0): void {
         this.hud.set(id,this.scene!.add.text(x,y,text,{fontFamily:'system-ui, sans-serif',fontSize:size+'px',color,fontStyle:'bold'}).setOrigin(origin,0));
+    }
+    private drawStadium(): void {
+        const g=this.scenery!;
+        g.fillGradientStyle(0x0b2233,0x0b2233,0x04101b,0x04101b).fillRect(0,0,1280,480);
+        g.fillGradientStyle(0x12364b,0x071a2c,0x0a1726,0x0b3545,.45,.22,.08,.36).fillRect(0,0,1280,340);
+        for(let side=0;side<2;side++){
+            const x=side?1180:100,color=side?0x31d3d0:0xb8ff00;
+            g.fillStyle(color,.11).fillTriangle(x-70,55,x+70,55,side?980:300,350);
+            g.fillStyle(color,.65).fillRoundedRect(x-52,45,104,5,2);
+            g.fillStyle(0xffffff,.65).fillCircle(x,48,8);
+            g.lineStyle(2,color,.28).strokeRoundedRect(side?1110:25,145,145,185,8);
+            g.fillStyle(color,.12).fillRoundedRect(side?1115:30,150,135,175,5);
+        }
+        g.fillStyle(0x092337,.8).fillEllipse(640,175,1420,285);
+        for(let row=0;row<5;row++) {
+            g.lineStyle(3,0x226484,.25+row*.04).strokeEllipse(640,155+row*14,1470-row*50,250+row*6);
+            for(let x=35;x<1280;x+=35) {
+                const glow=(x*37+row*19)%7===0;
+                g.fillStyle(glow?0x9bc6d4:0x284454,glow?.55:.27).fillCircle(x,125+row*29,glow?3:2);
+            }
+        }
+        g.fillStyle(0x061828).fillRect(0,330,1280,150);
+        g.lineStyle(2,0x416179,.4).lineBetween(0,345,1280,345);
+        for(let i=-6;i<=6;i++)g.lineStyle(2,0x2786a4,.22).lineBetween(640+i*60,345,640+i*150,480);
+        for(let y=365;y<480;y+=28)g.lineStyle(1,0x2786a4,.28).lineBetween(0,y,1280,y);
+        g.fillStyle(0xb8ff00,.08).fillEllipse(320,410,440,80);
+        g.fillStyle(0x31d3d0,.09).fillEllipse(960,410,440,80);
+        g.lineStyle(4,0xb8ff00,.55).lineBetween(25,355,180,355);
+        g.lineStyle(4,0x31d3d0,.55).lineBetween(1100,355,1255,355);
+        for(let i=0;i<5;i++){
+            g.fillStyle(0xc8ee75,.12).fillCircle(65+i*35,285+i*10,5);
+            g.fillStyle(0x73f2ff,.12).fillCircle(1215-i*35,285+i*10,5);
+        }
     }
     receive(feed: Feed, reconcile = false): void {
         if (this.disposed) return;
@@ -195,6 +243,7 @@ export class GameEngine {
         this.hud.get('leftName')?.setText(displaySymbol(feed.leftSymbol)); this.hud.get('rightName')?.setText(displaySymbol(feed.rightSymbol));
         this.updateMarket();
         if (!this.paused) this.updateClocks();
+        this.updateDashboard(true);
         if (!this.paused && feed.finished && this.mode==='live' && !this.active && this.clock.count===0) this.finish();
     }
     private reconcile(): void {
@@ -205,10 +254,12 @@ export class GameEngine {
         for (const r of this.history) { this.territory.apply(r); this.clock.enqueue(r); }
         while(this.clock.next()) { /* establish deduplication baseline without cinematics */ }
         this.pendingReconcile=false; this.hud.get('result')?.setText('');
-        this.left?.setPose('FORMING_CANDLE',true); this.right?.setPose('FORMING_CANDLE',true);
+        this.left?.resetPresentation(); this.right?.resetPresentation();
+        this.left?.root.setPosition(330,this.shell?185:260); this.right?.root.setPosition(950,this.shell?185:260);
         this.drawTerritory(); this.updateMarket();
         this.completedRounds=this.history.length;
         if(this.feed?.finished)this.finish();
+        this.updateDashboard(true);
     }
     private updateMarket(): void {
         if (this.mode === "replay") return;
@@ -238,10 +289,12 @@ export class GameEngine {
         if(action==='replay') { this.catchUpReplay=false; this.replayHistory = this.history.map(r=>({...r,left:{...r.left},right:{...r.right}})); this.mode='replay'; this.restart(); }
         if(action==='live' && this.options.mode==='live') { this.catchUpReplay=false; this.mode='live'; this.terminal=false; this.setSpeed(1); this.reconcile(); }
         if(action==='restart') this.restart();
+        if(action==='history') this.showAllHistory=!this.showAllHistory;
         this.host.dataset.paused=String(this.paused); this.host.dataset.mode=this.mode;
         this.hud.get('mode')?.setText(this.mode.toUpperCase()+' · 5M');
         this.controls.querySelector('[data-cb-action="pause"]')?.setAttribute('aria-pressed',String(this.paused));
         this.controls.querySelector('[data-cb-action="mute"]')?.setAttribute('aria-pressed',String(!this.audio.muted));
+        this.updateDashboard(true);
     }
     private setSpeed(speed:number): void {
         this.speed=speed;
@@ -252,6 +305,9 @@ export class GameEngine {
         this.clearDialogue();
         this.active=undefined; this.combatElapsed=0; this.clock.clear(); this.territory.reset(); this.state.reset(); this.market.clear(); this.completedRounds=0; this.replayElapsed=0; this.terminal=false;
         this.tile?.destroy(); this.tile=undefined; this.dropTarget=undefined; this.demoIndex=0; this.demoElapsed=0; this.replayIndex=0;
+        for(const effect of this.effects)effect.image.destroy(); this.effects=[]; this.flash=0; this.lineFlash?.clear();
+        this.left?.resetPresentation(); this.right?.resetPresentation();
+        this.left?.root.setPosition(330,this.shell?185:260); this.right?.root.setPosition(950,this.shell?185:260);
         this.started=true; this.paused=false; this.hud.get('result')?.setText(''); this.drawTerritory(); this.audio.loop('arena');
         if(this.mode==='live') this.reconcile();
         if(this.mode==='demo') this.history=[];
@@ -300,13 +356,13 @@ export class GameEngine {
             const center = 640 + frame.centerOffset;
             const leftX = center - frame.separation / 2;
             const rightX = center + frame.separation / 2;
-            this.left?.root.setPosition(leftX,260); this.right?.root.setPosition(rightX,260);
+            this.left?.root.setPosition(leftX,this.shell?185:260); this.right?.root.setPosition(rightX,this.shell?185:260);
             this.left?.setCombatMotion(frame.left); this.right?.setCombatMotion(frame.right);
         } else {
-            const remaining=this.nextBattleRemaining();
+            const remaining=this.candleRemaining();
             const tension=remaining==null?0:remaining<=10_000?1:remaining<=60_000?1-(remaining-10_000)/50_000:0;
-            this.left?.root.setPosition(330+Math.sin(this.time/1100)*Math.min(5,2+tension*3),260);
-            this.right?.root.setPosition(950-Math.sin(this.time/1170)*Math.min(5,2+tension*3),260);
+            this.left?.root.setPosition(330+Math.sin(this.time/1100)*Math.min(5,2+tension*3),this.shell?185:260);
+            this.right?.root.setPosition(950-Math.sin(this.time/1170)*Math.min(5,2+tension*3),this.shell?185:260);
             this.left?.setPreparation(tension,this.time); this.right?.setPreparation(tension,this.time+650);
         }
         this.left?.update(this.time,dt,p); this.right?.update(this.time,dt,p);
@@ -339,15 +395,13 @@ export class GameEngine {
         return this.feed?.finished && start!=null && end!=null ? Math.max(0,Math.min(MATCH_DURATION,end-start)) : MATCH_DURATION;
     }
     private liveNow(): number { return this.serverAnchorMs == null ? Date.now() : this.serverAnchorMs+performance.now()-this.serverReceivedAt; }
-    private nextBattleRemaining(): number | null {
+    private candleRemaining(): number | null {
         if(this.mode==='demo') return Math.max(0,PERIOD-this.demoElapsed/(this.state.durationMs+500)*PERIOD);
         const start=this.feed?.matchStartTime;
         if(start==null || this.terminal) return null;
         const now=this.mode==='replay'?start+this.replayElapsed:this.liveNow();
-        if(now>=start+this.matchLimit()) return 0;
-        const first=Math.floor(start/PERIOD)*PERIOD;
-        const next=first+(this.completedRounds+1)*PERIOD;
-        return Math.max(0,next-now);
+        const limit=this.matchLimit();
+        return now>=start+limit?null:nextCandleCountdown(now,start,limit);
     }
     private updateClocks(): void {
         const start=this.feed?.matchStartTime;
@@ -355,12 +409,13 @@ export class GameEngine {
             : start==null?0:this.mode==='replay'?this.replayElapsed:this.feed?.finished?this.matchLimit():Math.max(0,this.liveNow()-start);
         const capped=Math.min(MATCH_DURATION,elapsed);
         this.hud.get('matchTime')?.setText(this.text('matchTime','MATCH TIME')+'  '+clockParts(capped)+' / 90:00');
-        const remaining=this.nextBattleRemaining();
-        this.hud.get('nextBattle')?.setText(this.terminal?'':this.text('nextBattle','NEXT BATTLE')+'  '+(this.active?'00:00':remaining==null?'--:--':clockParts(Math.ceil(remaining/1000)*1000)));
+        const remaining=this.candleRemaining();
+        this.hud.get('nextBattle')?.setText(this.terminal?'':this.text('nextBattle','5-MINUTE CANDLES')+'  '+(remaining==null?'--:--':clockParts(Math.ceil(remaining/1000)*1000)));
         const configuredRounds=this.feed?.expectedRounds??MATCH_ROUNDS;
         const expectedRounds=this.terminal && this.feed?.status==='finished' ? this.completedRounds : configuredRounds;
         const round=this.terminal?this.completedRounds:Math.min(configuredRounds,this.completedRounds+1);
         this.hud.get('round')?.setText(this.text('round','ROUND')+'  '+round+' / '+expectedRounds);
+        this.updateDashboard();
     }
     private finish(): void {
         if(this.terminal || !this.feed?.finished) return;
@@ -389,6 +444,7 @@ export class GameEngine {
             this.positionBubble();
         }
         this.updateClocks();
+        this.updateDashboard(true);
     }
     private begin(r:Readonly<Round>): void {
         this.clearDialogue();
@@ -404,6 +460,7 @@ export class GameEngine {
             this.drawCharts({left:this.replayHistory.slice(0,this.replayIndex).slice(-30).map(x=>x.left.close),right:this.replayHistory.slice(0,this.replayIndex).slice(-30).map(x=>x.right.close)});
         }
         this.hud.get('result')?.setText(''); this.state.start(); this.enter('SPAWNING');
+        this.updateDashboard(true);
 
     }
     private enter(phase:Phase): void {
@@ -421,7 +478,7 @@ export class GameEngine {
                 this.hud.get('result')?.setText(displaySymbol(r[r.winner].symbol)+' +1 · '+this.text('crushing'));this.audio.play('big_win');this.burst(640,300,r.winner);
             }
         }
-        if(phase==='BLOCK_FALLING') {
+        if(phase==='BLOCK_FALLING' && !this.shell) {
             if(r.winner!=='draw') {
                 const n=this.territory.history.length, col=n%20,row=5-Math.floor(n%120/20);
                 if(n>0 && n%120===0) { for(const image of this.tileImages)image.destroy(); this.tileImages=[]; }
@@ -437,6 +494,7 @@ export class GameEngine {
             if(this.territory.lines>oldLines){this.audio.play('line_complete');this.flash=1;this.burst(640,700,r.winner==='right'?'right':'left');}
             if(this.territory.special){ this.hud.get('result')?.setText(this.text(this.territory.special));this.audio.play(this.territory.special==='combo'?'combo':'big_win'); }
             this.drawTerritory();
+            this.updateDashboard(true);
         }
         if(phase==='FORMING_CANDLE') {
             this.active=undefined; this.combatElapsed=0;
@@ -445,9 +503,11 @@ export class GameEngine {
             this.left?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
             this.right?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
             this.left?.setPose(phase,true); this.right?.setPose(phase,true); this.updateMarket();
+            this.updateDashboard(true);
         }
     }
     private setLogo(side:Side,symbol:string):void {
+        if(this.shell) return;
         if(!this.scene || this.logoSymbols.get(side)===symbol)return;
         this.logoSymbols.set(side,symbol);this.logos.get(side)?.destroy();this.logos.delete(side);
         const x=side==='left'?76:1208;
@@ -479,6 +539,11 @@ export class GameEngine {
     }
     private drawTerritory():void {
         if(!this.grid || !this.scene)return;
+        if(this.shell) {
+            this.hud.get('score')?.setText(this.territory.score.left+' : '+this.territory.score.right);
+            this.updateDashboard(true);
+            return;
+        }
         const g=this.grid.clear();
         g.fillStyle(0x101925).fillRoundedRect(310,524,660,210,8).lineStyle(1,0x334354);
         for(let col=0;col<20;col++)for(let row=0;row<6;row++)g.strokeRect(320+col*32,535+row*32,30,30);
@@ -507,6 +572,117 @@ export class GameEngine {
         }
         this.hud.get('subtitle')?.setText(this.text('arcade'));this.hud.get('history')?.setText(this.text('recent'));
         this.drawTerritory();
+        this.updateDashboard(true);
+    }
+    private updateDashboard(force = false): void {
+        if(!this.dashboard || !this.scene) return;
+        const timeline=this.mode==='live'?this.liveNow():this.mode==='replay'?this.replayElapsed:this.demoElapsed;
+        const second=Math.floor(timeline/1000);
+        if(!force && second===this.lastDashboardSecond) return;
+        this.lastDashboardSecond=second;
+        const node=(key:string):HTMLElement|null=>this.controls.querySelector<HTMLElement>(`[data-cb="${key}"]`);
+        const put=(key:string,value:string):void=>{const el=node(key);if(el && el.textContent!==value)el.textContent=value;};
+        const start=this.feed?.matchStartTime;
+        const elapsed=this.mode==='demo'?Math.min(MATCH_DURATION,this.demoIndex*PERIOD+this.demoElapsed/(this.state.durationMs+500)*PERIOD)
+            :start==null?0:this.mode==='replay'?this.replayElapsed:this.feed?.finished?this.matchLimit():Math.max(0,this.liveNow()-start);
+        const matchTime=`${clockParts(Math.min(this.matchLimit(),elapsed))} / ${clockParts(this.matchLimit())}`;
+        const remaining=this.candleRemaining();
+        const countdown=this.terminal?'--:--':remaining==null?'--:--':clockParts(Math.ceil(remaining/1000)*1000);
+        put('countdown',countdown);
+        put('countdownCaption',this.terminal?this.text('finished'):this.text('candleClose'));
+        put('countdownNote',this.terminal?this.text('matchFinished'):this.active?this.text('fight'):this.text('forming'));
+        const progress=node('progress');
+        const fraction=remaining==null?0:Math.max(0,Math.min(1,1-remaining/PERIOD));
+        if(progress){progress.setAttribute('aria-valuenow',String(Math.round(fraction*100)));const fill=progress.querySelector<HTMLElement>('i');if(fill)fill.style.width=`${(fraction*100).toFixed(2)}%`;}
+        const countdownCard=this.dashboard.querySelector<HTMLElement>('.candle-battles__countdown');
+        countdownCard?.classList.toggle('is-soon',remaining!=null && remaining>0 && remaining<=30_000);
+        countdownCard?.classList.toggle('is-imminent',remaining!=null && remaining>0 && remaining<=10_000);
+        put('matchTime',matchTime);put('infoMatchTime',matchTime);
+        const expected=this.terminal && this.feed?.status==='finished'?this.completedRounds:this.feed?.expectedRounds??MATCH_ROUNDS;
+        const current=this.terminal?this.completedRounds:Math.min(expected,this.completedRounds+1);
+        const roundText=`${current} / ${expected}`;
+        put('round',`${this.text('round')} ${roundText}`);put('infoRound',roundText);
+        const score=this.territory.score;
+        put('leftScore',String(score.left));put('rightScore',String(score.right));put('infoScore',`${score.left} : ${score.right}`);
+        put('mode',this.mode==='replay'?'REPLAY':this.mode==='demo'?'DEMO':'● LIVE');
+        put('infoStatus',this.terminal?this.text('finished'):this.mode==='replay'?'REPLAY':this.feed?.status==='live'?this.text('forming'):this.text('waiting'));
+        put('candleState',this.terminal?this.text('finished'):this.active?this.text('fight'):this.feed?.status==='waiting-confirmation'?this.text('awaitingClose'):this.text('forming'));
+        put('battleStatus',this.hud.get('status')?.text??'');
+        const recent=this.mode==='replay'?this.replayHistory.slice(0,this.completedRounds):this.history.slice(0,this.completedRounds);
+        const candleFor=(side:Side):Candle|undefined=>this.active?.[side]??(this.mode==='replay'?recent[recent.length-1]?.[side]:this.market.get(side));
+        for(const side of ['left','right'] as const){
+            const symbol=this.feed?.[side+'Symbol' as 'leftSymbol'|'rightSymbol']??(side==='left'?'BTC':'ETH');
+            const shown=displaySymbol(symbol);
+            const c=candleFor(side);
+            const pct=c?(c.close/c.open-1)*100:null;
+            const change=pct==null?'—':`${pct>=0?'+':''}${pct.toFixed(2)}%`;
+            put(side+'Symbol',shown);put(side+'Asset',shown);
+            put(side+'Price',c?`$ ${c.close.toLocaleString(this.options.culture,{maximumSignificantDigits:8})}`:'—');
+            put(side+'Change',change);put(side+'Delta',change);
+            const strength=this.active?(side==='left'?this.active.leftStrength:this.active.rightStrength):c?.strength;
+            put(side+'Strength',strength==null?'—':strength.toFixed(1));
+            put(side+'ArenaStrength',strength==null?'—':strength.toFixed(1));
+            const forceFill=node(side+'ForceFill');if(forceFill)forceFill.style.width=`${Math.max(0,Math.min(100,strength??0)).toFixed(1)}%`;
+            put(side+'Volume',c?.volume==null?'—':new Intl.NumberFormat(this.options.culture,{notation:'compact',maximumFractionDigits:1}).format(c.volume));
+            for(const key of [side+'Change',side+'Delta']){const el=node(key);el?.classList.toggle('is-up',pct!=null&&pct>0);el?.classList.toggle('is-down',pct!=null&&pct<0);}
+            const logo=node(side+'Logo') as HTMLImageElement|null;
+            if(logo && logo.dataset.symbol!==symbol){
+                const fallback=node(side+'LogoFallback');
+                logo.dataset.symbol=symbol;
+                if(fallback)fallback.textContent=shown.slice(0,3);
+                logo.onload=()=>{logo.hidden=false;if(fallback)fallback.hidden=true;};
+                logo.onerror=()=>{logo.hidden=true;if(fallback)fallback.hidden=false;};
+                logo.src='/futurebol/team-logo/'+encodeURIComponent(symbol);
+            }
+        }
+        const list=node('history');
+        if(list){
+            list.replaceChildren();
+            const entries=this.showAllHistory?recent:recent.slice(-5);
+            for(const r of [...entries].reverse()){
+                const row=document.createElement('div');
+                const number=this.history.findIndex(x=>x.id===r.id)+1;
+                const round=document.createElement('span');round.textContent=`${this.text('round')} ${number}`;
+                const winner=document.createElement('strong');winner.textContent=r.winner==='draw'?this.text('draw'):`${displaySymbol(r[r.winner].symbol)} +1`;
+                const time=document.createElement('time');time.textContent=start==null?new Date(r.left.closeTime).toLocaleTimeString(this.options.culture,{hour:'2-digit',minute:'2-digit'}):clockParts(r.left.closeTime-start);
+                row.append(round);
+                if(r.winner!=='draw'){
+                    const symbol=r[r.winner].symbol;
+                    const logo=document.createElement('img');logo.alt='';logo.src='/futurebol/team-logo/'+encodeURIComponent(symbol);
+                    logo.onerror=()=>{const fallback=document.createElement('span');fallback.className='candle-battles__history-fallback';fallback.textContent=displaySymbol(symbol).slice(0,2);logo.replaceWith(fallback);};
+                    row.append(logo);
+                }
+                row.append(winner,time);list.append(row);
+            }
+        }
+        const grid=node('territory');
+        if(grid){
+            grid.replaceChildren();
+            for(let i=0;i<expected;i++){
+                const tile=document.createElement('i');
+                const winner=recent[i]?.winner;
+                if(winner==='left'||winner==='right')tile.className='is-'+winner;
+                tile.setAttribute('aria-label',winner?`${this.text('round')} ${i+1}: ${winner==='draw'?this.text('draw'):displaySymbol(recent[i][winner].symbol)}`:`${this.text('round')} ${i+1}`);
+                grid.append(tile);
+            }
+        }
+        const decided=score.left+score.right;
+        const leftPercent=decided?score.left/decided*100:0;
+        const rightPercent=decided?score.right/decided*100:0;
+        put('territoryCount',`${this.completedRounds} / ${expected}`);
+        put('territoryPercent',`${leftPercent.toFixed(1)}% / ${rightPercent.toFixed(1)}%`);
+        const fill=node('domainFill');if(fill)fill.style.width=`${leftPercent.toFixed(1)}%`;
+        const final=node('finalPanel');
+        if(final){
+            final.hidden=!this.terminal;
+            if(this.terminal){
+                const incomplete=this.feed?.status!=='finished';
+                const champion=score.left===score.right?this.text('draw'):displaySymbol(score.left>score.right?this.feed?.leftSymbol??'':this.feed?.rightSymbol??'');
+                put('champion',incomplete?this.text('incomplete'):`${this.text('champion')}: ${champion}`);
+                put('finalScore',`${score.left} : ${score.right}`);
+                put('finalDetails',`${this.text('round')} ${this.completedRounds} / ${expected} · ${this.text('territory')} ${leftPercent.toFixed(1)}% / ${rightPercent.toFixed(1)}%`);
+            }
+        }
     }
     snapshot(): object { return {mode:this.mode,phase:this.state.phase,score:{...this.territory.score},tiles:this.territory.history.map(t=>({...t})),lines:this.territory.lines,left:this.left?.geometry,right:this.right?.geometry,faceSize:this.left?.faceSize}; }
     private clearDialogue(): void {
@@ -545,10 +721,11 @@ export class GameEngine {
         bubble.hidden=false;
         bubble.style.left='0px';
         const x=canvasRect.left-hostRect.left+anchor.x*canvasRect.width/1280;
-        const y=canvasRect.top-hostRect.top+anchor.y*canvasRect.height/800;
+        const y=canvasRect.top-hostRect.top+anchor.y*canvasRect.height/(this.shell?480:800);
         const width=bubble.offsetWidth,height=bubble.offsetHeight;
-        const left=Math.max(12,Math.min(this.host.clientWidth-width-12,x-width/2));
-        const hudBottom=canvasRect.top-hostRect.top+canvasRect.height*235/800;
+        const bubbleCenter=x+(line.side==='left'?-105:105)*canvasRect.width/1280;
+        const left=Math.max(12,Math.min(this.host.clientWidth-width-12,bubbleCenter-width/2));
+        const hudBottom=this.shell?4:canvasRect.top-hostRect.top+canvasRect.height*235/800;
         const tailReach=line.kind==='thought'?25:line.kind==='shout'?0:15;
         const top=Math.max(hudBottom,Math.min(this.host.clientHeight-height-20,y-height-tailReach));
         bubble.style.left=left+'px'; bubble.style.top=top+'px';

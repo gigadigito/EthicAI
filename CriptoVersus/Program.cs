@@ -98,6 +98,13 @@ builder.Services.AddScoped<PushInterop>();
 
 builder.Services.AddBlazoredSessionStorage();
 var app = builder.Build();
+
+// Interactive Blazor rendering runs outside the per-request culture middleware. Pin the
+// process defaults so no component can pick up the host OS culture (for example de-DE).
+var defaultCultureInfo = CultureInfo.GetCultureInfo(AppCultureService.DefaultCultureCode);
+CultureInfo.DefaultThreadCurrentCulture = defaultCultureInfo;
+CultureInfo.DefaultThreadCurrentUICulture = defaultCultureInfo;
+
 var mediaContentTypeProvider = CreateMediaContentTypeProvider();
 
 CriptoVersusBlockchainStartupLogger.Log(

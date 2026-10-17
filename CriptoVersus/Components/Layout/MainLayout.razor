@@ -386,7 +386,7 @@ else
     {
         _cultureModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/culturePreference.js");
+            "./js/culturePreference.mjs");
 
         await _cultureModule.InvokeVoidAsync("setPreferredCulture", targetCulture);
         var targetPath = RouteLocalization.BuildLocalizedPathForCurrentPage(targetCulture, Nav.ToBaseRelativePath(Nav.Uri));
