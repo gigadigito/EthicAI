@@ -2831,7 +2831,7 @@
     "retry": "Reintentar",
     "error": "No se pudo actualizar. Reintentando…",
     "polling": "Actualización periódica en directo",
-    "forming": "Vela en formación · esperando cierre confirmado",
+    "forming": "Vela en formación",
     "waiting": "Esperando dos velas de 5M confirmadas",
     "finished": "Finalizada",
     "matchTime": "TIEMPO DE PARTIDO",

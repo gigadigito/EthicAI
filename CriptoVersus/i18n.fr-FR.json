@@ -2831,7 +2831,7 @@
     "retry": "Réessayer",
     "error": "Mise à jour impossible. Nouvelle tentative…",
     "polling": "Actualisation périodique en direct",
-    "forming": "Bougie en formation · clôture confirmée en attente",
+    "forming": "Bougie en formation",
     "waiting": "En attente de deux bougies 5M confirmées",
     "finished": "Terminée",
     "matchTime": "TEMPS DE MATCH",

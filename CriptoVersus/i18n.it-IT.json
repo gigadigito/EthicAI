@@ -2831,7 +2831,7 @@
     "retry": "Riprova",
     "error": "Aggiornamento non riuscito. Nuovo tentativo…",
     "polling": "Aggiornamento periodico in diretta",
-    "forming": "Candela in formazione · attesa della chiusura confermata",
+    "forming": "Candela in formazione",
     "waiting": "In attesa di due candele 5M confermate",
     "finished": "Terminata",
     "matchTime": "TEMPO PARTITA",

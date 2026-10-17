@@ -2831,7 +2831,7 @@
     "retry": "Erneut versuchen",
     "error": "Aktualisierung fehlgeschlagen. Neuer Versuch…",
     "polling": "Regelmäßige Live-Aktualisierung",
-    "forming": "Kerze entsteht · bestätigter Schluss ausstehend",
+    "forming": "Kerze entsteht",
     "waiting": "Warten auf zwei bestätigte 5M-Kerzen",
     "finished": "Beendet",
     "matchTime": "SPIELZEIT",

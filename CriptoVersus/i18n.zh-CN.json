@@ -2833,7 +2833,7 @@
     "retry": "重试",
     "error": "无法更新，正在重试…",
     "polling": "通过定期刷新获取实时数据",
-    "forming": "蜡烛形成中 · 等待确认收盘",
+    "forming": "K线形成中",
     "waiting": "等待双方5分钟蜡烛确认收盘",
     "finished": "已结束",
     "matchTime": "比赛时间",

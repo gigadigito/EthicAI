@@ -2832,7 +2832,7 @@
     "retry": "Tentar novamente",
     "error": "Não foi possível atualizar. Tentando novamente…",
     "polling": "Atualizações por consulta periódica",
-    "forming": "Candle em formação · aguardando fechamento confirmado",
+    "forming": "Candle em formação",
     "waiting": "Aguardando dois candles de 5M confirmados",
     "finished": "Finalizada",
     "matchTime": "TEMPO DA PARTIDA",

@@ -2832,7 +2832,7 @@
     "retry": "Retry",
     "error": "Unable to update. Retrying safely…",
     "polling": "Live updates via periodic refresh",
-    "forming": "Candle forming · waiting for confirmed close",
+    "forming": "Candle forming",
     "waiting": "Waiting for paired, confirmed 5M candles",
     "finished": "Finished",
     "matchTime": "MATCH TIME",
