@@ -24,7 +24,7 @@ test('dashboard shows server-aligned countdown, confirmed history and mobile lay
   window.engine.update(100);
   return {waiting,active:!!window.engine.active,rounds:window.engine.history.length};
  });
- expect(confirmed).toEqual({waiting:'00:00',active:true,rounds:1});
+ expect(confirmed.waiting).toMatch(/^04:5[89]$/);expect(confirmed.active).toBe(true);expect(confirmed.rounds).toBe(1);
  await page.evaluate(()=>{window.engine.command('replay');window.engine.command('pause');});
  const held=await page.evaluate(()=>{const before=window.engine.replayElapsed;window.engine.update(1000);return window.engine.replayElapsed===before;});
  expect(held).toBe(true);
@@ -37,6 +37,10 @@ test('comic bubbles follow fighters, pause with playback and clear for combat an
  await page.goto(url+'?kind=game');await page.waitForFunction(()=>window.engine&&window.ready);
  const first=await page.evaluate(()=>{const e=window.engine;e.command('restart');e.update(100);e.update(100);e.update(100);e.update(100);return {text:e.bubble.textContent,visible:!e.bubble.hidden,left:parseFloat(e.bubble.style.left)};});
  expect(first.visible).toBe(true);expect(first.text.length).toBeGreaterThan(0);
+ const clearance=await page.evaluate(()=>{const e=window.engine,canvas=e.game.canvas.getBoundingClientRect(),speaker=e.currentLine.side==='left'?e.left:e.right;
+  const bubble=e.bubble.getBoundingClientRect(),foot=canvas.top+(speaker.root.y+speaker.root.list[2].y)*canvas.height/480;
+  return foot-bubble.bottom;});
+ expect(clearance).toBeGreaterThan(100);
  const held=await page.evaluate(firstText=>{const e=window.engine;e.command('pause');e.update(5000);return e.bubble.textContent===firstText&& !e.bubble.hidden;},first.text);
  expect(held).toBe(true);
  await page.evaluate(()=>{const e=window.engine;e.left.root.x+=45;e.right.root.x+=45;e.positionBubble();});
@@ -167,16 +171,16 @@ test('historical match autoplays, observes pause and 2x, then freezes after eigh
 });
 
 
-test('LIVE holds at the missing candle close without awarding a point',async({page})=>{
+test('LIVE restarts the five-minute clock without awarding a point while confirmation is missing',async({page})=>{
  await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine);
  const state=await page.evaluate(()=>{
-  const now=Date.now(),start=Math.floor(now/300000)*300000-300000+1000;
+  const now=Math.floor(Date.now()/300000)*300000+1000,start=now-300000;
   const feed={matchId:92,leftSymbol:'BTC',rightSymbol:'ETH',left:null,right:null,rounds:[],status:'waiting-confirmation',finished:false,
    matchStartTime:start,expectedRounds:18,serverTime:now};
   window.engine.receive(feed,true);window.engine.receive(feed,false);
   return {mode:window.engine.mode,score:window.engine.snapshot().score,next:window.engine.hud.get('nextBattle').text};
  });
- expect(state.mode).toBe('live');expect(state.score).toEqual({left:0,right:0});expect(state.next).toContain('00:00');
+ expect(state.mode).toBe('live');expect(state.score).toEqual({left:0,right:0});expect(state.next).toMatch(/04:5[89]/);
 });
 
 test('a server-finished partial market window displays its confirmed final score',async({page})=>{

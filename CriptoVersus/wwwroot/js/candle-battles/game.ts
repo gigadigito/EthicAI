@@ -355,7 +355,7 @@ export class GameEngine {
             this.left?.root.setPosition(leftX,this.shell?185:260); this.right?.root.setPosition(rightX,this.shell?185:260);
             this.left?.setCombatMotion(frame.left); this.right?.setCombatMotion(frame.right);
         } else {
-            const remaining=this.nextBattleRemaining();
+            const remaining=this.candleRemaining();
             const tension=remaining==null?0:remaining<=10_000?1:remaining<=60_000?1-(remaining-10_000)/50_000:0;
             this.left?.root.setPosition(330+Math.sin(this.time/1100)*Math.min(5,2+tension*3),this.shell?185:260);
             this.right?.root.setPosition(950-Math.sin(this.time/1170)*Math.min(5,2+tension*3),this.shell?185:260);
@@ -391,12 +391,13 @@ export class GameEngine {
         return this.feed?.finished && start!=null && end!=null ? Math.max(0,Math.min(MATCH_DURATION,end-start)) : MATCH_DURATION;
     }
     private liveNow(): number { return this.serverAnchorMs == null ? Date.now() : this.serverAnchorMs+performance.now()-this.serverReceivedAt; }
-    private nextBattleRemaining(): number | null {
+    private candleRemaining(): number | null {
         if(this.mode==='demo') return Math.max(0,PERIOD-this.demoElapsed/(this.state.durationMs+500)*PERIOD);
         const start=this.feed?.matchStartTime;
         if(start==null || this.terminal) return null;
         const now=this.mode==='replay'?start+this.replayElapsed:this.liveNow();
-        return nextCandleCountdown(now,start,this.completedRounds,this.feed?.expectedRounds??MATCH_ROUNDS,this.matchLimit());
+        const limit=this.matchLimit();
+        return now>=start+limit?null:nextCandleCountdown(now,start,limit);
     }
     private updateClocks(): void {
         const start=this.feed?.matchStartTime;
@@ -404,8 +405,8 @@ export class GameEngine {
             : start==null?0:this.mode==='replay'?this.replayElapsed:this.feed?.finished?this.matchLimit():Math.max(0,this.liveNow()-start);
         const capped=Math.min(MATCH_DURATION,elapsed);
         this.hud.get('matchTime')?.setText(this.text('matchTime','MATCH TIME')+'  '+clockParts(capped)+' / 90:00');
-        const remaining=this.nextBattleRemaining();
-        this.hud.get('nextBattle')?.setText(this.terminal?'':this.text('nextBattle','NEXT BATTLE')+'  '+(this.active?'00:00':remaining==null?'--:--':clockParts(Math.ceil(remaining/1000)*1000)));
+        const remaining=this.candleRemaining();
+        this.hud.get('nextBattle')?.setText(this.terminal?'':this.text('nextBattle','5-MINUTE CANDLES')+'  '+(remaining==null?'--:--':clockParts(Math.ceil(remaining/1000)*1000)));
         const configuredRounds=this.feed?.expectedRounds??MATCH_ROUNDS;
         const expectedRounds=this.terminal && this.feed?.status==='finished' ? this.completedRounds : configuredRounds;
         const round=this.terminal?this.completedRounds:Math.min(configuredRounds,this.completedRounds+1);
@@ -581,12 +582,11 @@ export class GameEngine {
         const elapsed=this.mode==='demo'?Math.min(MATCH_DURATION,this.demoIndex*PERIOD+this.demoElapsed/(this.state.durationMs+500)*PERIOD)
             :start==null?0:this.mode==='replay'?this.replayElapsed:this.feed?.finished?this.matchLimit():Math.max(0,this.liveNow()-start);
         const matchTime=`${clockParts(Math.min(this.matchLimit(),elapsed))} / ${clockParts(this.matchLimit())}`;
-        const remaining=this.nextBattleRemaining();
-        const waiting=remaining===0 && !this.active && !this.terminal;
+        const remaining=this.candleRemaining();
         const countdown=this.terminal?'--:--':remaining==null?'--:--':clockParts(Math.ceil(remaining/1000)*1000);
         put('countdown',countdown);
-        put('countdownCaption',this.terminal?this.text('finished'):waiting?this.text('awaitingClose'):this.text('candleClose'));
-        put('countdownNote',this.terminal?this.text('matchFinished'):waiting?this.text('awaitingClose'):this.active?this.text('fight'):this.text('forming'));
+        put('countdownCaption',this.terminal?this.text('finished'):this.text('candleClose'));
+        put('countdownNote',this.terminal?this.text('matchFinished'):this.active?this.text('fight'):this.text('forming'));
         const progress=node('progress');
         const fraction=remaining==null?0:Math.max(0,Math.min(1,1-remaining/PERIOD));
         if(progress){progress.setAttribute('aria-valuenow',String(Math.round(fraction*100)));const fill=progress.querySelector<HTMLElement>('i');if(fill)fill.style.width=`${(fraction*100).toFixed(2)}%`;}
@@ -602,7 +602,7 @@ export class GameEngine {
         put('leftScore',String(score.left));put('rightScore',String(score.right));put('infoScore',`${score.left} : ${score.right}`);
         put('mode',this.mode==='replay'?'REPLAY':this.mode==='demo'?'DEMO':'● LIVE');
         put('infoStatus',this.terminal?this.text('finished'):this.mode==='replay'?'REPLAY':this.feed?.status==='live'?this.text('forming'):this.text('waiting'));
-        put('candleState',this.terminal?this.text('finished'):this.active?this.text('fight'):waiting?this.text('awaitingClose'):this.text('forming'));
+        put('candleState',this.terminal?this.text('finished'):this.active?this.text('fight'):this.feed?.status==='waiting-confirmation'?this.text('awaitingClose'):this.text('forming'));
         put('battleStatus',this.hud.get('status')?.text??'');
         const recent=this.mode==='replay'?this.replayHistory.slice(0,this.completedRounds):this.history.slice(0,this.completedRounds);
         const candleFor=(side:Side):Candle|undefined=>this.active?.[side]??(this.mode==='replay'?recent[recent.length-1]?.[side]:this.market.get(side));
@@ -719,7 +719,8 @@ export class GameEngine {
         const x=canvasRect.left-hostRect.left+anchor.x*canvasRect.width/1280;
         const y=canvasRect.top-hostRect.top+anchor.y*canvasRect.height/(this.shell?480:800);
         const width=bubble.offsetWidth,height=bubble.offsetHeight;
-        const left=Math.max(12,Math.min(this.host.clientWidth-width-12,x-width/2));
+        const bubbleCenter=x+(line.side==='left'?-105:105)*canvasRect.width/1280;
+        const left=Math.max(12,Math.min(this.host.clientWidth-width-12,bubbleCenter-width/2));
         const hudBottom=this.shell?4:canvasRect.top-hostRect.top+canvasRect.height*235/800;
         const tailReach=line.kind==='thought'?25:line.kind==='shout'?0:15;
         const top=Math.max(hudBottom,Math.min(this.host.clientHeight-height-20,y-height-tailReach));

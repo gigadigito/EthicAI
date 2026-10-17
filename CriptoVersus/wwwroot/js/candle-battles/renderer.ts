@@ -3,6 +3,7 @@ import { Candle, CombatMotion, FighterAnimation, Geometry, Phase, Side, TEAM, OU
 
 type FighterDirection = keyof typeof OUTLINE;
 export type FinalFighterState = 'none' | 'winner' | 'loser' | 'draw';
+const CANDLE_LIFT = 60;
 
 const ACTION_FRAME_COUNTS: Record<Exclude<FighterAnimation, 'idle'>, number> = {
     // Hold the damage pose while its alpha fades; cycling the source montage
@@ -63,6 +64,8 @@ export class CandleRenderer {
         registerFighterAnimations(scene);
         this.aura = scene.add.graphics();
         this.body = scene.add.graphics();
+        this.aura.setY(-CANDLE_LIFT);
+        this.body.setY(-CANDLE_LIFT);
         this.sprite = scene.add.sprite(0, 0, 'modular', fighterFrame(side, 'neutral', 'idle', 1));
         this.sprite.setOrigin(.5, 1);
         this.root = scene.add.container(x, y, [this.aura, this.body, this.sprite]);
@@ -137,7 +140,7 @@ export class CandleRenderer {
     get finalVisualState(): FinalFighterState { return this.finalState; }
     get speechAnchor(): { x: number; y: number } {
         // The atlas frame includes transparent padding above the illustrated face.
-        return { x: this.root.x + this.sprite.x, y: this.root.y + this.sprite.y - 72 };
+        return { x: this.root.x + this.sprite.x, y: this.root.y + this.sprite.y - 165 };
     }
 
     update(time: number, delta: number, progress = 0): void {
