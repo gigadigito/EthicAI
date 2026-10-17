@@ -2860,7 +2860,8 @@
     "candleState": "Estado do candle",
     "champion": "Campeão",
     "watchReplay": "Assistir replay",
-    "change5m": "VARIAÇÃO 5M",
+    "change5m": "VARIA\u00C7\u00C3O 5M",
+    "marketVolume": "VOLUME",
     "currentBattle": "Embate atual",
     "status": "Status"
   }

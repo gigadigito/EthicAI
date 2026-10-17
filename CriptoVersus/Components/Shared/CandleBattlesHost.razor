@@ -87,7 +87,7 @@
 
     private RenderFragment AssetPanel(string side) => @<section class="candle-battles__asset candle-battles__asset--@side">
         <div class="candle-battles__asset-heading"><img data-cb="@(side)Logo" alt="" /><span class="candle-battles__logo-fallback" data-cb="@(side)LogoFallback" hidden>—</span><div><h2 data-cb="@(side)Asset">—</h2><strong data-cb="@(side)Price">—</strong><em data-cb="@(side)Change">—</em></div></div>
-        <div class="candle-battles__metrics"><div><small>@T("strength")</small><strong data-cb="@(side)Strength">—</strong></div><div><small>@T("volume")</small><strong data-cb="@(side)Volume">—</strong></div><div><small>@T("change5m")</small><strong data-cb="@(side)Delta">—</strong></div></div>
+        <div class="candle-battles__metrics"><div><small>@T("strength")</small><strong data-cb="@(side)Strength">—</strong></div><div><small>@T("marketVolume")</small><strong data-cb="@(side)Volume">—</strong></div><div><small>@T("change5m")</small><strong data-cb="@(side)Delta">—</strong></div></div>
     </section>;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
