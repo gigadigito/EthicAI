@@ -550,6 +550,8 @@ The arcade match window uses the exchange five-minute interval containing Match.
 
 The TypeScript renderer draws financial body/wicks and keeps the OHLC geometry separate from real, alpha-trimmed fighter action sprites. The atlas registers team and OHLC-direction variants for RUN, PUNCH, BREAK and RECOVER; uniform sprite scaling preserves artwork proportions while candle body size remains financial. A snapshot for an active battle is immutable while the independent heartbeat receives the next candle. Audio, resize and browser listeners are instance-owned and disposed. The build emits versioned local Phaser and native ESM modules; generated JS is not hand-edited. User-supplied source art stays outside wwwroot, and visual-test fixtures are excluded from publication. See docs/candle-battles.md for formula parameters, schema ownership, asset preparation and verification limits.
 
+`candle-battles/dialogue.ts` owns the local, eight-language comic dialogue catalog and deterministic selection by match, round and idle slot. `game.ts` advances one two-line conversation on the existing presentation clock, including Replay speed and pause, and interrupts it at combat. The HTML bubble tracks the Phaser sprite anchor through the fitted canvas and stays separate from scoring, market data, and the persisted round timeline. Final winner, loser and draw lines use the same presentation layer.
+
 ## MCP Flow
 
 ```mermaid

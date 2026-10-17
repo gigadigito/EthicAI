@@ -1,0 +1,12 @@
+.candle-battles__bubble{position:absolute;z-index:10;box-sizing:border-box;max-width:min(250px,48%);padding:9px 14px;background:#fffdf4;color:#111;border:3px solid #111;border-radius:48% 45% 46% 42% / 45% 50% 44% 50%;box-shadow:3px 4px 0 #1119;font-family:"Comic Sans MS","Trebuchet MS",system-ui,sans-serif;font-size:clamp(11px,1.2vw,17px);font-weight:900;line-height:1.15;text-align:center;overflow-wrap:anywhere;pointer-events:none;transform:rotate(-1deg)}
+.candle-battles__bubble[hidden]{display:none}
+.candle-battles__bubble span{position:relative;z-index:1}
+.candle-battles__bubble::before{content:"";position:absolute;left:var(--tail-x);bottom:-19px;border-left:13px solid transparent;border-right:6px solid transparent;border-top:20px solid #111;transform:translateX(-50%)}
+.candle-battles__bubble::after{content:"";position:absolute;left:var(--tail-x);bottom:-12px;border-left:9px solid transparent;border-right:3px solid transparent;border-top:15px solid #fffdf4;transform:translateX(-50%)}
+.candle-battles__bubble--shout{padding-bottom:23px;border:0;border-radius:0;background:#111;box-shadow:none;transform:rotate(1deg);clip-path:polygon(0 17%,11% 19%,5% 0,26% 11%,39% 0,51% 11%,66% 0,76% 12%,95% 3%,91% 24%,100% 35%,92% 51%,100% 70%,88% 77%,94% 91%,73% 83%,calc(var(--tail-x) + 7px) 82%,var(--tail-x) 100%,calc(var(--tail-x) - 12px) 82%,39% 90%,18% 95%,15% 79%,0 80%,8% 59%)}
+.candle-battles__bubble--shout::before{inset:3px;transform:none;background:#fffdf4;border:0;clip-path:inherit}
+.candle-battles__bubble--shout::after{display:none}
+.candle-battles__bubble--thought{border-radius:48%;font-style:italic}
+.candle-battles__bubble--thought::before{width:11px;height:11px;bottom:-15px;border:2px solid #111;border-radius:50%;background:#fffdf4;transform:translateX(-50%)}
+.candle-battles__bubble--thought::after{width:5px;height:5px;bottom:-25px;border:2px solid #111;border-radius:50%;background:#fffdf4;transform:translateX(-50%)}
+@media(max-width:600px){.candle-battles__bubble{max-width:48%;padding:5px 8px;font-size:11px;border-width:2px;box-shadow:2px 2px 0 #1119}.candle-battles__bubble--shout{padding-bottom:16px;border:0;box-shadow:none}}

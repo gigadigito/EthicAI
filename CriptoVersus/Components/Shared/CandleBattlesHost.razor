@@ -7,6 +7,7 @@
 @inject IConfiguration Config
 @implements IAsyncDisposable
 
+<link rel="stylesheet" href="/css/candle-battles-dialogue.css?v=20261016e" />
 <section class="candle-battles" aria-label="Candle Battles">
     <header class="candle-battles__toolbar">
         <strong>CANDLE BATTLES <small>@T("arcade")</small></strong>
@@ -26,7 +27,9 @@
         <label>@T("music") <input type="range" min="0" max="1" step="0.05" value="0.35" data-cb-action="music" /></label>
         <label>@T("effects") <input type="range" min="0" max="1" step="0.05" value="0.7" data-cb-action="effects" /></label>
     </div>
-    <div class="candle-battles__canvas" @ref="_canvas" role="img" aria-label="@T("arena")"></div>
+    <div class="candle-battles__canvas" @ref="_canvas" role="img" aria-label="@T("arena")">
+        <div class="candle-battles__bubble" data-cb-bubble hidden aria-hidden="true"><span data-cb-bubble-text></span></div>
+    </div>
     <footer class="candle-battles__footer" role="status" aria-live="polite">
         <span>@(MatchId == 0 ? T("demo") : T("independent"))</span>
         <span>@_status</span>
@@ -61,7 +64,7 @@
         if (!_disposed && _engine is not null && _renderedCulture != Culture)
         {
             _renderedCulture = Culture;
-            try { await _engine.InvokeVoidAsync("setLabels", LabelKeys.ToDictionary(k => k, T)); }
+            try { await _engine.InvokeVoidAsync("setLabels", LabelKeys.ToDictionary(k => k, T), Culture); }
             catch (JSDisconnectedException) { }
         }
     }
@@ -69,9 +72,9 @@
     {
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261016d.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261016e.js");
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
-                new { mode = MatchId == 0 ? "demo" : "live", labels = LabelKeys.ToDictionary(k => k, T), battleDurationMs = Math.Clamp(Config.GetValue("CandleBattles:AnimationDurationMs", 3800), 3000, 5000), crushingDifference = Math.Clamp(Config.GetValue("CandleBattles:CrushingDifference", 25), 0, 100) });
+                new { mode = MatchId == 0 ? "demo" : "live", culture = Culture, labels = LabelKeys.ToDictionary(k => k, T), battleDurationMs = Math.Clamp(Config.GetValue("CandleBattles:AnimationDurationMs", 3800), 3000, 5000), crushingDifference = Math.Clamp(Config.GetValue("CandleBattles:CrushingDifference", 25), 0, 100) });
             if (_disposed) return;
             _failed = false;
             if (MatchId > 0)

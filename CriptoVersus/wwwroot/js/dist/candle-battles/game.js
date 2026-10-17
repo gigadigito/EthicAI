@@ -1,6 +1,7 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, combatFrame } from './model.js?v=20261016d';
-import { CandleRenderer } from './renderer.js?v=20261016d';
-import { AudioManager } from './audio.js?v=20261016d';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, combatFrame } from './model.js?v=20261016e';
+import { CandleRenderer } from './renderer.js?v=20261016e';
+import { AudioManager } from './audio.js?v=20261016e';
+import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261016e';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -50,8 +51,11 @@ export class GameEngine {
         this.backgrounded = false;
         this.time = 0;
         this.combatElapsed = 0;
+        this.dialogue = new DialogueClock();
+        this.finaleElapsed = 0;
         this.mode = options.mode;
         this.state = new BattleStateMachine(options.battleDurationMs);
+        this.bubble = host.querySelector('[data-cb-bubble]');
         this.ready = new Promise((resolve, reject) => { this.readyResolve = resolve; this.readyReject = reject; });
         this.readyTimer = setTimeout(() => this.readyReject(new Error('Candle Battles asset load timeout')), 20000);
         this.controls = host.closest('.candle-battles') ?? host;
@@ -170,6 +174,7 @@ export class GameEngine {
             this.autoplayInitialized = false;
             this.catchUpReplay = false;
             this.terminal = false;
+            this.clearDialogue();
         }
         this.feed = feed;
         this.pendingReconcile || (this.pendingReconcile = reconcile);
@@ -234,6 +239,8 @@ export class GameEngine {
             this.finish();
     }
     reconcile() {
+        if (!this.terminal)
+            this.clearDialogue();
         this.active = undefined;
         this.state.reset();
         this.clock.clear();
@@ -343,6 +350,7 @@ export class GameEngine {
             select.value = String(speed);
     }
     restart() {
+        this.clearDialogue();
         this.active = undefined;
         this.combatElapsed = 0;
         this.clock.clear();
@@ -443,6 +451,7 @@ export class GameEngine {
         }
         this.left?.update(this.time, dt, p);
         this.right?.update(this.time, dt, p);
+        this.updateDialogue(battleDt);
         if (this.tile && this.dropTarget)
             this.tile.setPosition(this.dropTarget.x, 470 + (this.dropTarget.y - 470) * p * p);
         this.flash = Math.max(0, this.flash - dt / 500);
@@ -539,9 +548,16 @@ export class GameEngine {
         this.hud.get('status')?.setText(this.text('matchFinished', 'MATCH FINISHED') + (incomplete ? '' : ' — ' + winner + (left === right ? '' : ' ' + this.text('wins', 'WINS'))));
         this.hud.get('result')?.setText(incomplete ? this.text('incomplete', 'INCOMPLETE RESULT') : `${this.text('finalScore', 'FINAL SCORE')}: ${left} × ${right}`);
         this.hud.get('nextBattle')?.setText('');
+        this.clearDialogue();
+        if (!incomplete) {
+            this.finale = finalLines(this.feed.matchId, this.territory.score, this.options.culture ?? 'en');
+            this.currentLine = this.finale[0];
+            this.positionBubble();
+        }
         this.updateClocks();
     }
     begin(r) {
+        this.clearDialogue();
         this.active = r;
         this.combatElapsed = 0;
         const range = sharedRange([r.left, r.right]);
@@ -708,17 +724,91 @@ export class GameEngine {
         this.hud.get('lines')?.setText(this.text('lines') + ' ' + this.territory.lines + ' · ' + this.text('page') + ' ' + (this.territory.page + 1));
         this.hud.get('recent')?.setText(this.territory.history.slice(-7).reverse().map(t => (t.side === 'left' ? this.hud.get('leftName')?.text : this.hud.get('rightName')?.text) + '  +1').join('\n\n'));
     }
-    setLabels(labels) {
+    setLabels(labels, culture) {
         this.options.labels = labels;
+        const cultureChanged = !!culture && culture !== this.options.culture;
+        if (culture)
+            this.options.culture = culture;
+        if (cultureChanged) {
+            this.clearDialogue();
+            if (this.terminal && this.feed?.status === 'finished') {
+                this.finale = finalLines(this.feed.matchId, this.territory.score, culture);
+                this.currentLine = this.finale[0];
+                this.positionBubble();
+            }
+        }
         this.hud.get('subtitle')?.setText(this.text('arcade'));
         this.hud.get('history')?.setText(this.text('recent'));
         this.drawTerritory();
     }
     snapshot() { return { mode: this.mode, phase: this.state.phase, score: { ...this.territory.score }, tiles: this.territory.history.map(t => ({ ...t })), lines: this.territory.lines, left: this.left?.geometry, right: this.right?.geometry, faceSize: this.left?.faceSize }; }
+    clearDialogue() {
+        this.dialogue.reset();
+        this.conversation = undefined;
+        this.currentLine = undefined;
+        this.finale = undefined;
+        this.finaleElapsed = 0;
+        if (this.bubble)
+            this.bubble.hidden = true;
+    }
+    updateDialogue(delta) {
+        if (this.terminal) {
+            if (!this.finale)
+                return;
+            this.finaleElapsed += delta;
+            this.currentLine = this.finaleElapsed < 3000 ? this.finale[0] : this.finaleElapsed < 6500 ? this.finale[1] : undefined;
+        }
+        else if (!this.active && (this.started || this.mode === 'live')) {
+            const step = this.dialogue.advance(delta, this.feed?.matchId ?? 0, this.completedRounds + 1);
+            if (step) {
+                if (step.line === 0) {
+                    const previous = this.mode === 'replay' && this.replayIndex > 0 ? this.replayHistory[this.replayIndex - 1] : undefined;
+                    this.conversation = dialogueLines({ matchId: this.feed?.matchId ?? 0, round: this.completedRounds + 1, score: this.territory.score,
+                        left: previous ? { ...previous.left, strength: previous.leftStrength } : this.mode === 'replay' ? undefined : this.market.get('left'),
+                        right: previous ? { ...previous.right, strength: previous.rightStrength } : this.mode === 'replay' ? undefined : this.market.get('right'),
+                        lastWinner: this.territory.lastWinner }, this.options.culture ?? 'en', step.slot);
+                }
+                this.currentLine = this.conversation?.[step.line];
+            }
+            else if (!this.dialogue.visible)
+                this.currentLine = undefined;
+        }
+        else
+            this.currentLine = undefined;
+        this.positionBubble();
+    }
+    positionBubble() {
+        const bubble = this.bubble, line = this.currentLine, fighter = line?.side === 'left' ? this.left : this.right;
+        if (!bubble || !line || !fighter) {
+            if (bubble)
+                bubble.hidden = true;
+            return;
+        }
+        const canvas = this.game.canvas;
+        const hostRect = this.host.getBoundingClientRect(), canvasRect = canvas.getBoundingClientRect();
+        const anchor = fighter.speechAnchor;
+        bubble.className = 'candle-battles__bubble candle-battles__bubble--' + line.kind;
+        const content = bubble.querySelector('[data-cb-bubble-text]');
+        if (content && content.textContent !== line.text)
+            content.textContent = line.text;
+        bubble.hidden = false;
+        bubble.style.left = '0px';
+        const x = canvasRect.left - hostRect.left + anchor.x * canvasRect.width / 1280;
+        const y = canvasRect.top - hostRect.top + anchor.y * canvasRect.height / 800;
+        const width = bubble.offsetWidth, height = bubble.offsetHeight;
+        const left = Math.max(12, Math.min(this.host.clientWidth - width - 12, x - width / 2));
+        const hudBottom = canvasRect.top - hostRect.top + canvasRect.height * 235 / 800;
+        const tailReach = line.kind === 'thought' ? 25 : line.kind === 'shout' ? 0 : 15;
+        const top = Math.max(hudBottom, Math.min(this.host.clientHeight - height - 20, y - height - tailReach));
+        bubble.style.left = left + 'px';
+        bubble.style.top = top + 'px';
+        bubble.style.setProperty('--tail-x', Math.max(18, Math.min(width - 18, x - left)) + 'px');
+    }
     dispose() {
         if (this.disposed)
             return;
         this.disposed = true;
+        this.clearDialogue();
         if (this.readyTimer)
             clearTimeout(this.readyTimer);
         this.controls.removeEventListener('click', this.controlClick);

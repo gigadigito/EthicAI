@@ -1,4 +1,4 @@
-import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js?v=20261016d';
+import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js?v=20261016e';
 const ACTION_FRAME_COUNTS = {
     // Hold the damage pose while its alpha fades; cycling the source montage
     // would reveal neighbouring colour variants.
@@ -127,6 +127,10 @@ export class CandleRenderer {
     get faceSize() { return { width: this.sprite.width, height: this.sprite.height }; }
     get outlineColor() { return OUTLINE[this.direction]; }
     get finalVisualState() { return this.finalState; }
+    get speechAnchor() {
+        // The atlas frame includes transparent padding above the illustrated face.
+        return { x: this.root.x + this.sprite.x, y: this.root.y + this.sprite.y - 72 };
+    }
     update(time, delta, progress = 0) {
         if (!this.target || !this.from)
             return;

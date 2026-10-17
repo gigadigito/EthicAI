@@ -2,6 +2,28 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase, matchWindow, roundInMatch, clockParts, MATCH_DURATION, PERIOD } from '../../dist/candle-battles/model.js';
 import { registerFighterAnimations } from '../../dist/candle-battles/renderer.js';
+import { DialogueClock, dialogueLines, finalLines } from '../../dist/candle-battles/dialogue.js';
+
+test('comic dialogue uses available match data, localization and a repeatable sequence', () => {
+    const round=demoRound(2);
+    const context={matchId:73,round:3,score:{left:10,right:7},left:{...round.left,strength:29.5},right:{...round.right,strength:19.7}};
+    const first=Array.from({length:12},(_,slot)=>dialogueLines(context,'pt-BR',slot));
+    assert.deepEqual(first,Array.from({length:12},(_,slot)=>dialogueLines(context,'pt-BR',slot)));
+    assert.ok(first.some(lines=>lines.some(line=>line.text.includes('29.5')||line.text.includes('10 A 7'))));
+    assert.ok(first.every(lines=>lines[0].side!==lines[1].side));
+    assert.notEqual(dialogueLines(context,'en-US',0)[0].text,first[0][0].text);
+    const unavailable=dialogueLines({...context,left:undefined,right:undefined},'pt-BR',3);
+    assert.ok(unavailable.every(line=>!line.text.includes('29.5')&&!line.text.includes('%')));
+    assert.ok(['EU AVISEI!','RESPEITA O CAMPEÃO!'].includes(finalLines(73,context.score,'pt-BR').find(line=>line.side==='left').text));
+    assert.ok(finalLines(73,{left:2,right:2},'pt-BR').every(line=>!line.text.includes('CAMPEÃO')));
+});
+
+test('dialogue clock provides one exchange then cooldown and restarts identically', () => {
+    const run=(speed)=>{const clock=new DialogueClock(),events=[];for(let elapsed=0;elapsed<32000;elapsed+=100*speed){const event=clock.advance(100*speed,73,3);if(event)events.push(event);}return events;};
+    for(const speed of [1,2,5]) assert.deepEqual(run(speed).slice(0,2),[{slot:0,line:0},{slot:0,line:1}]);
+    const clock=new DialogueClock();clock.advance(500,73,3);clock.reset();
+    assert.deepEqual(clock.advance(500,73,3),{slot:0,line:0});
+});
 
 test('idle holds one upright fighter frame without cycling through stun poses', () => {
     const animations = new Map();

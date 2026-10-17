@@ -1,5 +1,23 @@
 import { test, expect } from '@playwright/test';
 const url='/js/candle-battles/tests/visual.html';
+test('comic bubbles follow fighters, pause with playback and clear for combat and restart',async({page})=>{
+ await page.goto(url+'?kind=game');await page.waitForFunction(()=>window.engine&&window.ready);
+ const first=await page.evaluate(()=>{const e=window.engine;e.command('restart');e.update(100);e.update(100);e.update(100);e.update(100);return {text:e.bubble.textContent,visible:!e.bubble.hidden,left:parseFloat(e.bubble.style.left)};});
+ expect(first.visible).toBe(true);expect(first.text.length).toBeGreaterThan(0);
+ const held=await page.evaluate(firstText=>{const e=window.engine;e.command('pause');e.update(5000);return e.bubble.textContent===firstText&& !e.bubble.hidden;},first.text);
+ expect(held).toBe(true);
+ await page.evaluate(()=>{const e=window.engine;e.left.root.x+=45;e.right.root.x+=45;e.positionBubble();});
+ expect(await page.evaluate(()=>parseFloat(window.engine.bubble.style.left))).toBeGreaterThan(first.left);
+ await page.evaluate(()=>window.engine.command('pause'));
+ await page.evaluate(async()=>{const e=window.engine;const {demoRound}=await import('/js/dist/candle-battles/model.js');e.begin(demoRound(0));});
+ expect(await page.evaluate(()=>window.engine.bubble.hidden)).toBe(true);
+ await page.evaluate(()=>window.engine.command('restart'));
+ expect(await page.evaluate(()=>window.engine.bubble.hidden)).toBe(true);
+ await page.setViewportSize({width:390,height:844});
+ await page.waitForTimeout(100);
+ const mobile=await page.evaluate(()=>{const e=window.engine;e.update(100);e.update(100);e.update(100);e.update(100);const b=e.bubble.getBoundingClientRect(),h=e.host.getBoundingClientRect();return {visible:!e.bubble.hidden,left:b.left,right:b.right,hostLeft:h.left,hostRight:h.right};});
+ expect(mobile.visible).toBe(true);expect(mobile.left).toBeGreaterThanOrEqual(mobile.hostLeft);expect(mobile.right).toBeLessThanOrEqual(mobile.hostRight);
+});
 test('small, medium, large, doji and extreme wicks preserve accessory sizes for both teams',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(url);await page.waitForFunction(()=>window.ready);
  const before=await page.evaluate(()=>window.fighters.map(x=>({face:x.fighter.faceSize,g:x.fighter.geometry,color:x.fighter.outlineColor})));
@@ -139,13 +157,18 @@ test('a server-finished partial market window displays its confirmed final score
   for(let i=0;i<500&&!window.engine.terminal;i++) window.engine.update(100);
   return {terminal:window.engine.terminal,result:window.engine.hud.get('result').text,status:window.engine.hud.get('status').text,
    round:window.engine.hud.get('round').text,score:window.engine.snapshot().score,leftName:window.engine.hud.get('leftName').text,
-   rightName:window.engine.hud.get('rightName').text,leftFinal:window.engine.left.finalVisualState,rightFinal:window.engine.right.finalVisualState};
+   rightName:window.engine.hud.get('rightName').text,leftFinal:window.engine.left.finalVisualState,rightFinal:window.engine.right.finalVisualState,
+   bubbleVisible:!window.engine.bubble.hidden,finalLine:window.engine.currentLine};
  });
  expect(final.terminal).toBe(true);expect(final.result).toContain('FINAL SCORE');expect(final.result).not.toContain('INCOMPLETE');
  expect(final.round).toContain('17 / 17');expect(final.score).toEqual({left:9,right:7});
  expect(final.status).toContain('AVAX WINS');expect(final.status).not.toContain('USDT');
  expect(final.leftName).toBe('AVAX');expect(final.rightName).toBe('OP');
  expect(final.leftFinal).toBe('winner');expect(final.rightFinal).toBe('loser');
+ expect(final.bubbleVisible).toBe(true);expect(final.finalLine.text.length).toBeGreaterThan(0);
+ const dialogue=await page.evaluate(()=>{const e=window.engine;e.command('pause');const line=e.currentLine;e.update(1000);const held=e.currentLine===line;
+  e.command('pause');for(let i=0;i<3;i++)e.update(100);return {held,reply:e.currentLine};});
+ expect(dialogue.held).toBe(true);expect(dialogue.reply.side).not.toBe(final.finalLine.side);
 });
 
 test('native controls unlock supplied audio, change volume and enter fullscreen',async({page})=>{

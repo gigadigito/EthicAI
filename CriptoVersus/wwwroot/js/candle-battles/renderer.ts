@@ -133,6 +133,10 @@ export class CandleRenderer {
     get faceSize(): { width: number; height: number } { return { width: this.sprite.width, height: this.sprite.height }; }
     get outlineColor(): number { return OUTLINE[this.direction]; }
     get finalVisualState(): FinalFighterState { return this.finalState; }
+    get speechAnchor(): { x: number; y: number } {
+        // The atlas frame includes transparent padding above the illustrated face.
+        return { x: this.root.x + this.sprite.x, y: this.root.y + this.sprite.y - 72 };
+    }
 
     update(time: number, delta: number, progress = 0): void {
         if (!this.target || !this.from) return;
