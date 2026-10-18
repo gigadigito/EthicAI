@@ -121,13 +121,22 @@
 
         @if (_showCommunityMatchFloatingCard)
         {
-            <aside class="community-match-floating"
+            <aside class="community-match-floating @(_communityMatchCardExpanded ? "is-expanded" : null)"
                    role="complementary"
-                   aria-label="@T("communityMatch.title")">
+                   aria-label="@CommunityMatchT("title")">
+                <button type="button"
+                        class="community-match-floating__toggle"
+                        title="@CommunityMatchT("title")"
+                        aria-label="@CommunityMatchT("title")"
+                        aria-expanded="@_communityMatchCardExpanded"
+                        @onclick="ToggleCommunityMatchFloatingCard">
+                    <span aria-hidden="true">@(_communityMatchCardExpanded ? "−" : "+")</span>
+                </button>
+
                 <button type="button"
                         class="community-match-floating__close"
-                        title="@T("communityMatch.modal.close")"
-                        aria-label="@T("communityMatch.modal.close")"
+                        title="@CommunityMatchT("modal.close")"
+                        aria-label="@CommunityMatchT("modal.close")"
                         @onclick="CloseCommunityMatchFloatingCard">
                     ×
                 </button>
@@ -4597,45 +4606,55 @@
     /* Convite discreto para criação pública de batalhas */
 
     .community-match-floating {
-        position: relative;
-        z-index: 1;
-        width: min(100%, 420px);
-        max-width: 100%;
-        margin: 0 0 24px auto;
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        z-index: 1040;
+        width: auto;
+        max-width: min(320px, calc(100vw - 48px));
         overflow: visible;
         border: 0;
-        border-radius: 999px;
+        border-radius: 18px;
         background: transparent;
         box-shadow: none;
     }
 
+    .community-match-floating__toggle {
+        display: none;
+    }
+
     .community-match-floating__close {
         position: absolute;
-        top: -12px;
-        right: -12px;
+        top: -10px;
+        right: -10px;
         z-index: 10;
         display: grid;
         place-items: center;
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         padding: 0;
-        color: #ffffff;
-        font-size: 1.15rem;
-        font-weight: 900;
+        color: rgba(241,245,249,.85);
+        font-size: 1rem;
+        font-weight: 700;
         line-height: 1;
-        border: 2px solid rgba(255,255,255,.24);
+        border: 1px solid rgba(83,200,255,.35);
         border-radius: 999px;
-        background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.14), transparent 34%), linear-gradient(180deg, rgba(31,41,55,.98), rgba(5,10,16,.98));
-        box-shadow: 0 0 0 3px rgba(0,0,0,.28), 0 8px 20px rgba(0,0,0,.5), 0 0 14px rgba(83,200,255,.18);
+        background: #0b1625;
+        box-shadow: 0 6px 16px rgba(0,0,0,.4);
         cursor: pointer;
-        transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+        transition: color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
     }
 
         .community-match-floating__close:hover,
         .community-match-floating__close:focus-visible {
             color: #fff;
-            border-color: rgba(255, 255, 255, .26);
-            background: rgba(18, 27, 38, .98);
+            border-color: rgba(83,200,255,.75);
+            box-shadow: 0 6px 16px rgba(0,0,0,.45), 0 0 12px rgba(83,200,255,.25);
+            outline: none;
+        }
+
+        .community-match-floating__close:active {
+            transform: scale(.96);
         }
 
     /* O componente também renderiza o modal. Ele precisa usar a viewport inteira,
@@ -4752,80 +4771,63 @@
             }
     }
 
-    .community-match-floating .community-match-card,
-    .community-match-floating ::deep .community-match-card {
-        margin: 0 !important;
-        min-height: 0 !important;
-        padding: 0 !important;
-        border: 0 !important;
-        border-radius: 999px !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        overflow: visible !important;
-    }
-
-    .community-match-floating .community-match-card__layout,
-    .community-match-floating .community-match-card__content,
-    .community-match-floating ::deep .community-match-card__layout,
-    .community-match-floating ::deep .community-match-card__content {
-        display: block !important;
-        gap: 0 !important;
-    }
-
-    .community-match-floating .community-match-card__eyebrow,
-    .community-match-floating .community-match-card__title,
-    .community-match-floating .community-match-card__body,
-    .community-match-floating ::deep .community-match-card__eyebrow,
-    .community-match-floating ::deep .community-match-card__title,
-    .community-match-floating ::deep .community-match-card__body {
-        display: none !important;
-    }
-
-
-
-    .community-match-floating .community-match-card__button,
-    .community-match-floating .community-match-card .btn,
-    .community-match-floating ::deep .community-match-card__button,
-    .community-match-floating ::deep .community-match-card .btn {
-        width: auto !important;
-        min-width: 0 !important;
-        min-height: 42px !important;
-        padding: 10px 18px !important;
-        border-radius: 999px !important;
-        font-size: .82rem !important;
-        font-weight: 900 !important;
-        line-height: 1 !important;
-        white-space: nowrap !important;
-        box-shadow: 0 10px 28px rgba(0,0,0,.36) !important;
-    }
-
     @@media (max-width: 767.98px) {
         .community-match-floating {
-            width: 100%;
-            max-width: 100%;
-            margin: 0 0 16px;
+            right: 12px;
+            bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            max-width: calc(100vw - 24px);
         }
 
-            .community-match-floating .community-match-card__button,
-            .community-match-floating .community-match-card .btn,
-            .community-match-floating ::deep .community-match-card__button,
-            .community-match-floating ::deep .community-match-card .btn {
-                min-height: 40px !important;
-                padding: 9px 15px !important;
-                font-size: .76rem !important;
-                max-width: calc(100vw - 36px) !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
+        .community-match-floating__toggle {
+            display: grid;
+            place-items: center;
+            width: 52px;
+            height: 52px;
+            padding: 0;
+            color: #07111F;
+            font-size: 1.6rem;
+            font-weight: 700;
+            line-height: 1;
+            border: 1px solid rgba(83,200,255,.45);
+            border-radius: 999px;
+            background: linear-gradient(135deg, #00d5df, #53c8ff);
+            box-shadow: 0 10px 26px rgba(0,0,0,.45), 0 0 16px rgba(0,213,223,.28);
+            cursor: pointer;
+            transition: box-shadow .16s ease, transform .16s ease;
+        }
+
+            .community-match-floating__toggle:hover,
+            .community-match-floating__toggle:focus-visible {
+                outline: none;
+                box-shadow: 0 12px 30px rgba(0,0,0,.5), 0 0 22px rgba(0,213,223,.4);
             }
+
+            .community-match-floating__toggle:active {
+                transform: scale(.96);
+            }
+
+        .community-match-floating:not(.is-expanded) .community-match-floating__close {
+            display: none;
+        }
     }
 </style>
 
 @code {
     private bool _showCommunityMatchFloatingCard;
+    private bool _communityMatchCardExpanded;
+
+    private string CommunityMatchT(string key, params object?[] args)
+        => L.T($"communityMatch.{key}", CurrentCulture, args);
+
+    private void ToggleCommunityMatchFloatingCard()
+    {
+        _communityMatchCardExpanded = !_communityMatchCardExpanded;
+    }
 
     private void CloseCommunityMatchFloatingCard()
     {
         _showCommunityMatchFloatingCard = false;
+        _communityMatchCardExpanded = false;
         try
         {
             _ = JS.InvokeVoidAsync("localStorage.setItem", "cv_community_card_closed", DateTime.UtcNow.ToString("o"));
@@ -7757,7 +7759,7 @@
            que apenas o min-height do painel reduzisse sua altura visual.
            ================================================================ */
 
-    @@media (min-width: 768px) {
+    @@media (min-width: 769px) {
         .social-share-card--epic .arena-scoreboard
 
     {
@@ -8466,17 +8468,30 @@
     }
 
     /* ================================================================
-           COMPACTACAO MOBILE DA CRIPTO ARENA (ATE 600px)
+           COMPACTACAO MOBILE DA CRIPTO ARENA (ATE 768px)
            Cabecalho em duas linhas, cards dos competidores menores e
-           placar central sem espaco vazio. Somente apresentacao:
+           placar central compacto. Somente apresentacao:
            cronometragem, atualizacao de precos, escolha de competidor
            e notificacoes permanecem intactos.
            ================================================================ */
-    @@media (max-width: 600px) {
-        /* Container: menos respiro vertical, respeitando as safe areas. */
+    @@media (max-width: 768px) {
+        /* Largura util: margem externa unica de 8px (app-content 4px + 4px). */
+        .match-detail-wide-container {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-inline: auto !important;
+            padding-inline: 4px !important;
+            box-sizing: border-box;
+        }
+
+        .social-share-card--epic {
+            border-radius: 16px;
+        }
+
+        /* Container: menos respiro, respeitando as safe areas. */
         .social-share-card--epic .social-share-card__shell {
-            gap: .45rem !important;
-            padding: .75rem max(.85rem, env(safe-area-inset-right)) 1rem max(.85rem, env(safe-area-inset-left)) !important;
+            gap: .38rem !important;
+            padding: 8px max(8px, env(safe-area-inset-right)) 10px max(8px, env(safe-area-inset-left)) !important;
         }
 
         /* ---- Cabecalho em duas linhas ----
@@ -8527,7 +8542,7 @@
             grid-area: clock;
             justify-self: end;
             order: initial;
-            width: auto;
+            width: auto !important;
             min-width: 0;
             gap: .38rem;
             padding: .28rem .58rem .28rem .5rem;
@@ -8542,8 +8557,8 @@
             justify-self: end;
             display: inline-grid;
             place-items: center;
-            min-width: 40px;
-            min-height: 40px;
+            min-width: 36px;
+            min-height: 36px;
         }
 
         /* Subtitulo oculto apenas no mobile; titulo em ~21px. */
@@ -8592,47 +8607,63 @@
         }
 
         /* ---- Cartoes dos competidores ---- */
-        .social-share-card--epic .social-share-card__hero {
-            padding-top: 6px !important;
-            padding-bottom: 6px !important;
-            gap: .42rem !important;
+        .social-share-card--epic .social-share-card__hero,
+        .social-share-card--epic .arena-scoreboard {
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: .32rem !important;
+            padding: 6px !important;
+            min-height: 0 !important;
         }
 
         .social-share-card--epic .social-share-hero-team {
-            min-height: 68px !important;
-            padding: .42rem .65rem !important;
-            gap: .55rem !important;
+            min-height: 54px !important;
+            padding: .28rem .45rem !important;
+            gap: .42rem !important;
         }
 
         .social-share-card__hero .team-badge {
-            width: 52px;
-            height: 52px;
-            min-width: 52px;
-            min-height: 52px;
-            max-width: 52px;
-            max-height: 52px;
-            border-radius: 15px;
-        }
-
-        .social-share-card__hero .coin-wrap {
-            width: 46px;
-            height: 46px;
+            width: 42px;
+            height: 42px;
+            min-width: 42px;
+            min-height: 42px;
+            max-width: 42px;
+            max-height: 42px;
             border-radius: 13px;
         }
 
+        .social-share-card__hero .coin-wrap {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+        }
+
         .social-share-card__hero .coin-img {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
         }
 
         .social-share-card__hero .coin-fallback {
-            font-size: 1.05rem;
+            font-size: .95rem;
         }
 
         .social-share-card--epic .team-name {
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
+            font-size: .82rem !important;
+            line-height: 1 !important;
+        }
+
+        .social-share-card--epic .team-price {
+            margin-top: .02rem !important;
+            font-size: .74rem !important;
+            line-height: 1 !important;
+        }
+
+        .social-share-card--epic .team-sub {
+            margin-top: .02rem !important;
+            font-size: .66rem !important;
+            line-height: 1 !important;
         }
 
         .social-share-card--epic .team-price,
@@ -8641,17 +8672,77 @@
         }
 
         .social-share-card--epic .social-share-hero-pick {
-            min-height: 40px;
-            padding: .45rem .72rem !important;
-            font-size: .7rem !important;
+            min-width: 0 !important;
+            flex: 0 0 auto !important;
+            min-height: 32px;
+            padding: .3rem .52rem !important;
+            font-size: .62rem !important;
+            gap: .28rem !important;
         }
 
-        /* ---- Placar central: numeros preservados, espaco vazio cortado ---- */
-        .social-share-card--epic .arena-versus-core {
+        .match-team-alert {
+            flex: 0 0 36px !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 10px !important;
+        }
+
+        .match-team-alert i {
+            font-size: .85rem;
+        }
+
+        /* ---- Placar central compacto: 3 VS 4 em ~34px ---- */
+        .social-share-card--epic .arena-versus-core,
+        .match-detail-wide-container .arena-versus-core {
             width: 100% !important;
             max-width: 100% !important;
             min-width: 0 !important;
-            min-height: 118px !important;
+            min-height: 60px !important;
+            grid-template-columns: minmax(2.6rem, auto) auto minmax(2.6rem, auto) !important;
+            column-gap: .45rem !important;
+            justify-content: center !important;
+            position: relative !important;
+            transform: none !important;
+        }
+
+        .social-share-card--epic .arena-versus-core__score,
+        .match-detail-wide-container .arena-versus-core__score {
+            font-size: 2.15rem !important;
+            width: 2.75rem !important;
+            min-width: 2.75rem !important;
+            line-height: .92 !important;
+            letter-spacing: -.05em !important;
+        }
+
+        .social-share-card--epic .arena-versus-core__score--left,
+        .social-share-card--epic .arena-versus-core__score--right,
+        .match-detail-wide-container .arena-versus-core__score--left,
+        .match-detail-wide-container .arena-versus-core__score--right {
+            transform: none !important;
+        }
+
+        .match-detail-wide-container .arena-versus-core__vs {
+            font-size: 1.05rem !important;
+            min-width: 0 !important;
+            padding: .18em .62em !important;
+            letter-spacing: -.06em !important;
+        }
+
+        /* Efeitos laterais do placar reduzidos no mobile. */
+        .arena-scoreboard__fx {
+            inset: 0 !important;
+            opacity: .45 !important;
+        }
+
+        /* ---- Grafico mais perto do placar ---- */
+        .match-detail-wide-container .social-share-card__tv-grid,
+        .social-share-card__tv-grid {
+            margin-top: 8px !important;
+            gap: 10px !important;
+        }
+
+        .match-detail-wide-container .social-share-card__tv-secondary {
+            gap: 10px !important;
         }
     }
 </style>

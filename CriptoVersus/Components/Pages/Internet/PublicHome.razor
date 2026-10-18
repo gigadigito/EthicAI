@@ -55,13 +55,22 @@
 <section class="home-landing public-home-arena">
     @if (_showCommunityMatchFloatingCard)
     {
-        <aside class="community-match-floating"
+        <aside class="community-match-floating @(_communityMatchCardExpanded ? "is-expanded" : null)"
                role="complementary"
-               aria-label="Community battle">
+               aria-label="@CommunityMatchT("title")">
+            <button type="button"
+                    class="community-match-floating__toggle"
+                    title="@CommunityMatchT("title")"
+                    aria-label="@CommunityMatchT("title")"
+                    aria-expanded="@_communityMatchCardExpanded"
+                    @onclick="ToggleCommunityMatchFloatingCard">
+                <span aria-hidden="true">@(_communityMatchCardExpanded ? "−" : "+")</span>
+            </button>
+
             <button type="button"
                     class="community-match-floating__close"
-                    title="@CommunityMatchCloseLabel"
-                    aria-label="@CommunityMatchCloseLabel"
+                    title="@CommunityMatchT("modal.close")"
+                    aria-label="@CommunityMatchT("modal.close")"
                     @onclick="CloseCommunityMatchFloatingCard">
                 ×
             </button>
@@ -637,18 +646,21 @@
     private bool _interactiveFeaturesStarted;
     private bool _hubSubscribed;
     private bool _showCommunityMatchFloatingCard;
+    private bool _communityMatchCardExpanded;
     private FollowedMatchCardModel? _followedMatchCard;
 
-    private string CommunityMatchCloseLabel => CurrentCulture switch
+    private string CommunityMatchT(string key, params object?[] args)
+        => L.T($"communityMatch.{key}", CurrentCulture, args);
+
+    private void ToggleCommunityMatchFloatingCard()
     {
-        "pt" => "Fechar",
-        "zh" => "关闭",
-        _ => "Close"
-    };
+        _communityMatchCardExpanded = !_communityMatchCardExpanded;
+    }
 
     private void CloseCommunityMatchFloatingCard()
     {
         _showCommunityMatchFloatingCard = false;
+        _communityMatchCardExpanded = false;
         try
         {
             _ = JS.InvokeVoidAsync("localStorage.setItem", "cv_community_card_closed", DateTime.UtcNow.ToString("o"));
@@ -3344,47 +3356,49 @@
 
     .community-match-floating {
         position: fixed;
-        right: 18px;
-        bottom: 18px;
-        z-index: 1050;
+        right: 24px;
+        bottom: 24px;
+        z-index: 1040;
         width: auto;
-        max-width: calc(100vw - 24px);
+        max-width: min(320px, calc(100vw - 48px));
         overflow: visible;
         border: 0;
-        border-radius: 999px;
+        border-radius: 18px;
         background: transparent;
         box-shadow: none;
     }
 
+    .community-match-floating__toggle {
+        display: none;
+    }
+
     .community-match-floating__close {
         position: absolute;
-        top: -12px;
-        right: -12px;
+        top: -10px;
+        right: -10px;
         z-index: 10;
         display: grid;
         place-items: center;
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         padding: 0;
-        color: #ffffff;
-        font-size: 1.15rem;
-        font-weight: 900;
+        color: rgba(241,245,249,.85);
+        font-size: 1rem;
+        font-weight: 700;
         line-height: 1;
-        border: 2px solid rgba(255,255,255,.24);
+        border: 1px solid rgba(83,200,255,.35);
         border-radius: 999px;
-        background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.14), transparent 34%), linear-gradient(180deg, rgba(31,41,55,.98), rgba(5,10,16,.98));
-        box-shadow: 0 0 0 3px rgba(0,0,0,.28), 0 8px 20px rgba(0,0,0,.5), 0 0 14px rgba(83,200,255,.18);
+        background: #0b1625;
+        box-shadow: 0 6px 16px rgba(0,0,0,.4);
         cursor: pointer;
-        transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+        transition: color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
     }
 
         .community-match-floating__close:hover,
         .community-match-floating__close:focus-visible {
             color: #fff;
-            border-color: rgba(83,200,255,.72);
-            background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.18), transparent 34%), linear-gradient(180deg, rgba(39,52,70,.99), rgba(10,18,28,.99));
-            box-shadow: 0 0 0 3px rgba(0,0,0,.32), 0 10px 24px rgba(0,0,0,.54), 0 0 20px rgba(83,200,255,.34);
-            transform: scale(1.08);
+            border-color: rgba(83,200,255,.75);
+            box-shadow: 0 6px 16px rgba(0,0,0,.45), 0 0 12px rgba(83,200,255,.25);
             outline: none;
         }
 
@@ -3506,72 +3520,44 @@
             }
     }
 
-    .community-match-floating .community-match-card,
-    .community-match-floating ::deep .community-match-card {
-        margin: 0 !important;
-        min-height: 0 !important;
-        padding: 0 !important;
-        border: 0 !important;
-        border-radius: 999px !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        overflow: visible !important;
-    }
-
-    .community-match-floating .community-match-card__layout,
-    .community-match-floating .community-match-card__content,
-    .community-match-floating ::deep .community-match-card__layout,
-    .community-match-floating ::deep .community-match-card__content {
-        display: block !important;
-        gap: 0 !important;
-    }
-
-    .community-match-floating .community-match-card__eyebrow,
-    .community-match-floating .community-match-card__title,
-    .community-match-floating .community-match-card__body,
-    .community-match-floating ::deep .community-match-card__eyebrow,
-    .community-match-floating ::deep .community-match-card__title,
-    .community-match-floating ::deep .community-match-card__body {
-        display: none !important;
-    }
-
-
-
-    .community-match-floating .community-match-card__button,
-    .community-match-floating .community-match-card .btn,
-    .community-match-floating ::deep .community-match-card__button,
-    .community-match-floating ::deep .community-match-card .btn {
-        width: auto !important;
-        min-width: 0 !important;
-        min-height: 42px !important;
-        padding: 10px 18px !important;
-        border-radius: 999px !important;
-        font-size: .82rem !important;
-        font-weight: 900 !important;
-        line-height: 1 !important;
-        white-space: nowrap !important;
-        box-shadow: 0 10px 28px rgba(0,0,0,.36) !important;
-    }
-
     @@media (max-width: 767.98px) {
         .community-match-floating {
             right: 12px;
-            bottom: 12px;
-            width: auto;
+            bottom: calc(12px + env(safe-area-inset-bottom, 0px));
             max-width: calc(100vw - 24px);
         }
 
-            .community-match-floating .community-match-card__button,
-            .community-match-floating .community-match-card .btn,
-            .community-match-floating ::deep .community-match-card__button,
-            .community-match-floating ::deep .community-match-card .btn {
-                min-height: 40px !important;
-                padding: 9px 15px !important;
-                font-size: .76rem !important;
-                max-width: calc(100vw - 36px) !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
+        .community-match-floating__toggle {
+            display: grid;
+            place-items: center;
+            width: 52px;
+            height: 52px;
+            padding: 0;
+            color: #07111F;
+            font-size: 1.6rem;
+            font-weight: 700;
+            line-height: 1;
+            border: 1px solid rgba(83,200,255,.45);
+            border-radius: 999px;
+            background: linear-gradient(135deg, #00d5df, #53c8ff);
+            box-shadow: 0 10px 26px rgba(0,0,0,.45), 0 0 16px rgba(0,213,223,.28);
+            cursor: pointer;
+            transition: box-shadow .16s ease, transform .16s ease;
+        }
+
+            .community-match-floating__toggle:hover,
+            .community-match-floating__toggle:focus-visible {
+                outline: none;
+                box-shadow: 0 12px 30px rgba(0,0,0,.5), 0 0 22px rgba(0,213,223,.4);
             }
+
+            .community-match-floating__toggle:active {
+                transform: scale(.96);
+            }
+
+        .community-match-floating:not(.is-expanded) .community-match-floating__close {
+            display: none;
+        }
     }
 
     /* Home visual refresh: tokens are scoped to the public arena so other pages retain their own contracts. */

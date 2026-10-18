@@ -19,8 +19,8 @@
 
 <input type="checkbox" title="Abrir menu de navegação" class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler')?.click()">
-    <nav class="app-nav pump-style-nav">
+<div class="nav-scrollable">
+    <nav class="app-nav pump-style-nav" onclick="document.querySelector('.navbar-toggler')?.click()">
         <div class="nav-item">
             <NavLink class="nav-link pump-nav-link nav-team-a"
                      href="@RouteLocalization.BuildHomePath(CurrentCulture)"
@@ -101,7 +101,12 @@
         }
     </nav>
 
-    <div class="nav-community">
+    @if (MenuExtras is not null)
+    {
+        @MenuExtras
+    }
+
+    <div class="nav-community" onclick="document.querySelector('.navbar-toggler')?.click()">
         <CommunityLinks Culture="@CurrentCulture"
                         Variant="nav"
                         ShowHeading="true"
@@ -221,6 +226,9 @@
 
 @code {
     [Inject] private RouteLocalizationService RouteLocalization { get; set; } = default!;
+
+    [Parameter]
+    public RenderFragment? MenuExtras { get; set; }
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
 

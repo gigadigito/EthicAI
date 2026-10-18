@@ -30,7 +30,58 @@ else
            data-published-at-utc="@PublishedVersion.PublishedAtUtc" />
 
     <aside class="app-sidebar">
-        <NavMenu />
+        <NavMenu>
+            <MenuExtras>
+                <div class="nav-menu-extras">
+                    <div class="nav-menu-extras__section">
+                        <span class="nav-menu-extras__label">@L.T("layout.topbar.language", CurrentCulture)</span>
+                        <LanguageSelector CurrentCulture="@CurrentCulture"
+                                          AriaLabel="@L.T("layout.topbar.language", CurrentCulture)"
+                                          OnCultureSelected="ChangeLanguageAsync" />
+                    </div>
+
+                    @if (ShowWalletUi)
+                    {
+                        <div class="nav-menu-extras__section"
+                             onclick="document.querySelector('.navbar-toggler')?.click()">
+                            @if (!IsLoggedIn)
+                            {
+                                <span class="nav-menu-extras__label">@L.T("layout.topbar.connectWallet", CurrentCulture)</span>
+                            }
+
+                            @if (IsLoggedIn)
+                            {
+                                <div class="nav-menu-extras__wallet">
+                                    <span class="nav-menu-extras__wallet-status">
+                                        <span class="nav-menu-extras__wallet-dot" aria-hidden="true"></span>
+                                        @L.T("walletPage.solana.connectedWalletGeneric", CurrentCulture)
+                                    </span>
+
+                                    <button class="wallet-identity"
+                                            title="@walletPublicKey"
+                                            @onclick="AbrirLoginAsync">
+                                        <img class="wallet-avatar" src="@GetWalletAvatarUrl(walletPublicKey!)" alt="" />
+                                        <span class="wallet-address">@ShortWallet(walletPublicKey!)</span>
+                                    </button>
+
+                                    <button class="nav-menu-extras__disconnect"
+                                            type="button"
+                                            @onclick="DisconnectWalletAsync">
+                                        @L.T("walletPage.solana.disconnect", CurrentCulture)
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <button class="wallet-button" @onclick="AbrirLoginAsync">
+                                    <span class="wallet-button-label">@L.T("layout.topbar.connectWallet", CurrentCulture)</span>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </MenuExtras>
+        </NavMenu>
     </aside>
 
     <main class="app-main">
@@ -379,6 +430,14 @@ else
         if (loginModal is not null)
         {
             await loginModal.OpenAsync();
+        }
+    }
+
+    private async Task DisconnectWalletAsync()
+    {
+        if (loginModal is not null)
+        {
+            await loginModal.DisconnectAsync();
         }
     }
 
