@@ -1,29 +1,39 @@
 ﻿using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Configuration;
-using System.IO;
 
 public class EthicAIDbContextFactory : IDesignTimeDbContextFactory<EthicAIDbContext>
 {
     public EthicAIDbContext CreateDbContext(string[] args)
     {
-        var basePath = Directory.GetCurrentDirectory();
-        var solutionRootAppsettings = Path.Combine(basePath, "..", "CriptoVersus.Worker", "appsettings.json");
+        return CreateDbContext(
+            args,
+            Environment.GetEnvironmentVariable,
+            Environment.GetCommandLineArgs(),
+            Directory.GetCurrentDirectory());
+    }
 
-        IConfigurationRoot configuration = new ConfigurationBuilder()
-            .SetBasePath(basePath)
-            .AddJsonFile("appsettings.json", optional: true)
-            .AddJsonFile(solutionRootAppsettings, optional: true)
-            .Build();
+    public EthicAIDbContext CreateDbContext(
+        string[] args,
+        Func<string, string?> getEnvironmentVariable,
+        IReadOnlyList<string> processCommandLineArgs,
+        string basePath)
+    {
+        var connection = MigrationConnectionResolver.Resolve(basePath, getEnvironmentVariable);
+        MigrationConnectionResolver.EnsureDesignTimeOperationAuthorized(
+            connection,
+            getEnvironmentVariable,
+            processCommandLineArgs,
+            args);
+
+        var operation = MigrationConnectionResolver.DetectDesignTimeOperation(
+            (processCommandLineArgs ?? Array.Empty<string>()).Concat(args ?? Array.Empty<string>()));
+        Console.Error.WriteLine(
+            $"[EthicAIDbContextFactory] Design-time target: {connection.ToSafeSummary()}; " +
+            $"source: {connection.Source}; operation: {operation ?? "not identified"}.");
 
         var optionsBuilder = new DbContextOptionsBuilder<EthicAIDbContext>();
-
-        var connectionString = configuration.GetConnectionString("Default");
-        if (string.IsNullOrWhiteSpace(connectionString))
-            connectionString = "Host=localhost;Port=5432;Database=criptoversus_design;Username=postgres;Password=postgres";
-
-        optionsBuilder.UseNpgsql(connectionString);
+        optionsBuilder.UseNpgsql(connection.ConnectionString);
 
         return new EthicAIDbContext(optionsBuilder.Options);
     }

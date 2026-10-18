@@ -1,4 +1,6 @@
 using System;
+using EthicAI.EntityModel;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -16,6 +18,8 @@ namespace DAL.Migrations
     /// A coluna <c>post_text</c> permanece NOT NULL: a reserva usa <c>status</c>, nunca
     /// <c>post_text</c>, como mecanismo de controle.
     /// </summary>
+    [DbContext(typeof(EthicAIDbContext))]
+    [Migration("20261017000000_AddSocialPublicationControl")]
     public partial class AddSocialPublicationControl : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
