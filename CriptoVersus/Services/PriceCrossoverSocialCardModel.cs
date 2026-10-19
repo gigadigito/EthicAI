@@ -441,7 +441,7 @@ public static class PriceCrossoverSocialCardModelBuilder
             return "--";
 
         var sign = number > 0 ? "+" : string.Empty;
-        return sign + number.ToString("0.0", culture) + "%";
+        return sign + number.ToString("0.00", culture) + "%";
     }
 
     internal static string? FormatPercentPoints(decimal? value, CultureInfo culture)
@@ -449,7 +449,7 @@ public static class PriceCrossoverSocialCardModelBuilder
         if (value is not decimal number)
             return null;
 
-        return Math.Abs(number).ToString("0.0", culture);
+        return Math.Abs(number).ToString("0.00", culture);
     }
 
     internal static string FormatMatchDate(DateTime? value, CultureInfo culture)

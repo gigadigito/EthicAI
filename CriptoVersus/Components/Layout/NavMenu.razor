@@ -15,6 +15,11 @@
             <small>@L.T("nav.brandSubtitle", CurrentCulture)</small>
         </span>
     </a>
+
+    @if (BrandActions is not null)
+    {
+        @BrandActions
+    }
 </div>
 
 <input type="checkbox" title="Abrir menu de navegação" class="navbar-toggler" />
@@ -100,11 +105,6 @@
             }
         }
     </nav>
-
-    @if (MenuExtras is not null)
-    {
-        @MenuExtras
-    }
 
     <div class="nav-community" onclick="document.querySelector('.navbar-toggler')?.click()">
         <CommunityLinks Culture="@CurrentCulture"
@@ -228,7 +228,7 @@
     [Inject] private RouteLocalizationService RouteLocalization { get; set; } = default!;
 
     [Parameter]
-    public RenderFragment? MenuExtras { get; set; }
+    public RenderFragment? BrandActions { get; set; }
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
 

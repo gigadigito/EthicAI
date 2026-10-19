@@ -400,39 +400,59 @@
   },
   "social": {
     "priceCrossover": {
-      "seo.title": "Price Battle — Historischer Match | CriptoVersus",
-      "seo.titleWithMatch": "Price Battle: {0} vs {1} | CriptoVersus",
-      "seo.description": "Historisches Price-Battle-Diagramm aus dem offiziellen Matchprotokoll. Relative Entwicklung beider Assets, Kreuzungsmarker und offizielles Ergebnis.",
-      "hero.utcNote": "Historischer Match",
-      "chart.title": "Price Battle",
-      "chart.versus": "VS",
-      "chart.ariaLabel": "Normalisierte Kurven der relativen Entwicklung beider Assets mit Kreuzungsmarkern",
-      "chart.empty": "Nicht genügend historische Daten, um das Diagramm nachzubilden.",
-      "summary.ariaLabel": "Offizielles Ergebnis und Vergleichsstatistiken",
-      "summary.officialScore": "Offizieller Spielstand",
-      "summary.officialWinner": "Offizieller Sieger",
-      "summary.draw": "Unentschieden",
-      "metrics.ariaLabel": "Vergleichsmetriken",
-      "metrics.performanceDifference": "Entwicklungsabweichung",
-      "metrics.relevantCrossovers": "Relevante Kreuzungen",
-      "metrics.chartRoundPoints": "Diagrammpunkte (visuell)",
-      "metrics.comeback": "Kehrtwende",
-      "metrics.comebackValue": "Ja",
-      "states.loadingTitle": "Price-Battle-Protokoll wird geladen",
-      "states.loadingBody": "Historische Reihe und offizielles Ergebnis dieses Matches werden abgerufen.",
-      "states.errorTitle": "Price Battle vorübergehend nicht verfügbar",
-      "states.errorBody": "Das historische Protokoll dieses Matches konnte gerade nicht geladen werden.",
-      "states.notFoundBody": "Match nicht gefunden.",
-      "states.notPublishableTitle": "Nicht veröffentlichenbar",
-      "states.notPublishableGeneric": "Dieser Match kann mit den aktuellen Daten nicht veröffentlicht werden.",
-      "states.notPublishableNotFinished": "Der Match ist noch nicht offiziell beendet.",
-      "states.notPublishableAlreadyPublished": "Dieser Match wurde bereits veröffentlicht.",
-      "states.notPublishableReserved": "Dieser Match ist für eine andere Veröffentlichung reserviert.",
-      "states.notPublishableReconciliation": "Eine frühere Veröffentlichung hat ein unbekanntes Ergebnis und muss zuerst abgeglichen werden.",
-      "states.notPublishableDataQuality": "Die historischen Daten sind nicht zuverlässig genug für eine Veröffentlichung.",
-      "states.notPublishableNoChart": "Das Diagramm kann aus dem gespeicherten Verlauf nicht nachgebildet werden.",
-      "states.notPublishableNoBaseline": "Der Referenzpreis für die Normalisierung fehlt.",
-      "footer.disclaimer": "Historisches Matchprotokoll. Keine Finanzberatung."
+      "seo": {
+        "title": "Price Battle — Historischer Match | CriptoVersus",
+        "titleWithMatch": "Price Battle: {0} vs {1} | CriptoVersus",
+        "description": "Historisches Price-Battle-Diagramm aus dem offiziellen Matchprotokoll. Relative Entwicklung beider Assets, Kreuzungsmarker und offizielles Ergebnis."
+      },
+      "hero": {
+        "utcNote": "Historischer Match"
+      },
+      "chart": {
+        "title": "Price Battle",
+        "versus": "VS",
+        "ariaLabel": "Normalisierte Kurven der relativen Entwicklung beider Assets mit Kreuzungsmarkern",
+        "empty": "Nicht genügend historische Daten, um das Diagramm nachzubilden.",
+        "baselineNote": "Basis"
+      },
+      "summary": {
+        "ariaLabel": "Offizielles Ergebnis und Vergleichsstatistiken",
+        "officialScore": "Offizieller Spielstand",
+        "officialWinner": "Offizieller Sieger",
+        "draw": "Unentschieden",
+        "finalScore": "Endergebnis",
+        "winnerBadge": "Sieger"
+      },
+      "metrics": {
+        "ariaLabel": "Vergleichsmetriken",
+        "performanceDifference": "Entwicklungsabweichung",
+        "relevantCrossovers": "Relevante Kreuzungen",
+        "chartRoundPoints": "Diagrammpunkte",
+        "comeback": "Kehrtwende",
+        "comebackValue": "Ja",
+        "percentagePointsShort": "pp",
+        "totalCrossovers": "Erkannte Kreuzungen"
+      },
+      "states": {
+        "loadingTitle": "Price-Battle-Protokoll wird geladen",
+        "loadingBody": "Historische Reihe und offizielles Ergebnis dieses Matches werden abgerufen.",
+        "errorTitle": "Price Battle vorübergehend nicht verfügbar",
+        "errorBody": "Das historische Protokoll dieses Matches konnte gerade nicht geladen werden.",
+        "notFoundBody": "Match nicht gefunden.",
+        "notPublishableTitle": "Nicht veröffentlichenbar",
+        "notPublishableGeneric": "Dieser Match kann mit den aktuellen Daten nicht veröffentlicht werden.",
+        "notPublishableNotFinished": "Der Match ist noch nicht offiziell beendet.",
+        "notPublishableAlreadyPublished": "Dieser Match wurde bereits veröffentlicht.",
+        "notPublishableReserved": "Dieser Match ist für eine andere Veröffentlichung reserviert.",
+        "notPublishableReconciliation": "Eine frühere Veröffentlichung hat ein unbekanntes Ergebnis und muss zuerst abgeglichen werden.",
+        "notPublishableDataQuality": "Die historischen Daten sind nicht zuverlässig genug für eine Veröffentlichung.",
+        "notPublishableNoChart": "Das Diagramm kann aus dem gespeicherten Verlauf nicht nachgebildet werden.",
+        "notPublishableNoBaseline": "Der Referenzpreis für die Normalisierung fehlt."
+      },
+      "footer": {
+        "disclaimer": "Historisches Matchprotokoll. Keine Finanzberatung.",
+        "matchTag": "Match #{0}"
+      }
     },
     "match": {
       "live": {

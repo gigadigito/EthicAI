@@ -35,7 +35,7 @@
     <meta name="description" content="@SeoDescription" />
     <meta name="keywords" content="@MetaKeywords" />
     <link rel="canonical" href="@CanonicalUrl" />
-    <link rel="alternate" hreflang="x-default" href="@HomeRootUrl" />
+    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
     <meta property="og:title" content="@SeoTitle" />
     <meta property="og:description" content="@SeoDescription" />
     <meta property="og:url" content="@CanonicalUrl" />
@@ -674,12 +674,7 @@
     private string MetaKeywords => SeoDefaults.GlobalKeywords;
     private string HomeRootUrl => SeoDefaults.BuildPublicBaseUrl(Config, Nav);
     private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
-    private string CanonicalUrl => CurrentCulture switch
-    {
-        "pt" => PortugueseUrl,
-        "zh" => ZhUrl,
-        _ => HomeRootUrl
-    };
+    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath(CurrentCulture));
     private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("en"));
     private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("pt"));
     private string ZhUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("zh"));

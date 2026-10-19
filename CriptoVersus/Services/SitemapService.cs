@@ -121,29 +121,38 @@ public sealed class SitemapService
         var cultures = AllRouteCultures;
         var entries = new List<SitemapEntry>();
 
-        foreach (var culture in cultures)
+        foreach (var page in SitemapRouteCatalog.StaticPages)
         {
-            var isDefault = string.Equals(culture, DefaultRouteCulture, StringComparison.OrdinalIgnoreCase);
-            var homePriority = isDefault ? 1.0m : 0.9m;
+            var lastModifiedUtc = page.UseStatsLastModified ? statsLastModifiedUtc : now;
 
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildHomePath(culture), now, "daily", homePriority));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildFaqPath(culture), now, "weekly", 0.86m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildTvPath(culture), now, "hourly", 0.9m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildTvBroadcastPath(culture), now, "hourly", 0.95m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildStatsPath(culture), statsLastModifiedUtc, "hourly", 0.85m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildStatsMatchesPath(culture), statsLastModifiedUtc, "daily", 0.78m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildStatsTeamsPath(culture), statsLastModifiedUtc, "daily", 0.8m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildStatsRankingsPath(culture), statsLastModifiedUtc, "daily", 0.78m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildStatsRecordsPath(culture), statsLastModifiedUtc, "daily", 0.75m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildTokenPath(culture), now, "weekly", 0.74m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildRoadmapPath(culture), now, "weekly", 0.8m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildHowItWorksPath(culture), now, "weekly", 0.8m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildAboutPath(culture), now, "weekly", 0.78m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildScoringRulesPath(culture), now, "weekly", 0.76m));
-            entries.Add(CreateLocalizedEntry(baseUri, culture, _routeLocalization.BuildRiskDisclaimerPath(culture), now, "weekly", 0.74m));
+            if (!page.Localized)
+            {
+                entries.Add(CreateAbsoluteEntry(
+                    new Uri(baseUri, page.BuildPath(_routeLocalization, DefaultRouteCulture)).AbsoluteUri,
+                    lastModifiedUtc,
+                    page.ChangeFrequency,
+                    page.Priority));
+                continue;
+            }
+
+            foreach (var culture in cultures)
+            {
+                var isDefault = string.Equals(culture, DefaultRouteCulture, StringComparison.OrdinalIgnoreCase);
+                var priority = !isDefault && page.NonDefaultCulturePriority.HasValue
+                    ? page.NonDefaultCulturePriority.Value
+                    : page.Priority;
+
+                entries.Add(CreateLocalizedEntry(
+                    baseUri,
+                    culture,
+                    page.BuildPath(_routeLocalization, culture),
+                    lastModifiedUtc,
+                    page.ChangeFrequency,
+                    priority,
+                    targetCulture => page.BuildPath(_routeLocalization, targetCulture)));
+            }
         }
 
-        entries.Add(CreateAbsoluteEntry(new Uri(baseUri, "/tokenomics/regras-das-partidas").AbsoluteUri, now, "weekly", 0.7m));
         entries.Add(CreateAbsoluteEntry("https://mcp.criptoversus.com/", now, "weekly", 0.6m));
 
         foreach (var team in statsTeams)
@@ -164,7 +173,8 @@ public sealed class SitemapService
                     _routeLocalization.BuildStatsTeamDetailPath(culture, slug),
                     teamLastModifiedUtc,
                     "daily",
-                    0.65m));
+                    0.65m,
+                    targetCulture => _routeLocalization.BuildStatsTeamDetailPath(targetCulture, slug)));
             }
         }
 
@@ -184,14 +194,17 @@ public sealed class SitemapService
             if (string.IsNullOrWhiteSpace(slug))
                 continue;
 
-            var path = _routeLocalization.BuildLocalizedPath(culture, match.MatchId, slug);
-            entries.Add(CreateLocalizedEntry(
-                baseUri,
-                culture,
-                path,
-                GetRelevantTimestampUtc(match),
-                match.IsFinished ? "monthly" : "daily",
-                match.IsFinished ? 0.6m : 0.7m));
+            foreach (var family in SitemapRouteCatalog.MatchFamilies)
+            {
+                entries.Add(CreateLocalizedEntry(
+                    baseUri,
+                    culture,
+                    family.BuildPath(_routeLocalization, culture, match.MatchId, slug),
+                    GetRelevantTimestampUtc(match),
+                    match.IsFinished ? family.FinishedChangeFrequency : family.OngoingChangeFrequency,
+                    match.IsFinished ? family.FinishedPriority : family.OngoingPriority,
+                    targetCulture => family.BuildPath(_routeLocalization, targetCulture, match.MatchId, slug)));
+            }
         }
 
         return BuildUrlSet(entries);
@@ -309,7 +322,8 @@ public sealed class SitemapService
         string relativePath,
         DateTime lastModifiedUtc,
         string changeFrequency,
-        decimal priority)
+        decimal priority,
+        Func<string?, string> alternatePathBuilder)
     {
         if (!relativePath.StartsWith('/'))
             relativePath = "/" + relativePath;
@@ -317,15 +331,31 @@ public sealed class SitemapService
         if (!Uri.TryCreate(baseUri, relativePath, out var fullUri))
             return SitemapEntry.Invalid;
 
-        var slugAlternates = BuildAlternates(baseUri, relativePath);
-        var xDefaultHref = BuildXDefaultHref(baseUri, relativePath);
+        var alternates = new List<SitemapAlternate>();
+        foreach (var alternateCulture in AllRouteCultures)
+        {
+            var alternatePath = alternatePathBuilder(alternateCulture);
+            if (!alternatePath.StartsWith('/'))
+                alternatePath = "/" + alternatePath;
+
+            if (Uri.TryCreate(baseUri, alternatePath, out var alternateUri))
+                alternates.Add(new SitemapAlternate(_routeLocalization.GetHrefLang(alternateCulture), alternateUri.AbsoluteUri));
+        }
+
+        var xDefaultPath = alternatePathBuilder(DefaultRouteCulture);
+        if (!xDefaultPath.StartsWith('/'))
+            xDefaultPath = "/" + xDefaultPath;
+
+        var xDefaultHref = Uri.TryCreate(baseUri, xDefaultPath, out var xDefaultUri)
+            ? xDefaultUri.AbsoluteUri
+            : string.Empty;
 
         return new SitemapEntry(
             fullUri.AbsoluteUri,
             EnsureUtc(lastModifiedUtc),
             changeFrequency,
             priority,
-            slugAlternates,
+            alternates,
             xDefaultHref,
             true);
     }
@@ -348,192 +378,6 @@ public sealed class SitemapService
             string.Empty,
             true);
     }
-
-    private IReadOnlyList<SitemapAlternate> BuildAlternates(Uri baseUri, string relativePath)
-    {
-        var alternates = new List<SitemapAlternate>();
-        var cultures = AllRouteCultures;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildHomePath, ["/en", "/pt", "/zh", "/es", "/fr", "/de", "/it", "/ja"], out var homeAlternates))
-            return homeAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildRoadmapPath, ["/en/roadmap", "/pt/roadmap", "/zh/roadmap", "/es/roadmap", "/fr/roadmap", "/de/roadmap", "/it/roadmap", "/ja/roadmap"], out var roadmapAlternates))
-            return roadmapAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildFaqPath, ["/en/faq", "/pt/faq", "/zh/faq", "/es/faq", "/fr/faq", "/de/faq", "/it/faq", "/ja/faq"], out var faqAlternates))
-            return faqAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildTvPath, ["/en/tv", "/pt/tv", "/zh/tv", "/es/tv", "/fr/tv", "/de/tv", "/it/tv", "/ja/tv"], out var tvAlternates))
-            return tvAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildTvBroadcastPath, ["/en/tv/broadcast", "/pt/tv/broadcast", "/zh/tv/broadcast", "/es/tv/broadcast", "/fr/tv/broadcast", "/de/tv/broadcast", "/it/tv/broadcast", "/ja/tv/broadcast"], out var tvBroadcastAlternates))
-            return tvBroadcastAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildStatsPath, ["/stats", "/en/stats", "/pt/estatisticas", "/zh/stats", "/es/stats", "/fr/stats", "/de/stats", "/it/stats", "/ja/stats"], out var statsAlternates))
-            return statsAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildStatsMatchesPath, ["/stats/matches", "/en/stats/matches", "/pt/estatisticas/partidas", "/zh/stats/matches", "/es/stats/matches", "/fr/stats/matches", "/de/stats/matches", "/it/stats/matches", "/ja/stats/matches"], out var statsMatchesAlternates))
-            return statsMatchesAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildStatsTeamsPath, ["/stats/teams", "/pt/estatisticas/times", "/zh/stats/teams", "/es/stats/teams", "/fr/stats/teams", "/de/stats/teams", "/it/stats/teams", "/ja/stats/teams"], out var statsTeamsAlternates))
-            return statsTeamsAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildStatsRankingsPath, ["/stats/rankings", "/en/stats/rankings", "/pt/estatisticas/rankings", "/zh/stats/rankings", "/es/stats/rankings", "/fr/stats/rankings", "/de/stats/rankings", "/it/stats/rankings", "/ja/stats/rankings"], out var statsRankingsAlternates))
-            return statsRankingsAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildStatsRecordsPath, ["/stats/records", "/en/stats/records", "/pt/estatisticas/recordes", "/zh/stats/records", "/es/stats/records", "/fr/stats/records", "/de/stats/records", "/it/stats/records", "/ja/stats/records"], out var statsRecordsAlternates))
-            return statsRecordsAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildHowItWorksPath, ["/en/how-it-works", "/pt/como-funciona", "/zh/how-it-works", "/es/how-it-works", "/fr/how-it-works", "/de/how-it-works", "/it/how-it-works", "/ja/how-it-works"], out var howItWorksAlternates))
-            return howItWorksAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildAboutPath, ["/en/about", "/pt/about", "/zh/about", "/es/about", "/fr/about", "/de/about", "/it/about", "/ja/about"], out var aboutAlternates))
-            return aboutAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildScoringRulesPath, ["/en/scoring-rules", "/pt/scoring-rules", "/zh/scoring-rules", "/es/scoring-rules", "/fr/scoring-rules", "/de/scoring-rules", "/it/scoring-rules", "/ja/scoring-rules"], out var scoringRulesAlternates))
-            return scoringRulesAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildRiskDisclaimerPath, ["/en/risk-disclaimer", "/pt/risk-disclaimer", "/zh/risk-disclaimer", "/es/risk-disclaimer", "/fr/risk-disclaimer", "/de/risk-disclaimer", "/it/risk-disclaimer", "/ja/risk-disclaimer"], out var riskDisclaimerAlternates))
-            return riskDisclaimerAlternates;
-
-        if (TryMatchPageAlternates(baseUri, relativePath, cultures,
-            _routeLocalization.BuildTokenPath, ["/token", "/en/token", "/pt/token", "/zh/token", "/es/token", "/fr/token", "/de/token", "/it/token", "/ja/token"], out var tokenAlternates))
-            return tokenAlternates;
-
-        if (TryExtractStatsTeamSlug(relativePath, out var statsTeamSlug))
-        {
-            foreach (var culture in cultures)
-                alternates.Add(new SitemapAlternate(_routeLocalization.GetHrefLang(culture), new Uri(baseUri, _routeLocalization.BuildStatsTeamDetailPath(culture, statsTeamSlug)).AbsoluteUri));
-            return alternates;
-        }
-
-        if (TryExtractConverterPair(relativePath, out var fromSymbol, out var toSymbol))
-        {
-            foreach (var culture in cultures)
-                alternates.Add(new SitemapAlternate(_routeLocalization.GetHrefLang(culture), new Uri(baseUri, BuildConverterPath(culture, fromSymbol, toSymbol)).AbsoluteUri));
-            return alternates;
-        }
-
-        var segments = relativePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (segments.Length >= 4 && int.TryParse(segments[2], out var matchId))
-        {
-            var slug = segments[3];
-            foreach (var culture in cultures)
-                alternates.Add(new SitemapAlternate(_routeLocalization.GetHrefLang(culture), new Uri(baseUri, _routeLocalization.BuildLocalizedPath(culture, matchId, slug)).AbsoluteUri));
-        }
-
-        return alternates;
-    }
-
-    private bool TryMatchPageAlternates(
-        Uri baseUri,
-        string relativePath,
-        IReadOnlyList<string> cultures,
-        Func<string?, string> pathBuilder,
-        string[] knownPaths,
-        out IReadOnlyList<SitemapAlternate> alternates)
-    {
-        if (knownPaths.Any(p => string.Equals(p, relativePath, StringComparison.OrdinalIgnoreCase)))
-        {
-            var result = new List<SitemapAlternate>(cultures.Count);
-            foreach (var culture in cultures)
-                result.Add(new SitemapAlternate(_routeLocalization.GetHrefLang(culture), new Uri(baseUri, pathBuilder(culture)).AbsoluteUri));
-            alternates = result;
-            return true;
-        }
-
-        alternates = [];
-        return false;
-    }
-
-    private string BuildXDefaultHref(Uri baseUri, string relativePath)
-    {
-        var defaultPathFunc = ResolveDefaultPathFunc(relativePath);
-        if (defaultPathFunc is not null)
-            return new Uri(baseUri, defaultPathFunc(DefaultRouteCulture)).AbsoluteUri;
-
-        if (TryExtractStatsTeamSlug(relativePath, out var statsTeamSlug))
-            return new Uri(baseUri, _routeLocalization.BuildStatsTeamDetailPath(DefaultRouteCulture, statsTeamSlug)).AbsoluteUri;
-
-        if (TryExtractConverterPair(relativePath, out var fromSymbol, out var toSymbol))
-            return new Uri(baseUri, BuildConverterPath(DefaultRouteCulture, fromSymbol, toSymbol)).AbsoluteUri;
-
-        var segments = relativePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (segments.Length >= 4 && int.TryParse(segments[2], out var matchId))
-        {
-            var slug = segments[3];
-            return new Uri(baseUri, _routeLocalization.BuildLocalizedPath(DefaultRouteCulture, matchId, slug)).AbsoluteUri;
-        }
-
-        return new Uri(baseUri, _routeLocalization.BuildHomePath(DefaultRouteCulture)).AbsoluteUri;
-    }
-
-    private Func<string?, string>? ResolveDefaultPathFunc(string relativePath)
-    {
-        if (MatchesAny(relativePath, "/en", "/pt", "/zh", "/es", "/fr", "/de", "/it", "/ja"))
-            return _routeLocalization.BuildHomePath;
-
-        if (MatchesAny(relativePath, "/en/roadmap", "/pt/roadmap", "/zh/roadmap", "/es/roadmap", "/fr/roadmap", "/de/roadmap", "/it/roadmap", "/ja/roadmap"))
-            return _routeLocalization.BuildRoadmapPath;
-
-        if (MatchesAny(relativePath, "/en/faq", "/pt/faq", "/zh/faq", "/es/faq", "/fr/faq", "/de/faq", "/it/faq", "/ja/faq"))
-            return _routeLocalization.BuildFaqPath;
-
-        if (MatchesAny(relativePath, "/en/tv", "/pt/tv", "/zh/tv", "/es/tv", "/fr/tv", "/de/tv", "/it/tv", "/ja/tv"))
-            return _routeLocalization.BuildTvPath;
-
-        if (MatchesAny(relativePath, "/en/tv/broadcast", "/pt/tv/broadcast", "/zh/tv/broadcast", "/es/tv/broadcast", "/fr/tv/broadcast", "/de/tv/broadcast", "/it/tv/broadcast", "/ja/tv/broadcast"))
-            return _routeLocalization.BuildTvBroadcastPath;
-
-        if (MatchesAny(relativePath, "/stats", "/en/stats", "/pt/estatisticas", "/zh/stats", "/es/stats", "/fr/stats", "/de/stats", "/it/stats", "/ja/stats"))
-            return _routeLocalization.BuildStatsPath;
-
-        if (MatchesAny(relativePath, "/stats/matches", "/en/stats/matches", "/pt/estatisticas/partidas", "/zh/stats/matches", "/es/stats/matches", "/fr/stats/matches", "/de/stats/matches", "/it/stats/matches", "/ja/stats/matches"))
-            return _routeLocalization.BuildStatsMatchesPath;
-
-        if (MatchesAny(relativePath, "/stats/teams", "/pt/estatisticas/times", "/zh/stats/teams", "/es/stats/teams", "/fr/stats/teams", "/de/stats/teams", "/it/stats/teams", "/ja/stats/teams"))
-            return _routeLocalization.BuildStatsTeamsPath;
-
-        if (MatchesAny(relativePath, "/stats/rankings", "/en/stats/rankings", "/pt/estatisticas/rankings", "/zh/stats/rankings", "/es/stats/rankings", "/fr/stats/rankings", "/de/stats/rankings", "/it/stats/rankings", "/ja/stats/rankings"))
-            return _routeLocalization.BuildStatsRankingsPath;
-
-        if (MatchesAny(relativePath, "/stats/records", "/en/stats/records", "/pt/estatisticas/recordes", "/zh/stats/records", "/es/stats/records", "/fr/stats/records", "/de/stats/records", "/it/stats/records", "/ja/stats/records"))
-            return _routeLocalization.BuildStatsRecordsPath;
-
-        if (MatchesAny(relativePath, "/en/how-it-works", "/pt/como-funciona", "/zh/how-it-works", "/es/how-it-works", "/fr/how-it-works", "/de/how-it-works", "/it/how-it-works", "/ja/how-it-works"))
-            return _routeLocalization.BuildHowItWorksPath;
-
-        if (MatchesAny(relativePath, "/en/about", "/pt/about", "/zh/about", "/es/about", "/fr/about", "/de/about", "/it/about", "/ja/about"))
-            return _routeLocalization.BuildAboutPath;
-
-        if (MatchesAny(relativePath, "/en/scoring-rules", "/pt/scoring-rules", "/zh/scoring-rules", "/es/scoring-rules", "/fr/scoring-rules", "/de/scoring-rules", "/it/scoring-rules", "/ja/scoring-rules"))
-            return _routeLocalization.BuildScoringRulesPath;
-
-        if (MatchesAny(relativePath, "/en/risk-disclaimer", "/pt/risk-disclaimer", "/zh/risk-disclaimer", "/es/risk-disclaimer", "/fr/risk-disclaimer", "/de/risk-disclaimer", "/it/risk-disclaimer", "/ja/risk-disclaimer"))
-            return _routeLocalization.BuildRiskDisclaimerPath;
-
-        if (MatchesAny(relativePath, "/token", "/en/token", "/pt/token", "/zh/token", "/es/token", "/fr/token", "/de/token", "/it/token", "/ja/token"))
-            return _routeLocalization.BuildTokenPath;
-
-        return null;
-    }
-
-    private static bool MatchesAny(string relativePath, params string[] candidates)
-        => candidates.Any(c => string.Equals(c, relativePath, StringComparison.OrdinalIgnoreCase));
 
     private static bool IsOngoing(string? status)
         => !string.IsNullOrWhiteSpace(status)
@@ -571,41 +415,6 @@ public sealed class SitemapService
 
     private static string FormatSitemapUtc(DateTime value)
         => EnsureUtc(value).ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
-
-    private static bool TryExtractStatsTeamSlug(string relativePath, out string slug)
-    {
-        slug = string.Empty;
-        if (string.IsNullOrWhiteSpace(relativePath))
-            return false;
-
-        var path = relativePath.TrimEnd('/');
-        const string teamsPrefix = "/stats/teams/";
-
-        if (path.StartsWith(teamsPrefix, StringComparison.OrdinalIgnoreCase))
-        {
-            slug = path[teamsPrefix.Length..].Trim('/');
-            return !string.IsNullOrWhiteSpace(slug);
-        }
-
-        var segments = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (segments.Length >= 4
-            && segments[1].Equals("stats", StringComparison.OrdinalIgnoreCase)
-            && segments[2].Equals("teams", StringComparison.OrdinalIgnoreCase))
-        {
-            slug = segments[3];
-            return !string.IsNullOrWhiteSpace(slug);
-        }
-
-        if (segments.Length >= 4
-            && segments[1].Equals("estatisticas", StringComparison.OrdinalIgnoreCase)
-            && segments[2].Equals("times", StringComparison.OrdinalIgnoreCase))
-        {
-            slug = segments[3];
-            return !string.IsNullOrWhiteSpace(slug);
-        }
-
-        return false;
-    }
 
     private static string BuildStatsTeamSlug(StatsArenaTeamDto team)
     {
@@ -646,10 +455,11 @@ public sealed class SitemapService
                     entries.Add(CreateLocalizedEntry(
                         baseUri,
                         culture,
-                        BuildConverterPath(culture, fromSymbol, toSymbol),
+                        RouteLocalizationService.BuildConverterPath(culture, fromSymbol, toSymbol),
                         statsLastModifiedUtc,
                         "hourly",
-                        0.72m));
+                        0.72m,
+                        targetCulture => RouteLocalizationService.BuildConverterPath(targetCulture!, fromSymbol, toSymbol)));
                 }
             }
         }
@@ -688,46 +498,6 @@ public sealed class SitemapService
             return;
 
         symbols.Add(normalized.ToLowerInvariant());
-    }
-
-    private static string BuildConverterPath(string culture, string fromSymbol, string toSymbol)
-        => string.Equals(culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase)
-            ? $"/pt/stats/{fromSymbol}-para-{toSymbol}"
-            : $"/{culture}/stats/{fromSymbol}-to-{toSymbol}";
-
-    private static bool TryExtractConverterPair(string relativePath, out string fromSymbol, out string toSymbol)
-    {
-        fromSymbol = string.Empty;
-        toSymbol = string.Empty;
-
-        if (string.IsNullOrWhiteSpace(relativePath))
-            return false;
-
-        var path = relativePath.Split('?', '#')[0];
-        var segments = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (segments.Length != 3 || !segments[1].Equals("stats", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        var culture = segments[0];
-        var separator = string.Equals(culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase)
-            ? "-para-"
-            : "-to-";
-
-        return TrySplitConverterPair(segments[2], separator, out fromSymbol, out toSymbol);
-    }
-
-    private static bool TrySplitConverterPair(string pair, string separator, out string fromSymbol, out string toSymbol)
-    {
-        fromSymbol = string.Empty;
-        toSymbol = string.Empty;
-
-        var parts = pair.Split(new[] { separator }, 2, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length != 2)
-            return false;
-
-        fromSymbol = parts[0].Trim().ToLowerInvariant();
-        toSymbol = parts[1].Trim().ToLowerInvariant();
-        return !string.IsNullOrWhiteSpace(fromSymbol) && !string.IsNullOrWhiteSpace(toSymbol) && !string.Equals(fromSymbol, toSymbol, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string CleanStatsAssetSymbol(string? symbol)

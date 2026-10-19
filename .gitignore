@@ -372,3 +372,6 @@ FodyWeavers.xsd
 .codex-browser-profile/
 .codex-artifacts-local/
 
+
+# Saida gerada dos testes de captura do Price Crossover Social
+CriptoVersus/tools/price-crossover/out/

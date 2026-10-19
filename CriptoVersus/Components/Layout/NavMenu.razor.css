@@ -399,18 +399,24 @@
     box-shadow: 0 0 0 .25rem rgba(193, 242, 15, .12);
 }
 
-/* Cabecalho principal mobile compacto: logotipo + menu em ~54px. */
+/* Cabecalho principal mobile compacto: logotipo + idioma + carteira + menu em ~54px. */
 @media (max-width: 768px) {
     .brand-block {
         align-items: center;
         display: flex;
         min-height: 54px;
-        padding: .35rem 4.65rem .35rem .75rem;
+        padding: .35rem 3.55rem .35rem .75rem;
     }
 
     .brand-mark {
+        flex: 1 1 auto;
         gap: .55rem;
         min-width: 0;
+    }
+
+    .brand-mark span {
+        min-width: 0;
+        overflow: hidden;
     }
 
     .brand-logo {
@@ -430,9 +436,9 @@
     }
 
     .navbar-toggler {
-        height: 2.55rem;
+        height: 2.75rem;
         right: .55rem;
-        top: .55rem;
-        width: 2.95rem;
+        top: .3rem;
+        width: 2.75rem;
     }
 }

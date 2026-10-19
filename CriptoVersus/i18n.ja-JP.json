@@ -400,39 +400,59 @@
   },
   "social": {
     "priceCrossover": {
-      "seo.title": "Price Battle — 過去の試合 | CriptoVersus",
-      "seo.titleWithMatch": "Price Battle: {0} vs {1} | CriptoVersus",
-      "seo.description": "公式の試合記録から作成した Price Battle の過去チャート。2つの資産の相対的な推移、クロスマーカー、公式結果を表示します。",
-      "hero.utcNote": "過去の試合",
-      "chart.title": "Price Battle",
-      "chart.versus": "VS",
-      "chart.ariaLabel": "クロスマーカー付きの2資産の正規化された相対推移カーブ",
-      "chart.empty": "履歴データが不足しているためチャートを再構築できません。",
-      "summary.ariaLabel": "公式結果と比較統計",
-      "summary.officialScore": "公式スコア",
-      "summary.officialWinner": "公式勝者",
-      "summary.draw": "引き分け",
-      "metrics.ariaLabel": "比較指標",
-      "metrics.performanceDifference": "パフォーマンス差",
-      "metrics.relevantCrossovers": "有意なクロス",
-      "metrics.chartRoundPoints": "チャートポイント（視覚）",
-      "metrics.comeback": "逆転",
-      "metrics.comebackValue": "あり",
-      "states.loadingTitle": "Price Battle の記録を読み込んでいます",
-      "states.loadingBody": "この試合の履歴系列と公式結果を取得しています。",
-      "states.errorTitle": "Price Battle は一時的に利用できません",
-      "states.errorBody": "この試合の履歴記録を現在読み込めませんでした。",
-      "states.notFoundBody": "試合が見つかりません。",
-      "states.notPublishableTitle": "公開不可",
-      "states.notPublishableGeneric": "現在のデータではこの試合を公開できません。",
-      "states.notPublishableNotFinished": "試合はまだ公式に終了していません。",
-      "states.notPublishableAlreadyPublished": "この試合はすでに公開されています。",
-      "states.notPublishableReserved": "この試合は別の公開によって予約されています。",
-      "states.notPublishableReconciliation": "以前の公開の結果が不明なため、先に照合が必要です。",
-      "states.notPublishableDataQuality": "履歴データの信頼性が不足しているため公開できません。",
-      "states.notPublishableNoChart": "保存された履歴からチャートを再構築できません。",
-      "states.notPublishableNoBaseline": "正規化の基準価格がありません。",
-      "footer.disclaimer": "試合の履歴記録です。投資助言ではありません。"
+      "seo": {
+        "title": "Price Battle — 過去の試合 | CriptoVersus",
+        "titleWithMatch": "Price Battle: {0} vs {1} | CriptoVersus",
+        "description": "公式の試合記録から作成した Price Battle の過去チャート。2つの資産の相対的な推移、クロスマーカー、公式結果を表示します。"
+      },
+      "hero": {
+        "utcNote": "過去の試合"
+      },
+      "chart": {
+        "title": "Price Battle",
+        "versus": "VS",
+        "ariaLabel": "クロスマーカー付きの2資産の正規化された相対推移カーブ",
+        "empty": "履歴データが不足しているためチャートを再構築できません。",
+        "baselineNote": "基準"
+      },
+      "summary": {
+        "ariaLabel": "公式結果と比較統計",
+        "officialScore": "公式スコア",
+        "officialWinner": "公式勝者",
+        "draw": "引き分け",
+        "finalScore": "最終スコア",
+        "winnerBadge": "勝者"
+      },
+      "metrics": {
+        "ariaLabel": "比較指標",
+        "performanceDifference": "パフォーマンス差",
+        "relevantCrossovers": "有意なクロス",
+        "chartRoundPoints": "チャートポイント",
+        "comeback": "逆転",
+        "comebackValue": "あり",
+        "percentagePointsShort": "ポイント",
+        "totalCrossovers": "検出されたクロス"
+      },
+      "states": {
+        "loadingTitle": "Price Battle の記録を読み込んでいます",
+        "loadingBody": "この試合の履歴系列と公式結果を取得しています。",
+        "errorTitle": "Price Battle は一時的に利用できません",
+        "errorBody": "この試合の履歴記録を現在読み込めませんでした。",
+        "notFoundBody": "試合が見つかりません。",
+        "notPublishableTitle": "公開不可",
+        "notPublishableGeneric": "現在のデータではこの試合を公開できません。",
+        "notPublishableNotFinished": "試合はまだ公式に終了していません。",
+        "notPublishableAlreadyPublished": "この試合はすでに公開されています。",
+        "notPublishableReserved": "この試合は別の公開によって予約されています。",
+        "notPublishableReconciliation": "以前の公開の結果が不明なため、先に照合が必要です。",
+        "notPublishableDataQuality": "履歴データの信頼性が不足しているため公開できません。",
+        "notPublishableNoChart": "保存された履歴からチャートを再構築できません。",
+        "notPublishableNoBaseline": "正規化の基準価格がありません。"
+      },
+      "footer": {
+        "disclaimer": "試合の履歴記録です。投資助言ではありません。",
+        "matchTag": "試合 #{0}"
+      }
     },
     "match": {
       "live": {

@@ -400,39 +400,59 @@
   },
   "social": {
     "priceCrossover": {
-      "seo.title": "Price Battle — Historical Match | CriptoVersus",
-      "seo.titleWithMatch": "Price Battle: {0} vs {1} | CriptoVersus",
-      "seo.description": "Historical Price Battle chart built from the official match record. Relative performance of both assets, crossover markers and the official result.",
-      "hero.utcNote": "Historical match",
-      "chart.title": "Price Battle",
-      "chart.versus": "VS",
-      "chart.ariaLabel": "Normalized relative-performance curves for both assets with crossover markers",
-      "chart.empty": "Not enough historical data to rebuild the chart.",
-      "summary.ariaLabel": "Official result and comparative statistics",
-      "summary.officialScore": "Official score",
-      "summary.officialWinner": "Official winner",
-      "summary.draw": "Draw",
-      "metrics.ariaLabel": "Comparative metrics",
-      "metrics.performanceDifference": "Performance gap",
-      "metrics.relevantCrossovers": "Relevant crossovers",
-      "metrics.chartRoundPoints": "Chart points (visual)",
-      "metrics.comeback": "Comeback",
-      "metrics.comebackValue": "Yes",
-      "states.loadingTitle": "Loading the Price Battle record",
-      "states.loadingBody": "Fetching the historical series and the official result for this match.",
-      "states.errorTitle": "Price Battle temporarily unavailable",
-      "states.errorBody": "The historical record for this match could not be loaded right now.",
-      "states.notFoundBody": "Match not found.",
-      "states.notPublishableTitle": "Not publishable",
-      "states.notPublishableGeneric": "This match cannot be published with the current data.",
-      "states.notPublishableNotFinished": "The match is not officially finished yet.",
-      "states.notPublishableAlreadyPublished": "This match has already been published.",
-      "states.notPublishableReserved": "This match is reserved by another publication.",
-      "states.notPublishableReconciliation": "A previous publication has an unknown outcome and must be reconciled first.",
-      "states.notPublishableDataQuality": "The historical data is not reliable enough to publish.",
-      "states.notPublishableNoChart": "The chart cannot be rebuilt from the stored history.",
-      "states.notPublishableNoBaseline": "The reference price for normalization is missing.",
-      "footer.disclaimer": "Historical match record. Not financial advice."
+      "seo": {
+        "title": "Price Battle — Historical Match | CriptoVersus",
+        "titleWithMatch": "Price Battle: {0} vs {1} | CriptoVersus",
+        "description": "Historical Price Battle chart built from the official match record. Relative performance of both assets, crossover markers and the official result."
+      },
+      "hero": {
+        "utcNote": "Historical match"
+      },
+      "chart": {
+        "title": "Price Battle",
+        "versus": "VS",
+        "ariaLabel": "Normalized relative-performance curves for both assets with crossover markers",
+        "empty": "Not enough historical data to rebuild the chart.",
+        "baselineNote": "baseline"
+      },
+      "summary": {
+        "ariaLabel": "Official result and comparative statistics",
+        "officialScore": "Official score",
+        "officialWinner": "Official winner",
+        "draw": "Draw",
+        "finalScore": "Final score",
+        "winnerBadge": "Winner"
+      },
+      "metrics": {
+        "ariaLabel": "Comparative metrics",
+        "performanceDifference": "Performance gap",
+        "relevantCrossovers": "Relevant crossovers",
+        "chartRoundPoints": "Chart points",
+        "comeback": "Comeback",
+        "comebackValue": "Yes",
+        "percentagePointsShort": "pp",
+        "totalCrossovers": "Detected crossovers"
+      },
+      "states": {
+        "loadingTitle": "Loading the Price Battle record",
+        "loadingBody": "Fetching the historical series and the official result for this match.",
+        "errorTitle": "Price Battle temporarily unavailable",
+        "errorBody": "The historical record for this match could not be loaded right now.",
+        "notFoundBody": "Match not found.",
+        "notPublishableTitle": "Not publishable",
+        "notPublishableGeneric": "This match cannot be published with the current data.",
+        "notPublishableNotFinished": "The match is not officially finished yet.",
+        "notPublishableAlreadyPublished": "This match has already been published.",
+        "notPublishableReserved": "This match is reserved by another publication.",
+        "notPublishableReconciliation": "A previous publication has an unknown outcome and must be reconciled first.",
+        "notPublishableDataQuality": "The historical data is not reliable enough to publish.",
+        "notPublishableNoChart": "The chart cannot be rebuilt from the stored history.",
+        "notPublishableNoBaseline": "The reference price for normalization is missing."
+      },
+      "footer": {
+        "disclaimer": "Historical match record. Not financial advice.",
+        "matchTag": "Match #{0}"
+      }
     },
     "match": {
       "live": {

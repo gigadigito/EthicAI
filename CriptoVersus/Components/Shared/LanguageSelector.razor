@@ -9,11 +9,13 @@
 
 <div class="cv-language-selector" @ref="_root">
     <button type="button"
-            class="cv-language-selector__trigger"
+            class="cv-language-selector__trigger @(IconOnly ? "cv-language-selector__trigger--icon" : null)"
             aria-haspopup="listbox"
             aria-expanded="@_isOpen"
             aria-controls="@_listId"
-            aria-label="@AriaLabel"
+            aria-label="@(IconOnly
+                ? $"{AriaLabel}: {CurrentLanguage.NativeName}"
+                : AriaLabel)"
             title="@CurrentLanguage.NativeName"
             @onclick="ToggleAsync"
             @onkeydown="HandleTriggerKeyDownAsync"
@@ -24,17 +26,20 @@
             &#127760;
         </span>
 
-        <span class="cv-language-selector__label cv-language-selector__label--full">
-            @CurrentLanguage.NativeName
-        </span>
+        @if (!IconOnly)
+        {
+            <span class="cv-language-selector__label cv-language-selector__label--full">
+                @CurrentLanguage.NativeName
+            </span>
 
-        <span class="cv-language-selector__label cv-language-selector__label--compact">
-            @CurrentLanguage.ShortName
-        </span>
+            <span class="cv-language-selector__label cv-language-selector__label--compact">
+                @CurrentLanguage.ShortName
+            </span>
 
-        <span class="cv-language-selector__chevron"
-              aria-hidden="true">
-        </span>
+            <span class="cv-language-selector__chevron"
+                  aria-hidden="true">
+            </span>
+        }
     </button>
 
     @if (_isOpen)
@@ -120,6 +125,9 @@
 
     [Parameter]
     public EventCallback<string> OnCultureSelected { get; set; }
+
+    [Parameter]
+    public bool IconOnly { get; set; }
 
     private SupportedLanguage CurrentLanguage =>
         Languages.GetOrDefault(CurrentCulture);

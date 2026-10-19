@@ -255,6 +255,7 @@ Primary files:
 
 - `DAL/EthicAIDbContext.cs`
 - `DAL/EthicAIDbContextFactory.cs`
+- `DAL/MigrationConnectionResolver.cs`
 - `DAL/NftFutebol`
 - `DAL/Migrations`
 
@@ -262,6 +263,7 @@ Responsibilities:
 
 - EF Core context and entity mappings.
 - PostgreSQL migrations.
+- Design-time connection resolution and update guard for `dotnet ef` (see `docs/ef-migrations.md`).
 - Match, team, currency, bet, scoring, snapshot, ledger, position, social, audio, narration, and Worker status entities.
 - Legacy user, post, category, and pre-sale entities.
 - Runtime schema helpers for scoring state.
@@ -400,6 +402,8 @@ flowchart TD
 ```
 
 The shared schema is a strong runtime contract. API and Worker must be deployed with compatible entity and migration versions.
+
+EF Core design-time tooling (`dotnet ef`) does not use runtime configuration. `DAL/EthicAIDbContextFactory.cs` resolves the connection through `DAL/MigrationConnectionResolver.cs` with priority `CRIPTOVERSUS_MIGRATION_CONNECTION`, `ConnectionStrings__Default`, then `ConnectionStrings:Default` in appsettings files, and fails clearly when none is set. There is no hardcoded credential fallback. Read-only commands (`migrations list`, `migrations script`) run against any target; `database update` against a non-local target requires `CRIPTOVERSUS_MIGRATION_ALLOW_UPDATE=true`. Operational procedure: `docs/ef-migrations.md`.
 
 ## Futurebol Flow
 
@@ -567,7 +571,7 @@ The arcade host now renders the market cards, one five-minute countdown, match c
 
 ## Price Crossover Social Flow
 
-Read-only social analysis of a completed match, consumed by a future n8n workflow. Scope is API only: no n8n workflow, no screenshot generation and no Binance Square publishing is implemented here.
+Read-only social analysis of a completed match plus the social capture page that renders the shareable image. The n8n workflow and the Browserless screenshot remain external to this repository; Binance Square publishing is not implemented here.
 
 ### Ownership of the two metric families
 
@@ -639,11 +643,28 @@ Eligibility requires `MatchStatus.Completed`, a valid official result, sufficien
 
 `GET /api/social/price-crossover/highlight` and `GET /api/social/price-crossover/{matchId}` are `[AllowAnonymous]` and side-effect free. `GET /highlights/candidates` and the `reserve`/`confirm`/`release` mutations require authentication under the API fallback policy.
 
-`publicUrl` is reserved in the contract with `publicUrlAvailable: false`; the social capture page does not exist yet.
+`publicUrl` is reserved in the contract with `publicUrlAvailable: false` and is still not populated by the API.
+
+### Social capture page and image presets
+
+`CriptoVersus/Components/Pages/Internet/PriceCrossoverSocial.razor` renders the social card at `/{culture}/social/price-crossover/{matchId}` (BlankLayout, Interactive Server, `noindex`). It is a fixed-size card exported whole by an external Browserless screenshot; the viewport must equal the preset:
+
+| Preset | Size | Request | Intended destination |
+|---|---|---|---|
+| 4:3 (default) | 1200x900 | route as-is | Binance Square and free-ratio feeds |
+| 16:9 | 1200x675 | `?preset=16x9` | X/Twitter multi-image posts |
+
+Both presets are full compositions (the 16:9 rows are compacted, never cropped). The chart canvas fills the largest grid row (~50% of the 4:3 height) and its time axis spans the official match window (`StartTimeUtc`..`EndTimeUtc`), so the first and last timestamps stay visible; no data point is invented or interpolated. The series, crossover markers, official score and official winner come only from `PriceCrossoverSocialCardModelBuilder` / the API — the page never recomputes a result.
+
+Presentation layering: `Services/PriceCrossoverSocialCardModel.cs` formats numbers per culture, `wwwroot/js/priceCrossoverSocialCard.mjs` (plain Canvas 2D) draws normalized series, the 1.0 baseline reference line, and distinguishes mathematical crossover dots from relevant-crossover highlights. Capture readiness is the conjunction `data-capture-state` + `data-cs-ready` + `data-render-complete` + `data-fonts-ready` + `data-images-ready` + `data-i18n-ok` exposed as `data-social-ready`; the Browserless capture must wait for `data-social-ready="true"` instead of a fixed timeout.
+
+Localization uses the existing `LocalizationService` resources: `social.priceCrossover.*` keys in `CriptoVersus/i18n.<culture>.json` (nested objects; flat dotted keys do not resolve in `GetNode`). Capture culture priority: `?culture`/`?lang`, then the route culture, then the user preference cookie/browser language, with `pt-BR` as the image fallback. Unresolved keys are replaced by empty text, logged, and block `data-social-ready` (`detectUnresolvedLocalizationKeys`).
 
 ### Testing
 
 `CriptoVersus.API.Tests` covers crossover rules (including the non-strict zero semantics), statistics, selection, publication state machine, concurrency, and a cross-check that `ChartRoundPoints` matches `TvBattleScoreEvaluator.EvaluatePriceBattle` on the same points.
+
+The capture image is covered by `EthicAI.test/PriceCrossoverSocialCardTests.cs` (culture resolution of every `social.priceCrossover` key, per-culture number formatting, full-window chart mapping), `npm run test:i18n` (`tools/i18n-price-crossover-validate.mjs` fails on any unresolved key in any culture) and `npm run test:price-crossover-social` (Playwright capture of the real match 41212 fixture asserting 1200x900/1200x675 dimensions, element bounds, no scroll, resolved translations, the complete 17:13–18:43 window, and long-symbol/many-crossover/missing-metric regressions; PNGs land in `tmp/price-crossover-social-captures`).
 
 ## MCP Flow
 

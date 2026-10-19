@@ -400,39 +400,59 @@
   },
   "social": {
     "priceCrossover": {
-      "seo.title": "Price Battle — 历史比赛 | CriptoVersus",
-      "seo.titleWithMatch": "Price Battle: {0} vs {1} | CriptoVersus",
-      "seo.description": "基于官方比赛记录构建的历史 Price Battle 图表。两种资产的相对表现、交叉标记和官方结果。",
-      "hero.utcNote": "历史比赛",
-      "chart.title": "Price Battle",
-      "chart.versus": "VS",
-      "chart.ariaLabel": "两种资产的归一化相对表现曲线及交叉标记",
-      "chart.empty": "历史数据不足，无法重建图表。",
-      "summary.ariaLabel": "官方结果与对比统计",
-      "summary.officialScore": "官方比分",
-      "summary.officialWinner": "官方获胜者",
-      "summary.draw": "平局",
-      "metrics.ariaLabel": "对比指标",
-      "metrics.performanceDifference": "表现差距",
-      "metrics.relevantCrossovers": "有效交叉次数",
-      "metrics.chartRoundPoints": "图表得分（视觉）",
-      "metrics.comeback": "逆转",
-      "metrics.comebackValue": "是",
-      "states.loadingTitle": "正在加载 Price Battle 记录",
-      "states.loadingBody": "正在获取该场比赛的历史序列和官方结果。",
-      "states.errorTitle": "Price Battle 暂时不可用",
-      "states.errorBody": "暂时无法加载该场比赛的历史记录。",
-      "states.notFoundBody": "未找到比赛。",
-      "states.notPublishableTitle": "不可发布",
-      "states.notPublishableGeneric": "当前数据下无法发布此场比赛。",
-      "states.notPublishableNotFinished": "比赛尚未正式结束。",
-      "states.notPublishableAlreadyPublished": "此场比赛已发布。",
-      "states.notPublishableReserved": "此场比赛已被其他发布占用。",
-      "states.notPublishableReconciliation": "此前的发布结果未知，需要先进行核对。",
-      "states.notPublishableDataQuality": "历史数据不足以可靠发布。",
-      "states.notPublishableNoChart": "无法根据存储的历史数据重建图表。",
-      "states.notPublishableNoBaseline": "缺少归一化的参考价格。",
-      "footer.disclaimer": "比赛历史记录。不构成投资建议。"
+      "seo": {
+        "title": "Price Battle — 历史比赛 | CriptoVersus",
+        "titleWithMatch": "Price Battle: {0} vs {1} | CriptoVersus",
+        "description": "基于官方比赛记录构建的历史 Price Battle 图表。两种资产的相对表现、交叉标记和官方结果。"
+      },
+      "hero": {
+        "utcNote": "历史比赛"
+      },
+      "chart": {
+        "title": "Price Battle",
+        "versus": "VS",
+        "ariaLabel": "两种资产的归一化相对表现曲线及交叉标记",
+        "empty": "历史数据不足，无法重建图表。",
+        "baselineNote": "基准"
+      },
+      "summary": {
+        "ariaLabel": "官方结果与对比统计",
+        "officialScore": "官方比分",
+        "officialWinner": "官方获胜者",
+        "draw": "平局",
+        "finalScore": "最终比分",
+        "winnerBadge": "胜者"
+      },
+      "metrics": {
+        "ariaLabel": "对比指标",
+        "performanceDifference": "表现差距",
+        "relevantCrossovers": "有效交叉次数",
+        "chartRoundPoints": "图表积分",
+        "comeback": "逆转",
+        "comebackValue": "是",
+        "percentagePointsShort": "个百分点",
+        "totalCrossovers": "检测到的交叉"
+      },
+      "states": {
+        "loadingTitle": "正在加载 Price Battle 记录",
+        "loadingBody": "正在获取该场比赛的历史序列和官方结果。",
+        "errorTitle": "Price Battle 暂时不可用",
+        "errorBody": "暂时无法加载该场比赛的历史记录。",
+        "notFoundBody": "未找到比赛。",
+        "notPublishableTitle": "不可发布",
+        "notPublishableGeneric": "当前数据下无法发布此场比赛。",
+        "notPublishableNotFinished": "比赛尚未正式结束。",
+        "notPublishableAlreadyPublished": "此场比赛已发布。",
+        "notPublishableReserved": "此场比赛已被其他发布占用。",
+        "notPublishableReconciliation": "此前的发布结果未知，需要先进行核对。",
+        "notPublishableDataQuality": "历史数据不足以可靠发布。",
+        "notPublishableNoChart": "无法根据存储的历史数据重建图表。",
+        "notPublishableNoBaseline": "缺少归一化的参考价格。"
+      },
+      "footer": {
+        "disclaimer": "比赛历史记录。不构成投资建议。",
+        "matchTag": "比赛 #{0}"
+      }
     },
     "match": {
       "live": {

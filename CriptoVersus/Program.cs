@@ -226,65 +226,20 @@ app.MapGet("/futurebol/team-logo/{symbol}", async (
     }
 }).WithMetadata(new AllowAnonymousAttribute());
 
-app.MapMethods("/sitemap.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
-{
-    var xml = await sitemapService.GetSitemapIndexXmlAsync(ct);
-    httpContext.Response.ContentType = "application/xml; charset=utf-8";
-    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
+app.MapMethods("/sitemap.xml", ["GET", "HEAD"], (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
+    SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetSitemapIndexXmlAsync(token), ct));
 
-    if (HttpMethods.IsHead(httpContext.Request.Method))
-        return Results.Empty;
+app.MapMethods("/sitemap-pages.xml", ["GET", "HEAD"], (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
+    SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetPagesSitemapXmlAsync(token), ct));
 
-    return Results.Content(xml, "application/xml; charset=utf-8");
-});
+app.MapMethods("/sitemap-matches-en.xml", ["GET", "HEAD"], (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
+    SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync("en", token), ct));
 
-app.MapMethods("/sitemap-pages.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
-{
-    var xml = await sitemapService.GetPagesSitemapXmlAsync(ct);
-    httpContext.Response.ContentType = "application/xml; charset=utf-8";
-    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
+app.MapMethods("/sitemap-matches-pt.xml", ["GET", "HEAD"], (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
+    SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync("pt", token), ct));
 
-    if (HttpMethods.IsHead(httpContext.Request.Method))
-        return Results.Empty;
-
-    return Results.Content(xml, "application/xml; charset=utf-8");
-});
-
-app.MapMethods("/sitemap-matches-en.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
-{
-    var xml = await sitemapService.GetMatchSitemapXmlAsync("en", ct);
-    httpContext.Response.ContentType = "application/xml; charset=utf-8";
-    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
-
-    if (HttpMethods.IsHead(httpContext.Request.Method))
-        return Results.Empty;
-
-    return Results.Content(xml, "application/xml; charset=utf-8");
-});
-
-app.MapMethods("/sitemap-matches-pt.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
-{
-    var xml = await sitemapService.GetMatchSitemapXmlAsync("pt", ct);
-    httpContext.Response.ContentType = "application/xml; charset=utf-8";
-    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
-
-    if (HttpMethods.IsHead(httpContext.Request.Method))
-        return Results.Empty;
-
-    return Results.Content(xml, "application/xml; charset=utf-8");
-});
-
-app.MapMethods("/sitemap-matches-zh.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
-{
-    var xml = await sitemapService.GetMatchSitemapXmlAsync("zh", ct);
-    httpContext.Response.ContentType = "application/xml; charset=utf-8";
-    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
-
-    if (HttpMethods.IsHead(httpContext.Request.Method))
-        return Results.Empty;
-
-    return Results.Content(xml, "application/xml; charset=utf-8");
-});
+app.MapMethods("/sitemap-matches-zh.xml", ["GET", "HEAD"], (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
+    SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync("zh", token), ct));
 
 app.MapMethods("/sitemap-matches-{culture}.xml", ["GET", "HEAD"], async (
     HttpContext httpContext,
@@ -296,14 +251,7 @@ app.MapMethods("/sitemap-matches-{culture}.xml", ["GET", "HEAD"], async (
     if (!cultures.TryNormalizeRouteCulture(culture, out var normalizedCulture))
         return Results.NotFound();
 
-    var xml = await sitemapService.GetMatchSitemapXmlAsync(normalizedCulture, ct);
-    httpContext.Response.ContentType = "application/xml; charset=utf-8";
-    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
-
-    if (HttpMethods.IsHead(httpContext.Request.Method))
-        return Results.Empty;
-
-    return Results.Content(xml, "application/xml; charset=utf-8");
+    return await SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync(normalizedCulture, token), ct);
 });
 
 app.MapGet("/robots.txt", async (SitemapService sitemapService, CancellationToken ct) =>

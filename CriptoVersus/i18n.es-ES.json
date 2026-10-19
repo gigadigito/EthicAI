@@ -400,39 +400,59 @@
   },
   "social": {
     "priceCrossover": {
-      "seo.title": "Price Battle — Partida histórica | CriptoVersus",
-      "seo.titleWithMatch": "Price Battle: {0} vs {1} | CriptoVersus",
-      "seo.description": "Gráfico histórico del Price Battle construido a partir del registro oficial de la partida. Rendimiento relativo de ambos activos, marcadores de cruce y resultado oficial.",
-      "hero.utcNote": "Partida histórica",
-      "chart.title": "Price Battle",
-      "chart.versus": "VS",
-      "chart.ariaLabel": "Curvas normalizadas de rendimiento relativo de ambos activos con marcadores de cruce",
-      "chart.empty": "Datos históricos insuficientes para reconstruir el gráfico.",
-      "summary.ariaLabel": "Resultado oficial y estadísticas comparativas",
-      "summary.officialScore": "Marcador oficial",
-      "summary.officialWinner": "Ganador oficial",
-      "summary.draw": "Empate",
-      "metrics.ariaLabel": "Métricas comparativas",
-      "metrics.performanceDifference": "Diferencia de rendimiento",
-      "metrics.relevantCrossovers": "Cruces relevantes",
-      "metrics.chartRoundPoints": "Puntos del gráfico (visual)",
-      "metrics.comeback": "Remontada",
-      "metrics.comebackValue": "Sí",
-      "states.loadingTitle": "Cargando el registro del Price Battle",
-      "states.loadingBody": "Obteniendo la serie histórica y el resultado oficial de esta partida.",
-      "states.errorTitle": "Price Battle no disponible temporalmente",
-      "states.errorBody": "No se pudo cargar el registro histórico de esta partida ahora.",
-      "states.notFoundBody": "Partida no encontrada.",
-      "states.notPublishableTitle": "No publicable",
-      "states.notPublishableGeneric": "Esta partida no se puede publicar con los datos actuales.",
-      "states.notPublishableNotFinished": "La partida aún no ha terminado oficialmente.",
-      "states.notPublishableAlreadyPublished": "Esta partida ya ha sido publicada.",
-      "states.notPublishableReserved": "Esta partida está reservada por otra publicación.",
-      "states.notPublishableReconciliation": "Una publicación anterior tiene un resultado desconocido y debe reconciliarse primero.",
-      "states.notPublishableDataQuality": "Los datos históricos no son lo suficientemente fiables para publicar.",
-      "states.notPublishableNoChart": "El gráfico no se puede reconstruir a partir del historial almacenado.",
-      "states.notPublishableNoBaseline": "Falta el precio de referencia para la normalización.",
-      "footer.disclaimer": "Registro histórico de la partida. No constituye asesoramiento financiero."
+      "seo": {
+        "title": "Price Battle — Partida histórica | CriptoVersus",
+        "titleWithMatch": "Price Battle: {0} vs {1} | CriptoVersus",
+        "description": "Gráfico histórico del Price Battle construido a partir del registro oficial de la partida. Rendimiento relativo de ambos activos, marcadores de cruce y resultado oficial."
+      },
+      "hero": {
+        "utcNote": "Partida histórica"
+      },
+      "chart": {
+        "title": "Price Battle",
+        "versus": "VS",
+        "ariaLabel": "Curvas normalizadas de rendimiento relativo de ambos activos con marcadores de cruce",
+        "empty": "Datos históricos insuficientes para reconstruir el gráfico.",
+        "baselineNote": "base"
+      },
+      "summary": {
+        "ariaLabel": "Resultado oficial y estadísticas comparativas",
+        "officialScore": "Marcador oficial",
+        "officialWinner": "Ganador oficial",
+        "draw": "Empate",
+        "finalScore": "Marcador final",
+        "winnerBadge": "Ganador"
+      },
+      "metrics": {
+        "ariaLabel": "Métricas comparativas",
+        "performanceDifference": "Diferencia de rendimiento",
+        "relevantCrossovers": "Cruces relevantes",
+        "chartRoundPoints": "Puntos del gráfico",
+        "comeback": "Remontada",
+        "comebackValue": "Sí",
+        "percentagePointsShort": "p.p.",
+        "totalCrossovers": "Cruces detectados"
+      },
+      "states": {
+        "loadingTitle": "Cargando el registro del Price Battle",
+        "loadingBody": "Obteniendo la serie histórica y el resultado oficial de esta partida.",
+        "errorTitle": "Price Battle no disponible temporalmente",
+        "errorBody": "No se pudo cargar el registro histórico de esta partida ahora.",
+        "notFoundBody": "Partida no encontrada.",
+        "notPublishableTitle": "No publicable",
+        "notPublishableGeneric": "Esta partida no se puede publicar con los datos actuales.",
+        "notPublishableNotFinished": "La partida aún no ha terminado oficialmente.",
+        "notPublishableAlreadyPublished": "Esta partida ya ha sido publicada.",
+        "notPublishableReserved": "Esta partida está reservada por otra publicación.",
+        "notPublishableReconciliation": "Una publicación anterior tiene un resultado desconocido y debe reconciliarse primero.",
+        "notPublishableDataQuality": "Los datos históricos no son lo suficientemente fiables para publicar.",
+        "notPublishableNoChart": "El gráfico no se puede reconstruir a partir del historial almacenado.",
+        "notPublishableNoBaseline": "Falta el precio de referencia para la normalización."
+      },
+      "footer": {
+        "disclaimer": "Registro histórico de la partida. No constituye asesoramiento financiero.",
+        "matchTag": "Partida #{0}"
+      }
     },
     "match": {
       "live": {

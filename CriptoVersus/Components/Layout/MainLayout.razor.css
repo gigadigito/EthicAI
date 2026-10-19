@@ -436,65 +436,57 @@ main {
     border-color: rgba(193, 242, 15, .54);
 }
 
-/* Extras do menu mobile: idioma e carteira vivem no menu hamburguer.
-   No desktop eles continuam no app-topbar, por isso ficam ocultos aqui. */
-.nav-menu-extras {
+/* Acoes compactas da navbar mobile: idioma e carteira vivem ao lado do menu
+   hamburguer. No desktop elas continuam no app-topbar, por isso ficam ocultas aqui. */
+.brand-actions {
     display: none;
 }
 
-.nav-menu-extras__section {
-    display: grid;
-    gap: .45rem;
-}
-
-.nav-menu-extras__label {
-    color: rgba(243, 245, 247, .54);
-    font-size: .7rem;
-    font-weight: 900;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-}
-
-.nav-menu-extras__wallet {
-    display: grid;
-    gap: .55rem;
-}
-
-.nav-menu-extras__wallet-status {
+.brand-wallet-btn {
     align-items: center;
-    color: rgba(243, 245, 247, .72);
+    background: rgba(255, 255, 255, .05);
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, .72);
     display: inline-flex;
-    font-size: .78rem;
-    font-weight: 800;
-    gap: .45rem;
+    flex: 0 0 auto;
+    height: 2.75rem;
+    justify-content: center;
+    padding: 0;
+    position: relative;
+    width: 2.75rem;
 }
 
-.nav-menu-extras__wallet-dot {
-    background: var(--cv-accent, #c1f20f);
-    border-radius: 999px;
-    box-shadow: 0 0 0 .22rem rgba(193, 242, 15, .12);
-    height: .5rem;
-    width: .5rem;
-}
-
-.nav-menu-extras__disconnect {
-    background: rgba(255, 255, 255, .04);
-    border: 1px solid rgba(224, 224, 224, .16);
-    border-radius: 10px;
+.brand-wallet-btn:hover,
+.brand-wallet-btn:focus-visible {
+    background: rgba(255, 255, 255, .1);
+    border-color: rgba(193, 242, 15, .4);
     color: #f3f5f7;
-    font-size: .82rem;
-    font-weight: 800;
-    min-height: 2.5rem;
-    padding: .45rem .85rem;
 }
 
-.nav-menu-extras__disconnect:hover {
-    background: rgba(255, 255, 255, .08);
-    border-color: rgba(224, 224, 224, .3);
+.brand-wallet-btn:focus-visible {
+    outline: 2px solid rgba(193, 242, 15, .55);
+    outline-offset: 2px;
+}
+
+.brand-wallet-btn i {
+    font-size: 1.3125rem;
+    line-height: 1;
+}
+
+.brand-wallet-btn__dot {
+    background: var(--cv-accent, #c1f20f);
+    border: 2px solid #171c26;
+    border-radius: 999px;
+    bottom: .45rem;
+    height: .55rem;
+    position: absolute;
+    right: .45rem;
+    width: .55rem;
 }
 
 @media (max-width: 768px) {
-    /* Um unico cabecalho: logotipo + menu hamburguer. */
+    /* Um unico cabecalho: logotipo + idioma + carteira + menu hamburguer. */
     .app-topbar {
         display: none;
     }
@@ -503,19 +495,10 @@ main {
         padding: 4px !important;
     }
 
-    .nav-menu-extras {
-        border-top: 1px solid rgba(224, 224, 224, .1);
-        display: grid;
-        gap: .85rem;
-        padding: .95rem .85rem 1.15rem;
-    }
-
-    .nav-menu-extras .wallet-button {
-        width: 100%;
-    }
-
-    .nav-menu-extras .wallet-identity {
-        max-width: 100%;
-        width: 100%;
+    .brand-actions {
+        align-items: center;
+        display: flex;
+        flex: 0 0 auto;
+        gap: .25rem;
     }
 }

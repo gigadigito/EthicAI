@@ -366,10 +366,30 @@ function skipValue(source, index) {
 }
 
 function buildBlock(entries, indent) {
+    // Chaves sao caminhos pontuados ("chart.title") e precisam virar aninhamento real:
+    // LocalizationService.GetNode faz split por "." e nao resolve chaves planas.
+    const root = {};
+    for (const [path, value] of Object.entries(entries)) {
+        const segments = path.split(".");
+        let current = root;
+        for (let i = 0; i < segments.length - 1; i += 1) {
+            current[segments[i]] ??= {};
+            current = current[segments[i]];
+        }
+        current[segments[segments.length - 1]] = value;
+    }
+
+    return serializeNode(root, indent);
+}
+
+function serializeNode(node, indent) {
     const pad = " ".repeat(indent);
     const padInner = " ".repeat(indent + 2);
-    const lines = Object.entries(entries).map(([key, value]) => {
-        return `${padInner}${JSON.stringify(key)}: ${JSON.stringify(value)}`;
+    const lines = Object.entries(node).map(([key, value]) => {
+        const rendered = (value !== null && typeof value === "object")
+            ? serializeNode(value, indent + 2)
+            : JSON.stringify(value);
+        return `${padInner}${JSON.stringify(key)}: ${rendered}`;
     });
 
     return `{\n${lines.join(",\n")}\n${pad}}`;

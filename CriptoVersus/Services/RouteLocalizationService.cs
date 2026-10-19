@@ -426,7 +426,7 @@ public sealed class RouteLocalizationService
         }
     }
 
-    private static string BuildConverterPath(string culture, string fromSymbol, string toSymbol)
+    public static string BuildConverterPath(string culture, string fromSymbol, string toSymbol)
         => string.Equals(culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase)
             ? $"/pt/stats/{fromSymbol}-para-{toSymbol}"
             : $"/{culture}/stats/{fromSymbol}-to-{toSymbol}";

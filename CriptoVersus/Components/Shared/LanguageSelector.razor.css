@@ -145,3 +145,20 @@
     .cv-language-selector__chevron,
     .cv-language-selector__menu { transition: none; animation: none; }
 }
+
+/* Variante compacta da navbar mobile: apenas o globo, com alvo de toque de 44x44px. */
+.cv-language-selector__trigger--icon {
+    align-items: center;
+    border-radius: 12px;
+    height: 2.75rem;
+    justify-content: center;
+    max-height: 2.75rem;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0;
+    width: 2.75rem;
+}
+
+.cv-language-selector__trigger--icon .cv-language-selector__globe {
+    font-size: 1.3125rem;
+}

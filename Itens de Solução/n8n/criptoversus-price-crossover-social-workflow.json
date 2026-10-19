@@ -1,0 +1,172 @@
+{
+  "name": "CriptoVersus - Price Crossover Social (captura)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Price Crossover Social - captura de imagem\n- Pagina publica: `{base}/[/{lang}/]social/price-crossover/{matchId}`\n- Preset 4:3 (padrao): viewport **1200x900** em `publicUrl`\n- Preset 16:9: viewport **1200x675** em `publicUrl?preset=16x9`\n- Cultura: caminho da URL (`/pt/...`) ou `?culture=pt-BR`\n- Aguardar `#price-crossover-social-card[data-social-ready=\"true\"]` antes de capturar\n- Nao publicar automaticamente em testes",
+        "height": 260,
+        "width": 420,
+        "color": 5
+      },
+      "id": "note-price-crossover-capture",
+      "name": "Sticky Note - Captura",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-120, 0]
+    },
+    {
+      "parameters": {},
+      "id": "manual-trigger-price-crossover",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [320, 220]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRIPTOVERSUS_API_BASE_URL }}/api/social/price-crossover/highlight",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "lookbackHours", "value": "6" },
+            { "name": "language", "value": "pt-BR" },
+            { "name": "includeSeries", "value": "false" }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-price-crossover-highlight",
+      "name": "HTTP Request - Highlight",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [540, 220]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.hasHighlight }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-has-highlight",
+      "name": "IF - Tem Destaque",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [760, 220]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRIPTOVERSUS_PUBLIC_BASE_URL }}/pt/social/price-crossover/{{ $json.highlight.matchId }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "http-price-crossover-page-warmup",
+      "name": "HTTP Request - Warmup Pagina",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [980, 140]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BROWSERLESS_BASE_URL }}/screenshot?token={{ $env.BROWSERLESS_TOKEN }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { url: $env.CRIPTOVERSUS_PUBLIC_BASE_URL + '/pt/social/price-crossover/' + $('HTTP Request - Highlight').item.json.highlight.matchId, options: { fullPage: false, type: 'png' }, viewport: { width: 1200, height: 900 } } }}",
+        "responseFormat": "file",
+        "dataPropertyName": "data",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "http-browserless-screenshot-price-crossover",
+      "name": "HTTP Request - Screenshot Browserless",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 140]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Highlight",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Highlight": {
+      "main": [
+        [
+          {
+            "node": "IF - Tem Destaque",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Tem Destaque": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Warmup Pagina",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "HTTP Request - Warmup Pagina": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Screenshot Browserless",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

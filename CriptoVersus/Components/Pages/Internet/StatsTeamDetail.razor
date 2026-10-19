@@ -35,7 +35,7 @@
     <meta name="description" content="@MetaDescription" />
     <meta name="keywords" content="@MetaKeywords" />
     <link rel="canonical" href="@CanonicalUrl" />
-    <link rel="alternate" hreflang="x-default" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
     <meta property="og:title" content="@PageTitleText" />
     <meta property="og:description" content="@MetaDescription" />
     <meta property="og:url" content="@CanonicalUrl" />
@@ -605,9 +605,9 @@
     private string MetaDescription => T("seo.description", SeoSymbol);
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, {SeoSymbol}, #CriptoVersus {SeoSymbol}, crypto asset profile";
 
-    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, $"/stats/teams/{NormalizedSlug}");
+    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildStatsTeamDetailPath(CurrentCulture, NormalizedSlug));
 
-    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, $"/stats/teams/{NormalizedSlug}");
+    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildStatsTeamDetailPath(AppCultureService.DefaultRouteCulture, NormalizedSlug));
 
     private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, $"/pt/estatisticas/times/{NormalizedSlug}");
     private string ZhUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, $"/zh/stats/teams/{NormalizedSlug}");
