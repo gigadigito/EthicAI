@@ -595,6 +595,12 @@ public sealed class SocialAutomationOptions
     public int MinimumHotScore { get; set; } = 50;
     public int CooldownMinutesPerMatch { get; set; } = 30;
     public string PublicBaseUrl { get; set; } = "https://criptoversus.com";
+
+    /// <summary>
+    /// Chave esperada no header X-Social-Key das automacoes sociais. Vazia ou ausente
+    /// desativa a autenticacao por chave (fail-closed). Nunca exposta em respostas ou logs.
+    /// </summary>
+    public string? ApiKey { get; set; }
 }
 
 public sealed class SocialPostingDecision

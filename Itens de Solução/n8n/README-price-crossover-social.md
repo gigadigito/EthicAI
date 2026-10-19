@@ -74,3 +74,12 @@ regressões (símbolos longos, muitos cruzamentos, métricas ausentes).
 Workflow, reserva e confirmação continuam em `PriceCrossoverPublicationService`
 (`reserve`/`confirm`/`release`, idempotência `price_crossover_highlight:{matchId}`).
 Não publicar automaticamente durante testes.
+
+
+## Autenticacao (n8n + API)
+
+Reserva, confirmacao e liberacao exigem autenticacao (JWT Bearer ou header `X-Social-Key`).
+No n8n, use uma credencial do tipo Header Auth (Name: `X-Social-Key`) e nao use
+`$env.CV_SOCIAL_API_TOKEN` nos headers.
+
+Configuracao operacional completa (API + n8n): [docs/n8n-price-crossover-auth.md](../../docs/n8n-price-crossover-auth.md)

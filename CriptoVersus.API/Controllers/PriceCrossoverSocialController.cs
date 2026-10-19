@@ -9,8 +9,9 @@ namespace CriptoVersus.API.Controllers;
 /// Endpoints sociais do Price Crossover Highlights.
 ///
 /// GET sao publicos e SEM EFEITO COLATERAL: nunca reservam, nunca alteram estado.
-/// Operacoes de reserva/confirmacao/liberacao exigem autenticacao (politica de fallback da API)
-/// e sao deliberadamente separadas da consulta.
+/// Candidatos, reserva, confirmacao e liberacao exigem a politica
+/// <see cref="SocialAutomationDefaults.PolicyName"/> (JWT Bearer autenticado ou header
+/// X-Social-Key valido), aplicada antes da execucao das operacoes.
 /// </summary>
 [ApiController]
 [Route("api/social/price-crossover")]
@@ -52,6 +53,7 @@ public sealed class PriceCrossoverSocialController : ControllerBase
     /// Candidatos avaliados, com indice de interesse e motivos de selecao ou rejeicao.
     /// Informacao de diagnostico: exige autenticacao.
     /// </summary>
+    [Authorize(Policy = SocialAutomationDefaults.PolicyName)]
     [HttpGet("highlights/candidates")]
     [ProducesResponseType(typeof(PriceCrossoverCandidatesResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -92,6 +94,7 @@ public sealed class PriceCrossoverSocialController : ControllerBase
     /// Reserva a partida para publicacao. Exige autenticacao. Idempotente por
     /// <c>price_crossover_highlight:{matchId}</c>.
     /// </summary>
+    [Authorize(Policy = SocialAutomationDefaults.PolicyName)]
     [HttpPost("{matchId:int}/reserve")]
     [ProducesResponseType(typeof(PriceCrossoverPublicationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -116,6 +119,7 @@ public sealed class PriceCrossoverSocialController : ControllerBase
     /// Confirma o resultado da publicacao. Exige autenticacao.
     /// <c>outcome=unknown</c> marca <c>reconciliation_required</c> e BLOQUEIA nova tentativa automatica.
     /// </summary>
+    [Authorize(Policy = SocialAutomationDefaults.PolicyName)]
     [HttpPost("{matchId:int}/confirm")]
     [ProducesResponseType(typeof(PriceCrossoverPublicationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -136,6 +140,7 @@ public sealed class PriceCrossoverSocialController : ControllerBase
     }
 
     /// <summary>Libera uma reserva sem confirmar publicacao. Exige autenticacao.</summary>
+    [Authorize(Policy = SocialAutomationDefaults.PolicyName)]
     [HttpPost("{matchId:int}/release")]
     [ProducesResponseType(typeof(PriceCrossoverPublicationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

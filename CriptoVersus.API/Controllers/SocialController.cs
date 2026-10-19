@@ -367,15 +367,12 @@ public sealed class SocialController : ControllerBase
         return Ok(items);
     }
 
-    [AllowAnonymous]
+    [Authorize(Policy = SocialAutomationDefaults.PolicyName)]
     [HttpPost("coin-profile")]
     public async Task<ActionResult<CoinSocialProfileUpsertResponse>> UpsertCoinProfile(
         [FromBody] UpsertCoinSocialProfileRequest request,
         CancellationToken ct)
     {
-        if (!TryAuthorizeSocialWrite(out var error))
-            return error;
-
         var normalizedSymbol = request.HasSymbol ? NormalizeSymbol(request.Symbol) : null;
         var coinGeckoId = request.HasCoinGeckoId ? TrimOrNull(request.CoinGeckoId) : null;
         if (string.IsNullOrWhiteSpace(normalizedSymbol) && string.IsNullOrWhiteSpace(coinGeckoId))
@@ -591,31 +588,6 @@ public sealed class SocialController : ControllerBase
         return PhysicalFile(filePath, contentType);
     }
 
-    private bool TryAuthorizeSocialWrite(out ActionResult error)
-    {
-        if (User.Identity?.IsAuthenticated == true)
-        {
-            error = Ok();
-            return true;
-        }
-
-        var expectedKey = _configuration["SocialAutomation:ApiKey"];
-        if (string.IsNullOrWhiteSpace(expectedKey))
-        {
-            error = Ok();
-            return true;
-        }
-
-        if (!Request.Headers.TryGetValue("X-Social-Key", out var providedKey) ||
-            !string.Equals(providedKey.ToString(), expectedKey, StringComparison.Ordinal))
-        {
-            error = Unauthorized(new { message = "Chave de automacao invalida. Informe X-Social-Key ou use JWT." });
-            return false;
-        }
-
-        error = Ok();
-        return true;
-    }
     private static int CalculateDailyPoolStrength(
     int walletCountTeam,
     int totalWalletCount,

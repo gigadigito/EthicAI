@@ -437,7 +437,9 @@ main {
 }
 
 /* Acoes compactas da navbar mobile: idioma e carteira vivem ao lado do menu
-   hamburguer. No desktop elas continuam no app-topbar, por isso ficam ocultas aqui. */
+   hamburguer. No desktop elas continuam no app-topbar, por isso ficam ocultas aqui.
+   O icone de carteira tambem e limitado ao breakpoint mobile para nunca aparecer
+   na barra lateral do desktop. */
 .brand-actions {
     display: none;
 }
@@ -448,7 +450,7 @@ main {
     border: 1px solid rgba(255, 255, 255, .08);
     border-radius: 12px;
     color: rgba(255, 255, 255, .72);
-    display: inline-flex;
+    display: none;
     flex: 0 0 auto;
     height: 2.75rem;
     justify-content: center;
@@ -500,5 +502,9 @@ main {
         display: flex;
         flex: 0 0 auto;
         gap: .25rem;
+    }
+
+    .brand-wallet-btn {
+        display: inline-flex;
     }
 }

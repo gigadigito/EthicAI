@@ -641,7 +641,7 @@ Eligibility requires `MatchStatus.Completed`, a valid official result, sufficien
 - `outcome=unknown` on confirm sets `reconciliation_required`, which **blocks** any new reserve or confirm until explicitly released. Unknown outcomes never trigger automatic reposting.
 - `SocialAutomationService` cooldown queries are scoped by `Category` (`null` matches legacy rows), so Win Rate 24H and other categories cannot block each other.
 
-`GET /api/social/price-crossover/highlight` and `GET /api/social/price-crossover/{matchId}` are `[AllowAnonymous]` and side-effect free. `GET /highlights/candidates` and the `reserve`/`confirm`/`release` mutations require authentication under the API fallback policy.
+`GET /api/social/price-crossover/highlight` and `GET /api/social/price-crossover/{matchId}` are `[AllowAnonymous]` and side-effect free. `GET /highlights/candidates` and the `reserve`/`confirm`/`release` mutations require the `SocialAutomation` authorization policy (`CriptoVersus.API/Service/SocialAutomationKeyAuthenticationHandler.cs`): an authenticated JWT Bearer user **or** a valid `X-Social-Key` header checked against `SocialAutomation:ApiKey` (constant-time comparison, fail-closed when the key is unconfigured or empty). The policy runs before the controller actions and no write endpoint uses `[AllowAnonymous]` to grant access. `POST /api/social/coin-profile` uses the same policy; the former fail-open behaviour when `SocialAutomation:ApiKey` was unset is gone. n8n uses a Header Auth credential (`X-Social-Key`) instead of `$env` headers; see `docs/n8n-price-crossover-auth.md`.
 
 `publicUrl` is reserved in the contract with `publicUrlAvailable: false` and is still not populated by the API.
 
@@ -662,7 +662,7 @@ Localization uses the existing `LocalizationService` resources: `social.priceCro
 
 ### Testing
 
-`CriptoVersus.API.Tests` covers crossover rules (including the non-strict zero semantics), statistics, selection, publication state machine, concurrency, and a cross-check that `ChartRoundPoints` matches `TvBattleScoreEvaluator.EvaluatePriceBattle` on the same points.
+`CriptoVersus.API.Tests` covers crossover rules (including the non-strict zero semantics), statistics, selection, publication state machine, concurrency, and a cross-check that `ChartRoundPoints` matches `TvBattleScoreEvaluator.EvaluatePriceBattle` on the same points. Social automation authentication is covered by `SocialAutomationAuthenticationTests` and `SocialAutomationEndpointAuthTests` (X-Social-Key accepted/rejected/missing, unconfigured key fail-closed, JWT valid/invalid, public GETs still open, duplicate reserve idempotency, no key material in logs).
 
 The capture image is covered by `EthicAI.test/PriceCrossoverSocialCardTests.cs` (culture resolution of every `social.priceCrossover` key, per-culture number formatting, full-window chart mapping), `npm run test:i18n` (`tools/i18n-price-crossover-validate.mjs` fails on any unresolved key in any culture) and `npm run test:price-crossover-social` (Playwright capture of the real match 41212 fixture asserting 1200x900/1200x675 dimensions, element bounds, no scroll, resolved translations, the complete 17:13–18:43 window, and long-symbol/many-crossover/missing-metric regressions; PNGs land in `tmp/price-crossover-social-captures`).
 

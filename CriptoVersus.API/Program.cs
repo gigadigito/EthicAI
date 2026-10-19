@@ -79,6 +79,7 @@ builder.Services.AddScoped<IAudioGenerationQueueService, AudioGenerationQueueSer
 builder.Services.AddScoped<IAudioStorageService, AudioStorageService>();
 builder.Services.AddScoped<IAudioAssetAdminService, AudioAssetAdminService>();
 builder.Services.AddSingleton<IAudioWorkerAuthenticationService, AudioWorkerAuthenticationService>();
+builder.Services.AddSingleton<ISocialAutomationAuthenticationService, SocialAutomationAuthenticationService>();
 builder.Services.AddScoped<IProceduralAudioSeedService, ProceduralAudioSeedService>();
 builder.Services.AddHttpClient<ITvAiNarrationService, TvAiNarrationService>();
 builder.Services.AddScoped<ISocialAutomationService, SocialAutomationService>();
@@ -172,13 +173,16 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
-    });
+    })
+    .AddSocialAutomationKeyAuthentication();
 
 builder.Services.AddAuthorization(options =>
 {
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
+
+    options.AddSocialAutomationAccessPolicy();
 });
 
 builder.Services.AddSwaggerGen(c =>
