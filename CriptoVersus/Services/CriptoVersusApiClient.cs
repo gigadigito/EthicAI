@@ -387,6 +387,16 @@ public sealed class CriptoVersusApiClient
         }
     }
 
+    public async Task<CandleBattleSocialResponse?> GetCandleBattleSocialAsync(
+        int matchId, string language, bool includeRounds = true, CancellationToken ct = default)
+    {
+        if (matchId <= 0) return null;
+        var path = $"api/social/candle-battle/{matchId}?language={Uri.EscapeDataString(language)}" +
+            $"&includeRounds={(includeRounds ? "true" : "false")}";
+        try { return await GetFromJsonWithBearerAsync<CandleBattleSocialResponse>(path, ct); }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound) { return null; }
+    }
+
     public async Task<List<MatchDto>?> GetDailyHotMatchCandidatesAsync(
     int hours = 24,
     int take = 100,

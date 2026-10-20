@@ -121,6 +121,28 @@ As regras de publicação não mudaram (`PriceCrossoverPublicationService`):
 - Endpoints públicos de consulta e contratos de `reserve`/`confirm`/`release` permanecem
   inalterados.
 
+## Payload de `GET /highlights/candidates`
+
+Parâmetros de consulta: `lookbackHours` (1..48, padrão 6), `take` (1..50, padrão 10) e
+`minInterestScore` (padrão `PriceCrossover:MinInterestScore`, 50). Candidatos com
+`interestScore` abaixo do piso não entram na lista (`filteredByMinInterestScore` informa a
+quantidade descartada); o piso nunca é rebaixado — quando faltam candidatos, a API amplia a
+varredura de partidas (limitada a `2 * max(take, MaxCandidates)` análises por consulta).
+
+Cada candidato traz o contrato completo de avaliação: `assetA`/`assetB` (`teamId`, `symbol`,
+`baseAsset`, `quoteAsset`), `canPost`/`skipReason`, `dataQuality.isSufficient`/
+`canReconstructChart`, `publicUrl`/`publicUrlAvailable`, `alreadyPublished`/
+`publicationStatus`, `narrative`, `isEligible`/`isSelected` e `rejectionReasons`. Símbolos
+nunca são inventados: partida sem moeda cadastrada aparece com `symbol: ""` e
+`rejectionReasons: ["missing_asset_symbols"]`.
+
+Fluxo recomendado no n8n: filtrar `isEligible == true`, usar `publicUrl` apenas quando
+`publicUrlAvailable == true` e reservar o `matchId` de `selectedMatchId` (ou do primeiro
+candidato elegível). Rotina de rotação de moedas: a API já evita ativos publicados no mesmo
+dia (`asset_already_published_today`) e pares repetidos em 72h (`pair_recently_published`),
+considerando apenas publicações confirmadas (`posted`); reserva ou tentativa falha não marcam
+a partida como publicada (`alreadyPublished` só é `true` com `confirm` + `outcome=posted`).
+
 ## Verificação
 
 ```powershell

@@ -399,6 +399,30 @@
     }
   },
   "social": {
+    "candleBattle": {
+    "title": "Candle Battle",
+    "descriptionGeneric": "Velas reales del mercado y resultado histórico de Candle Battle.",
+    "description": "{0} y {1} compitieron con velas reales del mercado. Consulta el resultado y la repetición en CriptoVersus.",
+    "loading": "Cargando batalla…",
+    "notFound": "Batalla no encontrada.",
+    "error": "No se pudo cargar la batalla.",
+    "completed": "Finalizada",
+    "ongoing": "En curso",
+    "result": "Resultado de la batalla",
+    "winner": "Ganador",
+    "draw": "Empate",
+    "replay": "Repetición de la batalla",
+    "noReplay": "La repetición histórica no está disponible. Se muestra el resumen registrado.",
+    "duration": "Duración",
+    "minutes": "minutos",
+    "rounds": "Enfrentamientos",
+    "green": "Velas verdes",
+    "red": "Velas rojas",
+    "chart": "Evolución normalizada de precios",
+    "opening": "Apertura",
+    "closing": "Cierre",
+    "disclaimer": "Datos históricos del mercado. No constituye asesoramiento financiero."
+    },
     "priceCrossover": {
       "seo": {
         "title": "Price Battle — Partida histórica | CriptoVersus",

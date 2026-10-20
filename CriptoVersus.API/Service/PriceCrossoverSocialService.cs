@@ -399,6 +399,12 @@ public sealed class PriceCrossoverSocialService : IPriceCrossoverSocialService
 
         if (isHeldByOther)
             return (false, "already_reserved");
+
+        // Sem identificacao dos ativos nao existe publicacao possivel: o simbolo nunca e inventado.
+        if (string.IsNullOrWhiteSpace(outcome.AssetA.Symbol)
+            || string.IsNullOrWhiteSpace(outcome.AssetB.Symbol))
+            return (false, "missing_asset_symbols");
+
         if (!outcome.DataQuality.IsSufficient)
             return (false, "insufficient_data_quality");
 

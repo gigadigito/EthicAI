@@ -399,6 +399,30 @@
     }
   },
   "social": {
+    "candleBattle": {
+    "title": "Candle Battle",
+    "descriptionGeneric": "真实市场K线与Candle Battle历史结果。",
+    "description": "{0}与{1}以真实市场K线对战。请在CriptoVersus查看结果和回放。",
+    "loading": "正在加载对战…",
+    "notFound": "未找到对战。",
+    "error": "无法加载对战。",
+    "completed": "已结束",
+    "ongoing": "进行中",
+    "result": "对战结果",
+    "winner": "胜者",
+    "draw": "平局",
+    "replay": "对战回放",
+    "noReplay": "历史回放不可用。上方显示已保存的摘要。",
+    "duration": "时长",
+    "minutes": "分钟",
+    "rounds": "交锋次数",
+    "green": "上涨K线",
+    "red": "下跌K线",
+    "chart": "标准化价格走势",
+    "opening": "开盘",
+    "closing": "收盘",
+    "disclaimer": "历史市场数据，不构成投资建议。"
+    },
     "priceCrossover": {
       "seo": {
         "title": "Price Battle — 历史比赛 | CriptoVersus",

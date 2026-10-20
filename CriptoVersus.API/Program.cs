@@ -93,6 +93,8 @@ builder.Services.AddScoped<IPriceCrossoverSocialNarrativeService, PriceCrossover
 builder.Services.AddScoped<IPriceCrossoverPublicationService, PriceCrossoverPublicationService>();
 builder.Services.AddScoped<IPriceCrossoverSocialService, PriceCrossoverSocialService>();
 builder.Services.AddScoped<IPriceCrossoverHighlightSelector, PriceCrossoverHighlightSelector>();
+builder.Services.AddScoped<ICandleBattlePublicationService, CandleBattlePublicationService>();
+builder.Services.AddScoped<ICandleBattleSocialService, CandleBattleSocialService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient(nameof(SocialVsRenderService));
 builder.Services.AddHttpClient(nameof(SocialComposeFinalService));
@@ -104,6 +106,8 @@ builder.Services.Configure<SocialAutomationOptions>(
     builder.Configuration.GetSection(SocialAutomationOptions.SectionName));
 builder.Services.Configure<PriceCrossoverOptions>(
     builder.Configuration.GetSection(PriceCrossoverOptions.SectionName));
+builder.Services.Configure<CandleBattleSocialOptions>(
+    builder.Configuration.GetSection(CandleBattleSocialOptions.SectionName));
 builder.Services.Configure<CriptoVersusAiOptions>(
     builder.Configuration.GetSection(CriptoVersusAiOptions.SectionName));
 builder.Services.Configure<AudioGenerationOptions>(

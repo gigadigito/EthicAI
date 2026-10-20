@@ -75,6 +75,9 @@ public sealed class RouteLocalizationService
     public string BuildPriceCrossoverSocialPath(string? culture, int matchId)
         => BuildGenericLocalizedPath(culture, $"social/price-crossover/{matchId}");
 
+    public string BuildCandleBattleSocialPath(string? culture, int matchId)
+        => BuildGenericLocalizedPath(culture, $"social/candle-battle/{matchId}");
+
     public string BuildHowItWorksPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/como-funciona"
@@ -217,6 +220,10 @@ public sealed class RouteLocalizationService
         var priceCrossoverMatchId = TryGetPriceCrossoverMatchId(cleanPath);
         if (priceCrossoverMatchId is not null)
             return BuildPriceCrossoverSocialPath(normalizedTarget, priceCrossoverMatchId.Value) + querySuffix;
+
+        var socialCandleMatchId = TryGetSocialMatchId(cleanPath, "candle-battle");
+        if (socialCandleMatchId is not null)
+            return BuildCandleBattleSocialPath(normalizedTarget, socialCandleMatchId.Value) + querySuffix;
 
         if (cleanPath.Equals("/tokenomics", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/how-it-works", StringComparison.OrdinalIgnoreCase)
@@ -384,6 +391,9 @@ public sealed class RouteLocalizationService
     /// registrada, para que o seletor de idioma funcione sem lista fixa de prefixos.
     /// </summary>
     internal static int? TryGetPriceCrossoverMatchId(string cleanPath)
+        => TryGetSocialMatchId(cleanPath, "price-crossover");
+
+    internal static int? TryGetSocialMatchId(string cleanPath, string kind)
     {
         if (string.IsNullOrWhiteSpace(cleanPath))
             return null;
@@ -399,7 +409,7 @@ public sealed class RouteLocalizationService
             return null;
 
         if (!string.Equals(segments[slugIndex], "social", StringComparison.OrdinalIgnoreCase)
-            || !string.Equals(segments[slugIndex + 1], "price-crossover", StringComparison.OrdinalIgnoreCase))
+            || !string.Equals(segments[slugIndex + 1], kind, StringComparison.OrdinalIgnoreCase))
             return null;
 
         if (segments.Length <= slugIndex + 2)

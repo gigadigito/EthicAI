@@ -63,6 +63,7 @@ internal static class PriceCrossoverTestHelpers
     /// <summary>
     /// Cria uma partida com times, moedas e snapshots de preco.
     /// <paramref name="pricesA"/> e <paramref name="pricesB"/> sao precos por passo de 30 segundos.
+    /// <paramref name="missingCurrency"/> simula times sem moeda cadastrada (sem simbolo).
     /// </summary>
     public static Match SeedMatch(
         EthicAIDbContext db,
@@ -79,28 +80,42 @@ internal static class PriceCrossoverTestHelpers
         decimal[]? pricesB = null,
         decimal[]? percentagesA = null,
         decimal[]? percentagesB = null,
-        bool skipSnapshots = false)
+        bool skipSnapshots = false,
+        bool missingCurrency = false)
     {
         var baseId = matchId * 1000;
-        var currencyA = new Currency
-        {
-            CurrencyId = baseId + 1,
-            Name = symbolA,
-            Symbol = symbolA,
-            LastUpdated = DateTime.UtcNow
-        };
-        var currencyB = new Currency
-        {
-            CurrencyId = baseId + 2,
-            Name = symbolB,
-            Symbol = symbolB,
-            LastUpdated = DateTime.UtcNow
-        };
+        Team teamA;
+        Team teamB;
 
-        var teamA = new Team { TeamId = baseId + 11, CurrencyId = currencyA.CurrencyId, Currency = currencyA };
-        var teamB = new Team { TeamId = baseId + 12, CurrencyId = currencyB.CurrencyId, Currency = currencyB };
+        if (missingCurrency)
+        {
+            // Times apontando para moedas inexistentes: simbolo fica vazio e nunca e inventado.
+            teamA = new Team { TeamId = baseId + 11, CurrencyId = baseId + 999, Currency = null! };
+            teamB = new Team { TeamId = baseId + 12, CurrencyId = baseId + 998, Currency = null! };
+        }
+        else
+        {
+            var currencyA = new Currency
+            {
+                CurrencyId = baseId + 1,
+                Name = symbolA,
+                Symbol = symbolA,
+                LastUpdated = DateTime.UtcNow
+            };
+            var currencyB = new Currency
+            {
+                CurrencyId = baseId + 2,
+                Name = symbolB,
+                Symbol = symbolB,
+                LastUpdated = DateTime.UtcNow
+            };
 
-        db.Currency.AddRange(currencyA, currencyB);
+            teamA = new Team { TeamId = baseId + 11, CurrencyId = currencyA.CurrencyId, Currency = currencyA };
+            teamB = new Team { TeamId = baseId + 12, CurrencyId = currencyB.CurrencyId, Currency = currencyB };
+
+            db.Currency.AddRange(currencyA, currencyB);
+        }
+
         db.Team.AddRange(teamA, teamB);
 
         var start = startTimeUtc ?? (endTimeUtc ?? DateTime.UtcNow.AddMinutes(-90)).AddMinutes(-90);

@@ -399,6 +399,30 @@
     }
   },
   "social": {
+    "candleBattle": {
+    "title": "Candle Battle",
+    "descriptionGeneric": "実際の市場ローソク足とCandle Battleの過去の結果。",
+    "description": "{0}と{1}が実際の市場ローソク足で対戦しました。CriptoVersusで結果とリプレイをご覧ください。",
+    "loading": "バトルを読み込み中…",
+    "notFound": "バトルが見つかりません。",
+    "error": "バトルを読み込めませんでした。",
+    "completed": "終了",
+    "ongoing": "進行中",
+    "result": "バトル結果",
+    "winner": "勝者",
+    "draw": "引き分け",
+    "replay": "バトルのリプレイ",
+    "noReplay": "過去のリプレイは利用できません。保存された概要を表示しています。",
+    "duration": "時間",
+    "minutes": "分",
+    "rounds": "対戦数",
+    "green": "陽線",
+    "red": "陰線",
+    "chart": "正規化した価格推移",
+    "opening": "始値",
+    "closing": "終値",
+    "disclaimer": "過去の市場データです。投資助言ではありません。"
+    },
     "priceCrossover": {
       "seo": {
         "title": "Price Battle — 過去の試合 | CriptoVersus",

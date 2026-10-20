@@ -569,6 +569,33 @@ The arcade host now renders the market cards, one five-minute countdown, match c
 
 `candle-battles/dialogue.ts` owns the local, eight-language comic dialogue catalog and deterministic selection by match, round and idle slot. `game.ts` advances one two-line conversation on the existing presentation clock, including Replay speed and pause, and interrupts it at combat. The HTML bubble tracks the Phaser sprite anchor through the fitted canvas and stays separate from scoring, market data, and the persisted round timeline. Final winner, loser and draw lines use the same presentation layer.
 
+## Candle Battle Social Flow
+
+`CandleBattleSocialController` exposes `/api/social/candle-battle/highlight`,
+`/highlights/candidates`, `/{matchId}`, and the `reserve`/`confirm`/`release`
+publication actions. Public GETs are side-effect free; candidate diagnostics and
+mutations use the existing `SocialAutomation` policy. The service reads only
+persisted `candle_battles_round` and `candle_battles_state` records and uses
+`CandleBattlesRoundProjection`, shared with `CandleBattlesController`, to normalize
+legacy winners. Its arcade score is separate from `Match.ScoreA/ScoreB`.
+Complete, contiguous 18-round battles with a finished Worker state are eligible
+for publication; incomplete or inconsistent histories remain viewable but cannot
+be reserved. Highlight weights and selection limits are configured under
+`CandleBattleSocial`.
+
+`SocialPublicationService` owns the existing `social_post_history` state machine.
+Price Crossover and Candle Battle use separate category/idempotency keys on the
+same table and partial unique index. No new migration is needed. The API owns
+publication writes, while the Worker remains the sole writer of arcade rounds.
+The public Blazor route `/{culture}/social/candle-battle/{matchId}` prerenders
+metadata and historical summary, then reuses `CandleBattlesHost` and its Phaser
+replay. A static summary is shown when replay data is unavailable. The page
+exposes `#candle-battle-social-card[data-social-ready="true"]` after its assets
+and replay canvas are ready for capture. The Web reads the API through
+`CriptoVersusApiClient`; there is no new DAL dependency.
+
+See `docs/n8n-candle-battle-social.md` for the independent workflow contract.
+
 ## Price Crossover Social Flow
 
 Read-only social analysis of a completed match plus the social capture page that renders the shareable image. The n8n workflow and the Browserless screenshot remain external to this repository; Binance Square publishing is not implemented here.
@@ -630,6 +657,10 @@ No Binance call is ever made to reconstruct a historical result. The series alwa
 All rates are normalised by **observed time span**, and movement intensity is measured on a fixed 60-second resampling grid, so a match does not score higher merely because it received more updates. Ties break deterministically: smaller official score gap, then more recent, then lower `MatchId`.
 
 Eligibility requires `MatchStatus.Completed`, a valid official result, sufficient data quality, a reconstructable chart, and no active publication. When nothing qualifies the response carries `skipReason` instead of a weak pick.
+
+`GET /api/social/price-crossover/highlights/candidates` returns evaluated candidates with the complete eligibility contract on every row: nested `assetA`/`assetB` (`teamId`, `symbol`, `baseAsset`, `quoteAsset`), `canPost`/`skipReason`, `dataQuality` (`isSufficient`, `canReconstructChart`, `issues`, ...), `publicUrl`/`publicUrlAvailable`, `alreadyPublished`/`publicationStatus` and the reused narrative. Symbols come only from `Currency.Symbol`; a match without registered coins keeps empty symbols and is rejected with `missing_asset_symbols` — nothing is invented. All candidates are built through `PriceCrossoverSocialService.BuildResponseCoreAsync`, the single owner of calculation, eligibility validation, social URL and narrative; the selector adds only structured aggregation and coin rotation. The endpoint applies a `minInterestScore` floor (query override, default `PriceCrossover:MinInterestScore` = 50) and only returns candidates at or above it; when scored candidates are scarce the selector expands the scan (bounded at `2 * max(take, MaxCandidates)` detail analyses per request) instead of lowering the floor. Ordering is deterministic: eligible first (finished, sufficient data, social URL available, not published), then interest score, score proximity, recency and `MatchId`. `isEligible` includes coin rotation; `canPost` is the per-match publication verdict. Selecting a candidate (`selectedMatchId`/`isSelected`) is response-only and never writes to `social_post_history`; only `confirm` with `outcome=posted` counts as published (`already_published`) and feeds rotation.
+
+Coin rotation (`PriceCrossover:CoinRotationEnabled`, default on) avoids assets already published on the same UTC day (`asset_already_published_today`) and repeated pairs inside `PriceCrossover:CoinRotationPairWindowHours` (default 72, `pair_recently_published`). The rotation window is derived exclusively from confirmed `posted` rows of the category, read through `IPriceCrossoverPublicationService.GetRecentlyPostedAsync`; reservations, failed attempts and selection never block another candidate.
 
 ### Publication control
 

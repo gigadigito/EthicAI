@@ -1,5 +1,6 @@
 using System.Text.Json;
 using BLL.NFTFutebol;
+using CriptoVersus.API.Services;
 using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
@@ -36,9 +37,9 @@ public sealed class CandleBattlesController(EthicAIDbContext db) : ControllerBas
         }
         var legacy = await all.Where(r => r.RuleVersion != CandleBattlesResolver.Version).ToListAsync(ct);
         var scoreLeft = await all.CountAsync(r => r.RuleVersion == CandleBattlesResolver.Version && r.Winner == "left", ct)
-            + legacy.Count(r => EffectiveWinner(r) == "left");
+            + legacy.Count(r => CandleBattlesRoundProjection.EffectiveWinner(r) == "left");
         var scoreRight = await all.CountAsync(r => r.RuleVersion == CandleBattlesResolver.Version && r.Winner == "right", ct)
-            + legacy.Count(r => EffectiveWinner(r) == "right");
+            + legacy.Count(r => CandleBattlesRoundProjection.EffectiveWinner(r) == "right");
         var query = all;
         if (after.HasValue)
         {
@@ -46,17 +47,7 @@ public sealed class CandleBattlesController(EthicAIDbContext db) : ControllerBas
             query = query.Where(r => r.OpenTimeUtc > open);
         }
         var records = await query.OrderBy(r => r.OpenTimeUtc).Take(take + 1).ToListAsync(ct);
-        var rounds = records.Take(take).Select(r =>
-        {
-            var left = JsonSerializer.Deserialize<CandleBattlesCandleDto>(r.LeftCandleJson)!;
-            var right = JsonSerializer.Deserialize<CandleBattlesCandleDto>(r.RightCandleJson)!;
-            var legacyWinner = r.RuleVersion == CandleBattlesResolver.Version ? r.Winner :
-                CandleBattlesResolver.ResolveWinner(left, right, r.LeftStrength, r.RightStrength);
-            var ruleVersion = r.RuleVersion == CandleBattlesResolver.Version ? r.RuleVersion : CandleBattlesResolver.Version;
-            return new CandleBattlesRoundDto(
-                $"{r.MatchId}:5m:{new DateTimeOffset(r.OpenTimeUtc).ToUnixTimeMilliseconds()}", r.MatchId,
-                left, right, legacyWinner, ruleVersion, r.LeftStrength, r.RightStrength);
-        }).ToArray();
+        var rounds = records.Take(take).Select(CandleBattlesRoundProjection.ToDto).ToArray();
         var finished = state?.Complete ?? match.Status is MatchStatus.Completed or MatchStatus.Cancelled;
         var status = state?.Status ?? (finished ? "unavailable" : "waiting");
         if (state is { Complete: false } && state.UpdatedAtUtc < DateTime.UtcNow.AddMinutes(-2)) status = "delayed";
@@ -70,11 +61,4 @@ public sealed class CandleBattlesController(EthicAIDbContext db) : ControllerBas
             CandleBattlesResolver.ExpectedRounds, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
     }
 
-    private static string EffectiveWinner(CandleBattlesRound round)
-    {
-        if (round.RuleVersion == CandleBattlesResolver.Version) return round.Winner;
-        var left = JsonSerializer.Deserialize<CandleBattlesCandleDto>(round.LeftCandleJson)!;
-        var right = JsonSerializer.Deserialize<CandleBattlesCandleDto>(round.RightCandleJson)!;
-        return CandleBattlesResolver.ResolveWinner(left, right, round.LeftStrength, round.RightStrength);
-    }
 }

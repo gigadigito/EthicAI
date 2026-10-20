@@ -560,14 +560,40 @@ public sealed class PriceCrossoverNarrative
     public bool WasTruncated { get; init; }
 }
 
+/// <summary>Identificacao compacta de um dos ativos de um candidato. Nunca inventa simbolo.</summary>
+public sealed class PriceCrossoverCandidateAsset
+{
+    public int TeamId { get; init; }
+
+    /// <summary>Simbolo completo negociado (ex.: <c>EPICUSDT</c>). Vazio quando a moeda nao esta cadastrada.</summary>
+    public string Symbol { get; init; } = string.Empty;
+
+    /// <summary>Ativo base (ex.: <c>EPIC</c>). Vazio quando o simbolo e vazio.</summary>
+    public string BaseAsset { get; init; } = string.Empty;
+
+    /// <summary>Ativo de cotacao (ex.: <c>USDT</c>).</summary>
+    public string QuoteAsset { get; init; } = string.Empty;
+}
+
 /// <summary>Candidato a destaque, com indice de interesse e motivos de selecao ou rejeicao.</summary>
 public sealed class PriceCrossoverCandidateDto
 {
     public int MatchId { get; init; }
     public string Status { get; init; } = string.Empty;
     public DateTime? EndTimeUtc { get; init; }
+
+    /// <summary>Identificacao do ativo A, com o mesmo formato de <c>assetA</c> da resposta completa.</summary>
+    public PriceCrossoverCandidateAsset AssetA { get; init; } = new();
+
+    /// <summary>Identificacao do ativo B, com o mesmo formato de <c>assetB</c> da resposta completa.</summary>
+    public PriceCrossoverCandidateAsset AssetB { get; init; } = new();
+
+    /// <summary>Compat: espelho plano de <see cref="PriceCrossoverCandidateAsset.Symbol"/> do ativo A.</summary>
     public string AssetASymbol { get; init; } = string.Empty;
+
+    /// <summary>Compat: espelho plano de <see cref="PriceCrossoverCandidateAsset.Symbol"/> do ativo B.</summary>
     public string AssetBSymbol { get; init; } = string.Empty;
+
     public int ScoreA { get; init; }
     public int ScoreB { get; init; }
     public int? WinnerTeamId { get; init; }
@@ -578,11 +604,38 @@ public sealed class PriceCrossoverCandidateDto
     public int Competitiveness { get; init; }
     public decimal? PerformanceDifferencePercent { get; init; }
 
+    /// <summary>
+    /// Avaliacao real de publicabilidade, calculada por
+    /// <c>PriceCrossoverSocialService</c> (nunca presumida pela existencia do matchId).
+    /// </summary>
+    public bool CanPost { get; init; }
+
+    /// <summary>Motivo concreto quando <see cref="CanPost"/> e falso. Null quando publicavel.</summary>
+    public string? SkipReason { get; init; }
+
+    /// <summary>Qualidade e cobertura dos dados que sustentam a analise deste candidato.</summary>
+    public PriceCrossoverDataQuality DataQuality { get; init; } = new();
+
+    /// <summary>URL publica da pagina de captura. Null quando <see cref="PublicUrlAvailable"/> e falso.</summary>
+    public string? PublicUrl { get; init; }
+
+    /// <summary>Prontidao explicita da pagina de captura (espelho de <c>data-social-ready</c>).</summary>
+    public bool PublicUrlAvailable { get; init; }
+
+    /// <summary>True apenas com publicacao CONFIRMADA (<c>posted</c>). Reserva ou tentativa nao contam.</summary>
+    public bool AlreadyPublished { get; init; }
+
+    /// <summary>Estado atual do controle de publicacao, quando existir (<c>reserved</c>, <c>posted</c>, ...).</summary>
+    public string? PublicationStatus { get; init; }
+
+    /// <summary>Narrativa deterministica ja gerada para este candidato (reaproveitada, sem recalculo).</summary>
+    public PriceCrossoverNarrative? Narrative { get; init; }
+
     /// <summary>True quando o candidato passou em todos os criterios de elegibilidade.</summary>
     public bool IsEligible { get; init; }
 
-    /// <summary>True quando este e o candidato selecionado como destaque.</summary>
-    public bool IsSelected { get; init; }
+    /// <summary>True quando este e o candidato selecionado como destaque. Nao implica publicacao.</summary>
+    public bool IsSelected { get; set; }
 
     /// <summary>Motivos de rejeicao quando <see cref="IsEligible"/> e falso.</summary>
     public IReadOnlyList<string> RejectionReasons { get; init; } = [];
@@ -595,7 +648,19 @@ public sealed class PriceCrossoverCandidatesResponse
 {
     public DateTime GeneratedAtUtc { get; init; }
     public int LookbackHours { get; init; }
+
+    /// <summary>Quantidade maxima de candidatos retornada (apos clamp do endpoint).</summary>
+    public int Take { get; init; }
+
+    /// <summary>Piso de <see cref="PriceCrossoverCandidateDto.InterestScore"/> aplicado nesta consulta.</summary>
+    public int MinInterestScore { get; init; }
+
+    /// <summary>Quantidade de partidas avaliadas em detalhe.</summary>
     public int MatchesScanned { get; init; }
+
+    /// <summary>Quantidade de candidatos excluidos da lista por ficarem abaixo de <see cref="MinInterestScore"/>.</summary>
+    public int FilteredByMinInterestScore { get; init; }
+
     public int EligibleCount { get; init; }
     public int? SelectedMatchId { get; init; }
     public IReadOnlyList<PriceCrossoverCandidateDto> Candidates { get; init; } = [];
@@ -638,6 +703,18 @@ public sealed class PriceCrossoverPublicationState
     public bool IsLeaseExpired { get; init; }
 }
 
+/// <summary>
+/// Publicacao CONFIRMADA (<c>posted</c>) de uma partida, usada na rotacao de moedas.
+/// Reservas, tentativas (<c>failed</c>) e reconciliacoes nunca aparecem aqui.
+/// </summary>
+public sealed class PriceCrossoverPostedRecord
+{
+    public int MatchId { get; init; }
+    public DateTime PostedAtUtc { get; init; }
+    public string AssetASymbol { get; init; } = string.Empty;
+    public string AssetBSymbol { get; init; } = string.Empty;
+}
+
 public sealed class PriceCrossoverReserveRequest
 {
     /// <summary>Identifica quem esta reservando (ex.: nome do workflow n8n). Opcional.</summary>
@@ -651,6 +728,8 @@ public sealed class PriceCrossoverConfirmRequest
 {
     /// <summary>Resultado da publicacao: <c>posted</c>, <c>failed</c> ou <c>unknown</c>.</summary>
     public string Outcome { get; init; } = string.Empty;
+
+    public DateTime? ReservedAtUtc { get; init; }
 
     public string? ExternalPostId { get; init; }
     public string? ExternalPostUrl { get; init; }

@@ -17,6 +17,22 @@ public sealed class PriceCrossoverOptions
     /// <summary>Limite de partidas analisadas em detalhe por consulta, para evitar trabalho excessivo.</summary>
     public int MaxCandidates { get; set; } = 25;
 
+    /// <summary>
+    /// Piso do indice de interesse para um candidato entrar na lista de
+    /// <c>highlights/candidates</c>. Nao e rebaixado quando o seletor amplia a busca:
+    /// a ampliacao procura MAIS partidas, nunca aceita candidatos mais fracos.
+    /// </summary>
+    public int MinInterestScore { get; set; } = 50;
+
+    /// <summary>
+    /// Rotação de moedas: evita reutilizar o mesmo par publicado nas ultimas N horas.
+    /// Ativos individuais publicados no mesmo dia (UTC) tambem sao evitados.
+    /// </summary>
+    public bool CoinRotationEnabled { get; set; } = true;
+
+    /// <summary>Janela, em horas, em que um par repetido e evitado pela rotacao de moedas.</summary>
+    public int CoinRotationPairWindowHours { get; set; } = 72;
+
     /// <summary>Limite de pontos retornados na serie historica.</summary>
     public int MaxSeriesPoints { get; set; } = 360;
 

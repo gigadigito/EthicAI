@@ -51,6 +51,11 @@ public sealed class PriceCrossoverSocialController : ControllerBase
 
     /// <summary>
     /// Candidatos avaliados, com indice de interesse e motivos de selecao ou rejeicao.
+    /// Cada candidato traz o contrato completo de elegibilidade (ativos, canPost,
+    /// dataQuality, publicUrl/publicUrlAvailable), ja calculado pelos servicos internos.
+    /// <paramref name="minInterestScore"/> (padrao <c>PriceCrossover:MinInterestScore</c>, 50)
+    /// e o piso de indice de interesse: candidatos abaixo dele nao entram na lista. Quando
+    /// necessario, o seletor amplia a varredura de partidas sem rebaixar o piso.
     /// Informacao de diagnostico: exige autenticacao.
     /// </summary>
     [Authorize(Policy = SocialAutomationDefaults.PolicyName)]
@@ -60,12 +65,13 @@ public sealed class PriceCrossoverSocialController : ControllerBase
     public async Task<ActionResult<PriceCrossoverCandidatesResponse>> GetCandidates(
         [FromQuery] int lookbackHours = 6,
         [FromQuery] int take = 10,
+        [FromQuery] int? minInterestScore = null,
         CancellationToken ct = default)
     {
         lookbackHours = Math.Clamp(lookbackHours, 1, 48);
         take = Math.Clamp(take, 1, 50);
 
-        var result = await _selector.GetCandidatesAsync(lookbackHours, take, ct);
+        var result = await _selector.GetCandidatesAsync(lookbackHours, take, minInterestScore, ct);
         return Ok(result);
     }
 
@@ -161,4 +167,5 @@ public sealed class PriceCrossoverSocialController : ControllerBase
 public sealed class PriceCrossoverReleaseRequest
 {
     public string? Reason { get; init; }
+    public DateTime? ReservedAtUtc { get; init; }
 }

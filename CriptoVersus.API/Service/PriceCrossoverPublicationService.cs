@@ -9,6 +9,14 @@ namespace CriptoVersus.API.Services;
 public interface IPriceCrossoverPublicationService
 {
     Task<PriceCrossoverPublicationState?> GetStateAsync(int matchId, CancellationToken ct);
+
+    /// <summary>
+    /// Publicacoes CONFIRMADAS (<c>posted</c>) da categoria, desde <paramref name="sinceUtc"/>.
+    /// Reservas e tentativas falhas nunca entram: rotacao de moedas considera apenas o que foi
+    /// efetivamente publicado.
+    /// </summary>
+    Task<IReadOnlyList<PriceCrossoverPostedRecord>> GetRecentlyPostedAsync(DateTime sinceUtc, CancellationToken ct);
+
     Task<PriceCrossoverPublicationResult> ReserveAsync(int matchId, PriceCrossoverReserveRequest request, CancellationToken ct);
     Task<PriceCrossoverPublicationResult> ConfirmAsync(int matchId, PriceCrossoverConfirmRequest request, CancellationToken ct);
     Task<PriceCrossoverPublicationResult> ReleaseAsync(int matchId, string? reason, CancellationToken ct);
@@ -27,15 +35,19 @@ public interface IPriceCrossoverPublicationService
 /// - O cooldown de <c>SocialAutomationService</c> e isolado por categoria, para que publicacoes desta
 ///   categoria nao bloqueiem (nem sejam bloqueadas por) outras categorias como o Win Rate 24H.
 /// </summary>
-public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicationService
+public class SocialPublicationService
 {
     private readonly EthicAIDbContext _db;
-    private readonly PriceCrossoverOptions _options;
+    private readonly string _category;
+    private readonly string _platform;
+    private readonly int _reservationLeaseSeconds;
 
-    public PriceCrossoverPublicationService(EthicAIDbContext db, IOptions<PriceCrossoverOptions> options)
+    protected SocialPublicationService(EthicAIDbContext db, string category, string platform, int reservationLeaseSeconds)
     {
         _db = db;
-        _options = options.Value;
+        _category = category;
+        _platform = platform;
+        _reservationLeaseSeconds = reservationLeaseSeconds;
     }
 
     public async Task<PriceCrossoverPublicationState?> GetStateAsync(int matchId, CancellationToken ct)
@@ -44,15 +56,50 @@ public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicatio
         return entity is null ? null : MapState(entity);
     }
 
+    public async Task<IReadOnlyList<PriceCrossoverPostedRecord>> GetRecentlyPostedAsync(
+        DateTime sinceUtc,
+        CancellationToken ct)
+    {
+        var rows = await _db.SocialPostHistory
+            .AsNoTracking()
+            .Include(x => x.Match).ThenInclude(m => m.TeamA).ThenInclude(t => t.Currency)
+            .Include(x => x.Match).ThenInclude(m => m.TeamB).ThenInclude(t => t.Currency)
+            .Where(x => x.Category == _category
+                && x.Status == PriceCrossoverPublicationStatuses.Posted
+                && x.PostedAtUtc != null
+                && x.PostedAtUtc >= sinceUtc)
+            .OrderBy(x => x.PostedAtUtc)
+            .ThenBy(x => x.Id)
+            .ToListAsync(ct);
+
+        return rows
+            .Select(x => new PriceCrossoverPostedRecord
+            {
+                MatchId = x.MatchId,
+                PostedAtUtc = x.PostedAtUtc!.Value,
+                AssetASymbol = x.Match?.TeamA?.Currency?.Symbol ?? string.Empty,
+                AssetBSymbol = x.Match?.TeamB?.Currency?.Symbol ?? string.Empty
+            })
+            .ToList();
+    }
+
     public async Task<PriceCrossoverPublicationResult> ReserveAsync(
         int matchId,
         PriceCrossoverReserveRequest request,
         CancellationToken ct)
     {
-        var nowUtc = DateTime.UtcNow;
-        var idempotencyKey = PriceCrossoverCategories.BuildIdempotencyKey(matchId);
+        var clock = DateTime.UtcNow;
+        var nowUtc = clock.AddTicks(-(clock.Ticks % 10));
+        var idempotencyKey = BuildIdempotencyKey(matchId);
 
         var existing = await FindPublicationAsync(matchId, ct);
+        await using var transaction = existing is not null && _db.Database.IsRelational()
+            ? await _db.Database.BeginTransactionAsync(ct) : null;
+        if (transaction is not null)
+        {
+            _db.Entry(existing!).State = EntityState.Detached;
+            existing = await FindPublicationAsync(matchId, ct, forUpdate: true);
+        }
         if (existing is not null)
         {
             switch (existing.Status)
@@ -80,12 +127,12 @@ public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicatio
 
         var leaseSeconds = request.LeaseSeconds is > 0
             ? Math.Min(request.LeaseSeconds.Value, 7200)
-            : _options.ReservationLeaseSeconds;
+            : _reservationLeaseSeconds;
 
         var owner = string.IsNullOrWhiteSpace(request.Owner) ? null : request.Owner.Trim();
         var reason = owner is null
-            ? "price_crossover_reservation"
-            : $"price_crossover_reservation:{owner}";
+            ? $"{_category}_reservation"
+            : $"{_category}_reservation:{owner}";
 
         try
         {
@@ -94,12 +141,12 @@ public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicatio
                 var entity = new SocialPostHistory
                 {
                     MatchId = matchId,
-                    Platform = _options.Platform,
+                    Platform = _platform,
                     PostText = string.Empty,
                     HotScore = 0,
                     Reason = reason,
                     CreatedAt = nowUtc,
-                    Category = PriceCrossoverCategories.PriceCrossoverHighlight,
+                    Category = _category,
                     Status = PriceCrossoverPublicationStatuses.Reserved,
                     IdempotencyKey = idempotencyKey,
                     ReservedAtUtc = nowUtc,
@@ -108,6 +155,8 @@ public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicatio
 
                 _db.SocialPostHistory.Add(entity);
                 await _db.SaveChangesAsync(ct);
+
+                if (transaction is not null) await transaction.CommitAsync(ct);
 
                 return new PriceCrossoverPublicationResult
                 {
@@ -124,6 +173,7 @@ public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicatio
             existing.Reason = reason;
 
             await _db.SaveChangesAsync(ct);
+            if (transaction is not null) await transaction.CommitAsync(ct);
 
             return new PriceCrossoverPublicationResult
             {
@@ -135,7 +185,8 @@ public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicatio
         catch (DbUpdateException)
         {
             // Violação do índice único em corrida: outra requisição venceu.
-            var winner = await FindPublicationAsync(matchId, ct);
+            if (transaction is not null) await transaction.RollbackAsync(ct);
+            var winner = await FindPublicationAsync(matchId, ct, asNoTracking: true);
             return Fail("already_reserved", "Reserva concorrente detectada.", winner);
         }
     }
@@ -145,12 +196,26 @@ public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicatio
         PriceCrossoverConfirmRequest request,
         CancellationToken ct)
     {
-        var entity = await FindPublicationAsync(matchId, ct);
+        await using var transaction = _db.Database.IsRelational()
+            ? await _db.Database.BeginTransactionAsync(ct) : null;
+        var entity = await FindPublicationAsync(matchId, ct, forUpdate: transaction is not null);
         if (entity is null)
             return Fail("not_reserved", "Nenhuma reserva encontrada para esta partida.", null);
 
         if (entity.Status == PriceCrossoverPublicationStatuses.Posted)
-            return Fail("already_published", "Publicacao ja confirmada.", entity);
+        {
+            var samePost = string.Equals(request.Outcome?.Trim(), "posted", StringComparison.OrdinalIgnoreCase)
+                && (!string.IsNullOrWhiteSpace(request.ExternalPostId)
+                    && string.Equals(request.ExternalPostId.Trim(), entity.ExternalPostId, StringComparison.Ordinal)
+                    || !string.IsNullOrWhiteSpace(request.ExternalPostUrl)
+                    && string.Equals(request.ExternalPostUrl.Trim(), entity.PostUrl, StringComparison.Ordinal));
+            return samePost
+                ? new PriceCrossoverPublicationResult { Success = true, Result = "posted", Publication = MapState(entity) }
+                : Fail("already_published", "Publicacao ja confirmada.", entity);
+        }
+
+        if (request.ReservedAtUtc.HasValue && entity.ReservedAtUtc != request.ReservedAtUtc.Value)
+            return Fail("stale_reservation", "A reserva informada nao e a reserva atual.", entity);
 
         if (entity.Status == PriceCrossoverPublicationStatuses.ReconciliationRequired)
             return Fail(
@@ -194,6 +259,7 @@ public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicatio
         }
 
         await _db.SaveChangesAsync(ct);
+        if (transaction is not null) await transaction.CommitAsync(ct);
 
         return new PriceCrossoverPublicationResult
         {
@@ -207,19 +273,32 @@ public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicatio
         int matchId,
         string? reason,
         CancellationToken ct)
+        => await ReleaseAsync(matchId, reason, null, ct);
+
+    public async Task<PriceCrossoverPublicationResult> ReleaseAsync(
+        int matchId,
+        string? reason,
+        DateTime? reservedAtUtc,
+        CancellationToken ct)
     {
-        var entity = await FindPublicationAsync(matchId, ct);
+        await using var transaction = _db.Database.IsRelational()
+            ? await _db.Database.BeginTransactionAsync(ct) : null;
+        var entity = await FindPublicationAsync(matchId, ct, forUpdate: transaction is not null);
         if (entity is null)
             return Fail("not_reserved", "Nenhuma reserva encontrada para esta partida.", null);
 
         if (entity.Status == PriceCrossoverPublicationStatuses.Posted)
             return Fail("already_published", "Publicacao confirmada nao pode ser liberada.", entity);
 
+        if (reservedAtUtc.HasValue && entity.ReservedAtUtc != reservedAtUtc.Value)
+            return Fail("stale_reservation", "A reserva informada nao e a reserva atual.", entity);
+
         entity.Status = PriceCrossoverPublicationStatuses.Failed;
         entity.LastError = string.IsNullOrWhiteSpace(reason) ? "Reserva liberada." : reason.Trim();
         entity.LeaseExpiresAtUtc = null;
 
         await _db.SaveChangesAsync(ct);
+        if (transaction is not null) await transaction.CommitAsync(ct);
 
         return new PriceCrossoverPublicationResult
         {
@@ -229,14 +308,20 @@ public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicatio
         };
     }
 
-    private async Task<SocialPostHistory?> FindPublicationAsync(int matchId, CancellationToken ct)
+    private async Task<SocialPostHistory?> FindPublicationAsync(
+        int matchId, CancellationToken ct, bool forUpdate = false, bool asNoTracking = false)
     {
-        var idempotencyKey = PriceCrossoverCategories.BuildIdempotencyKey(matchId);
+        var idempotencyKey = BuildIdempotencyKey(matchId);
 
-        return await _db.SocialPostHistory
+        if (forUpdate)
+            return (await _db.SocialPostHistory
+                .FromSqlInterpolated($"SELECT * FROM social_post_history WHERE idempotency_key = {idempotencyKey} FOR UPDATE")
+                .ToListAsync(ct)).SingleOrDefault();
+
+        var query = _db.SocialPostHistory
             .Where(x => x.IdempotencyKey == idempotencyKey)
-            .OrderByDescending(x => x.Id)
-            .FirstOrDefaultAsync(ct);
+            .OrderByDescending(x => x.Id);
+        return await (asNoTracking ? query.AsNoTracking() : query).FirstOrDefaultAsync(ct);
     }
 
     private static PriceCrossoverPublicationResult Fail(
@@ -250,6 +335,8 @@ public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicatio
             Error = error,
             Publication = entity is null ? null : MapState(entity)
         };
+
+    private string BuildIdempotencyKey(int matchId) => $"{_category}:{matchId}";
 
     private static PriceCrossoverPublicationState MapState(SocialPostHistory entity)
         => new()
@@ -267,4 +354,23 @@ public sealed class PriceCrossoverPublicationService : IPriceCrossoverPublicatio
             LastError = entity.LastError,
             IsLeaseExpired = entity.LeaseExpiresAtUtc is not null && entity.LeaseExpiresAtUtc.Value <= DateTime.UtcNow
         };
+}
+
+public sealed class PriceCrossoverPublicationService : SocialPublicationService, IPriceCrossoverPublicationService
+{
+    public PriceCrossoverPublicationService(EthicAIDbContext db, IOptions<PriceCrossoverOptions> options)
+        : base(db, PriceCrossoverCategories.PriceCrossoverHighlight,
+            options.Value.Platform, options.Value.ReservationLeaseSeconds) { }
+}
+
+public interface ICandleBattlePublicationService : IPriceCrossoverPublicationService
+{
+    Task<PriceCrossoverPublicationResult> ReleaseAsync(int matchId, string? reason, DateTime? reservedAtUtc, CancellationToken ct);
+}
+
+public sealed class CandleBattlePublicationService : SocialPublicationService, ICandleBattlePublicationService
+{
+    public CandleBattlePublicationService(EthicAIDbContext db, IOptions<CandleBattleSocialOptions> options)
+        : base(db, CandleBattleSocialCategories.Highlight,
+            options.Value.Platform, options.Value.ReservationLeaseSeconds) { }
 }

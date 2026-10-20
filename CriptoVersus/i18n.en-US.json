@@ -399,6 +399,30 @@
     }
   },
   "social": {
+    "candleBattle": {
+    "title": "Candle Battle",
+    "descriptionGeneric": "Real market candles and the historical Candle Battle result.",
+    "description": "{0} and {1} faced off with real market candles. See the result and replay on CriptoVersus.",
+    "loading": "Loading battle…",
+    "notFound": "Battle not found.",
+    "error": "The battle could not be loaded.",
+    "completed": "Completed",
+    "ongoing": "In progress",
+    "result": "Battle result",
+    "winner": "Winner",
+    "draw": "Draw",
+    "replay": "Battle replay",
+    "noReplay": "The historical replay is unavailable. The persisted summary is shown above.",
+    "duration": "Duration",
+    "minutes": "minutes",
+    "rounds": "Confrontations",
+    "green": "Green candles",
+    "red": "Red candles",
+    "chart": "Normalized price evolution",
+    "opening": "Open",
+    "closing": "Close",
+    "disclaimer": "Historical market data. This is not financial advice."
+    },
     "priceCrossover": {
       "seo": {
         "title": "Price Battle — Historical Match | CriptoVersus",

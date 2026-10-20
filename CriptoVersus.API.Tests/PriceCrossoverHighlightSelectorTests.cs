@@ -145,21 +145,53 @@ public sealed class PriceCrossoverHighlightSelectorTests
     public async Task Candidates_IncludeRejectionReasons()
     {
         using var db = CreateDbContext();
+
+        // 1: dados insuficientes e interesse baixo -> fora da lista pelo piso de interesse.
         SeedMatch(db, 1, pricesA: [1.00m], pricesB: [1.00m]);
-        SeedMatch(db, 2);
+
+        // 2: publicavel, com ativos que nao participam da publicacao ja feita.
+        SeedMatch(db, 2, symbolA: "AAAUSDT", symbolB: "BBBUSDT",
+            endTimeUtc: WindowEnd.AddHours(-1),
+            pricesA: Oscillating(20, 1.00m, 0.05m),
+            pricesB: Oscillating(20, 1.00m, -0.05m));
+
+        // 3: ja publicada -> continua visivel, com motivo de rejeicao.
+        SeedMatch(db, 3,
+            pricesA: Oscillating(20, 1.00m, 0.05m),
+            pricesB: Oscillating(20, 1.00m, -0.05m));
+
+        var publication = new CriptoVersus.API.Services.PriceCrossoverPublicationService(
+            db, Options.Create(new PriceCrossoverOptions()));
+        await publication.ReserveAsync(3, new PriceCrossoverReserveRequest(), default);
+        await publication.ConfirmAsync(3, new PriceCrossoverConfirmRequest { Outcome = "posted" }, default);
 
         var selector = CreateSelector(db);
-        var result = await selector.GetCandidatesAsync(6, 10, default);
+        var result = await selector.GetCandidatesAsync(6, 10, null, default);
 
-        Assert.Equal(2, result.Candidates.Count);
+        // Piso de interesse (padrao 50) filtra o candidato fraco, sem rebaixar o piso.
+        Assert.DoesNotContain(result.Candidates, x => x.MatchId == 1);
+        Assert.Equal(50, result.MinInterestScore);
+        Assert.Equal(1, result.FilteredByMinInterestScore);
+        Assert.Equal(3, result.MatchesScanned);
 
-        var rejected = result.Candidates.Single(x => x.MatchId == 1);
+        var rejected = result.Candidates.Single(x => x.MatchId == 3);
         Assert.False(rejected.IsEligible);
-        Assert.Contains("insufficient_data_quality", rejected.RejectionReasons);
+        Assert.False(rejected.CanPost);
+        Assert.Equal("already_published", rejected.SkipReason);
+        Assert.Contains("already_published", rejected.RejectionReasons);
+        Assert.False(rejected.PublicUrlAvailable);
 
         var eligible = result.Candidates.Single(x => x.MatchId == 2);
         Assert.True(eligible.IsEligible);
+        Assert.True(eligible.CanPost);
         Assert.Equal(2, result.SelectedMatchId);
+        Assert.True(eligible.IsSelected);
+        Assert.False(rejected.IsSelected);
+
+        // Selecionar candidato nunca marca publicacao nem escreve em social_post_history.
+        Assert.False(eligible.AlreadyPublished);
+        Assert.Null(eligible.PublicationStatus);
+        Assert.Equal(1, db.SocialPostHistory.Count());
     }
 
     [Fact]
@@ -174,13 +206,13 @@ public sealed class PriceCrossoverHighlightSelectorTests
                 db,
                 i,
                 endTimeUtc: WindowEnd.AddHours(-i),
-                pricesA: BuildPrices(20, 1.00m, 0.01m),
-                pricesB: BuildPrices(20, 1.00m, -0.01m));
+                pricesA: Oscillating(20, 1.00m, 0.04m),
+                pricesB: Oscillating(20, 1.00m, -0.04m));
         }
 
         var selector = CreateSelector(db);
-        var first = await selector.GetCandidatesAsync(6, 10, default);
-        var second = await selector.GetCandidatesAsync(6, 10, default);
+        var first = await selector.GetCandidatesAsync(6, 10, null, default);
+        var second = await selector.GetCandidatesAsync(6, 10, null, default);
 
         Assert.Equal(
             first.Candidates.Select(x => x.MatchId).ToList(),

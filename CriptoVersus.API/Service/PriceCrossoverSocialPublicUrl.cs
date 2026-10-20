@@ -58,6 +58,12 @@ public static class PriceCrossoverSocialPublicUrl
     /// Retorna false sem URL quando a origem e invalida ou o matchId nao e positivo.
     /// </summary>
     public static bool TryBuild(string? publicBaseUrl, int matchId, string? language, out string publicUrl)
+        => TryBuildForRoute(publicBaseUrl, matchId, language, "price-crossover", out publicUrl);
+
+    public static bool TryBuildCandleBattle(string? publicBaseUrl, int matchId, string? language, out string publicUrl)
+        => TryBuildForRoute(publicBaseUrl, matchId, language, "candle-battle", out publicUrl);
+
+    private static bool TryBuildForRoute(string? publicBaseUrl, int matchId, string? language, string route, out string publicUrl)
     {
         publicUrl = string.Empty;
 
@@ -74,7 +80,7 @@ public static class PriceCrossoverSocialPublicUrl
 
         publicUrl = string.Create(
             CultureInfo.InvariantCulture,
-            $"{origin}/{ResolveRouteCulture(language)}/social/price-crossover/{matchId}");
+            $"{origin}/{ResolveRouteCulture(language)}/social/{route}/{matchId}");
 
         return true;
     }
