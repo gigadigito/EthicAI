@@ -87,12 +87,22 @@ public sealed class PriceCrossoverSocialResponse
     public PriceCrossoverPublicationState? Publication { get; init; }
 
     /// <summary>
-    /// URL publica da pagina de captura. Previa de contrato: a pagina social ainda nao esta implementada,
-    /// portanto <see cref="PublicUrlAvailable"/> e falso e este valor deve ser ignorado pelo workflow.
+    /// URL publica da pagina de captura, no formato
+    /// <c>{origem}/{cultura}/social/price-crossover/{matchId}</c>.
+    /// So e preenchida quando <see cref="PublicUrlAvailable"/> e verdadeiro; caso contrario e null.
+    /// A origem vem de configuracao (<c>PriceCrossover:PublicBaseUrl</c>,
+    /// <c>CriptoVersus:PublicBaseUrl</c> ou <c>SocialAutomation:PublicBaseUrl</c>), nunca de
+    /// cabecalhos HTTP, e a cultura respeita as rotas suportadas da pagina (fallback <c>pt</c>).
     /// </summary>
     public string? PublicUrl { get; init; }
 
-    /// <summary>Indica se <see cref="PublicUrl"/> aponta para uma pagina realmente disponivel.</summary>
+    /// <summary>
+    /// True apenas quando a pagina social deve estar pronta para captura
+    /// (equivalente da API a <c>data-social-ready="true"</c> da pagina): partida encerrada,
+    /// dados suficientes para reconstruir o grafico, ambos os simbolos presentes e
+    /// publicacao permitida (nem publicada, nem reservada). Nao e presumido pela existencia
+    /// do matchId e nao ha verificacao HTTP da pagina: e um contrato explicito de prontidao.
+    /// </summary>
     public bool PublicUrlAvailable { get; init; }
 }
 

@@ -3,6 +3,7 @@ using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace CriptoVersus.API.Services;
@@ -47,19 +48,22 @@ public sealed class PriceCrossoverSocialService : IPriceCrossoverSocialService
     private readonly IPriceCrossoverSocialNarrativeService _narrativeService;
     private readonly IPriceCrossoverPublicationService _publicationService;
     private readonly PriceCrossoverOptions _options;
+    private readonly IConfiguration _configuration;
 
     public PriceCrossoverSocialService(
         EthicAIDbContext db,
         PriceCrossoverAnalyzer analyzer,
         IPriceCrossoverSocialNarrativeService narrativeService,
         IPriceCrossoverPublicationService publicationService,
-        IOptions<PriceCrossoverOptions> options)
+        IOptions<PriceCrossoverOptions> options,
+        IConfiguration configuration)
     {
         _db = db;
         _analyzer = analyzer;
         _narrativeService = narrativeService;
         _publicationService = publicationService;
         _options = options.Value;
+        _configuration = configuration;
     }
 
     public async Task<PriceCrossoverSocialResponse?> GetByMatchIdAsync(
@@ -147,6 +151,19 @@ public sealed class PriceCrossoverSocialService : IPriceCrossoverSocialService
 
         var (canPost, skipReason) = EvaluateEligibility(match, outcome, publication);
 
+        // Contrato explicito de prontidao da pagina de captura. A API nao consulta a pagina:
+        // declara publicUrlAvailable apenas quando todos os sinais que a propria pagina usa
+        // para expor data-social-ready sao verdadeiros (espelho de
+        // PriceCrossoverSocialCardModelBuilder.IsSocialReady, na Web).
+        // A existencia do matchId nunca basta: partida em andamento, dados ruins,
+        // publicacao pendente ou origem invalida mantem a URL indisponivel.
+        string? publicUrl = null;
+        if (IsPageReadyForCapture(canPost, symbolA, symbolB, outcome.DataQuality)
+            && PriceCrossoverSocialPublicUrl.TryBuild(ResolvePublicBaseUrl(), match.MatchId, language, out var builtUrl))
+        {
+            publicUrl = builtUrl;
+        }
+
         var status = match.Status.ToString();
         var durationMinutes = match.StartTime is not null && match.EndTime is not null
             ? (int)Math.Round((match.EndTime.Value - match.StartTime.Value).TotalMinutes, MidpointRounding.AwayFromZero)
@@ -188,8 +205,8 @@ public sealed class PriceCrossoverSocialService : IPriceCrossoverSocialService
             OfficialEvents = officialEvents,
             AlreadyPublished = publication?.Status == PriceCrossoverPublicationStatuses.Posted,
             Publication = publication,
-            PublicUrl = null,
-            PublicUrlAvailable = false
+            PublicUrl = publicUrl,
+            PublicUrlAvailable = publicUrl is not null
         };
 
         var narrative = _narrativeService.Build(response, language, _options.NarrativeMaxCharacters);
@@ -326,6 +343,38 @@ public sealed class PriceCrossoverSocialService : IPriceCrossoverSocialService
         return match.WinnerTeamId == match.TeamAId
             ? (string.IsNullOrWhiteSpace(symbolA) ? match.WinnerTeam?.Currency?.Symbol : symbolA)
             : (string.IsNullOrWhiteSpace(symbolB) ? match.WinnerTeam?.Currency?.Symbol : symbolB);
+    }
+
+    /// <summary>
+    /// Sinais de que a pagina social renderizara o card em estado de captura pronta.
+    /// Espelho deliberado de <c>PriceCrossoverSocialCardModelBuilder.IsSocialReady</c> (Web),
+    /// que e o dono do estado <c>data-social-ready</c>: manter as duas verificacoes em sincronia.
+    /// </summary>
+    private static bool IsPageReadyForCapture(
+        bool canPost,
+        string symbolA,
+        string symbolB,
+        PriceCrossoverDataQuality quality)
+        => canPost
+           && !string.IsNullOrWhiteSpace(symbolA)
+           && !string.IsNullOrWhiteSpace(symbolB)
+           && quality.IsSufficient
+           && quality.CanReconstructChart;
+
+    /// <summary>
+    /// Origem publica do site, somente de configuracao. Nunca usa cabecalhos do request.
+    /// </summary>
+    private string? ResolvePublicBaseUrl()
+    {
+        var configured = _options.PublicBaseUrl?.Trim();
+        if (string.IsNullOrWhiteSpace(configured))
+            configured = _configuration["CriptoVersus:PublicBaseUrl"]?.Trim();
+        if (string.IsNullOrWhiteSpace(configured))
+            configured = _configuration["SocialAutomation:PublicBaseUrl"]?.Trim();
+        if (string.IsNullOrWhiteSpace(configured))
+            configured = PriceCrossoverSocialPublicUrl.DefaultPublicBaseUrl;
+
+        return configured;
     }
 
     private static (bool CanPost, string? SkipReason) EvaluateEligibility(

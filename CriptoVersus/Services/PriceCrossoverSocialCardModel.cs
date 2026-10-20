@@ -66,6 +66,20 @@ public sealed record PriceCrossoverSocialCardModel
     /// <summary>True somente quando as 10 condicoes de prontidao estao satisfeitas.</summary>
     public required bool IsSocialReady { get; init; }
 
+    /// <summary>
+    /// True quando os dados necessarios a imagem estao carregados e completos
+    /// (serie reconstruivel, simbolos identificados e qualidade suficiente).
+    /// Exposto como <c>data-data-complete</c> no contrato de captura.
+    /// </summary>
+    public bool IsDataComplete { get; init; }
+
+    /// <summary>
+    /// Token de captura do status da partida: <c>finished</c>, <c>in_progress</c> ou <c>unknown</c>.
+    /// Exposto como <c>data-match-status</c> no contrato de captura; o status cru da API
+    /// permanece em <c>data-api-status</c>.
+    /// </summary>
+    public string CaptureMatchStatus { get; init; } = PriceCrossoverSocialCardModelBuilder.MatchStatusUnknown;
+
     public required bool CanPost { get; init; }
     public string? SkipReason { get; init; }
 
@@ -129,12 +143,19 @@ public static class PriceCrossoverSocialCardModelBuilder
     public const string StateNotPublishable = "not_publishable";
     public const string StateError = "error";
 
+    /// <summary>Tokens de <c>data-match-status</c> no contrato de captura.</summary>
+    public const string MatchStatusFinished = "finished";
+    public const string MatchStatusInProgress = "in_progress";
+    public const string MatchStatusUnknown = "unknown";
+
     public static PriceCrossoverSocialCardModel BuildError(string statusName, DateTime generatedAtUtc)
         => new()
         {
             CaptureState = PriceCrossoverSocialCaptureState.Error,
             CaptureStateName = StateError,
             IsSocialReady = false,
+            IsDataComplete = false,
+            CaptureMatchStatus = MatchStatusUnknown,
             CanPost = false,
             MatchId = 0,
             StatusName = statusName,
@@ -223,7 +244,9 @@ public static class PriceCrossoverSocialCardModelBuilder
         {
             CaptureState = ResolveCaptureState(response, chart, isFinished),
             CaptureStateName = ResolveCaptureStateName(response, chart, isFinished),
-            IsSocialReady = IsSocialReady(response, chart, isFinished)
+            IsSocialReady = IsSocialReady(response, chart, isFinished),
+            IsDataComplete = IsDataComplete(response, chart),
+            CaptureMatchStatus = ResolveCaptureMatchStatus(response, isFinished)
         };
     }
 
@@ -284,16 +307,54 @@ public static class PriceCrossoverSocialCardModelBuilder
             return false;
 
         // 2. Series historicas carregadas.
+        // 4. Ambos os ativos identificados.
+        // 5. Placar oficial disponivel (ScoreA/ScoreB sempre presentes; WinnerTeamId pode ser nulo em empate).
+        // 6-9. Icones, fontes, layout e animacoes: verificados pelo modulo JS.
+        return IsDataComplete(response, chart);
+    }
+
+    /// <summary>
+    /// Dados necessarios a imagem ja carregados e completos. Exposto como
+    /// <c>data-data-complete</c> e espelhado na API por
+    /// <c>PriceCrossoverSocialService.IsPageReadyForCapture</c> (contrato <c>publicUrlAvailable</c>).
+    /// Falhas de carregamento, serie insuficiente ou qualidade ruim nunca marcam como completo.
+    /// </summary>
+    public static bool IsDataComplete(
+        PriceCrossoverSocialResponse? response,
+        PriceCrossoverSocialChartSeries chart)
+    {
+        if (response is null)
+            return false;
+
         if (chart.Points.Count < 2)
             return false;
 
-        // 4. Ambos os ativos identificados.
         if (string.IsNullOrWhiteSpace(response.AssetA.Symbol) || string.IsNullOrWhiteSpace(response.AssetB.Symbol))
             return false;
 
-        // 5. Placar oficial disponivel (ScoreA/ScoreB sempre presentes; WinnerTeamId pode ser nulo em empate).
-        // 6-9. Icones, fontes, layout e animacoes: verificados pelo modulo JS.
-        return true;
+        return response.DataQuality.IsSufficient && response.DataQuality.CanReconstructChart;
+    }
+
+    /// <summary>
+    /// Token de status da partida para o contrato de captura. Somente uma partida
+    /// oficialmente concluida vira <c>finished</c>; em andamento vira <c>in_progress</c>
+    /// e qualquer outro estado (cancelada, ausente, erro) vira <c>unknown</c>.
+    /// </summary>
+    public static string ResolveCaptureMatchStatus(
+        PriceCrossoverSocialResponse? response,
+        bool isFinished)
+    {
+        if (response is null)
+            return MatchStatusUnknown;
+
+        if (isFinished)
+            return MatchStatusFinished;
+
+        return response.Status?.Trim().ToLowerInvariant() switch
+        {
+            "pending" or "ongoing" => MatchStatusInProgress,
+            _ => MatchStatusUnknown
+        };
     }
 
     private static PriceCrossoverSocialCardAsset BuildAsset(

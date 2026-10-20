@@ -146,20 +146,6 @@ public sealed class PriceCrossoverSocialServiceTests
     }
 
     [Fact]
-    public async Task PublicUrl_IsFlaggedUnavailable()
-    {
-        using var db = CreateDbContext();
-        SeedMatch(db, 1);
-
-        var service = CreateSocialService(db);
-        var result = await service.GetByMatchIdAsync(1, "pt-BR", false, default);
-
-        Assert.NotNull(result);
-        Assert.Null(result!.PublicUrl);
-        Assert.False(result.PublicUrlAvailable);
-    }
-
-    [Fact]
     public async Task AlreadyPublished_BlocksPosting()
     {
         using var db = CreateDbContext();

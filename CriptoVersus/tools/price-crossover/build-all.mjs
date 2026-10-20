@@ -12,6 +12,7 @@ const matrix = [
     ["pt-BR", "4x3", "long-symbols"],
     ["pt-BR", "4x3", "many-crossovers"],
     ["pt-BR", "4x3", "missing-metrics"],
+    ["pt-BR", "4x3", "not-publishable"],
     ["en-US", "4x3", "base"],
     ["fr-FR", "4x3", "base"]
 ];

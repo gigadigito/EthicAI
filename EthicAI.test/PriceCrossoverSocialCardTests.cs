@@ -180,6 +180,80 @@ public sealed class PriceCrossoverSocialCardTests
         Assert.False(blocked.IsSocialReady);
     }
 
+    [Fact]
+    public void CardModel_CaptureContract_FinishedMatchDeclaresDataCompleteAndFinishedStatus()
+    {
+        var response = BuildResponse();
+        var model = PriceCrossoverSocialCardModelBuilder.Build(response, CultureInfo.GetCultureInfo("pt-BR"));
+
+        Assert.True(model.IsDataComplete);
+        Assert.Equal(PriceCrossoverSocialCardModelBuilder.MatchStatusFinished, model.CaptureMatchStatus);
+        Assert.Equal("Completed", model.StatusName);
+    }
+
+    [Fact]
+    public void CardModel_CaptureContract_InProgressMatchIsNeverDeclaredFinished()
+    {
+        var response = CloneWith(
+            BuildResponse(),
+            status: "Ongoing",
+            canPost: false,
+            skipReason: "match_not_completed");
+
+        var model = PriceCrossoverSocialCardModelBuilder.Build(response, CultureInfo.GetCultureInfo("pt-BR"));
+
+        Assert.Equal(PriceCrossoverSocialCardModelBuilder.MatchStatusInProgress, model.CaptureMatchStatus);
+        Assert.False(model.IsSocialReady);
+        Assert.Equal(PriceCrossoverSocialCaptureState.NotPublishable, model.CaptureState);
+    }
+
+    [Fact]
+    public void CardModel_CaptureContract_InsufficientDataIsNotDataComplete()
+    {
+        var response = CloneWith(
+            BuildResponse(),
+            canPost: false,
+            skipReason: "insufficient_data_quality",
+            dataQuality: new PriceCrossoverDataQuality
+            {
+                IsSufficient = false,
+                CanReconstructChart = true,
+                Severity = "high",
+                CompletePairs = 5
+            });
+
+        var model = PriceCrossoverSocialCardModelBuilder.Build(response, CultureInfo.GetCultureInfo("pt-BR"));
+
+        Assert.False(model.IsDataComplete);
+        Assert.False(model.IsSocialReady);
+    }
+
+    [Fact]
+    public void CardModel_CaptureContract_MissingSeriesIsNotDataComplete()
+    {
+        var response = CloneWith(BuildResponse(), series: []);
+
+        var model = PriceCrossoverSocialCardModelBuilder.Build(response, CultureInfo.GetCultureInfo("pt-BR"));
+
+        Assert.False(model.IsDataComplete);
+        Assert.False(model.IsSocialReady);
+    }
+
+    [Fact]
+    public void CardModel_CaptureContract_CancelledAndErrorAreUnknownStatus()
+    {
+        var cancelled = PriceCrossoverSocialCardModelBuilder.Build(
+            CloneWith(BuildResponse(), status: "Cancelled", canPost: false, skipReason: "match_not_completed"),
+            CultureInfo.GetCultureInfo("pt-BR"));
+
+        Assert.Equal(PriceCrossoverSocialCardModelBuilder.MatchStatusUnknown, cancelled.CaptureMatchStatus);
+        Assert.False(cancelled.IsSocialReady);
+
+        var error = PriceCrossoverSocialCardModelBuilder.BuildError("Error", DateTime.UtcNow);
+        Assert.Equal(PriceCrossoverSocialCardModelBuilder.MatchStatusUnknown, error.CaptureMatchStatus);
+        Assert.False(error.IsDataComplete);
+    }
+
     private static DateTime FromUnix(long unixSeconds)
         => DateTimeOffset.FromUnixTimeSeconds(unixSeconds).UtcDateTime;
 
@@ -329,13 +403,16 @@ public sealed class PriceCrossoverSocialCardTests
         int? scoreA = null,
         int? scoreB = null,
         bool? canPost = null,
-        string? skipReason = null)
+        string? skipReason = null,
+        string? status = null,
+        PriceCrossoverDataQuality? dataQuality = null,
+        IReadOnlyList<PriceCrossoverSeriesPoint>? series = null)
         => new()
         {
             CanPost = canPost ?? source.CanPost,
             SkipReason = skipReason ?? source.SkipReason,
             MatchId = source.MatchId,
-            Status = source.Status,
+            Status = status ?? source.Status,
             StartTimeUtc = source.StartTimeUtc,
             EndTimeUtc = source.EndTimeUtc,
             DurationMinutes = source.DurationMinutes,
@@ -352,9 +429,9 @@ public sealed class PriceCrossoverSocialCardTests
             AssetA = source.AssetA,
             AssetB = source.AssetB,
             Comparative = source.Comparative,
-            DataQuality = source.DataQuality,
+            DataQuality = dataQuality ?? source.DataQuality,
             ChartDivergence = source.ChartDivergence,
-            Series = source.Series,
+            Series = series ?? source.Series,
             SeriesInfo = source.SeriesInfo,
             CrossoverEvents = source.CrossoverEvents
         };

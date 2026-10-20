@@ -3,6 +3,7 @@ using CriptoVersus.API.Services;
 using DAL.NftFutebol;
 using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace CriptoVersus.API.Tests;
@@ -19,9 +20,18 @@ internal static class PriceCrossoverTestHelpers
         return new EthicAIDbContext(options);
     }
 
+    public static IConfiguration CreateConfiguration(params (string Key, string Value)[] entries)
+    {
+        var values = entries.ToDictionary(entry => entry.Key, entry => (string?)entry.Value);
+        return new ConfigurationBuilder()
+            .AddInMemoryCollection(values)
+            .Build();
+    }
+
     public static PriceCrossoverSocialService CreateSocialService(
         EthicAIDbContext db,
-        PriceCrossoverOptions? options = null)
+        PriceCrossoverOptions? options = null,
+        IConfiguration? configuration = null)
     {
         var resolved = options ?? new PriceCrossoverOptions();
 
@@ -30,15 +40,17 @@ internal static class PriceCrossoverTestHelpers
             new PriceCrossoverAnalyzer(),
             new PriceCrossoverSocialNarrativeService(),
             new PriceCrossoverPublicationService(db, Options.Create(resolved)),
-            Options.Create(resolved));
+            Options.Create(resolved),
+            configuration ?? CreateConfiguration());
     }
 
     public static PriceCrossoverHighlightSelector CreateSelector(
         EthicAIDbContext db,
-        PriceCrossoverOptions? options = null)
+        PriceCrossoverOptions? options = null,
+        IConfiguration? configuration = null)
     {
         var resolved = options ?? new PriceCrossoverOptions();
-        var social = CreateSocialService(db, resolved);
+        var social = CreateSocialService(db, resolved, configuration);
         var publication = new PriceCrossoverPublicationService(db, Options.Create(resolved));
 
         return new PriceCrossoverHighlightSelector(

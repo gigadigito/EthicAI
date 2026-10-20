@@ -45,11 +45,15 @@
 </HeadContent>
 
 <div class="price-crossover-social__stage">
+    @* tv-price-battle: alias de compatibilidade do contrato de captura do Browserless
+       (seletor composto usado pelo workflow n8n). Nao herda estilos de
+       TvMatchPriceBattleChart: o CSS do Blazor e isolado por componente. *@
     <section id="price-crossover-social-card"
-             class="price-crossover-social"
+             class="price-crossover-social tv-price-battle"
              data-preset="@PresetName"
              data-capture-state="@CaptureStateName"
              data-cs-ready="@CsReadyAttr"
+             data-data-complete="@DataCompleteAttr"
              data-render-complete="false"
              data-fonts-ready="false"
              data-images-ready="false"
@@ -57,6 +61,7 @@
              data-can-post="@CanPostAttr"
              data-match-id="@MatchIdAttr"
              data-match-status="@MatchStatusAttr"
+             data-api-status="@ApiStatusAttr"
              data-generated-at-utc="@GeneratedAtUtcAttr"
              data-skip-reason="@SkipReasonAttr"
              data-total-crossovers="@TotalCrossoversAttr"
@@ -777,9 +782,18 @@
         ?? (_loading ? PriceCrossoverSocialCardModelBuilder.StateLoading : PriceCrossoverSocialCardModelBuilder.StateError);
 
     private string? CsReadyAttr => _model is not null && _model.IsSocialReady ? "true" : "false";
+    private string? DataCompleteAttr => _model is not null && _model.IsDataComplete ? "true" : "false";
     private string? CanPostAttr => _model?.CanPost.ToString().ToLowerInvariant();
     private string MatchIdAttr => MatchId.ToString(CultureInfo.InvariantCulture);
-    private string? MatchStatusAttr => _model?.StatusName;
+
+    /// <summary>
+    /// Token do contrato de captura (<c>finished</c>/<c>in_progress</c>/<c>unknown</c>).
+    /// O status cru da API (ex.: <c>Completed</c>) permanece em <c>data-api-status</c>.
+    /// </summary>
+    private string MatchStatusAttr => _model?.CaptureMatchStatus
+        ?? PriceCrossoverSocialCardModelBuilder.MatchStatusUnknown;
+
+    private string? ApiStatusAttr => _model?.StatusName;
     private string? GeneratedAtUtcAttr => _model?.GeneratedAtUtc.ToString("o", CultureInfo.InvariantCulture);
     private string? SkipReasonAttr => _model?.SkipReason;
     private string? TotalCrossoversAttr => _model?.TotalCrossovers.ToString(CultureInfo.InvariantCulture);

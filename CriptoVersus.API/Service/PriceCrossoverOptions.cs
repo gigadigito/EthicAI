@@ -29,8 +29,15 @@ public sealed class PriceCrossoverOptions
     /// <summary>Duracao padrao do lease de reserva, em segundos.</summary>
     public int ReservationLeaseSeconds { get; set; } = 900;
 
-    /// <summary>Base para a URL publica. A pagina social ainda nao existe; o campo e previsto no contrato.</summary>
-    public string PublicBaseUrl { get; set; } = "https://criptoversus.com";
+    /// <summary>
+    /// Origem publica usada em <c>publicUrl</c> da pagina de captura social.
+    /// Opcional: quando vazio, a API resolve <c>CriptoVersus:PublicBaseUrl</c> e
+    /// <c>SocialAutomation:PublicBaseUrl</c>, nesta ordem, e por fim
+    /// <see cref="PriceCrossoverSocialPublicUrl.DefaultPublicBaseUrl"/>.
+    /// Precisa ser uma URL absoluta http(s); valor invalido mantem
+    /// <c>publicUrlAvailable=false</c> em vez de inventar uma origem.
+    /// </summary>
+    public string? PublicBaseUrl { get; set; }
 
     // ---- Regras de analise (espelham o Price Battle da tela de Match) ----
 

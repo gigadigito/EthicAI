@@ -11,6 +11,13 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const capturesDir = resolve(here, '../../../../tmp/price-crossover-social-captures');
 
+// Seletor composto aguardado pelo node Browserless do workflow n8n (captura social).
+const BROWSERLESS_READY_SELECTOR =
+    '.tv-price-battle[data-social-ready="true"][data-match-status="finished"][data-data-complete="true"][data-render-complete="true"]';
+
+// Contrato canonico documentado no README do workflow (mesmo alvo, sem o alias de classe).
+const CANONICAL_READY_SELECTOR = '#price-crossover-social-card[data-social-ready="true"]';
+
 test.beforeAll(() => {
     mkdirSync(capturesDir, { recursive: true });
 });
@@ -76,6 +83,9 @@ async function collectGeometry(page) {
                 renderComplete: card.getAttribute('data-render-complete'),
                 i18nOk: card.getAttribute('data-i18n-ok'),
                 socialReady: card.getAttribute('data-social-ready'),
+                dataComplete: card.getAttribute('data-data-complete'),
+                matchStatus: card.getAttribute('data-match-status'),
+                apiStatus: card.getAttribute('data-api-status'),
                 unresolved: card.getAttribute('data-i18n-unresolved')
             },
             text: card.innerText,
@@ -158,6 +168,9 @@ test('4x3 pt-BR partida 41212: dimensoes 1200x900, sem corte, i18n resolvido e j
     expect(geometry.flags.captureState).toBe('ready');
     expect(geometry.flags.renderComplete).toBe('true');
     expect(geometry.flags.socialReady).toBe('true');
+    expect(geometry.flags.dataComplete).toBe('true');
+    expect(geometry.flags.matchStatus).toBe('finished');
+    expect(geometry.flags.apiStatus).toBe('Completed');
 
     await page.screenshot({ path: resolve(capturesDir, '41212-pt-BR-1200x900.png') });
 });
@@ -235,4 +248,52 @@ test('regressao: metricas ausentes nao inventam dados nem quebram o layout', asy
     assertNoUnresolvedKeys(geometry);
     expectNoVisibleText(geometry, 'Diferença de desempenho');
     expectVisibleText(geometry, 'Pontos no gráfico');
+});
+
+function readPngSize(buffer) {
+    // Assinatura PNG + IHDR: largura/altura em big-endian nos bytes 16..23.
+    expect(buffer.subarray(0, 8).toString('hex'), 'assinatura PNG').toBe('89504e470d0a1a0a');
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+}
+
+test('Teste F - captura Browserless: seletor composto casa, canvas presente e PNG 1200x900 completo', async ({ page }) => {
+    // Resolucao 1280x900: o card fixo de 1200x900 cabe inteiro, sem scroll nem corte.
+    await openCapture(page, '/capture-pt-BR-4x3-base.html', { width: 1280, height: 900 });
+
+    const target = page.locator(BROWSERLESS_READY_SELECTOR);
+    await expect(target).toHaveCount(1);
+    await expect(page.locator(CANONICAL_READY_SELECTOR)).toHaveCount(1);
+
+    const captureTarget = target.first();
+    await expect(captureTarget.locator('canvas#price-crossover-social-canvas')).toHaveCount(1);
+
+    const geometry = await collectGeometry(page);
+    assertNoOverflow(geometry);
+    assertNoScroll(geometry);
+
+    const image = await captureTarget.screenshot({
+        path: resolve(capturesDir, '41212-browserless-1200x900.png')
+    });
+    const size = readPngSize(image);
+    expect(size.width).toBeCloseTo(1200, 0);
+    expect(size.height).toBeCloseTo(900, 0);
+
+    // Imagem nao vazia: a composicao renderizada ocupa o PNG inteiro.
+    expect(image.byteLength).toBeGreaterThan(30 * 1024);
+});
+
+test('captura Browserless: pagina nao pronta nunca casa o seletor de prontidao', async ({ page }) => {
+    await openCapture(page, '/capture-pt-BR-4x3-not-publishable.html', { width: 1200, height: 900 });
+
+    await expect(page.locator('#price-crossover-social-card[data-render-complete="true"]')).toHaveCount(1);
+    await expect(page.locator(BROWSERLESS_READY_SELECTOR)).toHaveCount(0);
+    await expect(page.locator(CANONICAL_READY_SELECTOR)).toHaveCount(0);
+
+    const geometry = await collectGeometry(page);
+    // Dados completos, mas partida em andamento e sem permissao de publicacao:
+    // o contrato nunca declara a pagina pronta para captura.
+    expect(geometry.flags.dataComplete).toBe('true');
+    expect(geometry.flags.matchStatus).toBe('in_progress');
+    expect(geometry.flags.apiStatus).toBe('Ongoing');
+    expect(geometry.flags.socialReady).toBeNull();
 });

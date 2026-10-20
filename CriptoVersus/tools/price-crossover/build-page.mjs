@@ -10,7 +10,7 @@
 // que e a fonte de verdade (coberta por EthicAI.test/PriceCrossoverSocialCardTests.cs).
 //
 // Uso: node tools/price-crossover/build-page.mjs [--culture pt-BR] [--preset 4x3]
-//      [--variant base|long-symbols|many-crossovers|missing-metrics] [--fixture <json>]
+//      [--variant base|long-symbols|many-crossovers|missing-metrics|not-publishable] [--fixture <json>]
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -247,18 +247,43 @@ function buildChartPayload(responseData) {
     return { points, markers, minNormalizedValue: min, maxNormalizedValue: max };
 }
 
+/**
+ * Espelha PriceCrossoverSocialCardModelBuilder (IsDataComplete / IsSocialReady /
+ * ResolveCaptureMatchStatus), que e a fonte de verdade do contrato de captura.
+ */
 function resolveState(responseData, payload) {
-    const isFinished = String(responseData.status).toLowerCase() === "completed";
-    const canPost = Boolean(responseData.canPost) && isFinished && payload.points.length >= 2;
+    const rawStatus = String(responseData.status ?? "").toLowerCase();
+    const isFinished = rawStatus === "completed";
+    const dataQuality = responseData.dataQuality ?? {};
+    const dataComplete = payload.points.length >= 2
+        && Boolean(responseData.assetA?.symbol)
+        && Boolean(responseData.assetB?.symbol)
+        && dataQuality.isSufficient !== false
+        && dataQuality.canReconstructChart !== false;
+    const canPost = Boolean(responseData.canPost) && isFinished && dataComplete;
     return {
         captureState: canPost ? "ready" : "not_publishable",
         csReady: canPost,
+        dataComplete,
+        captureMatchStatus: isFinished
+            ? "finished"
+            : (rawStatus === "pending" || rawStatus === "ongoing" ? "in_progress" : "unknown"),
+        apiStatus: String(responseData.status ?? ""),
         totalCrossovers: responseData.comparative.totalCrossovers ?? 0,
         relevantCrossovers: responseData.comparative.relevantCrossovers ?? 0
     };
 }
 
 function applyVariant(responseData, variantName) {
+    if (variantName === "not-publishable") {
+        // Partida em andamento e sem permissao de publicacao: o contrato de captura
+        // nunca pode declarar a pagina pronta (testes negativos do seletor).
+        responseData.status = "Ongoing";
+        responseData.canPost = false;
+        responseData.skipReason = "match_not_completed";
+        return;
+    }
+
     if (variantName === "long-symbols") {
         responseData.assetA = { ...responseData.assetA, symbol: "1000PEPEUSDT", baseAsset: "1000PEPE", quoteAsset: "USDT" };
         responseData.assetB = { ...responseData.assetB, symbol: "SHIBUSDT", baseAsset: "SHIB", quoteAsset: "USDT" };
@@ -364,17 +389,19 @@ function renderPage({ styleBlock, texts, payload, state, response, culture, pres
 <body>
 <div class="price-crossover-social__stage">
     <section id="price-crossover-social-card"
-             class="price-crossover-social"
+             class="price-crossover-social tv-price-battle"
              data-preset="${escapeHtml(preset)}"
              data-capture-state="${escapeHtml(state.captureState)}"
              data-cs-ready="${state.csReady}"
+             data-data-complete="${state.dataComplete}"
              data-render-complete="false"
              data-fonts-ready="false"
              data-images-ready="false"
              data-i18n-ok="false"
              data-can-post="${state.captureState === "ready"}"
              data-match-id="${response.matchId}"
-             data-match-status="${escapeHtml(response.status)}"
+             data-match-status="${escapeHtml(state.captureMatchStatus)}"
+             data-api-status="${escapeHtml(state.apiStatus)}"
              data-total-crossovers="${state.totalCrossovers}"
              data-relevant-crossovers="${state.relevantCrossovers}"
              aria-label="${escapeHtml(texts.pageTitle)}">

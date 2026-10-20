@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Price Crossover Social - captura de imagem\n- Pagina publica: `{base}/[/{lang}/]social/price-crossover/{matchId}`\n- Preset 4:3 (padrao): viewport **1200x900** em `publicUrl`\n- Preset 16:9: viewport **1200x675** em `publicUrl?preset=16x9`\n- Cultura: caminho da URL (`/pt/...`) ou `?culture=pt-BR`\n- Aguardar `#price-crossover-social-card[data-social-ready=\"true\"]` antes de capturar\n- Nao publicar automaticamente em testes",
+        "content": "## Price Crossover Social - captura de imagem\n- Pagina publica: `{base}/[/{lang}/]social/price-crossover/{matchId}`\n- URL de captura: `highlight.publicUrl` da resposta do `/highlight` (so existe quando `highlight.publicUrlAvailable: true`)\n- Preset 4:3 (padrao): viewport **1200x900** em `publicUrl`\n- Preset 16:9: viewport **1200x675** em `publicUrl?preset=16x9`\n- Cultura: caminho da URL (`/pt/...`) ou `?culture=pt-BR`\n- Aguardar `#price-crossover-social-card[data-social-ready=\"true\"]` antes de capturar\n- O mesmo elemento casa o seletor composto `.tv-price-battle[data-social-ready=\"true\"][data-match-status=\"finished\"][data-data-complete=\"true\"][data-render-complete=\"true\"]`\n- Nao capturar nem reservar quando `publicUrlAvailable: false`\n- Nao publicar automaticamente em testes",
         "height": 260,
         "width": 420,
         "color": 5
@@ -59,6 +59,14 @@
                 "type": "boolean",
                 "operation": "true"
               }
+            },
+            {
+              "leftValue": "={{ $json.highlight.publicUrlAvailable }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
             }
           ],
           "combinator": "and"
@@ -73,7 +81,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.CRIPTOVERSUS_PUBLIC_BASE_URL }}/pt/social/price-crossover/{{ $json.highlight.matchId }}",
+        "url": "={{ $json.highlight.publicUrl }}",
         "options": {
           "timeout": 30000,
           "response": {
@@ -104,7 +112,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { url: $env.CRIPTOVERSUS_PUBLIC_BASE_URL + '/pt/social/price-crossover/' + $('HTTP Request - Highlight').item.json.highlight.matchId, options: { fullPage: false, type: 'png' }, viewport: { width: 1200, height: 900 } } }}",
+        "jsonBody": "={{ { url: $('HTTP Request - Highlight').item.json.highlight.publicUrl, waitForSelector: '.tv-price-battle[data-social-ready=\"true\"][data-match-status=\"finished\"][data-data-complete=\"true\"][data-render-complete=\"true\"]', options: { fullPage: false, type: 'png' }, viewport: { width: 1200, height: 900 } } }}",
         "responseFormat": "file",
         "dataPropertyName": "data",
         "options": {
