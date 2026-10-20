@@ -1,5 +1,43 @@
 import { test, expect } from '@playwright/test';
 const url='/js/candle-battles/tests/visual.html';
+
+test('arena logos follow the match, share cached textures and keep a symbol fallback',async({page})=>{
+ const requested=[];
+ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+9N9sAAAAASUVORK5CYII=','base64');
+ await page.route('**/futurebol/team-logo/*',route=>{
+  const symbol=decodeURIComponent(new URL(route.request().url()).pathname.split('/').pop());
+  requested.push(symbol);
+  return route.fulfill(symbol==='MISS'?{status:404}:{contentType:'image/png',body:png});
+ });
+ await page.goto('/js/candle-battles/tests/shell.html');
+ await page.addStyleTag({path:'Components/Shared/CandleBattlesHost.razor.css'});
+ await page.waitForFunction(()=>window.ready);
+ const feed=(matchId,leftSymbol,rightSymbol)=>({matchId,leftSymbol,rightSymbol,left:null,right:null,rounds:[],status:'live',finished:false,expectedRounds:18});
+ await page.evaluate(feed=>window.engine.receive(feed,true),feed(1,'ALTUSDT','GTCUSDT'));
+ await expect.poll(()=>page.evaluate(()=>window.engine.logos.size)).toBe(2);
+ const first=await page.evaluate(()=>{
+  const e=window.engine,left=e.logos.get('left'),right=e.logos.get('right');
+  return {left:{x:left.x,y:left.y,width:left.displayWidth,height:left.displayHeight,depth:left.depth,key:left.texture.key},right:{x:right.x,y:right.y,width:right.displayWidth,height:right.displayHeight,depth:right.depth,key:right.texture.key},fighterDepth:e.left.root.depth};
+ });
+ expect(first.left).toMatchObject({x:97,y:237,depth:.6,key:'coin-ALTUSDT'});
+ expect(first.right).toMatchObject({x:1183,y:237,depth:.6,key:'coin-GTCUSDT'});
+ expect(first.left.width).toBe(first.right.width);
+ expect(first.left.height).toBe(first.right.height);
+ expect(first.fighterDepth).toBeGreaterThan(first.left.depth);
+ await page.waitForLoadState('networkidle');
+ const count=requested.length;
+ await page.evaluate(feed=>window.engine.receive(feed,false),feed(1,'ALTUSDT','GTCUSDT'));
+ expect(requested).toHaveLength(count);
+ await page.evaluate(feed=>window.engine.receive(feed,true),feed(2,'ALTUSDT','ALTUSDT'));
+ await expect.poll(()=>page.evaluate(()=>window.engine.logos.get('right')?.texture.key)).toBe('coin-ALTUSDT');
+ expect(await page.evaluate(()=>window.engine.scene.textures.exists('coin-GTCUSDT'))).toBe(false);
+ await page.evaluate(feed=>window.engine.receive(feed,true),feed(3,'MISS','ALTUSDT'));
+ await expect.poll(()=>page.evaluate(()=>window.engine.loadingLogos.size)).toBe(0);
+ expect(await page.evaluate(()=>({fallback:window.engine.logoFallbacks.get('left')?.text,leftLogo:window.engine.logos.has('left')}))).toEqual({fallback:'MISS',leftLogo:false});
+ await page.setViewportSize({width:390,height:844});
+ expect(await page.locator('#arena canvas').evaluate(canvas=>canvas.getBoundingClientRect().width)).toBeLessThanOrEqual(390);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
 test('dashboard shows server-aligned countdown, confirmed history and mobile layout',async({page},testInfo)=>{
  await page.goto('/js/candle-battles/tests/shell.html');
  await page.addStyleTag({path:'Components/Shared/CandleBattlesHost.razor.css'});

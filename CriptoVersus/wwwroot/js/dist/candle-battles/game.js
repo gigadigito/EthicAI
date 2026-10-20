@@ -1,7 +1,7 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261017d';
-import { CandleRenderer } from './renderer.js?v=20261017d';
-import { AudioManager } from './audio.js?v=20261017d';
-import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261017d';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261020a';
+import { CandleRenderer } from './renderer.js?v=20261020a';
+import { AudioManager } from './audio.js?v=20261020a';
+import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261020a';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -24,6 +24,9 @@ export class GameEngine {
         this.lastDashboardSecond = -1;
         this.logos = new Map();
         this.logoSymbols = new Map();
+        this.logoFallbacks = new Map();
+        this.loadingLogos = new Set();
+        this.ownedLogoTextures = new Set();
         this.prices = { left: [], right: [] };
         this.hud = new Map();
         this.tileImages = [];
@@ -150,6 +153,15 @@ export class GameEngine {
         this.lineFlash = scene.add.graphics().setDepth(20);
         this.left = new CandleRenderer(scene, 'left', 330, this.shell ? 185 : 260);
         this.right = new CandleRenderer(scene, 'right', 950, this.shell ? 185 : 260);
+        if (this.shell) {
+            this.left.root.setDepth(2);
+            this.right.root.setDepth(2);
+            for (const side of ['left', 'right']) {
+                const x = side === 'left' ? 97 : 1183;
+                const color = side === 'left' ? 0xb8ff00 : 0x31d3d0;
+                scene.add.graphics().fillStyle(color, .11).fillCircle(x, 237, 51).setDepth(.4);
+            }
+        }
         this.left.setReducedMotion(this.reduced);
         this.right.setReducedMotion(this.reduced);
         if (this.shell) {
@@ -283,6 +295,7 @@ export class GameEngine {
             this.hud.get('status')?.setText(this.text('forming'));
         this.setLogo('left', feed.leftSymbol);
         this.setLogo('right', feed.rightSymbol);
+        this.releaseUnusedLogoTextures();
         this.hud.get('leftName')?.setText(displaySymbol(feed.leftSymbol));
         this.hud.get('rightName')?.setText(displaySymbol(feed.rightSymbol));
         this.updateMarket();
@@ -722,29 +735,90 @@ export class GameEngine {
         }
     }
     setLogo(side, symbol) {
-        if (this.shell)
-            return;
         if (!this.scene || this.logoSymbols.get(side) === symbol)
             return;
         this.logoSymbols.set(side, symbol);
         this.logos.get(side)?.destroy();
         this.logos.delete(side);
-        const x = side === 'left' ? 76 : 1208;
-        const simple = symbol.replace(/USDT$/, '');
-        if (simple === 'BTC' || simple === 'ETH') {
-            this.logos.set(side, this.scene.add.image(x, 67, 'modular', 'logo-' + simple).setDisplaySize(58, 61));
+        this.logoFallbacks.get(side)?.destroy();
+        this.logoFallbacks.delete(side);
+        const normalized = symbol.trim().toUpperCase();
+        const base = displaySymbol(normalized);
+        if (!this.shell && (base === 'BTC' || base === 'ETH')) {
+            const x = side === 'left' ? 76 : 1208;
+            this.logos.set(side, this.scene.add.image(x, 67, 'modular', 'logo-' + base).setDisplaySize(58, 61));
             return;
         }
-        const scene = this.scene, key = 'coin-' + symbol;
-        const show = () => { if (!this.disposed && this.logoSymbols.get(side) === symbol && scene.textures.exists(key))
-            this.logos.set(side, scene.add.image(x, 67, key).setDisplaySize(52, 52)); };
+        if (!/^[A-Z0-9]{1,20}$/.test(normalized)) {
+            this.showLogoFallback(side);
+            return;
+        }
+        const scene = this.scene, key = 'coin-' + normalized;
         if (scene.textures.exists(key)) {
-            show();
+            this.showLogo(side, key);
             return;
         }
-        scene.load.once('filecomplete-image-' + key, show);
-        scene.load.image(key, '/futurebol/team-logo/' + encodeURIComponent(symbol));
+        this.showLogoFallback(side);
+        if (this.loadingLogos.has(key))
+            return;
+        this.loadingLogos.add(key);
+        const completed = () => {
+            scene.load.off('loaderror', failed);
+            this.loadingLogos.delete(key);
+            this.ownedLogoTextures.add(key);
+            if (!this.disposed) {
+                for (const activeSide of ['left', 'right'])
+                    if (this.logoKey(activeSide) === key)
+                        this.showLogo(activeSide, key);
+                this.releaseUnusedLogoTextures();
+            }
+        };
+        const failed = (file) => {
+            if (file.key !== key)
+                return;
+            scene.load.off('filecomplete-image-' + key, completed);
+            scene.load.off('loaderror', failed);
+            this.loadingLogos.delete(key);
+        };
+        scene.load.once('filecomplete-image-' + key, completed);
+        scene.load.on('loaderror', failed);
+        scene.load.image(key, '/futurebol/team-logo/' + encodeURIComponent(normalized));
         scene.load.start();
+    }
+    logoKey(side) {
+        const symbol = this.logoSymbols.get(side)?.trim().toUpperCase();
+        return symbol && /^[A-Z0-9]{1,20}$/.test(symbol) ? 'coin-' + symbol : undefined;
+    }
+    showLogo(side, key) {
+        if (!this.scene || !this.scene.textures.exists(key))
+            return;
+        this.logoFallbacks.get(side)?.destroy();
+        this.logoFallbacks.delete(side);
+        this.logos.get(side)?.destroy();
+        const x = this.shell ? (side === 'left' ? 97 : 1183) : (side === 'left' ? 76 : 1208);
+        const image = this.scene.add.image(x, this.shell ? 237 : 67, key).setDepth(.6);
+        const texture = image.texture.getSourceImage();
+        const maxSize = this.shell ? 82 : 58;
+        image.setScale(Math.min(maxSize / texture.width, maxSize / texture.height));
+        this.logos.set(side, image);
+    }
+    showLogoFallback(side) {
+        if (!this.scene)
+            return;
+        const x = this.shell ? (side === 'left' ? 97 : 1183) : (side === 'left' ? 76 : 1208);
+        const label = displaySymbol(this.logoSymbols.get(side) ?? '?').slice(0, 5);
+        const color = side === 'left' ? '#b8ff00' : '#31d3d0';
+        this.logoFallbacks.set(side, this.scene.add.text(x, this.shell ? 237 : 67, label, { fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '22px' : '15px', fontStyle: 'bold', color, align: 'center' }).setOrigin(.5).setDepth(.6));
+    }
+    releaseUnusedLogoTextures() {
+        if (!this.scene)
+            return;
+        const active = new Set(['left', 'right'].map(side => this.logoKey(side)));
+        for (const key of this.ownedLogoTextures)
+            if (!active.has(key)) {
+                this.scene.textures.remove(key);
+                this.ownedLogoTextures.delete(key);
+            }
     }
     drawCharts(series = this.prices) {
         if (!this.chart)
@@ -1045,6 +1119,12 @@ export class GameEngine {
         this.clock.clear();
         this.effects = [];
         this.hud.clear();
+        this.logos.clear();
+        this.logoFallbacks.clear();
+        this.logoSymbols.clear();
+        this.loadingLogos.clear();
+        this.ownedLogoTextures.clear();
+        this.scene = undefined;
         delete this.host.dataset.ready;
     }
 }

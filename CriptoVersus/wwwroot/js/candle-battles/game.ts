@@ -36,6 +36,9 @@ export class GameEngine {
     private lineFlash?: PhaserTypes.GameObjects.Graphics;
     private logos = new Map<Side, PhaserTypes.GameObjects.Image>();
     private logoSymbols = new Map<Side,string>();
+    private logoFallbacks = new Map<Side, PhaserTypes.GameObjects.Text>();
+    private loadingLogos = new Set<string>();
+    private ownedLogoTextures = new Set<string>();
     private prices = {left:[] as number[],right:[] as number[]};
     private hud = new Map<string, PhaserTypes.GameObjects.Text>();
     private tileImages: PhaserTypes.GameObjects.Image[] = [];
@@ -158,6 +161,14 @@ export class GameEngine {
         this.label('percent','50% / 50%',640,772,16,'#f3f5f7',.5);
         this.chart = scene.add.graphics(); this.lineFlash = scene.add.graphics().setDepth(20);
         this.left = new CandleRenderer(scene,'left',330,this.shell?185:260); this.right = new CandleRenderer(scene,'right',950,this.shell?185:260);
+        if (this.shell) {
+            this.left.root.setDepth(2); this.right.root.setDepth(2);
+            for (const side of ['left','right'] as const) {
+                const x = side === 'left' ? 97 : 1183;
+                const color = side === 'left' ? 0xb8ff00 : 0x31d3d0;
+                scene.add.graphics().fillStyle(color,.11).fillCircle(x,237,51).setDepth(.4);
+            }
+        }
         this.left.setReducedMotion(this.reduced); this.right.setReducedMotion(this.reduced);
         if (this.shell) { this.left.setPresentationScale(1.55); this.right.setPresentationScale(1.55); }
         if (this.shell) {
@@ -240,6 +251,7 @@ export class GameEngine {
             this.hud.get('status')?.setText(this.text(feed.finished?'finished':feed.status==='live'?'forming':'waiting'));
         } else if (this.mode === 'replay') this.hud.get('status')?.setText(this.text('forming'));
         this.setLogo('left',feed.leftSymbol); this.setLogo('right',feed.rightSymbol);
+        this.releaseUnusedLogoTextures();
         this.hud.get('leftName')?.setText(displaySymbol(feed.leftSymbol)); this.hud.get('rightName')?.setText(displaySymbol(feed.rightSymbol));
         this.updateMarket();
         if (!this.paused) this.updateClocks();
@@ -507,17 +519,71 @@ export class GameEngine {
         }
     }
     private setLogo(side:Side,symbol:string):void {
-        if(this.shell) return;
         if(!this.scene || this.logoSymbols.get(side)===symbol)return;
-        this.logoSymbols.set(side,symbol);this.logos.get(side)?.destroy();this.logos.delete(side);
-        const x=side==='left'?76:1208;
-        const simple=symbol.replace(/USDT$/,'');
-        if(simple==='BTC'||simple==='ETH') {this.logos.set(side,this.scene.add.image(x,67,'modular','logo-'+simple).setDisplaySize(58,61));return;}
-        const scene=this.scene,key='coin-'+symbol;
-        const show=()=>{if(!this.disposed&&this.logoSymbols.get(side)===symbol&&scene.textures.exists(key))this.logos.set(side,scene.add.image(x,67,key).setDisplaySize(52,52));};
-        if(scene.textures.exists(key)){show();return;}
-        scene.load.once('filecomplete-image-'+key,show);
-        scene.load.image(key,'/futurebol/team-logo/'+encodeURIComponent(symbol));scene.load.start();
+        this.logoSymbols.set(side,symbol);
+        this.logos.get(side)?.destroy(); this.logos.delete(side);
+        this.logoFallbacks.get(side)?.destroy(); this.logoFallbacks.delete(side);
+        const normalized=symbol.trim().toUpperCase();
+        const base=displaySymbol(normalized);
+        if(!this.shell && (base==='BTC' || base==='ETH')) {
+            const x=side==='left'?76:1208;
+            this.logos.set(side,this.scene.add.image(x,67,'modular','logo-'+base).setDisplaySize(58,61));
+            return;
+        }
+        if(!/^[A-Z0-9]{1,20}$/.test(normalized)) { this.showLogoFallback(side); return; }
+        const scene=this.scene,key='coin-'+normalized;
+        if(scene.textures.exists(key)) { this.showLogo(side,key); return; }
+        this.showLogoFallback(side);
+        if(this.loadingLogos.has(key))return;
+        this.loadingLogos.add(key);
+        const completed=()=>{
+            scene.load.off('loaderror',failed);
+            this.loadingLogos.delete(key);
+            this.ownedLogoTextures.add(key);
+            if(!this.disposed) {
+                for(const activeSide of ['left','right'] as const)
+                    if(this.logoKey(activeSide)===key)this.showLogo(activeSide,key);
+                this.releaseUnusedLogoTextures();
+            }
+        };
+        const failed=(file:{key:string})=>{
+            if(file.key!==key)return;
+            scene.load.off('filecomplete-image-'+key,completed);
+            scene.load.off('loaderror',failed);
+            this.loadingLogos.delete(key);
+        };
+        scene.load.once('filecomplete-image-'+key,completed);
+        scene.load.on('loaderror',failed);
+        scene.load.image(key,'/futurebol/team-logo/'+encodeURIComponent(normalized));
+        scene.load.start();
+    }
+    private logoKey(side:Side):string|undefined {
+        const symbol=this.logoSymbols.get(side)?.trim().toUpperCase();
+        return symbol && /^[A-Z0-9]{1,20}$/.test(symbol) ? 'coin-'+symbol : undefined;
+    }
+    private showLogo(side:Side,key:string):void {
+        if(!this.scene || !this.scene.textures.exists(key))return;
+        this.logoFallbacks.get(side)?.destroy(); this.logoFallbacks.delete(side);
+        this.logos.get(side)?.destroy();
+        const x=this.shell?(side==='left'?97:1183):(side==='left'?76:1208);
+        const image=this.scene.add.image(x,this.shell?237:67,key).setDepth(.6);
+        const texture=image.texture.getSourceImage() as HTMLImageElement;
+        const maxSize=this.shell?82:58;
+        image.setScale(Math.min(maxSize/texture.width,maxSize/texture.height));
+        this.logos.set(side,image);
+    }
+    private showLogoFallback(side:Side):void {
+        if(!this.scene)return;
+        const x=this.shell?(side==='left'?97:1183):(side==='left'?76:1208);
+        const label=displaySymbol(this.logoSymbols.get(side)??'?').slice(0,5);
+        const color=side==='left'?'#b8ff00':'#31d3d0';
+        this.logoFallbacks.set(side,this.scene.add.text(x,this.shell?237:67,label,{fontFamily:'system-ui, sans-serif',fontSize:this.shell?'22px':'15px',fontStyle:'bold',color,align:'center'}).setOrigin(.5).setDepth(.6));
+    }
+    private releaseUnusedLogoTextures():void {
+        if(!this.scene)return;
+        const active=new Set(['left','right'].map(side=>this.logoKey(side as Side)));
+        for(const key of this.ownedLogoTextures)
+            if(!active.has(key)) { this.scene.textures.remove(key); this.ownedLogoTextures.delete(key); }
     }
     private drawCharts(series=this.prices):void {
         if(!this.chart)return;this.chart.clear();
@@ -738,6 +804,8 @@ export class GameEngine {
         this.controls.removeEventListener('click',this.controlClick);this.controls.removeEventListener('input',this.controlInput);
         this.observer.disconnect();document.removeEventListener('visibilitychange',this.visibility);
         this.motionQuery.removeEventListener('change',this.motionChange);this.audio.dispose();this.game.destroy(true);
-        this.history=[];this.market.clear();this.clock.clear();this.effects=[];this.hud.clear();delete this.host.dataset.ready;
+        this.history=[];this.market.clear();this.clock.clear();this.effects=[];this.hud.clear();
+        this.logos.clear();this.logoFallbacks.clear();this.logoSymbols.clear();this.loadingLogos.clear();this.ownedLogoTextures.clear();
+        this.scene=undefined;delete this.host.dataset.ready;
     }
 }
