@@ -1,7 +1,7 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261023a';
-import { CandleRenderer } from './renderer.js?v=20261023a';
-import { AudioManager } from './audio.js?v=20261023a';
-import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261023a';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261023b';
+import { CandleRenderer } from './renderer.js?v=20261023b';
+import { AudioManager } from './audio.js?v=20261023b';
+import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261023b';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';

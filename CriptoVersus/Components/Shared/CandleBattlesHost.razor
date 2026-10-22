@@ -8,7 +8,7 @@
 @inject ILogger<CandleBattlesHost> Logger
 @implements IAsyncDisposable
 
-<link rel="stylesheet" href="/css/candle-battles-dialogue.css?v=20261016e" />
+<link rel="stylesheet" href="/css/candle-battles-dialogue.css?v=20261023b" />
 @if (SocialCapture)
 {
     <div class="candle-battles__canvas candle-battles__canvas--capture" @ref="_canvas" role="img" aria-label="@T("arena")">
@@ -118,7 +118,7 @@ else
         var stage = "module_import";
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261023a.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261023b.js");
             stage = "renderer_initialization";
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
                 new { mode = MatchId == 0 ? "demo" : "live", culture = Culture, labels = LabelKeys.ToDictionary(k => k, T), battleDurationMs = Math.Clamp(Config.GetValue("CandleBattles:AnimationDurationMs", 3800), 3000, 5000), crushingDifference = Math.Clamp(Config.GetValue("CandleBattles:CrushingDifference", 25), 0, 100), socialCapture = SocialCapture, shell = SocialCapture ? true : (bool?)null });

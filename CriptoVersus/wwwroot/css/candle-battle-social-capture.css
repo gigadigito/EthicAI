@@ -17,9 +17,9 @@
 .cbs-capture__rounds i.is-left{border-color:#b8ff00;background:#b8ff00;box-shadow:0 0 8px rgba(184,255,0,.55)}
 .cbs-capture__rounds i.is-right{border-color:#31d3d0;background:#31d3d0;box-shadow:0 0 8px rgba(49,211,208,.55)}
 .cbs-capture__rounds i.is-draw{border-color:#9fb6c6;background:#3a5265}
-.cbs-capture__bubble{position:absolute;max-width:min(260px,22%)}
-.cbs-capture__bubble--left{left:1%;top:8px;transform:rotate(-1.2deg)}
-.cbs-capture__bubble--right{right:1%;top:8px;left:auto;transform:rotate(1.2deg)}
+.cbs-capture__bubble{position:absolute;max-width:min(360px,30%);padding:13px 19px;font-size:21px;line-height:1.2}
+.cbs-capture__bubble--left{left:1%;top:6px;transform:rotate(-1.2deg)}
+.cbs-capture__bubble--right{right:1%;top:6px;left:auto;transform:rotate(1.2deg)}
 .cbs-capture__score{display:flex;align-items:center;justify-content:center;gap:26px;min-width:0;padding:0 28px;border-top:1px solid #275066;background:linear-gradient(180deg,#0c1d2c,#071321)}
 .cbs-capture__side{display:flex;align-items:center;gap:12px;min-width:0;color:var(--lime);font-size:1.85rem;font-weight:900;white-space:nowrap}
 .cbs-capture__side--right{color:var(--cyan)}

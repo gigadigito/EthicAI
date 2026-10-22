@@ -29,7 +29,8 @@ public sealed class CandleBattleSocialPageTests
             "error", "completed", "ongoing", "result", "winner", "loser", "draw", "replay", "noReplay",
             "duration", "minutes", "rounds", "green", "red", "chart", "opening", "closing", "disclaimer" };
         var captureKeys = new[] { "roundOf", "finalScore", "scoreFinalLabel", "winnerTag", "winnerLine",
-            "bubble1", "bubble2", "bubble3", "bubble4", "bubble5", "bubble6",
+            "bubble1", "bubble2", "bubble3", "bubble4", "bubble5", "bubble6", "bubble7", "bubble8",
+            "bubble9", "bubble10", "bubble11", "bubble12", "bubble13", "bubble14",
             "finalWinner", "finalLoser", "finalDraw", "finalDrawReply" };
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "CriptoVersus", "i18n.pt-BR.json")))

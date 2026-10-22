@@ -3,8 +3,8 @@
 @using CriptoVersus.Web.Services
 @inject LocalizationService L
 
-<link rel="stylesheet" href="/css/candle-battles-dialogue.css?v=20261016e" />
-<link rel="stylesheet" href="/css/candle-battle-social-capture.css?v=20261023a" />
+<link rel="stylesheet" href="/css/candle-battles-dialogue.css?v=20261023b" />
+<link rel="stylesheet" href="/css/candle-battle-social-capture.css?v=20261023b" />
 
 <section id="candle-battle-social-capture" class="cbs-capture"
          data-social-ready="false"
@@ -111,6 +111,7 @@
     }
 
     // Deterministic comic lines so the same match always captures the same poster.
+    private const int BubbleCount = 14;
     private string LeftBubbleText => BubbleFor("left");
     private string RightBubbleText => BubbleFor("right");
     private string LeftBubbleKind => BubbleKindFor("left");
@@ -119,7 +120,7 @@
     private string BubbleFor(string side)
     {
         if (_battle is null) return string.Empty;
-        if (!IsFinal) return T($"capture.bubble{(BubbleIndex(side) % 6) + 1}");
+        if (!IsFinal) return T($"capture.bubble{(BubbleIndex(side) % BubbleCount) + 1}");
         if (FinalDraw) return side == "left" ? T("capture.finalDraw") : T("capture.finalDrawReply");
         return side == "left" ? LeftWon ? T("capture.finalWinner") : T("capture.finalLoser")
             : RightWon ? T("capture.finalWinner") : T("capture.finalLoser");
@@ -135,7 +136,7 @@
     private int BubbleIndex(string side)
     {
         var offset = side == "left" ? 0 : 2;
-        return (MatchId % 6 + offset) % 6;
+        return (MatchId % BubbleCount + offset) % BubbleCount;
     }
 
     private RenderFragment Bubble(string text, string side, string kind) => @<div class="candle-battles__bubble candle-battles__bubble--@kind cbs-capture__bubble cbs-capture__bubble--@side"

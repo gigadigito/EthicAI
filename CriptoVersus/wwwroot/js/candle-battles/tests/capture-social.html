@@ -59,7 +59,10 @@ const labels = { arcade: 'Arcade battle', forming: 'Candle forming', waiting: 'W
 window.engine = await create(document.querySelector('#arena'),
   { mode: 'live', culture: 'en-US', labels, battleDurationMs: 3000, socialCapture: true, shell: true });
 
-const phrases = ['This battle is mine!', "It's not over yet!", 'There is still a comeback.', 'Take that!', 'I close on the high.', 'Feeling the pressure?'];
+const phrases = ['This battle is mine!', "It's not over yet!", "I'm taking this one today.", 'Your candle is way too weak for me.',
+  "There's still a comeback, relax.", 'Take that!', 'I always close on the high.', 'Feeling the pressure already?',
+  'My chart woke up angry today.', "Run all you want, I'll catch up.", "That wick doesn't fool me, pal!",
+  "Tomorrow you'll tell this story differently.", "I'm just warming up the wallet.", 'Who messed with my trade now?'];
 const set = (key, value) => { for (const el of document.querySelectorAll(`[data-cb-capture="${key}"]`)) el.textContent = value; };
 const short = symbol => symbol.replace(/USDT$/i, '');
 const pair = symbol => short(symbol) + '/USDT';
@@ -93,7 +96,7 @@ window.setCapture = ({ matchId, leftSymbol, rightSymbol, scoreA, scoreB, confron
   const rightBubble = document.querySelector('[data-cb-capture-bubble="right"]');
   for (const el of [leftBubble, rightBubble]) el.classList.remove('candle-battles__bubble--shout', 'candle-battles__bubble--thought');
   if (!finished) {
-    set('bubbleLeft', phrases[matchId % 6]); set('bubbleRight', phrases[(matchId + 2) % 6]);
+    set('bubbleLeft', phrases[matchId % 14]); set('bubbleRight', phrases[(matchId + 2) % 14]);
     set('stateLine', `Current score · Round ${confrontations} of ${expected}`);
   } else if (draw) {
     set('bubbleLeft', 'We tied!'); set('bubbleRight', 'Next round, then!');
