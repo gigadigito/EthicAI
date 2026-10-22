@@ -62,3 +62,5 @@ python worker.py
 
  git push origem main
   git pull origem main
+
+  teste
