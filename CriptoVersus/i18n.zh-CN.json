@@ -410,6 +410,7 @@
     "ongoing": "进行中",
     "result": "对战结果",
     "winner": "胜者",
+    "loser": "败者",
     "draw": "平局",
     "replay": "对战回放",
     "noReplay": "历史回放不可用。上方显示已保存的摘要。",

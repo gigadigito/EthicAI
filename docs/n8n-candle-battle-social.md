@@ -75,6 +75,76 @@ Campos centrais de `GET /{matchId}`: `category`, `matchId`, `battleId`,
 candidato inclui símbolos, placar arcade, `interestScore`, `isEligible`,
 `selectionReasons` e `rejectionReasons`.
 
+## Contrato operacional dos seis endpoints
+
+Use `Content-Type: application/json` nos POSTs. Os exemplos abaixo descrevem
+o contrato; os valores entre `<...>` devem vir das respostas da API de
+homologação e **não são evidência de uma partida real**. Os nomes JSON seguem
+`camelCase`. Nunca registre `X-Social-Key` em logs ou exports do workflow.
+
+| Operação | Requisição | Resposta de sucesso | Outros resultados |
+|---|---|---|---|
+| `GET /highlight` | `?lookbackHours=6&language=pt-BR&includeRounds=false`, sem chave | `200`: `hasHighlight`, `highlight` (mesmo contrato de `GET /{matchId}`), `candidates`, `eligibleCount`, `skipReason`, `generatedAtUtc` | Sem elegível: `200`, `hasHighlight=false`, `highlight=null`; não cria reserva |
+| `GET /highlights/candidates` | `?lookbackHours=6&take=10`, `X-Social-Key` | `200`: `generatedAtUtc`, `lookbackHours`, `matchesScanned`, `eligibleCount`, `selectedMatchId`, `candidates[]` | `401` sem autenticação; `403` se a política recusar a identidade |
+| `GET /{matchId}` | `?language=pt-BR&includeRounds=true`, sem chave | `200`: dados da batalha, ativos, `rounds[]`, resultado, publicação e URL | `400` para ID inválido; `404` se a partida não existe |
+| `POST /{matchId}/reserve` | `{"owner":"n8n-candle-battle","leaseSeconds":900}`, `X-Social-Key` | `200`: `success=true`, `result="reserved"`, `publication.reservedAtUtc` e `publication.leaseExpiresAtUtc` | `404` se a partida não existe; `409` se inelegível, reservada, publicada ou em reconciliação |
+| `POST /{matchId}/confirm` | `{"outcome":"posted","externalPostId":"<id externo>","reservedAtUtc":"<UTC da reserva>"}`, `X-Social-Key` | `200`: `result="posted"`, `publication.status="posted"`; repetir o mesmo ID ou URL externa retorna sucesso idempotente | `400` sem token ou sem ID/URL externa para `posted`; `409` para reserva antiga, estado incompatível ou publicação diferente |
+| `POST /{matchId}/release` | `{"reason":"<motivo>","reservedAtUtc":"<UTC da reserva>"}`, `X-Social-Key` | `200`: `result="released"`, `publication.status="failed"` | `400` sem token; `409` para token antigo, ausência de reserva ou publicação já confirmada |
+
+`GET /{matchId}` inclui `assetA`/`assetB` com `symbol`, `pair`, `logoUrl`,
+`openingPrice`, `closingPrice`, `performancePercent`, `greenCandles` e
+`redCandles`. O placar arcade (`scoreA`, `scoreB`) é contado dos vencedores
+persistidos em `rounds` e não vem de `Match.ScoreA/ScoreB`. `includeRounds=false`
+reduz o payload para seleção; use `true` quando precisar de OHLCV e replay.
+`publication` pode ser `null`. `publicUrlAvailable=true` só quando há URL
+canônica para uma batalha finalizada com histórico completo, inclusive durante
+uma reserva. `canPost` indica elegibilidade **naquele instante**; revalide na
+reserva para lidar com concorrência.
+
+### Seleção e reserva
+
+O seletor examina partidas finalizadas dentro da janela solicitada (limitada
+por `MaxLookbackHours`, padrão 48). Exige estado Worker `finished`, 18 intervalos
+contíguos de cinco minutos, candles confirmados e válidos, símbolos coerentes
+e vencedores consistentes com o motor. Exclui pares proibidos e limita a
+repetição do mesmo par (`MaxSamePairCandidates`, padrão 1). Ordena elegíveis
+primeiro, depois `interestScore`, data de encerramento e `matchId`. O interesse
+considera virada (peso 25), placar equilibrado (25), vitória expressiva (20),
+diferença de desempenho (15) e movimento dos candles (15); pesos e limites
+são configuráveis em `CandleBattleSocial`.
+
+O lease padrão é de 900 segundos e `leaseSeconds` solicitado tem teto de 7200.
+Reservas ativas retornam `already_reserved`; após expirar, outra tentativa pode
+obter novo `reservedAtUtc`. Em PostgreSQL, o índice único de
+`idempotency_key` impede duas linhas para a mesma batalha/categoria e a linha
+existente é bloqueada durante mutações. **Uma confirmação ou liberação atrasada
+deve usar o token da própria tentativa**; `stale_reservation` indica que outra
+reserva assumiu a partida.
+
+### Confirmação, falha e reconciliação
+
+Somente `outcome="posted"` com `externalPostId` ou `externalPostUrl` realmente
+verificado deve encerrar a publicação. Repetir a confirmação do mesmo post é
+idempotente; outro post recebe `already_published`. Para falha externa
+comprovada antes de publicar, use `outcome="failed"` ou `release` com o token
+atual. Para timeout ou resposta externa incerta, use `outcome="unknown"` com
+o token: o estado vira `reconciliation_required` e impede nova reserva.
+Consulte manualmente a plataforma antes de liberar esse estado. Nunca envie
+`posted` com ID fictício durante homologação de uma partida real.
+
+### URL e imagem social
+
+Abra `publicUrl` apenas quando `publicUrlAvailable=true`. Para captura,
+aguarde `#candle-battle-social-card[data-social-ready="true"]`; em partida
+finalizada com replay, confirme também `data-replay-ready="true"` para capturar
+o quadro de encerramento com vencedor e perdedor. Se o renderer falhar ou não
+terminar em 45 segundos, a página libera a captura do resumo histórico após
+aguardar fontes e imagens (até 10 segundos adicionais por imagem) com
+`data-replay-ready="false"`; trate a imagem como fallback e verifique seu
+conteúdo antes de publicar. A página prerenderiza título, descrição, Open
+Graph, Twitter Card e URL canônica. Não configure `og:image` enquanto não
+houver imagem pública persistida e verificável.
+
 Não há identificador de partida de produção verificado neste repositório.
 Obtenha uma URL existente por `selectedMatchId` e `publicUrl` da API antes de
 adicioná-la ao workflow. O identificador 41 dos testes é somente uma fixture

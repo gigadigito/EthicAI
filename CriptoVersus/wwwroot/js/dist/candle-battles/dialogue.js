@@ -1,4 +1,4 @@
-import { candleChangePercent } from './model.js?v=20261020a';
+import { candleChangePercent } from './model.js?v=20261021a';
 const catalogs = {
     en: { strength: 'MY STRENGTH IS {value}!', score: '{mine} TO {theirs}! KEEP UP!', change: 'I MOVED {value}%!', territory: 'LOOK AT MY TERRITORY!', round: 'ROUND {value}! READY?', taunt: 'YOU WILTED CANDLE!', comeback: 'THIS ISN’T OVER!', worry: 'That chart looks strong...', retort: 'LOOK AT YOUR CROOKED WICK!', winner: 'I TOLD YOU!', loser: 'I WANT A REMATCH!', draw: 'NEXT ROUND, THEN!' },
     pt: { strength: 'MINHA FORÇA TÁ EM {value}!', score: '{mine} A {theirs}! APRENDE!', change: 'VARIEI {value}%!', territory: 'OLHA ESSE TERRITÓRIO!', round: 'ROUND {value}! PREPARADO?', taunt: 'SEU CANDLE MURCHO!', comeback: 'ISSO NÃO ACABOU!', worry: 'Esse gráfico tá forte...', retort: 'OLHA TEU PAVIO TORTO!', winner: 'EU AVISEI!', loser: 'EU QUERO REVANCHE!', draw: 'NO PRÓXIMO ROUND!' },

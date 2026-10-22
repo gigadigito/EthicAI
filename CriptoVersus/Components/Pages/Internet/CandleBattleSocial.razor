@@ -60,6 +60,7 @@
                 <small>@T("result")</small>
                 <strong>@_battle.ScoreA <span>:</span> @_battle.ScoreB</strong>
                 <p>@T("winner"): @(_battle.WinnerSymbol ?? T("draw"))</p>
+                @if (LoserSymbol is not null) { <p>@T("loser"): @LoserSymbol</p> }
             </div>
             @Asset(_battle.AssetB, "right")
         </section>
@@ -114,6 +115,9 @@
         $"{T("title")}: {Pair(_battle.AssetA)} vs {Pair(_battle.AssetB)} | CriptoVersus";
     private string Description => _battle is null ? T("descriptionGeneric") :
         T("description", Base(_battle.AssetA.Symbol), Base(_battle.AssetB.Symbol));
+    private string? LoserSymbol => _battle?.WinnerSymbol is null ? null
+        : string.Equals(_battle.WinnerSymbol, _battle.AssetA.Symbol, StringComparison.OrdinalIgnoreCase)
+            ? _battle.AssetB.Symbol : _battle.AssetA.Symbol;
     private string Canonical => SeoDefaults.BuildPublicAbsoluteUrl(Config, Routes.BuildCandleBattleSocialPath(Culture, MatchId));
     private static string Base(string symbol) => symbol.EndsWith("USDT", StringComparison.OrdinalIgnoreCase) ? symbol[..^4] : symbol;
     private static string Pair(CandleBattleSocialAssetDto asset) => asset.Pair;
@@ -137,8 +141,9 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_battle is null || _watchedMatchId == MatchId) return;
-        try { _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/candleBattleSocial.mjs?v=20261020a");
-            await _module.InvokeVoidAsync("watchReadiness", "candle-battle-social-card", _battle.ReplayAvailable);
+        try { _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/candleBattleSocial.mjs?v=20261021a");
+            await _module.InvokeVoidAsync("watchReadiness", "candle-battle-social-card", _battle.ReplayAvailable,
+                _battle.Status == "Completed");
             _watchedMatchId = MatchId; }
         catch (JSDisconnectedException) { }
     }

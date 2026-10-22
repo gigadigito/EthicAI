@@ -410,6 +410,7 @@
     "ongoing": "En curso",
     "result": "Resultado de la batalla",
     "winner": "Ganador",
+    "loser": "Perdedor",
     "draw": "Empate",
     "replay": "Repetición de la batalla",
     "noReplay": "La repetición histórica no está disponible. Se muestra el resumen registrado.",

@@ -410,6 +410,7 @@
     "ongoing": "In progress",
     "result": "Battle result",
     "winner": "Winner",
+    "loser": "Loser",
     "draw": "Draw",
     "replay": "Battle replay",
     "noReplay": "The historical replay is unavailable. The persisted summary is shown above.",

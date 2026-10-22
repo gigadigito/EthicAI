@@ -1,7 +1,7 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261020a';
-import { CandleRenderer } from './renderer.js?v=20261020a';
-import { AudioManager } from './audio.js?v=20261020a';
-import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261020a';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261021a';
+import { CandleRenderer } from './renderer.js?v=20261021a';
+import { AudioManager } from './audio.js?v=20261021a';
+import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261021a';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -424,6 +424,7 @@ export class GameEngine {
     }
     restart() {
         this.clearDialogue();
+        delete this.host.dataset.finished;
         this.active = undefined;
         this.combatElapsed = 0;
         this.clock.clear();
@@ -636,6 +637,8 @@ export class GameEngine {
         }
         this.updateClocks();
         this.updateDashboard(true);
+        this.host.dataset.finished = 'true';
+        this.host.dispatchEvent(new CustomEvent('candle-battles-finished'));
     }
     begin(r) {
         this.clearDialogue();

@@ -9,8 +9,10 @@ public static class CandleBattlesRoundProjection
 {
     public static CandleBattlesRoundDto ToDto(CandleBattlesRound round)
     {
-        var left = JsonSerializer.Deserialize<CandleBattlesCandleDto>(round.LeftCandleJson)!;
-        var right = JsonSerializer.Deserialize<CandleBattlesCandleDto>(round.RightCandleJson)!;
+        var left = JsonSerializer.Deserialize<CandleBattlesCandleDto>(round.LeftCandleJson)
+            ?? throw new JsonException("Candle esquerdo ausente.");
+        var right = JsonSerializer.Deserialize<CandleBattlesCandleDto>(round.RightCandleJson)
+            ?? throw new JsonException("Candle direito ausente.");
         return new CandleBattlesRoundDto(
             $"{round.MatchId}:5m:{new DateTimeOffset(round.OpenTimeUtc).ToUnixTimeMilliseconds()}",
             round.MatchId, left, right, EffectiveWinner(round, left, right),
@@ -20,8 +22,10 @@ public static class CandleBattlesRoundProjection
     public static string EffectiveWinner(CandleBattlesRound round)
     {
         if (round.RuleVersion == CandleBattlesResolver.Version) return round.Winner;
-        var left = JsonSerializer.Deserialize<CandleBattlesCandleDto>(round.LeftCandleJson)!;
-        var right = JsonSerializer.Deserialize<CandleBattlesCandleDto>(round.RightCandleJson)!;
+        var left = JsonSerializer.Deserialize<CandleBattlesCandleDto>(round.LeftCandleJson)
+            ?? throw new JsonException("Candle esquerdo ausente.");
+        var right = JsonSerializer.Deserialize<CandleBattlesCandleDto>(round.RightCandleJson)
+            ?? throw new JsonException("Candle direito ausente.");
         return EffectiveWinner(round, left, right);
     }
 

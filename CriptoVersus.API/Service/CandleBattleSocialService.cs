@@ -222,7 +222,8 @@ public sealed class CandleBattleSocialService : ICandleBattleSocialService
         if (publication?.Status == PriceCrossoverPublicationStatuses.Posted) return (false, "already_published");
         if (publication?.Status == PriceCrossoverPublicationStatuses.ReconciliationRequired) return (false, "reconciliation_required");
         if (publication?.Status is PriceCrossoverPublicationStatuses.Reserved or PriceCrossoverPublicationStatuses.Publishing
-            && publication.LeaseExpiresAtUtc > DateTime.UtcNow) return (false, "already_reserved");
+            && (publication.LeaseExpiresAtUtc is null || publication.LeaseExpiresAtUtc > DateTime.UtcNow))
+            return (false, "already_reserved");
         return (true, null);
     }
 

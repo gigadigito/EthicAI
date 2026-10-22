@@ -410,6 +410,7 @@
     "ongoing": "Läuft",
     "result": "Kampfergebnis",
     "winner": "Gewinner",
+    "loser": "Verlierer",
     "draw": "Unentschieden",
     "replay": "Kampf-Replay",
     "noReplay": "Das historische Replay ist nicht verfügbar. Die gespeicherte Zusammenfassung wird angezeigt.",

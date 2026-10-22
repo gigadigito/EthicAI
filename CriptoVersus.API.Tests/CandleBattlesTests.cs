@@ -107,7 +107,7 @@ public sealed class CandleBattlesTests
         using var db=new EthicAIDbContext(options);
         var entity=db.Model.FindEntityType(typeof(CandleBattlesRound))!;
         Assert.Equal(new[]{"MatchId","OpenTimeUtc"},entity.FindPrimaryKey()!.Properties.Select(p=>p.Name));
-        var previous=db.Database.GetMigrations().Where(id => id != "20261015000000_AddCandleBattlesArcade").Last();
+        var previous=db.Database.GetMigrations().TakeWhile(id => id != "20261015000000_AddCandleBattlesArcade").Last();
         var script=db.GetService<IMigrator>().GenerateScript(previous, "20261015000000_AddCandleBattlesArcade");
         Assert.Contains("CREATE TABLE candle_battles_round",script);
         Assert.Contains("PRIMARY KEY",script);

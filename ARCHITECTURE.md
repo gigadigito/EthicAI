@@ -587,11 +587,17 @@ be reserved. Highlight weights and selection limits are configured under
 Price Crossover and Candle Battle use separate category/idempotency keys on the
 same table and partial unique index. No new migration is needed. The API owns
 publication writes, while the Worker remains the sole writer of arcade rounds.
+Existing publication rows are locked during reserve, confirm and release on
+relational databases. Candle Battle mutations require the current
+`reservedAtUtc` value returned by reserve; `posted` also requires a verified
+external post identifier or URL.
 The public Blazor route `/{culture}/social/candle-battle/{matchId}` prerenders
 metadata and historical summary, then reuses `CandleBattlesHost` and its Phaser
 replay. A static summary is shown when replay data is unavailable. The page
 exposes `#candle-battle-social-card[data-social-ready="true"]` after its assets
-and replay canvas are ready for capture. The Web reads the API through
+and, for completed battles, the replay finale are ready for capture. The
+`data-replay-ready` flag distinguishes the completed animation from a static
+fallback if Phaser fails or exceeds the 45-second deadline. The Web reads the API through
 `CriptoVersusApiClient`; there is no new DAL dependency.
 
 See `docs/n8n-candle-battle-social.md` for the independent workflow contract.

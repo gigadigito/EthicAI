@@ -410,6 +410,7 @@
     "ongoing": "In corso",
     "result": "Risultato della battaglia",
     "winner": "Vincitore",
+    "loser": "Perdente",
     "draw": "Pareggio",
     "replay": "Replay della battaglia",
     "noReplay": "Il replay storico non è disponibile. È mostrato il riepilogo registrato.",

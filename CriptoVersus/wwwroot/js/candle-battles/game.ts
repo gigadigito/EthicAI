@@ -315,6 +315,7 @@ export class GameEngine {
     }
     private restart(): void {
         this.clearDialogue();
+        delete this.host.dataset.finished;
         this.active=undefined; this.combatElapsed=0; this.clock.clear(); this.territory.reset(); this.state.reset(); this.market.clear(); this.completedRounds=0; this.replayElapsed=0; this.terminal=false;
         this.tile?.destroy(); this.tile=undefined; this.dropTarget=undefined; this.demoIndex=0; this.demoElapsed=0; this.replayIndex=0;
         for(const effect of this.effects)effect.image.destroy(); this.effects=[]; this.flash=0; this.lineFlash?.clear();
@@ -457,6 +458,8 @@ export class GameEngine {
         }
         this.updateClocks();
         this.updateDashboard(true);
+        this.host.dataset.finished='true';
+        this.host.dispatchEvent(new CustomEvent('candle-battles-finished'));
     }
     private begin(r:Readonly<Round>): void {
         this.clearDialogue();

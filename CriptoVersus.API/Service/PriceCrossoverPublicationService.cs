@@ -3,6 +3,7 @@ using DTOs;
 using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql;
 
 namespace CriptoVersus.API.Services;
 
@@ -182,7 +183,8 @@ public class SocialPublicationService
                 Publication = MapState(existing)
             };
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+            { SqlState: PostgresErrorCodes.UniqueViolation })
         {
             // Violação do índice único em corrida: outra requisição venceu.
             if (transaction is not null) await transaction.RollbackAsync(ct);

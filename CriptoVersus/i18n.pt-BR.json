@@ -670,6 +670,7 @@
     "ongoing": "Em andamento",
     "result": "Resultado da batalha",
     "winner": "Vencedor",
+    "loser": "Perdedor",
     "draw": "Empate",
     "replay": "Replay da batalha",
     "noReplay": "O replay histórico está indisponível. O resumo persistido aparece acima.",
