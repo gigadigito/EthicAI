@@ -28,7 +28,7 @@ public sealed class CandleBattleSocialPageTests
         var keys = new[] { "title", "descriptionGeneric", "description", "loading", "notFound",
             "error", "completed", "ongoing", "result", "winner", "loser", "draw", "replay", "noReplay",
             "duration", "minutes", "rounds", "green", "red", "chart", "opening", "closing", "disclaimer" };
-        var captureKeys = new[] { "roundOf", "finalScore", "scoreFinalLabel", "winnerTag",
+        var captureKeys = new[] { "roundOf", "finalScore", "scoreFinalLabel", "winnerTag", "winnerLine",
             "bubble1", "bubble2", "bubble3", "bubble4", "bubble5", "bubble6",
             "finalWinner", "finalLoser", "finalDraw", "finalDrawReply" };
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

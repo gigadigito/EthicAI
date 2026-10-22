@@ -9,7 +9,15 @@
 @implements IAsyncDisposable
 
 <link rel="stylesheet" href="/css/candle-battles-dialogue.css?v=20261016e" />
-<section class="candle-battles @(SocialCapture ? "candle-battles--capture" : null)" aria-label="Candle Battles">
+@if (SocialCapture)
+{
+    <div class="candle-battles__canvas candle-battles__canvas--capture" @ref="_canvas" role="img" aria-label="@T("arena")">
+        <button type="button" class="candle-battles__freeze" data-cb-action="socialFreeze" hidden aria-hidden="true"></button>
+    </div>
+}
+else
+{
+<section class="candle-battles" aria-label="Candle Battles">
     <header class="candle-battles__toolbar">
         <strong class="candle-battles__brand"><span aria-hidden="true">▂▅▇</span> CANDLE BATTLES <small>@T("arcade")</small></strong>
         <div class="candle-battles__controls">
@@ -64,6 +72,7 @@
         @if (_failed) { <button type="button" @onclick="Retry">@T("retry")</button> }
     </footer>
 </section>
+}
 
 @code {
     [Parameter] public int MatchId { get; set; }
@@ -109,10 +118,10 @@
         var stage = "module_import";
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261022a.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261022b.js");
             stage = "renderer_initialization";
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
-                new { mode = MatchId == 0 ? "demo" : "live", culture = Culture, labels = LabelKeys.ToDictionary(k => k, T), battleDurationMs = Math.Clamp(Config.GetValue("CandleBattles:AnimationDurationMs", 3800), 3000, 5000), crushingDifference = Math.Clamp(Config.GetValue("CandleBattles:CrushingDifference", 25), 0, 100), socialCapture = SocialCapture });
+                new { mode = MatchId == 0 ? "demo" : "live", culture = Culture, labels = LabelKeys.ToDictionary(k => k, T), battleDurationMs = Math.Clamp(Config.GetValue("CandleBattles:AnimationDurationMs", 3800), 3000, 5000), crushingDifference = Math.Clamp(Config.GetValue("CandleBattles:CrushingDifference", 25), 0, 100), socialCapture = SocialCapture, shell = SocialCapture ? true : (bool?)null });
             if (_disposed) return;
             _failed = false; _lastFailure = null;
             if (MatchId > 0)

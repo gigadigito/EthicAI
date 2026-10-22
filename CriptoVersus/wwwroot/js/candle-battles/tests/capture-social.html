@@ -5,82 +5,46 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Candle Battle social capture fixture</title>
 <link rel="stylesheet" href="/css/candle-battles-dialogue.css">
+<link rel="stylesheet" href="/css/candle-battle-social-capture.css">
 <style>body{margin:0;padding:16px 0;background:#0b1622;color:#fff;font-family:system-ui}</style>
 </head>
 <body>
-<main id="candle-battle-social-capture" class="cbs-capture" data-social-ready="false" data-capture-frame="pending" data-match-status="in_progress">
+<main id="candle-battle-social-capture" class="cbs-capture" data-social-ready="false" data-capture-frame="pending" data-poster-size="1200x675" data-match-status="in_progress">
   <header class="cbs-capture__header">
     <div class="cbs-capture__brand">Cripto<span>Versus</span></div>
     <span class="cbs-capture__badge">Candle Battle</span>
-    <div class="cbs-capture__pairs">
-      <strong><span data-cb-capture="pairA">—</span> <i>vs</i> <span data-cb-capture="pairB">—</span></strong>
-      <small data-cb-capture="note"></small>
-    </div>
+    <strong class="cbs-capture__pairs"><span data-cb-capture="pairA">—</span> <i>vs</i> <span data-cb-capture="pairB">—</span></strong>
     <strong class="cbs-capture__status" data-cb-capture="status"></strong>
   </header>
 
-  <section class="cbs-capture__arena">
-    <section class="candle-battles candle-battles--capture">
-      <header class="candle-battles__toolbar"><strong class="candle-battles__brand">CANDLE BATTLES</strong>
-        <div class="candle-battles__controls">
-          <button type="button" data-cb-action="start">Start</button>
-          <button type="button" data-cb-action="pause">Pause</button>
-          <button type="button" data-cb-action="restart">Restart</button>
-          <button type="button" data-cb-action="mute">Sound</button>
-        </div>
-      </header>
-      <div class="candle-battles__audio"><label>Master <input type="range" data-cb-action="volume" value=".65" min="0" max="1" step=".05"></label></div>
-      <div class="candle-battles__dashboard" data-cb-shell>
-        <div class="candle-battles__top">
-          <section class="candle-battles__asset"><div class="candle-battles__asset-heading"><img data-cb="leftLogo" alt=""><div><h2 data-cb="leftAsset">—</h2><strong data-cb="leftPrice">—</strong><em data-cb="leftChange">—</em></div></div></section>
-          <section class="candle-battles__countdown"><h2>NEXT BATTLE</h2><div class="candle-battles__clock" data-cb="countdown">--:--</div></section>
-          <section class="candle-battles__asset"><div class="candle-battles__asset-heading"><img data-cb="rightLogo" alt=""><div><h2 data-cb="rightAsset">—</h2><strong data-cb="rightPrice">—</strong><em data-cb="rightChange">—</em></div></div></section>
-        </div>
-        <div class="candle-battles__score-row">
-          <div class="candle-battles__match-clock"><small>MATCH TIME</small><strong data-cb="matchTime">—</strong></div>
-          <div class="candle-battles__scoreboard"><div><span data-cb="leftSymbol">—</span><strong data-cb="leftScore">0</strong><b>VS</b><strong data-cb="rightScore">0</strong><span data-cb="rightSymbol">—</span></div><small data-cb="round">ROUND —</small></div>
-          <div class="candle-battles__mode" data-cb="mode">LIVE</div>
-        </div>
+  <section class="cbs-capture__stage">
+    <div class="cbs-capture__arena">
+      <div class="candle-battles__canvas candle-battles__canvas--capture" id="arena" role="img" aria-label="Candle Battle arena">
+        <button type="button" class="candle-battles__freeze" data-cb-action="socialFreeze" hidden aria-hidden="true"></button>
       </div>
-      <div id="arena" class="candle-battles__canvas" role="img" aria-label="Candle Battle arena">
-        <div class="candle-battles__bubble" data-cb-bubble hidden aria-hidden="true"><span data-cb-bubble-text></span></div>
-        <div class="candle-battles__arena-status" data-cb="battleStatus"></div>
-        <div class="candle-battles__force candle-battles__force--left"><small>Strength</small><strong data-cb="leftArenaStrength">—</strong><div><i data-cb="leftForceFill"></i></div></div>
-        <div class="candle-battles__force candle-battles__force--right"><small>Strength</small><strong data-cb="rightArenaStrength">—</strong><div><i data-cb="rightForceFill"></i></div></div>
+      <div class="cbs-capture__bubbles" data-cb-capture-bubbles>
+        <div class="candle-battles__bubble candle-battles__bubble--speech cbs-capture__bubble cbs-capture__bubble--left" data-cb-capture-bubble="left" style="--tail-x:74%"><span data-cb-capture="bubbleLeft"></span></div>
+        <div class="candle-battles__bubble candle-battles__bubble--speech cbs-capture__bubble cbs-capture__bubble--right" data-cb-capture-bubble="right" style="--tail-x:26%"><span data-cb-capture="bubbleRight"></span></div>
       </div>
-      <div class="candle-battles__bottom">
-        <section class="candle-battles__card candle-battles__recent"><h2>RECENT BATTLES</h2><div data-cb="history"></div></section>
-        <section class="candle-battles__card candle-battles__territory"><h2>TERRITORY CONTROL</h2><div class="candle-battles__tiles" data-cb="territory"></div></section>
-        <section class="candle-battles__card candle-battles__info"><h2>MATCH INFORMATION</h2><dl><div><dt>Score</dt><dd data-cb="infoScore">—</dd></div></dl></section>
-      </div>
-      <div class="candle-battles__final" data-cb="finalPanel" hidden><div><small>MATCH FINISHED</small><h2 data-cb="champion">—</h2><strong data-cb="finalScore">—</strong><p data-cb="finalDetails"></p></div></div>
-      <footer class="candle-battles__footer"><span>Independent arcade score</span></footer>
-    </section>
-
-    <div class="cbs-capture__bubbles" data-cb-capture-bubbles>
-      <div class="candle-battles__bubble candle-battles__bubble--speech cbs-capture__bubble cbs-capture__bubble--left" data-cb-capture-bubble="left" style="--tail-x:76%"><span data-cb-capture="bubbleLeft"></span></div>
-      <div class="candle-battles__bubble candle-battles__bubble--speech cbs-capture__bubble cbs-capture__bubble--right" data-cb-capture-bubble="right" style="--tail-x:24%"><span data-cb-capture="bubbleRight"></span></div>
     </div>
 
     <div class="cbs-capture__score">
-      <small><span data-cb-capture="scoreLabel"></span><span data-cb-capture="rounds"></span></small>
-      <div class="cbs-capture__score-row">
-        <span class="cbs-capture__side cbs-capture__side--left" data-cb-capture-side="left">
-          <span class="cbs-capture__logo"><img alt="" data-cb-capture="logoA"><span hidden data-cb-capture="shortA">—</span></span>
-          <b data-cb-capture="shortA">—</b>
-          <i data-cb-capture="tagA" hidden>WON</i>
-        </span>
-        <strong class="cbs-capture__points"><span data-cb-capture="scoreA">0</span> <em>x</em> <span data-cb-capture="scoreB">0</span></strong>
-        <span class="cbs-capture__side cbs-capture__side--right" data-cb-capture-side="right">
-          <i data-cb-capture="tagB" hidden>WON</i>
-          <b data-cb-capture="shortB">—</b>
-          <span class="cbs-capture__logo"><img alt="" data-cb-capture="logoB"><span hidden data-cb-capture="shortB">—</span></span>
-        </span>
-      </div>
+      <span class="cbs-capture__side cbs-capture__side--left" data-cb-capture-side="left">
+        <b data-cb-capture="shortA">—</b>
+        <i data-cb-capture="tagA" hidden>WON</i>
+      </span>
+      <strong class="cbs-capture__points"><span data-cb-capture="scoreA">0</span> <em>×</em> <span data-cb-capture="scoreB">0</span></strong>
+      <span class="cbs-capture__side cbs-capture__side--right" data-cb-capture-side="right">
+        <i data-cb-capture="tagB" hidden>WON</i>
+        <b data-cb-capture="shortB">—</b>
+      </span>
     </div>
   </section>
 
-  <footer class="cbs-capture__footer"><strong>CriptoVersus</strong><span>Historical market data. This is not financial advice.</span></footer>
+  <footer class="cbs-capture__footer">
+    <span class="cbs-capture__state-line" data-cb-capture="stateLine"></span>
+    <span class="cbs-capture__disclaimer"><strong>CriptoVersus</strong><span>Historical market data. This is not financial advice.</span></span>
+  </footer>
 </main>
 
 <script type="module">
@@ -92,9 +56,9 @@ const labels = { arcade: 'Arcade battle', forming: 'Candle forming', waiting: 'W
   finalScore: 'FINAL SCORE', recent: 'RECENT BATTLES', lines: 'LINES', page: 'PAGE', territory: 'TERRITORY CONTROL', draw: 'DRAW',
   strength: 'STRENGTH', candleClose: '5-minute candle close', champion: 'Champion', watchReplay: 'Watch replay' };
 window.engine = await create(document.querySelector('#arena'),
-  { mode: 'live', culture: 'en-US', labels, battleDurationMs: 3000, socialCapture: true });
+  { mode: 'live', culture: 'en-US', labels, battleDurationMs: 3000, socialCapture: true, shell: true });
 
-const phrases = ["I'm taking this one.", 'Your candle looks weak.', "There's still a comeback.", 'Take that!', 'I close on the high.', 'Feeling the pressure?'];
+const phrases = ['This battle is mine!', "It's not over yet!", 'There is still a comeback.', 'Take that!', 'I close on the high.', 'Feeling the pressure?'];
 const set = (key, value) => { for (const el of document.querySelectorAll(`[data-cb-capture="${key}"]`)) el.textContent = value; };
 const short = symbol => symbol.replace(/USDT$/i, '');
 const pair = symbol => short(symbol) + '/USDT';
@@ -102,12 +66,9 @@ const pair = symbol => short(symbol) + '/USDT';
 window.setCapture = ({ matchId, leftSymbol, rightSymbol, scoreA, scoreB, confrontations, expected, finished }) => {
   const root = document.querySelector('#candle-battle-social-capture');
   set('pairA', pair(leftSymbol)); set('pairB', pair(rightSymbol));
-  set('note', finished ? 'Final score' : `Round ${confrontations} of ${expected}`);
   set('status', finished ? 'Completed' : 'In progress');
   document.querySelector('[data-cb-capture="status"]').classList.toggle('is-final', !!finished);
   root.dataset.matchStatus = finished ? 'finished' : 'in_progress';
-  set('scoreLabel', finished ? 'Final result' : 'Current score');
-  set('rounds', `${confrontations} / ${expected}`);
   set('scoreA', String(scoreA)); set('scoreB', String(scoreB));
   set('shortA', short(leftSymbol)); set('shortB', short(rightSymbol));
   for (const el of document.querySelectorAll('[data-cb-capture="logoA"]')) el.src = '/futurebol/team-logo/' + encodeURIComponent(leftSymbol);
@@ -123,17 +84,21 @@ window.setCapture = ({ matchId, leftSymbol, rightSymbol, scoreA, scoreB, confron
   for (const el of [leftBubble, rightBubble]) el.classList.remove('candle-battles__bubble--shout', 'candle-battles__bubble--thought');
   if (!finished) {
     set('bubbleLeft', phrases[matchId % 6]); set('bubbleRight', phrases[(matchId + 2) % 6]);
+    set('stateLine', `Current score · Round ${confrontations} of ${expected}`);
   } else if (draw) {
     set('bubbleLeft', 'We tied!'); set('bubbleRight', 'Next round, then!');
+    set('stateLine', 'Final result · Draw');
   } else {
     set('bubbleLeft', leftWon ? 'I told you!' : 'I want a rematch!');
     set('bubbleRight', rightWon ? 'I told you!' : 'I want a rematch!');
     (leftWon ? leftBubble : rightBubble).classList.add('candle-battles__bubble--shout');
     (leftWon ? rightBubble : leftBubble).classList.add('candle-battles__bubble--thought');
+    set('stateLine', `Final result · ${short(leftWon ? leftSymbol : rightSymbol)} wins!`);
   }
 };
 
-window.watchCapture = () => watchCaptureReadiness('candle-battle-social-capture', true, document.querySelector('#candle-battle-social-capture').dataset.matchStatus === 'finished');
+window.watchCapture = () => watchCaptureReadiness('candle-battle-social-capture', true,
+  document.querySelector('#candle-battle-social-capture').dataset.matchStatus === 'finished');
 window.ready = true;
 </script>
 </body>

@@ -71,8 +71,7 @@ export async function watchCaptureReadiness(id, replayAvailable, completed) {
     : canvas?.dataset.captureFrame === 'frozen') === true;
   const freeze = () => {
     if (root.dataset.captureFrame === 'frozen') return;
-    // Pause toggles playback: never click it over a frame the engine froze.
-    if (canvas?.dataset.paused !== 'true') root.querySelector('[data-cb-action="pause"]')?.click();
+    root.querySelector('[data-cb-action="socialFreeze"]')?.click();
     root.dataset.captureFrame = 'frozen';
     if (canvas && canvas.dataset.captureFrame !== 'frozen') canvas.dataset.captureFrame = 'frozen';
   };

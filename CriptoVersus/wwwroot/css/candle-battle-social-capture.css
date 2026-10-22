@@ -1,0 +1,29 @@
+.cbs-capture{--lime:#b8ff00;--cyan:#31d3d0;box-sizing:border-box;width:1200px;height:675px;margin:0 auto;display:grid;grid-template-rows:80px 515px 80px;overflow:hidden;border:1px solid #275066;border-radius:22px;background:radial-gradient(130% 150% at 10% 0%,#123247 0%,#08131f 48%,#06111e 100%);color:#eff8ff;font-family:system-ui,sans-serif}
+.cbs-capture *{box-sizing:border-box}
+.cbs-capture__state{grid-row:1/-1;display:grid;place-items:center;padding:24px;font-size:1.4rem;text-align:center}
+.cbs-capture__header{display:flex;align-items:center;gap:18px;min-width:0;padding:0 28px}
+.cbs-capture__brand{font-size:1.8rem;font-weight:900;white-space:nowrap}
+.cbs-capture__brand span{color:var(--cyan)}
+.cbs-capture__badge{padding:7px 14px;border:1px solid #b8ff0070;border-radius:99px;background:#0c2231;color:var(--lime);font-size:.78rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.cbs-capture__pairs{flex:1;min-width:0;text-align:center;font-size:1.5rem;font-weight:900;overflow-wrap:anywhere}
+.cbs-capture__pairs i{padding:0 .3em;color:#7fa0b4;font-size:.72em;font-style:normal}
+.cbs-capture__status{padding:9px 16px;border:1px solid #31d3d077;border-radius:99px;background:#0b2431;color:var(--cyan);font-size:.85rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.cbs-capture__status.is-final{border-color:#b8ff0080;color:var(--lime)}
+.cbs-capture__stage{display:grid;grid-template-rows:450px 65px;min-height:0}
+.cbs-capture__arena{position:relative;overflow:hidden;background:#101722}
+.cbs-capture__bubbles{position:absolute;inset:0;z-index:10;pointer-events:none}
+.cbs-capture__bubble{position:absolute;max-width:min(260px,22%)}
+.cbs-capture__bubble--left{left:1%;top:8px;transform:rotate(-1.2deg)}
+.cbs-capture__bubble--right{right:1%;top:8px;left:auto;transform:rotate(1.2deg)}
+.cbs-capture__score{display:flex;align-items:center;justify-content:center;gap:26px;min-width:0;padding:0 28px;border-top:1px solid #275066;background:linear-gradient(180deg,#0c1d2c,#071321)}
+.cbs-capture__side{display:flex;align-items:center;gap:12px;min-width:0;color:var(--lime);font-size:1.85rem;font-weight:900;white-space:nowrap}
+.cbs-capture__side--right{color:var(--cyan)}
+.cbs-capture__side b{letter-spacing:.04em}
+.cbs-capture__side i{padding:4px 11px;border:1px solid currentColor;border-radius:99px;font-size:.58em;font-style:normal;letter-spacing:.12em;text-transform:uppercase}
+.cbs-capture__side.is-winner{color:#ffd75e}
+.cbs-capture__points{font-size:3.15rem;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cbs-capture__points em{padding:0 .18em;color:#5e8595;font-size:.62em;font-style:normal}
+.cbs-capture__footer{display:flex;align-items:center;justify-content:space-between;gap:20px;min-width:0;padding:0 28px}
+.cbs-capture__state-line{color:#cfe6f2;font-size:1.05rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase;overflow-wrap:anywhere}
+.cbs-capture__disclaimer{display:flex;flex-direction:column;align-items:flex-end;gap:3px;color:#8fa9b8;font-size:.78rem;text-align:right}
+.cbs-capture__disclaimer strong{color:#e7f7ff;letter-spacing:.08em}

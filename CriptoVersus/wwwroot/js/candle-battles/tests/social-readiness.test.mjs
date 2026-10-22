@@ -17,15 +17,15 @@ function page() {
 function capturePage() {
   const canvas = new EventTarget();
   canvas.dataset = {};
-  const pause = { clicked: 0, click() { this.clicked++; } };
+  const freeze = { clicked: 0, click() { this.clicked++; } };
   const root = {
     dataset: {},
     querySelector: selector => selector === '.candle-battles__canvas' ? canvas
-      : selector === '[data-cb-action="pause"]' ? pause : null,
+      : selector === '[data-cb-action="socialFreeze"]' ? freeze : null,
     querySelectorAll: () => []
   };
   globalThis.document = { getElementById: () => root, fonts: { ready: Promise.resolve() } };
-  return { canvas, root, pause };
+  return { canvas, root, freeze };
 }
 
 test('completed battle waits for the final replay frame before capture', async () => {
@@ -65,7 +65,7 @@ test('renderer failure makes the persisted fallback capturable with an observabl
 });
 
 test('compact capture becomes ready only after the frozen poster frame', async () => {
-  const { canvas, root, pause } = capturePage();
+  const { canvas, root, freeze } = capturePage();
   await watchCaptureReadiness('capture-test', true, false);
   await new Promise(setImmediate);
   assert.equal(root.dataset.socialReady, undefined);
@@ -74,7 +74,7 @@ test('compact capture becomes ready only after the frozen poster frame', async (
   canvas.dataset.paused = 'true';
   canvas.dispatchEvent(new Event('candle-battles-capture-frozen'));
   await new Promise(setImmediate);
-  assert.equal(pause.clicked, 0);
+  assert.equal(freeze.clicked, 1);
   assert.equal(root.dataset.captureFrame, 'frozen');
   assert.equal(root.dataset.replayReady, 'true');
   assert.equal(root.dataset.socialReady, 'true');
@@ -104,11 +104,11 @@ test('compact capture of a finished match reports a degraded frame without the v
 
 test('compact capture force-freezes the scene when the arena never settles', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
-  const { canvas, root, pause } = capturePage();
+  const { canvas, root, freeze } = capturePage();
   await watchCaptureReadiness('capture-test-3', true, false);
   t.mock.timers.tick(40000);
   await new Promise(setImmediate);
-  assert.equal(pause.clicked, 1);
+  assert.equal(freeze.clicked, 1);
   assert.equal(canvas.dataset.captureFrame, 'frozen');
   assert.equal(root.dataset.captureFrame, 'frozen');
   assert.equal(root.dataset.replayReady, 'false');

@@ -303,12 +303,13 @@ test('native controls unlock supplied audio, change volume and enter fullscreen'
 });
 
 const captureCard = '#candle-battle-social-capture';
+const pngSize = buffer => ({ width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) });
+
 async function openCapture(page) {
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+9N9sAAAAASUVORK5CYII=','base64');
   await page.route('**/futurebol/team-logo/*', route => route.fulfill({ contentType: 'image/png', body: png }));
   await page.goto('/js/candle-battles/tests/capture-social.html');
   await page.addStyleTag({ path: 'Components/Shared/CandleBattlesHost.razor.css' });
-  await page.addStyleTag({ path: 'Components/Shared/CandleBattleSocialCapture.razor.css' });
   await page.waitForFunction(() => window.ready);
   await page.setViewportSize({ width: 1280, height: 900 });
 }
@@ -316,30 +317,103 @@ async function openCapture(page) {
 async function captureState(page) {
   return page.evaluate(card => {
     const root = document.querySelector(card);
-    const bubble = side => document.querySelector(`[data-cb-capture-bubble="${side}"]`);
-    const score = document.querySelector('.cbs-capture__score').getBoundingClientRect();
-    const visible = element => {
-      const rect = element.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0;
+    const box = element => {
+      const r = element.getBoundingClientRect();
+      return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
     };
+    const rootRect = box(root);
+    const arenaRect = box(document.querySelector('.cbs-capture__arena'));
+    const scoreRect = box(document.querySelector('.cbs-capture__score'));
+    const canvasRect = box(document.querySelector('#arena'));
+    const engine = window.engine;
+    const view = engine.scene.cameras.main.worldView;
+    const toScreen = (x, y) => ({
+      x: canvasRect.left + (x - view.x) / view.width * canvasRect.width,
+      y: canvasRect.top + (y - view.y) / view.height * canvasRect.height });
+    const fighter = side => {
+      const f = engine[side];
+      const sprite = f.root.list[2];
+      const geom = f.geometry;
+      const feetY = f.root.y + sprite.y;
+      const faceY = f.root.y + sprite.y - 165;
+      const candleTopY = geom ? f.root.y - 60 + geom.highY : faceY;
+      const topY = Math.min(candleTopY, faceY - 30);
+      const halfWidth = 80;
+      const toScreenY = y => canvasRect.top + (y - view.y) / view.height * canvasRect.height;
+      const toScreenX = x => canvasRect.left + (x - view.x) / view.width * canvasRect.width;
+      return {
+        worldInside: topY >= view.top && feetY <= view.bottom
+          && f.root.x - halfWidth >= view.left && f.root.x + halfWidth <= view.right,
+        heightRatio: (feetY - topY) / view.height,
+        screen: { left: toScreenX(f.root.x - halfWidth), top: toScreenY(topY), right: toScreenX(f.root.x + halfWidth), bottom: toScreenY(feetY) }
+      };
+    };
+    const bubble = side => {
+      const element = document.querySelector(`[data-cb-capture-bubble="${side}"]`);
+      return { text: element.textContent.trim(), rect: box(element) };
+    };
+    const overlap = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    const leftBubble = bubble('left'), rightBubble = bubble('right');
+    const leftFighter = fighter('left'), rightFighter = fighter('right');
+    const logos = { count: engine.logos.size, textures: [...engine.logos.values()].map(image => image.texture.key) };
+    const overflow = [...root.querySelectorAll('*')]
+      .map(element => ({ element, rect: element.getBoundingClientRect() }))
+      .filter(({ element, rect }) => rect.width > 0 && !element.hidden && (rect.left < rootRect.left - 1 || rect.right > rootRect.right + 1 || rect.top < rootRect.top - 1 || rect.bottom > rootRect.bottom + 1))
+      .slice(0, 6).map(({ element }) => element.className || element.tagName);
     return {
       socialReady: root.dataset.socialReady, captureFrame: root.dataset.captureFrame,
       replayReady: root.dataset.replayReady, matchStatus: root.dataset.matchStatus,
-      paused: document.querySelector('#arena').dataset.paused,
       arenaFrame: document.querySelector('#arena').dataset.captureFrame,
-      width: root.getBoundingClientRect().width, height: root.getBoundingClientRect().height,
-      bubbles: ['left', 'right'].map(side => {
-        const element = bubble(side);
-        const rect = element.getBoundingClientRect();
-        return { side, text: element.textContent.trim(), visible: visible(element), clearsScore: rect.bottom <= score.top + 1 };
-      }),
-      chromeHidden: ['.candle-battles__toolbar', '.candle-battles__dashboard', '.candle-battles__bottom', '.candle-battles__footer']
-        .every(selector => getComputedStyle(document.querySelector(selector)).display === 'none')
+      poster: { width: rootRect.width, height: rootRect.height },
+      regions: { header: box(document.querySelector('.cbs-capture__header')).height, stage: box(document.querySelector('.cbs-capture__stage')).height, footer: box(document.querySelector('.cbs-capture__footer')).height },
+      canvasInsideArena: canvasRect.left >= arenaRect.left - 1 && canvasRect.right <= arenaRect.right + 1
+        && canvasRect.top >= arenaRect.top - 1 && canvasRect.bottom <= arenaRect.bottom + 1,
+      operationalDom: document.querySelectorAll('.candle-battles__toolbar, .candle-battles__audio, .candle-battles__dashboard, .candle-battles__bottom, .candle-battles__final, .candle-battles__footer, .candle-battles__arena-status, .candle-battles__force').length,
+      visibleControls: [...document.querySelectorAll('button, select, input')].filter(element => !element.hidden && element.offsetParent !== null).length,
+      scoreText: document.querySelector('.cbs-capture__points').textContent.replace(/\s+/g, ' ').trim(),
+      stateLine: document.querySelector('.cbs-capture__state-line').textContent.trim(),
+      fighters: { left: leftFighter, right: rightFighter },
+      bubbles: {
+        left: leftBubble, right: rightBubble,
+        separate: !overlap(leftBubble.rect, rightBubble.rect),
+        clearScore: leftBubble.rect.bottom <= scoreRect.top + 1 && rightBubble.rect.bottom <= scoreRect.top + 1,
+        clearFighters: !overlap(leftBubble.rect, leftFighter.screen) && !overlap(rightBubble.rect, rightFighter.screen)
+          && !overlap(leftBubble.rect, rightFighter.screen) && !overlap(rightBubble.rect, leftFighter.screen)
+      },
+      logos,
+      overflow
     };
   }, captureCard);
 }
 
-test('compact social capture freezes an ongoing match into a short poster with pinned bubbles', async ({ page }, testInfo) => {
+function assertPoster(state) {
+  expect(state.poster).toEqual({ width: 1200, height: 675 });
+  expect(state.regions.header).toBeCloseTo(80, 0);
+  expect(state.regions.stage).toBeCloseTo(515, 0);
+  expect(state.regions.footer).toBeCloseTo(80, 0);
+  expect(state.operationalDom).toBe(0);
+  expect(state.visibleControls).toBe(0);
+  expect(state.canvasInsideArena).toBe(true);
+  expect(state.fighters.left.worldInside).toBe(true);
+  expect(state.fighters.right.worldInside).toBe(true);
+  expect(state.fighters.left.heightRatio).toBeGreaterThan(0.28);
+  expect(state.fighters.right.heightRatio).toBeGreaterThan(0.28);
+  for (const bubble of [state.bubbles.left, state.bubbles.right]) {
+    expect(bubble.text.length).toBeGreaterThan(0);
+    expect(bubble.rect.width).toBeGreaterThan(0);
+    expect(bubble.rect.height).toBeGreaterThan(0);
+  }
+  expect(state.bubbles.separate).toBe(true);
+  expect(state.bubbles.clearScore).toBe(true);
+  expect(state.bubbles.clearFighters).toBe(true);
+  expect(state.logos.count).toBe(2);
+  expect(state.logos.textures.every(key => key.startsWith('coin-'))).toBe(true);
+  expect(state.overflow).toEqual([]);
+  expect(state.captureFrame).toBe('frozen');
+  expect(state.arenaFrame).toBe('frozen');
+}
+
+test('compact social capture is a fixed 1200x675 poster without any game controls', async ({ page }, testInfo) => {
   test.setTimeout(60000);
   await openCapture(page);
   await page.evaluate(async () => {
@@ -356,22 +430,15 @@ test('compact social capture freezes an ongoing match into a short poster with p
   });
   await expect.poll(() => page.evaluate(card => document.querySelector(card).dataset.socialReady, captureCard), { timeout: 30000 }).toBe('true');
   const state = await captureState(page);
-  expect(state.captureFrame).toBe('frozen');
-  expect(state.replayReady).toBe('true');
-  expect(state.paused).toBe('true');
-  expect(state.arenaFrame).toBe('frozen');
+  assertPoster(state);
   expect(state.matchStatus).toBe('in_progress');
-  expect(state.chromeHidden).toBe(true);
-  expect(state.width).toBeLessThanOrEqual(1200);
-  expect(state.height).toBeLessThan(state.width * 0.62);
-  for (const bubble of state.bubbles) {
-    expect(bubble.visible).toBe(true);
-    expect(bubble.text.length).toBeGreaterThan(0);
-    expect(bubble.clearsScore).toBe(true);
-  }
+  expect(state.replayReady).toBe('true');
+  expect(state.scoreText).toContain('7');
+  expect(state.stateLine).toMatch(/Round 14 of 18/i);
   expect(await page.evaluate(() => ({ left: window.engine.left.finalVisualState, right: window.engine.right.finalVisualState, score: window.engine.snapshot().score })))
     .toEqual({ left: 'none', right: 'none', score: { left: 7, right: 7 } });
-  await page.locator(captureCard).screenshot({ path: testInfo.outputPath('candle-battle-social-capture-ongoing.png') });
+  const shot = await page.locator(captureCard).screenshot({ path: testInfo.outputPath('candle-battle-social-capture-ongoing.png') });
+  expect(pngSize(shot)).toEqual({ width: 1200, height: 675 });
 });
 
 test('compact social capture freezes the victory frame of a finished match', async ({ page }, testInfo) => {
@@ -389,15 +456,10 @@ test('compact social capture freezes the victory frame of a finished match', asy
   });
   await expect.poll(() => page.evaluate(card => document.querySelector(card).dataset.socialReady, captureCard), { timeout: 30000 }).toBe('true');
   const state = await captureState(page);
-  expect(state.captureFrame).toBe('frozen');
-  expect(state.replayReady).toBe('true');
+  assertPoster(state);
   expect(state.matchStatus).toBe('finished');
-  expect(state.chromeHidden).toBe(true);
-  expect(state.height).toBeLessThan(state.width * 0.62);
-  for (const bubble of state.bubbles) {
-    expect(bubble.visible).toBe(true);
-    expect(bubble.clearsScore).toBe(true);
-  }
+  expect(state.replayReady).toBe('true');
+  expect(state.stateLine).toMatch(/Final result/i);
   const finale = await page.evaluate(() => ({ left: window.engine.left.finalVisualState, right: window.engine.right.finalVisualState,
     leftBubble: document.querySelector('[data-cb-capture-bubble="left"]').className,
     rightBubble: document.querySelector('[data-cb-capture-bubble="right"]').className,
@@ -407,5 +469,29 @@ test('compact social capture freezes the victory frame of a finished match', asy
   expect(finale.winnerTag).toBe(true);
   expect(`${finale.leftBubble} ${finale.rightBubble}`).toContain('candle-battles__bubble--shout');
   expect(`${finale.leftBubble} ${finale.rightBubble}`).toContain('candle-battles__bubble--thought');
-  await page.locator(captureCard).screenshot({ path: testInfo.outputPath('candle-battle-social-capture-finished.png') });
+  const shot = await page.locator(captureCard).screenshot({ path: testInfo.outputPath('candle-battle-social-capture-finished.png') });
+  expect(pngSize(shot)).toEqual({ width: 1200, height: 675 });
+});
+
+test('compact social capture exports 1200x675 on mobile viewports too', async ({ page }, testInfo) => {
+  test.setTimeout(60000);
+  await openCapture(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(async () => {
+    const { demoRound, PERIOD } = await import('/js/dist/candle-battles/model.js');
+    const rounds = Array.from({ length: 6 }, (_, i) => {
+      const source = demoRound(i);
+      return { ...source, matchId: 92, id: `92:5m:${source.left.openTime}`, winner: i % 2 === 0 ? 'left' : 'right' };
+    });
+    const forming = candle => ({ ...candle, openTime: rounds.at(-1).left.openTime + PERIOD, closeTime: rounds.at(-1).left.openTime + 2 * PERIOD, updatedAt: rounds.at(-1).left.closeTime + 1000, confirmed: false });
+    window.setCapture({ matchId: 92, leftSymbol: 'RUNEUSDT', rightSymbol: 'STRKUSDT', scoreA: 3, scoreB: 3, confrontations: 6, expected: 18, finished: false });
+    window.engine.receive({ matchId: 92, leftSymbol: 'RUNEUSDT', rightSymbol: 'STRKUSDT', left: forming(rounds.at(-1).left), right: forming(rounds.at(-1).right),
+      rounds, status: 'live', finished: false, matchStartTime: rounds[0].left.openTime, expectedRounds: 18, serverTime: rounds.at(-1).left.closeTime + 1000 }, true);
+    await window.watchCapture();
+  });
+  await expect.poll(() => page.evaluate(card => document.querySelector(card).dataset.socialReady, captureCard), { timeout: 30000 }).toBe('true');
+  const state = await captureState(page);
+  assertPoster(state);
+  const shot = await page.locator(captureCard).screenshot({ path: testInfo.outputPath('candle-battle-social-capture-mobile.png') });
+  expect(pngSize(shot)).toEqual({ width: 1200, height: 675 });
 });

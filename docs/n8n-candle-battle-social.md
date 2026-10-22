@@ -152,22 +152,25 @@ Para imagens de postagem social use o modo compacto em vez da página inteira:
 - URL de captura: `publicUrl` + `?mode=socialCompact` (a cultura continua vindo
   do caminho, ex.: `/pt/social/candle-battle/{matchId}?mode=socialCompact`).
 - Seletor de captura: `#candle-battle-social-capture[data-social-ready="true"]`.
-- Capture **somente esse elemento** (screenshot do elemento, `fullPage: false`);
-  a página completa não entra na imagem.
-- Viewport sugerido: **1200x900**; o bloco renderiza com largura fixa de 1200px
-  e altura compacta (~525px, proporção horizontal de banner).
+- Capture **somente esse elemento** (screenshot do elemento, `fullPage: false`).
+- Dimensão fixa do arquivo: **1200 x 675 pixels (16:9)**, em qualquer viewport
+  (`data-poster-size="1200x675"`). Não capture a viewport inteira.
 
-O bloco contém apenas cabeçalho compacto (logo CriptoVersus, selo Candle
-Battle, pares, status e linha de rodada/placar), a arena com os personagens,
-os balões de fala fixos (`data-cb-capture-bubble`) e o placar simplificado, e um
-rodapé discreto. Não há gráfico de evolução, cards de duração, contagem de
-candles, painel de confrontos nem controles de replay na imagem.
+O bloco é um pôster com três regiões fixas (cabeçalho 80px, arena 515px, rodapé
+80px) e contém apenas: cabeçalho (logo CriptoVersus, selo Candle Battle, pares e
+status), a arena com os personagens inteiros, os logos dos ativos, os balões de
+fala fixos (`data-cb-capture-bubble`) e o placar único (`RUNE 9 × 8 STRK`, com
+selo de vencedor quando finalizada), e o rodapé com a linha de estado
+(`Placar atual · Rodada 8 de 18` / `Resultado final · RUNE venceu!`), a marca e o
+disclaimer. A interface operacional do Candle Battles (controles, áudio,
+dashboard, painéis técnicos) não existe no DOM deste modo.
 
 Contrato de prontidão do modo compacto:
 
 | Atributo em `#candle-battle-social-capture` | Significado |
 |---|---|
 | `data-social-ready="true"` | Fontes, imagens e quadro congelado prontos; pode capturar. |
+| `data-poster-size="1200x675"` | Dimensão fixa do pôster a exportar. |
 | `data-capture-frame="frozen"` | Cena congelada em um quadro de pôster. |
 | `data-replay-ready="true"` | Quadro pretendido atingido (vitória/derrota em partida finalizada; cena parada em partida em andamento). |
 | `data-replay-ready="false"` | Captura degradada (renderer ausente/falho ou fallback de timeout); verifique a imagem antes de publicar. |
@@ -177,9 +180,18 @@ Contrato de prontidão do modo compacto:
 Em partida em andamento os balões fixos aparecem sempre na imagem, sem depender
 do timing da animação. Em partida finalizada a arena congela no quadro de
 vitória/derrota e os balões trazem as frases de encerramento. Se o motor não
-congelar em até 40 segundos, a página congela a cena pelo controle de pausa e
-marca `data-replay-ready="false"`. O restante do fluxo de reserva, confirmação e
-publicação permanece o mesmo da seção anterior.
+congelar em até 40 segundos, a página congela a cena pelo comando oculto
+`socialFreeze` e marca `data-replay-ready="false"`. O restante do fluxo de
+reserva, confirmação e publicação permanece o mesmo da seção anterior.
+
+A validação em navegador real do pôster (10 checkpoints, desktop e mobile) é
+repetível com o stub local e o script Playwright:
+
+```powershell
+node tools/candle-battles/social-capture-stub-api.mjs
+dotnet run --project CriptoVersus\CriptoVersus.Web.csproj --launch-profile http
+node tools/candle-battles/social-capture-validate.mjs
+```
 
 Não há identificador de partida de produção verificado neste repositório.
 Obtenha uma URL existente por `selectedMatchId` e `publicUrl` da API antes de

@@ -1,7 +1,7 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261022a';
-import { CandleRenderer } from './renderer.js?v=20261022a';
-import { AudioManager } from './audio.js?v=20261022a';
-import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261022a';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261022b';
+import { CandleRenderer } from './renderer.js?v=20261022b';
+import { AudioManager } from './audio.js?v=20261022b';
+import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261022b';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -66,7 +66,7 @@ export class GameEngine {
         this.readyTimer = setTimeout(() => this.readyReject(new Error('Candle Battles asset load timeout')), 20000);
         this.controls = host.closest('.candle-battles') ?? host;
         this.dashboard = this.controls.querySelector('[data-cb-shell]');
-        this.shell = !!this.dashboard;
+        this.shell = options.shell ?? !!this.dashboard;
         this.controlClick = (event) => { const button = event.target.closest('button[data-cb-action]'); if (button)
             this.command(button.dataset.cbAction); };
         this.controlInput = (event) => { const element = event.target; if (element.dataset.cbAction)
@@ -179,6 +179,8 @@ export class GameEngine {
             this.grid?.setVisible(false);
         }
         this.drawTerritory();
+        if (this.options.socialCapture)
+            this.frameCapturePoster(scene);
         if (this.feed)
             this.receive(this.feed, this.pendingReconcile);
         if (this.mode === 'demo') {
@@ -230,7 +232,7 @@ export class GameEngine {
         }
     }
     receive(feed, reconcile = false) {
-        if (this.disposed)
+        if (this.disposed || this.captureFrozen)
             return;
         if (this.feed && this.feed.matchId !== feed.matchId) {
             this.history = [];
@@ -414,6 +416,8 @@ export class GameEngine {
             this.restart();
         if (action === 'history')
             this.showAllHistory = !this.showAllHistory;
+        if (action === 'socialFreeze')
+            this.freezeForCapture();
         this.host.dataset.paused = String(this.paused);
         this.host.dataset.mode = this.mode;
         this.hud.get('mode')?.setText(this.mode.toUpperCase() + ' · 5M');
@@ -799,14 +803,24 @@ export class GameEngine {
         const symbol = this.logoSymbols.get(side)?.trim().toUpperCase();
         return symbol && /^[A-Z0-9]{1,20}$/.test(symbol) ? 'coin-' + symbol : undefined;
     }
+    logoAnchor(side) {
+        if (this.options.socialCapture)
+            return { x: side === 'left' ? 185 : 1095, y: 385 };
+        return this.shell ? { x: side === 'left' ? 97 : 1183, y: 237 } : { x: side === 'left' ? 76 : 1208, y: 67 };
+    }
+    // Poster framing: enlarge the fighters and keep heads, feet, wicks and
+    // logos inside the captured social frame without scaling the sprites.
+    frameCapturePoster(scene) {
+        scene.cameras.main.setZoom(1.25).centerOn(640, 240);
+    }
     showLogo(side, key) {
         if (!this.scene || !this.scene.textures.exists(key))
             return;
         this.logoFallbacks.get(side)?.destroy();
         this.logoFallbacks.delete(side);
         this.logos.get(side)?.destroy();
-        const x = this.shell ? (side === 'left' ? 97 : 1183) : (side === 'left' ? 76 : 1208);
-        const image = this.scene.add.image(x, this.shell ? 237 : 67, key).setDepth(.6);
+        const { x, y } = this.logoAnchor(side);
+        const image = this.scene.add.image(x, y, key).setDepth(.6);
         const texture = image.texture.getSourceImage();
         const maxSize = this.shell ? 82 : 58;
         image.setScale(Math.min(maxSize / texture.width, maxSize / texture.height));
@@ -815,10 +829,10 @@ export class GameEngine {
     showLogoFallback(side) {
         if (!this.scene)
             return;
-        const x = this.shell ? (side === 'left' ? 97 : 1183) : (side === 'left' ? 76 : 1208);
+        const { x, y } = this.logoAnchor(side);
         const label = displaySymbol(this.logoSymbols.get(side) ?? '?').slice(0, 5);
         const color = side === 'left' ? '#b8ff00' : '#31d3d0';
-        this.logoFallbacks.set(side, this.scene.add.text(x, this.shell ? 237 : 67, label, { fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '22px' : '15px', fontStyle: 'bold', color, align: 'center' }).setOrigin(.5).setDepth(.6));
+        this.logoFallbacks.set(side, this.scene.add.text(x, y, label, { fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '22px' : '15px', fontStyle: 'bold', color, align: 'center' }).setOrigin(.5).setDepth(.6));
     }
     releaseUnusedLogoTextures() {
         if (!this.scene)
@@ -1116,6 +1130,11 @@ export class GameEngine {
         if (!this.options.socialCapture || this.captureFrozen || !this.feed || this.catchUpReplay)
             return;
         if (!this.terminal && this.mode !== 'live')
+            return;
+        this.freezeForCapture();
+    }
+    freezeForCapture() {
+        if (this.captureFrozen || this.disposed)
             return;
         this.captureFrozen = true;
         this.paused = true;

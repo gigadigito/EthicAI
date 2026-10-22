@@ -602,29 +602,42 @@ fallback if Phaser fails or exceeds the 45-second deadline. The Web reads the AP
 
 The same route accepts `?mode=socialCompact` (case-insensitive) to render only
 the compact social capture block, `CandleBattleSocialCapture`
-(`#candle-battle-social-capture`), instead of the full public page. The compact
-block is the screenshot target for Binance Square-style images: compact header
-(brand, Candle Battle badge, pairs, status, round line), the arena as the visual
-focus with two pinned comic speech bubbles (`data-cb-capture-bubble`) and a
-simplified score strip, and a discreet footer. It reuses the same
-`CandleBattleSocialResponse` data and `CandleBattlesHost` arena; only the
-presentation differs. The full page keeps rendering unchanged without the
-query parameter.
+(`#candle-battle-social-capture`), instead of the full public page. The block is
+a fixed 1200x675 (16:9) poster — `data-poster-size="1200x675"` — built from
+three regions (80px header, 515px arena stage, 80px footer) and is the only
+screenshot target for Binance Square-style images. The header carries the brand,
+the Candle Battle badge, the pairs and the match status; the arena stage is the
+Phaser arena plus two pinned comic speech bubbles (`data-cb-capture-bubble`) and
+one score band (`RUNE 9 x 8 STRK`, winner tag when finished); the footer carries
+the single state line (`Placar atual · Rodada 8 de 18` or
+`Resultado final · RUNE venceu!`) plus the discreet brand and disclaimer. It
+reuses the same `CandleBattleSocialResponse` data; only the presentation differs.
+The full page keeps rendering unchanged without the query parameter.
 
-`CandleBattlesHost` accepts `SocialCapture=true` to render only the arena canvas
-(`.candle-battles--capture` hides the toolbar, audio, dashboard, technical panels
-and replay controls) and to pass `socialCapture` to the Phaser engine. With that
-option the engine freezes one deterministic poster frame — the victory/defeat
-pose after `finish()` for completed battles, or the home stance once the replay
-catches up to live — pauses the sprite montages (`freezePose`), and emits
-`candle-battles-capture-frozen` on the arena host. The capture readiness contract
-is `#candle-battle-social-capture[data-social-ready="true"]`, produced by
+`CandleBattlesHost` has two render paths: the full operational game (toolbar,
+audio, dashboard, technical panels, replay controls) and an arena-only path used
+when `SocialCapture=true`, which renders just the arena canvas and a hidden
+`socialFreeze` control — the operational chrome is not in the DOM at all. The
+arena-only path passes `socialCapture` and `shell` to the Phaser engine, which
+frames the poster (`frameCapturePoster`: camera zoom around the fighters, asset
+logos on the floor) and freezes one deterministic frame through
+`GameEngine.freezeForCapture` (victory/defeat pose after `finish()` for completed
+battles, home stance once the replay catches up to live), pausing the sprite
+montages via `CandleRenderer.freezePose` and emitting
+`candle-battles-capture-frozen`. Once frozen the engine ignores further feeds so
+the captured frame cannot move.
+
+The capture readiness contract is
+`#candle-battle-social-capture[data-social-ready="true"]`, produced by
 `watchCaptureReadiness` in `wwwroot/js/candleBattleSocial.mjs` after fonts,
-images and the frozen frame are ready; `data-capture-frame="frozen"` and
-`data-replay-ready` expose the frame state, and `data-match-status` uses the
-capture tokens `finished`/`in_progress`/`unknown`. Capture automation must
-screenshot only that element (not the full page) and must not capture when
-`data-social-ready` is absent.
+images and the frozen frame are ready (`data-capture-frame="frozen"`,
+`data-replay-ready`, `data-match-status` with the tokens
+`finished`/`in_progress`/`unknown`). Capture automation must screenshot only
+that element at exactly 1200x675 (not the full page) and must not capture when
+`data-social-ready` is absent. The poster styling lives in the versioned global
+stylesheet `/css/candle-battle-social-capture.css` (like
+`candle-battles-dialogue.css`) instead of Blazor scoped CSS, so the published
+bundle cache can never desynchronize the capture layout.
 
 See `docs/n8n-candle-battle-social.md` for the independent workflow contract.
 

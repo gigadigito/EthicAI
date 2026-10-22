@@ -5,7 +5,7 @@ import { AudioManager } from './audio.js';
 import { DialogueClock, dialogueLines, finalLines, Line } from './dialogue.js';
 
 export interface Feed { matchId: number; leftSymbol: string; rightSymbol: string; left: Candle | null; right: Candle | null; rounds: Round[]; status: string; finished: boolean; matchStartTime?: number | null; matchEndTime?: number | null; expectedRounds?: number; serverTime?: number | null; }
-export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; socialCapture?: boolean; }
+export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; socialCapture?: boolean; shell?: boolean; }
 const displaySymbol = (symbol: string): string => symbol.replace(/USDT$/i, '');
 export async function create(host: HTMLElement, options: Options): Promise<GameEngine> {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -94,7 +94,7 @@ export class GameEngine {
         this.readyTimer=setTimeout(()=>this.readyReject(new Error('Candle Battles asset load timeout')),20000);
         this.controls=host.closest<HTMLElement>('.candle-battles')??host;
         this.dashboard=this.controls.querySelector<HTMLElement>('[data-cb-shell]');
-        this.shell=!!this.dashboard;
+        this.shell=options.shell ?? !!this.dashboard;
         this.controlClick=(event:Event)=>{const button=(event.target as Element).closest<HTMLElement>('button[data-cb-action]');if(button)this.command(button.dataset.cbAction!);};
         this.controlInput=(event:Event)=>{const element=event.target as HTMLInputElement;if(element.dataset.cbAction)this.command(element.dataset.cbAction,Number(element.value));};
         this.controls.addEventListener('click',this.controlClick);this.controls.addEventListener('input',this.controlInput);
@@ -182,6 +182,7 @@ export class GameEngine {
             this.grid?.setVisible(false);
         }
         this.drawTerritory();
+        if (this.options.socialCapture) this.frameCapturePoster(scene);
         if (this.feed) this.receive(this.feed,this.pendingReconcile);
         if (this.mode === 'demo') { this.showDemoForming(0); this.command('start'); }
         if(this.readyTimer)clearTimeout(this.readyTimer);this.readyResolve();
@@ -225,7 +226,7 @@ export class GameEngine {
         }
     }
     receive(feed: Feed, reconcile = false): void {
-        if (this.disposed) return;
+        if (this.disposed || this.captureFrozen) return;
         if (this.feed && this.feed.matchId !== feed.matchId) { this.history=[]; this.market.clear(); this.clock.clear(); this.territory.reset(); this.active=undefined; this.combatElapsed=0; this.state.reset(); this.autoplayInitialized=false; this.catchUpReplay=false; this.terminal=false; this.clearDialogue(); }
         this.feed = feed; this.pendingReconcile ||= reconcile;
         if (feed.serverTime != null && Number.isFinite(feed.serverTime)) { this.serverAnchorMs=feed.serverTime; this.serverReceivedAt=performance.now(); }
@@ -308,6 +309,7 @@ export class GameEngine {
         if(action==='live' && this.options.mode==='live') { this.catchUpReplay=false; this.mode='live'; this.terminal=false; this.setSpeed(1); this.reconcile(); }
         if(action==='restart') this.restart();
         if(action==='history') this.showAllHistory=!this.showAllHistory;
+        if(action==='socialFreeze') this.freezeForCapture();
         this.host.dataset.paused=String(this.paused); this.host.dataset.mode=this.mode;
         this.hud.get('mode')?.setText(this.mode.toUpperCase()+' · 5M');
         this.controls.querySelector('[data-cb-action="pause"]')?.setAttribute('aria-pressed',String(this.paused));
@@ -572,12 +574,21 @@ export class GameEngine {
         const symbol=this.logoSymbols.get(side)?.trim().toUpperCase();
         return symbol && /^[A-Z0-9]{1,20}$/.test(symbol) ? 'coin-'+symbol : undefined;
     }
+    private logoAnchor(side:Side):{x:number;y:number} {
+        if(this.options.socialCapture) return {x:side==='left'?185:1095,y:385};
+        return this.shell?{x:side==='left'?97:1183,y:237}:{x:side==='left'?76:1208,y:67};
+    }
+    // Poster framing: enlarge the fighters and keep heads, feet, wicks and
+    // logos inside the captured social frame without scaling the sprites.
+    private frameCapturePoster(scene:PhaserTypes.Scene):void {
+        scene.cameras.main.setZoom(1.25).centerOn(640,240);
+    }
     private showLogo(side:Side,key:string):void {
         if(!this.scene || !this.scene.textures.exists(key))return;
         this.logoFallbacks.get(side)?.destroy(); this.logoFallbacks.delete(side);
         this.logos.get(side)?.destroy();
-        const x=this.shell?(side==='left'?97:1183):(side==='left'?76:1208);
-        const image=this.scene.add.image(x,this.shell?237:67,key).setDepth(.6);
+        const {x,y}=this.logoAnchor(side);
+        const image=this.scene.add.image(x,y,key).setDepth(.6);
         const texture=image.texture.getSourceImage() as HTMLImageElement;
         const maxSize=this.shell?82:58;
         image.setScale(Math.min(maxSize/texture.width,maxSize/texture.height));
@@ -585,10 +596,10 @@ export class GameEngine {
     }
     private showLogoFallback(side:Side):void {
         if(!this.scene)return;
-        const x=this.shell?(side==='left'?97:1183):(side==='left'?76:1208);
+        const {x,y}=this.logoAnchor(side);
         const label=displaySymbol(this.logoSymbols.get(side)??'?').slice(0,5);
         const color=side==='left'?'#b8ff00':'#31d3d0';
-        this.logoFallbacks.set(side,this.scene.add.text(x,this.shell?237:67,label,{fontFamily:'system-ui, sans-serif',fontSize:this.shell?'22px':'15px',fontStyle:'bold',color,align:'center'}).setOrigin(.5).setDepth(.6));
+        this.logoFallbacks.set(side,this.scene.add.text(x,y,label,{fontFamily:'system-ui, sans-serif',fontSize:this.shell?'22px':'15px',fontStyle:'bold',color,align:'center'}).setOrigin(.5).setDepth(.6));
     }
     private releaseUnusedLogoTextures():void {
         if(!this.scene)return;
@@ -813,6 +824,10 @@ export class GameEngine {
     private maybeFreezeForCapture(): void {
         if(!this.options.socialCapture || this.captureFrozen || !this.feed || this.catchUpReplay) return;
         if(!this.terminal && this.mode!=='live') return;
+        this.freezeForCapture();
+    }
+    freezeForCapture(): void {
+        if(this.captureFrozen || this.disposed) return;
         this.captureFrozen=true;
         this.paused=true;
         this.audio.pause();

@@ -3,9 +3,13 @@
 @using CriptoVersus.Web.Services
 @inject LocalizationService L
 
+<link rel="stylesheet" href="/css/candle-battles-dialogue.css?v=20261016e" />
+<link rel="stylesheet" href="/css/candle-battle-social-capture.css?v=20261022b" />
+
 <section id="candle-battle-social-capture" class="cbs-capture"
          data-social-ready="false"
          data-capture-frame="pending"
+         data-poster-size="1200x675"
          data-match-status="@MatchStatusAttr"
          data-replay-available="@(_battle?.ReplayAvailable == true ? "true" : "false")">
     @if (_battle is null)
@@ -17,42 +21,35 @@
         <header class="cbs-capture__header">
             <div class="cbs-capture__brand">Cripto<span>Versus</span></div>
             <span class="cbs-capture__badge">@T("title")</span>
-            <div class="cbs-capture__pairs">
-                <strong>@Pair(_battle.AssetA) <i>vs</i> @Pair(_battle.AssetB)</strong>
-                <small>@(IsFinal ? T("capture.finalScore") : T("capture.roundOf", _battle.ConfrontationCount, _battle.ExpectedConfrontations))</small>
-            </div>
+            <strong class="cbs-capture__pairs">@Pair(_battle.AssetA) <i>vs</i> @Pair(_battle.AssetB)</strong>
             <strong class="cbs-capture__status @(IsFinal ? "is-final" : null)">@(IsFinal ? T("completed") : T("ongoing"))</strong>
         </header>
 
-        <section class="cbs-capture__arena" aria-label="@T("replay")">
-            <CandleBattlesHost @key="MatchId" MatchId="MatchId" Culture="@Culture" SocialCapture="true" OnFailure="OnFailure" />
-            <div class="cbs-capture__bubbles" data-cb-capture-bubbles>
-                @Bubble(LeftBubbleText, "left", LeftBubbleKind)
-                @Bubble(RightBubbleText, "right", RightBubbleKind)
+        <section class="cbs-capture__stage">
+            <div class="cbs-capture__arena">
+                <CandleBattlesHost @key="MatchId" MatchId="MatchId" Culture="@Culture" SocialCapture="true" OnFailure="OnFailure" />
+                <div class="cbs-capture__bubbles" data-cb-capture-bubbles>
+                    @Bubble(LeftBubbleText, "left", LeftBubbleKind)
+                    @Bubble(RightBubbleText, "right", RightBubbleKind)
+                </div>
             </div>
             <div class="cbs-capture__score">
-                <small>@(IsFinal ? T("capture.scoreFinalLabel") : T("currentScore"))<span>@_battle.ConfrontationCount / @_battle.ExpectedConfrontations</span></small>
-                <div class="cbs-capture__score-row">
-                    <span class="cbs-capture__side cbs-capture__side--left @(LeftWon ? "is-winner" : null)">
-                        <span class="cbs-capture__logo">
-                            <img src="@_battle.AssetA.LogoUrl" alt="" onerror="this.hidden=true;this.nextElementSibling.hidden=false" /><span hidden>@Short(_battle.AssetA.Symbol)</span>
-                        </span>
-                        <b>@Short(_battle.AssetA.Symbol)</b>
-                        @if (LeftWon) { <i>@T("capture.winnerTag")</i> }
-                    </span>
-                    <strong class="cbs-capture__points">@_battle.ScoreA <em>x</em> @_battle.ScoreB</strong>
-                    <span class="cbs-capture__side cbs-capture__side--right @(RightWon ? "is-winner" : null)">
-                        @if (RightWon) { <i>@T("capture.winnerTag")</i> }
-                        <b>@Short(_battle.AssetB.Symbol)</b>
-                        <span class="cbs-capture__logo">
-                            <img src="@_battle.AssetB.LogoUrl" alt="" onerror="this.hidden=true;this.nextElementSibling.hidden=false" /><span hidden>@Short(_battle.AssetB.Symbol)</span>
-                        </span>
-                    </span>
-                </div>
+                <span class="cbs-capture__side cbs-capture__side--left @(LeftWon ? "is-winner" : null)">
+                    <b>@Short(_battle.AssetA.Symbol)</b>
+                    @if (LeftWon) { <i>@T("capture.winnerTag")</i> }
+                </span>
+                <strong class="cbs-capture__points">@_battle.ScoreA <em>×</em> @_battle.ScoreB</strong>
+                <span class="cbs-capture__side cbs-capture__side--right @(RightWon ? "is-winner" : null)">
+                    @if (RightWon) { <i>@T("capture.winnerTag")</i> }
+                    <b>@Short(_battle.AssetB.Symbol)</b>
+                </span>
             </div>
         </section>
 
-        <footer class="cbs-capture__footer"><strong>CriptoVersus</strong><span>@T("disclaimer")</span></footer>
+        <footer class="cbs-capture__footer">
+            <span class="cbs-capture__state-line">@StateLine</span>
+            <span class="cbs-capture__disclaimer"><strong>CriptoVersus</strong><span>@T("disclaimer")</span></span>
+        </footer>
     }
 </section>
 
@@ -69,12 +66,24 @@
     private static string Pair(CandleBattleSocialAssetDto asset) => asset.Pair;
     private static string Short(string symbol) => symbol.EndsWith("USDT", StringComparison.OrdinalIgnoreCase) ? symbol[..^4] : symbol;
     private bool IsFinal => _battle?.Status == "Completed";
-    private bool LeftWon => IsFinal && _battle is not null && _battle.WinnerSymbol is not null
+    private bool LeftWon => IsFinal && _battle?.WinnerSymbol is not null
         && string.Equals(_battle.WinnerSymbol, _battle.AssetA.Symbol, StringComparison.OrdinalIgnoreCase);
-    private bool RightWon => IsFinal && _battle is not null && _battle.WinnerSymbol is not null
+    private bool RightWon => IsFinal && _battle?.WinnerSymbol is not null
         && string.Equals(_battle.WinnerSymbol, _battle.AssetB.Symbol, StringComparison.OrdinalIgnoreCase);
     private bool FinalDraw => IsFinal && _battle?.WinnerSymbol is null;
     private string MatchStatusAttr => _battle is null ? "unknown" : IsFinal ? "finished" : "in_progress";
+
+    private string StateLine
+    {
+        get
+        {
+            if (_battle is null) return string.Empty;
+            if (!IsFinal) return $"{T("currentScore")} · {T("capture.roundOf", _battle.ConfrontationCount, _battle.ExpectedConfrontations)}";
+            return FinalDraw
+                ? $"{T("capture.scoreFinalLabel")} · {T("draw")}"
+                : $"{T("capture.scoreFinalLabel")} · {T("capture.winnerLine", Short(_battle.WinnerSymbol!))}";
+        }
+    }
 
     // Deterministic comic lines so the same match always captures the same poster.
     private string LeftBubbleText => BubbleFor("left");
@@ -105,7 +114,7 @@
     }
 
     private RenderFragment Bubble(string text, string side, string kind) => @<div class="candle-battles__bubble candle-battles__bubble--@kind cbs-capture__bubble cbs-capture__bubble--@side"
-            data-cb-capture-bubble="@side" style="@($"--tail-x:{(side == "left" ? "76%" : "24%")}")"><span>@text</span></div>;
+            data-cb-capture-bubble="@side" style="@($"--tail-x:{(side == "left" ? "74%" : "26%")}")"><span>@text</span></div>;
 
     protected override void OnParametersSet()
     {
