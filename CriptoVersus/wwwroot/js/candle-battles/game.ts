@@ -182,7 +182,13 @@ export class GameEngine {
             this.grid?.setVisible(false);
         }
         this.drawTerritory();
-        if (this.options.socialCapture) this.frameCapturePoster(scene);
+        if (this.options.socialCapture) {
+            this.frameCapturePoster(scene);
+            // Hide the arena until the poster frame is mounted so the capture
+            // never shows an intermediate or first-battle frame.
+            this.game.canvas.style.visibility='hidden';
+            this.left?.freezePose(); this.right?.freezePose();
+        }
         if (this.feed) this.receive(this.feed,this.pendingReconcile);
         if (this.mode === 'demo') { this.showDemoForming(0); this.command('start'); }
         if(this.readyTimer)clearTimeout(this.readyTimer);this.readyResolve();
@@ -334,6 +340,8 @@ export class GameEngine {
     }
     command(action:string,value?:number): void {
         if(this.disposed) return;
+        // Social capture never runs playback: only the idempotent freeze exists.
+        if(this.options.socialCapture && action!=='socialFreeze') return;
         this.audio.unlock();
         if(['start','replay','restart','live'].includes(action))this.audio.play('menu_select');
         if(action==='start') { this.started=true; this.paused=false; this.audio.loop('arena'); }
@@ -881,6 +889,7 @@ export class GameEngine {
         this.right?.root.setPosition(950,this.shell?185:260);
         this.left?.freezePose(); this.right?.freezePose();
         this.left?.update(this.time,0); this.right?.update(this.time,0);
+        this.game.canvas.style.visibility='visible';
         this.host.dataset.paused='true';
         this.host.dataset.captureFrame='frozen';
         this.updateClocks();

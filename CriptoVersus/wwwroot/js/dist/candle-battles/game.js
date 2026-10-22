@@ -1,7 +1,7 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261022b';
-import { CandleRenderer } from './renderer.js?v=20261022b';
-import { AudioManager } from './audio.js?v=20261022b';
-import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261022b';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261023a';
+import { CandleRenderer } from './renderer.js?v=20261023a';
+import { AudioManager } from './audio.js?v=20261023a';
+import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261023a';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -179,8 +179,14 @@ export class GameEngine {
             this.grid?.setVisible(false);
         }
         this.drawTerritory();
-        if (this.options.socialCapture)
+        if (this.options.socialCapture) {
             this.frameCapturePoster(scene);
+            // Hide the arena until the poster frame is mounted so the capture
+            // never shows an intermediate or first-battle frame.
+            this.game.canvas.style.visibility = 'hidden';
+            this.left?.freezePose();
+            this.right?.freezePose();
+        }
         if (this.feed)
             this.receive(this.feed, this.pendingReconcile);
         if (this.mode === 'demo') {
@@ -416,6 +422,9 @@ export class GameEngine {
     }
     command(action, value) {
         if (this.disposed)
+            return;
+        // Social capture never runs playback: only the idempotent freeze exists.
+        if (this.options.socialCapture && action !== 'socialFreeze')
             return;
         this.audio.unlock();
         if (['start', 'replay', 'restart', 'live'].includes(action))
@@ -1210,6 +1219,7 @@ export class GameEngine {
         this.right?.freezePose();
         this.left?.update(this.time, 0);
         this.right?.update(this.time, 0);
+        this.game.canvas.style.visibility = 'visible';
         this.host.dataset.paused = 'true';
         this.host.dataset.captureFrame = 'frozen';
         this.updateClocks();

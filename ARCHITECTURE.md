@@ -650,6 +650,17 @@ stylesheet `/css/candle-battle-social-capture.css` (like
 `candle-battles-dialogue.css`) instead of Blazor scoped CSS, so the published
 bundle cache can never desynchronize the capture layout.
 
+Asset versioning is part of the capture contract: the runtime publishes
+immutable file names (`game.{revision}.js`, see `tools/candle-battles/
+build-runtime.mjs`) and the stylesheet/module links carry `?v=` query versions
+because production caches do not vary static assets by content. **Every
+behavioral change to the engine, the poster stylesheet or
+`candleBattleSocial.mjs` must bump those versions in the same change**
+(`build-runtime.mjs` revision + the `CandleBattlesHost.razor` import + the
+`?v=` values in `CandleBattleSocialCapture.razor` and `CandleBattleSocial.razor`);
+republishing different content under a reused name serves stale replay or
+unstyled markup from the CDN.
+
 See `docs/n8n-candle-battle-social.md` for the independent workflow contract.
 
 ## Price Crossover Social Flow
