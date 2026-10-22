@@ -1,0 +1,114 @@
+@using System.Globalization
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject LocalizationService L
+
+<section id="candle-battle-social-capture" class="cbs-capture"
+         data-social-ready="false"
+         data-capture-frame="pending"
+         data-match-status="@MatchStatusAttr"
+         data-replay-available="@(_battle?.ReplayAvailable == true ? "true" : "false")">
+    @if (_battle is null)
+    {
+        <div class="cbs-capture__state" role="status">@(Error ?? T("loading"))</div>
+    }
+    else
+    {
+        <header class="cbs-capture__header">
+            <div class="cbs-capture__brand">Cripto<span>Versus</span></div>
+            <span class="cbs-capture__badge">@T("title")</span>
+            <div class="cbs-capture__pairs">
+                <strong>@Pair(_battle.AssetA) <i>vs</i> @Pair(_battle.AssetB)</strong>
+                <small>@(IsFinal ? T("capture.finalScore") : T("capture.roundOf", _battle.ConfrontationCount, _battle.ExpectedConfrontations))</small>
+            </div>
+            <strong class="cbs-capture__status @(IsFinal ? "is-final" : null)">@(IsFinal ? T("completed") : T("ongoing"))</strong>
+        </header>
+
+        <section class="cbs-capture__arena" aria-label="@T("replay")">
+            <CandleBattlesHost @key="MatchId" MatchId="MatchId" Culture="@Culture" SocialCapture="true" OnFailure="OnFailure" />
+            <div class="cbs-capture__bubbles" data-cb-capture-bubbles>
+                @Bubble(LeftBubbleText, "left", LeftBubbleKind)
+                @Bubble(RightBubbleText, "right", RightBubbleKind)
+            </div>
+            <div class="cbs-capture__score">
+                <small>@(IsFinal ? T("capture.scoreFinalLabel") : T("currentScore"))<span>@_battle.ConfrontationCount / @_battle.ExpectedConfrontations</span></small>
+                <div class="cbs-capture__score-row">
+                    <span class="cbs-capture__side cbs-capture__side--left @(LeftWon ? "is-winner" : null)">
+                        <span class="cbs-capture__logo">
+                            <img src="@_battle.AssetA.LogoUrl" alt="" onerror="this.hidden=true;this.nextElementSibling.hidden=false" /><span hidden>@Short(_battle.AssetA.Symbol)</span>
+                        </span>
+                        <b>@Short(_battle.AssetA.Symbol)</b>
+                        @if (LeftWon) { <i>@T("capture.winnerTag")</i> }
+                    </span>
+                    <strong class="cbs-capture__points">@_battle.ScoreA <em>x</em> @_battle.ScoreB</strong>
+                    <span class="cbs-capture__side cbs-capture__side--right @(RightWon ? "is-winner" : null)">
+                        @if (RightWon) { <i>@T("capture.winnerTag")</i> }
+                        <b>@Short(_battle.AssetB.Symbol)</b>
+                        <span class="cbs-capture__logo">
+                            <img src="@_battle.AssetB.LogoUrl" alt="" onerror="this.hidden=true;this.nextElementSibling.hidden=false" /><span hidden>@Short(_battle.AssetB.Symbol)</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <footer class="cbs-capture__footer"><strong>CriptoVersus</strong><span>@T("disclaimer")</span></footer>
+    }
+</section>
+
+@code {
+    [Parameter] public CandleBattleSocialResponse? Battle { get; set; }
+    [Parameter] public int MatchId { get; set; }
+    [Parameter] public string Culture { get; set; } = "en";
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public EventCallback<string> OnFailure { get; set; }
+
+    private CandleBattleSocialResponse? _battle;
+
+    private string T(string key, params object?[] args) => L.T($"social.candleBattle.{key}", Culture, args);
+    private static string Pair(CandleBattleSocialAssetDto asset) => asset.Pair;
+    private static string Short(string symbol) => symbol.EndsWith("USDT", StringComparison.OrdinalIgnoreCase) ? symbol[..^4] : symbol;
+    private bool IsFinal => _battle?.Status == "Completed";
+    private bool LeftWon => IsFinal && _battle is not null && _battle.WinnerSymbol is not null
+        && string.Equals(_battle.WinnerSymbol, _battle.AssetA.Symbol, StringComparison.OrdinalIgnoreCase);
+    private bool RightWon => IsFinal && _battle is not null && _battle.WinnerSymbol is not null
+        && string.Equals(_battle.WinnerSymbol, _battle.AssetB.Symbol, StringComparison.OrdinalIgnoreCase);
+    private bool FinalDraw => IsFinal && _battle?.WinnerSymbol is null;
+    private string MatchStatusAttr => _battle is null ? "unknown" : IsFinal ? "finished" : "in_progress";
+
+    // Deterministic comic lines so the same match always captures the same poster.
+    private string LeftBubbleText => BubbleFor("left");
+    private string RightBubbleText => BubbleFor("right");
+    private string LeftBubbleKind => BubbleKindFor("left");
+    private string RightBubbleKind => BubbleKindFor("right");
+
+    private string BubbleFor(string side)
+    {
+        if (_battle is null) return string.Empty;
+        if (!IsFinal) return T($"capture.bubble{(BubbleIndex(side) % 6) + 1}");
+        if (FinalDraw) return side == "left" ? T("capture.finalDraw") : T("capture.finalDrawReply");
+        return side == "left" ? LeftWon ? T("capture.finalWinner") : T("capture.finalLoser")
+            : RightWon ? T("capture.finalWinner") : T("capture.finalLoser");
+    }
+
+    private string BubbleKindFor(string side)
+    {
+        if (_battle is null || !IsFinal || FinalDraw) return "speech";
+        var won = side == "left" ? LeftWon : RightWon;
+        return won ? "shout" : "thought";
+    }
+
+    private int BubbleIndex(string side)
+    {
+        var offset = side == "left" ? 0 : 2;
+        return (MatchId % 6 + offset) % 6;
+    }
+
+    private RenderFragment Bubble(string text, string side, string kind) => @<div class="candle-battles__bubble candle-battles__bubble--@kind cbs-capture__bubble cbs-capture__bubble--@side"
+            data-cb-capture-bubble="@side" style="@($"--tail-x:{(side == "left" ? "76%" : "24%")}")"><span>@text</span></div>;
+
+    protected override void OnParametersSet()
+    {
+        _battle = Battle;
+    }
+}

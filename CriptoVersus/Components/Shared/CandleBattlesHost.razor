@@ -9,7 +9,7 @@
 @implements IAsyncDisposable
 
 <link rel="stylesheet" href="/css/candle-battles-dialogue.css?v=20261016e" />
-<section class="candle-battles" aria-label="Candle Battles">
+<section class="candle-battles @(SocialCapture ? "candle-battles--capture" : null)" aria-label="Candle Battles">
     <header class="candle-battles__toolbar">
         <strong class="candle-battles__brand"><span aria-hidden="true">▂▅▇</span> CANDLE BATTLES <small>@T("arcade")</small></strong>
         <div class="candle-battles__controls">
@@ -68,6 +68,7 @@
 @code {
     [Parameter] public int MatchId { get; set; }
     [Parameter] public string Culture { get; set; } = "en";
+    [Parameter] public bool SocialCapture { get; set; }
     [Parameter] public EventCallback<string> OnFailure { get; set; }
     private ElementReference _canvas;
     private IJSObjectReference? _module;
@@ -108,10 +109,10 @@
         var stage = "module_import";
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261021a.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261022a.js");
             stage = "renderer_initialization";
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
-                new { mode = MatchId == 0 ? "demo" : "live", culture = Culture, labels = LabelKeys.ToDictionary(k => k, T), battleDurationMs = Math.Clamp(Config.GetValue("CandleBattles:AnimationDurationMs", 3800), 3000, 5000), crushingDifference = Math.Clamp(Config.GetValue("CandleBattles:CrushingDifference", 25), 0, 100) });
+                new { mode = MatchId == 0 ? "demo" : "live", culture = Culture, labels = LabelKeys.ToDictionary(k => k, T), battleDurationMs = Math.Clamp(Config.GetValue("CandleBattles:AnimationDurationMs", 3800), 3000, 5000), crushingDifference = Math.Clamp(Config.GetValue("CandleBattles:CrushingDifference", 25), 0, 100), socialCapture = SocialCapture });
             if (_disposed) return;
             _failed = false; _lastFailure = null;
             if (MatchId > 0)

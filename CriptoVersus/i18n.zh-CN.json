@@ -429,7 +429,23 @@
     "chart": "标准化价格走势",
     "opening": "开盘",
     "closing": "收盘",
-    "disclaimer": "历史市场数据，不构成投资建议。"
+    "disclaimer": "历史市场数据，不构成投资建议。",
+    "capture": {
+      "roundOf": "第 {0} / {1} 回合",
+      "finalScore": "最终比分",
+      "scoreFinalLabel": "最终结果",
+      "winnerTag": "获胜",
+      "bubble1": "今天这场我拿下了。",
+      "bubble2": "你的K线太弱了。",
+      "bubble3": "还有翻盘机会。",
+      "bubble4": "接招吧！",
+      "bubble5": "我在高位平仓。",
+      "bubble6": "感受到压力了吗？",
+      "finalWinner": "我说过吧！",
+      "finalLoser": "我要复仇！",
+      "finalDraw": "平局！",
+      "finalDrawReply": "下回合见！"
+    }
     },
     "priceCrossover": {
       "seo": {

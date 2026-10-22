@@ -1,4 +1,4 @@
-import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js?v=20261021a';
+import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js?v=20261022a';
 const CANDLE_LIFT = 60;
 const ACTION_FRAME_COUNTS = {
     // Hold the damage pose while its alpha fades; cycling the source montage
@@ -134,6 +134,13 @@ export class CandleRenderer {
             this.sprite.anims.pause();
         else
             this.sprite.anims.resume();
+    }
+    /** Hold the last illustrated frame so social captures stay still. */
+    freezePose() {
+        this.frozen = true;
+        this.sprite.anims.stop();
+        const frames = this.animation === 'idle' ? 1 : ACTION_FRAME_COUNTS[this.animation];
+        this.sprite.setFrame(fighterFrame(this.side, 'neutral', this.animation, frames));
     }
     get geometry() { return this.visibleGeometry && { ...this.visibleGeometry }; }
     get financialSnapshot() { return this.last && { ...this.last }; }

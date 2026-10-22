@@ -600,6 +600,32 @@ and, for completed battles, the replay finale are ready for capture. The
 fallback if Phaser fails or exceeds the 45-second deadline. The Web reads the API through
 `CriptoVersusApiClient`; there is no new DAL dependency.
 
+The same route accepts `?mode=socialCompact` (case-insensitive) to render only
+the compact social capture block, `CandleBattleSocialCapture`
+(`#candle-battle-social-capture`), instead of the full public page. The compact
+block is the screenshot target for Binance Square-style images: compact header
+(brand, Candle Battle badge, pairs, status, round line), the arena as the visual
+focus with two pinned comic speech bubbles (`data-cb-capture-bubble`) and a
+simplified score strip, and a discreet footer. It reuses the same
+`CandleBattleSocialResponse` data and `CandleBattlesHost` arena; only the
+presentation differs. The full page keeps rendering unchanged without the
+query parameter.
+
+`CandleBattlesHost` accepts `SocialCapture=true` to render only the arena canvas
+(`.candle-battles--capture` hides the toolbar, audio, dashboard, technical panels
+and replay controls) and to pass `socialCapture` to the Phaser engine. With that
+option the engine freezes one deterministic poster frame — the victory/defeat
+pose after `finish()` for completed battles, or the home stance once the replay
+catches up to live — pauses the sprite montages (`freezePose`), and emits
+`candle-battles-capture-frozen` on the arena host. The capture readiness contract
+is `#candle-battle-social-capture[data-social-ready="true"]`, produced by
+`watchCaptureReadiness` in `wwwroot/js/candleBattleSocial.mjs` after fonts,
+images and the frozen frame are ready; `data-capture-frame="frozen"` and
+`data-replay-ready` expose the frame state, and `data-match-status` uses the
+capture tokens `finished`/`in_progress`/`unknown`. Capture automation must
+screenshot only that element (not the full page) and must not capture when
+`data-social-ready` is absent.
+
 See `docs/n8n-candle-battle-social.md` for the independent workflow contract.
 
 ## Price Crossover Social Flow

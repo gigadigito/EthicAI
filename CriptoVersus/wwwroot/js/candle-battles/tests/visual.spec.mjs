@@ -237,7 +237,7 @@ test('LIVE restarts the five-minute clock without awarding a point while confirm
 });
 
 test('a server-finished partial market window displays its confirmed final score and resets the finale for replay',async({page})=>{
- await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine);
+  await page.goto('/js/candle-battles/tests/shell.html');await page.waitForFunction(()=>window.engine&&window.ready);
  const final=await page.evaluate(async()=>{
   const {demoRound,PERIOD}=await import('/js/dist/candle-battles/model.js');
   const {watchReadiness}=await import('/js/candleBattleSocial.mjs');
@@ -299,5 +299,113 @@ test('native controls unlock supplied audio, change volume and enter fullscreen'
  await expect.poll(()=>page.evaluate(()=>!!document.fullscreenElement)).toBe(true);
  await page.getByRole('button',{name:'Fullscreen',exact:true}).click();
  await expect.poll(()=>page.evaluate(()=>!!document.fullscreenElement)).toBe(false);
- await page.evaluate(()=>window.engine.dispose());expect(failures).toEqual([]);
+  await page.evaluate(()=>window.engine.dispose());expect(failures).toEqual([]);
+});
+
+const captureCard = '#candle-battle-social-capture';
+async function openCapture(page) {
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+9N9sAAAAASUVORK5CYII=','base64');
+  await page.route('**/futurebol/team-logo/*', route => route.fulfill({ contentType: 'image/png', body: png }));
+  await page.goto('/js/candle-battles/tests/capture-social.html');
+  await page.addStyleTag({ path: 'Components/Shared/CandleBattlesHost.razor.css' });
+  await page.addStyleTag({ path: 'Components/Shared/CandleBattleSocialCapture.razor.css' });
+  await page.waitForFunction(() => window.ready);
+  await page.setViewportSize({ width: 1280, height: 900 });
+}
+
+async function captureState(page) {
+  return page.evaluate(card => {
+    const root = document.querySelector(card);
+    const bubble = side => document.querySelector(`[data-cb-capture-bubble="${side}"]`);
+    const score = document.querySelector('.cbs-capture__score').getBoundingClientRect();
+    const visible = element => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    return {
+      socialReady: root.dataset.socialReady, captureFrame: root.dataset.captureFrame,
+      replayReady: root.dataset.replayReady, matchStatus: root.dataset.matchStatus,
+      paused: document.querySelector('#arena').dataset.paused,
+      arenaFrame: document.querySelector('#arena').dataset.captureFrame,
+      width: root.getBoundingClientRect().width, height: root.getBoundingClientRect().height,
+      bubbles: ['left', 'right'].map(side => {
+        const element = bubble(side);
+        const rect = element.getBoundingClientRect();
+        return { side, text: element.textContent.trim(), visible: visible(element), clearsScore: rect.bottom <= score.top + 1 };
+      }),
+      chromeHidden: ['.candle-battles__toolbar', '.candle-battles__dashboard', '.candle-battles__bottom', '.candle-battles__footer']
+        .every(selector => getComputedStyle(document.querySelector(selector)).display === 'none')
+    };
+  }, captureCard);
+}
+
+test('compact social capture freezes an ongoing match into a short poster with pinned bubbles', async ({ page }, testInfo) => {
+  test.setTimeout(60000);
+  await openCapture(page);
+  await page.evaluate(async () => {
+    const { demoRound, PERIOD } = await import('/js/dist/candle-battles/model.js');
+    const rounds = Array.from({ length: 14 }, (_, i) => {
+      const source = demoRound(i);
+      return { ...source, matchId: 90, id: `90:5m:${source.left.openTime}`, winner: i % 2 === 0 ? 'left' : 'right' };
+    });
+    const forming = candle => ({ ...candle, openTime: rounds.at(-1).left.openTime + PERIOD, closeTime: rounds.at(-1).left.openTime + 2 * PERIOD, updatedAt: rounds.at(-1).left.closeTime + 1000, confirmed: false });
+    window.setCapture({ matchId: 90, leftSymbol: 'AVAUSDT', rightSymbol: 'PUMPUSDT', scoreA: 7, scoreB: 7, confrontations: 14, expected: 18, finished: false });
+    window.engine.receive({ matchId: 90, leftSymbol: 'AVAUSDT', rightSymbol: 'PUMPUSDT', left: forming(rounds.at(-1).left), right: forming(rounds.at(-1).right),
+      rounds, status: 'live', finished: false, matchStartTime: rounds[0].left.openTime, expectedRounds: 18, serverTime: rounds.at(-1).left.closeTime + 1000 }, true);
+    await window.watchCapture();
+  });
+  await expect.poll(() => page.evaluate(card => document.querySelector(card).dataset.socialReady, captureCard), { timeout: 30000 }).toBe('true');
+  const state = await captureState(page);
+  expect(state.captureFrame).toBe('frozen');
+  expect(state.replayReady).toBe('true');
+  expect(state.paused).toBe('true');
+  expect(state.arenaFrame).toBe('frozen');
+  expect(state.matchStatus).toBe('in_progress');
+  expect(state.chromeHidden).toBe(true);
+  expect(state.width).toBeLessThanOrEqual(1200);
+  expect(state.height).toBeLessThan(state.width * 0.62);
+  for (const bubble of state.bubbles) {
+    expect(bubble.visible).toBe(true);
+    expect(bubble.text.length).toBeGreaterThan(0);
+    expect(bubble.clearsScore).toBe(true);
+  }
+  expect(await page.evaluate(() => ({ left: window.engine.left.finalVisualState, right: window.engine.right.finalVisualState, score: window.engine.snapshot().score })))
+    .toEqual({ left: 'none', right: 'none', score: { left: 7, right: 7 } });
+  await page.locator(captureCard).screenshot({ path: testInfo.outputPath('candle-battle-social-capture-ongoing.png') });
+});
+
+test('compact social capture freezes the victory frame of a finished match', async ({ page }, testInfo) => {
+  test.setTimeout(60000);
+  await openCapture(page);
+  await page.evaluate(async () => {
+    const { demoRound, MATCH_DURATION } = await import('/js/dist/candle-battles/model.js');
+    const rounds = Array.from({ length: 18 }, (_, i) => ({ ...demoRound(i), matchId: 91, id: `91:5m:${demoRound(i).left.openTime}` }));
+    window.setCapture({ matchId: 91, leftSymbol: 'RUNEUSDT', rightSymbol: 'STRKUSDT',
+      scoreA: rounds.filter(r => r.winner === 'left').length, scoreB: rounds.filter(r => r.winner === 'right').length,
+      confrontations: 18, expected: 18, finished: true });
+    window.engine.receive({ matchId: 91, leftSymbol: 'RUNEUSDT', rightSymbol: 'STRKUSDT', left: null, right: null, rounds, status: 'finished', finished: true,
+      matchStartTime: rounds[0].left.openTime, matchEndTime: rounds[0].left.openTime + MATCH_DURATION, expectedRounds: 18 }, true);
+    await window.watchCapture();
+  });
+  await expect.poll(() => page.evaluate(card => document.querySelector(card).dataset.socialReady, captureCard), { timeout: 30000 }).toBe('true');
+  const state = await captureState(page);
+  expect(state.captureFrame).toBe('frozen');
+  expect(state.replayReady).toBe('true');
+  expect(state.matchStatus).toBe('finished');
+  expect(state.chromeHidden).toBe(true);
+  expect(state.height).toBeLessThan(state.width * 0.62);
+  for (const bubble of state.bubbles) {
+    expect(bubble.visible).toBe(true);
+    expect(bubble.clearsScore).toBe(true);
+  }
+  const finale = await page.evaluate(() => ({ left: window.engine.left.finalVisualState, right: window.engine.right.finalVisualState,
+    leftBubble: document.querySelector('[data-cb-capture-bubble="left"]').className,
+    rightBubble: document.querySelector('[data-cb-capture-bubble="right"]').className,
+    winnerTag: document.querySelector('[data-cb-capture="tagA"]').hidden === false || document.querySelector('[data-cb-capture="tagB"]').hidden === false }));
+  expect(finale.left === 'winner' || finale.right === 'winner').toBe(true);
+  expect(finale.left === 'loser' || finale.right === 'loser').toBe(true);
+  expect(finale.winnerTag).toBe(true);
+  expect(`${finale.leftBubble} ${finale.rightBubble}`).toContain('candle-battles__bubble--shout');
+  expect(`${finale.leftBubble} ${finale.rightBubble}`).toContain('candle-battles__bubble--thought');
+  await page.locator(captureCard).screenshot({ path: testInfo.outputPath('candle-battle-social-capture-finished.png') });
 });

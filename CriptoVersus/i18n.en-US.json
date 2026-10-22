@@ -429,7 +429,23 @@
     "chart": "Normalized price evolution",
     "opening": "Open",
     "closing": "Close",
-    "disclaimer": "Historical market data. This is not financial advice."
+    "disclaimer": "Historical market data. This is not financial advice.",
+    "capture": {
+      "roundOf": "Round {0} of {1}",
+      "finalScore": "Final score",
+      "scoreFinalLabel": "Final result",
+      "winnerTag": "Won",
+      "bubble1": "I'm taking this one.",
+      "bubble2": "Your candle looks weak.",
+      "bubble3": "There's still a comeback.",
+      "bubble4": "Take that!",
+      "bubble5": "I close on the high.",
+      "bubble6": "Feeling the pressure?",
+      "finalWinner": "I told you!",
+      "finalLoser": "I want a rematch!",
+      "finalDraw": "We tied!",
+      "finalDrawReply": "Next round, then!"
+    }
     },
     "priceCrossover": {
       "seo": {

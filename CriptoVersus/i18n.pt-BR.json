@@ -689,7 +689,23 @@
     "chart": "Evolução normalizada dos preços",
     "opening": "Abertura",
     "closing": "Fechamento",
-    "disclaimer": "Dados históricos de mercado. Isto não é recomendação financeira."
+    "disclaimer": "Dados históricos de mercado. Isto não é recomendação financeira.",
+    "capture": {
+      "roundOf": "Rodada {0} de {1}",
+      "finalScore": "Placar final",
+      "scoreFinalLabel": "Resultado final",
+      "winnerTag": "Venceu",
+      "bubble1": "Hoje eu levo essa.",
+      "bubble2": "Seu candle tá fraco.",
+      "bubble3": "Ainda dá virada.",
+      "bubble4": "Segura essa!",
+      "bubble5": "Eu fecho na alta.",
+      "bubble6": "Tá sentindo a pressão?",
+      "finalWinner": "Eu avisei!",
+      "finalLoser": "Quero revanche!",
+      "finalDraw": "Empatamos!",
+      "finalDrawReply": "No próximo round!"
+    }
     },
     "priceCrossover": {
       "seo": {

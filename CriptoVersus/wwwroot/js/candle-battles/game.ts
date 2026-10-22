@@ -5,7 +5,7 @@ import { AudioManager } from './audio.js';
 import { DialogueClock, dialogueLines, finalLines, Line } from './dialogue.js';
 
 export interface Feed { matchId: number; leftSymbol: string; rightSymbol: string; left: Candle | null; right: Candle | null; rounds: Round[]; status: string; finished: boolean; matchStartTime?: number | null; matchEndTime?: number | null; expectedRounds?: number; serverTime?: number | null; }
-export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; }
+export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; socialCapture?: boolean; }
 const displaySymbol = (symbol: string): string => symbol.replace(/USDT$/i, '');
 export async function create(host: HTMLElement, options: Options): Promise<GameEngine> {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -58,6 +58,7 @@ export class GameEngine {
     private mode: 'live' | 'demo' | 'replay';
     private feed?: Feed;
     private paused = false;
+    private captureFrozen = false;
     private started = false;
     private reduced = false;
     private speed = 1;
@@ -261,6 +262,7 @@ export class GameEngine {
         if (!this.paused) this.updateClocks();
         this.updateDashboard(true);
         if (!this.paused && feed.finished && this.mode==='live' && !this.active && this.clock.count===0) this.finish();
+        this.maybeFreezeForCapture();
     }
     private reconcile(): void {
         if (!this.terminal) this.clearDialogue();
@@ -406,6 +408,7 @@ export class GameEngine {
         }
         if(this.mode==='replay' && !this.active && this.replayElapsed>=this.matchLimit() && this.replayIndex>=this.replayHistory.length) this.finish();
         if(this.mode==='live' && this.feed?.finished && !this.active && this.clock.count===0) this.finish();
+        this.maybeFreezeForCapture();
     }
     private matchLimit(): number {
         const start=this.feed?.matchStartTime, end=this.feed?.matchEndTime;
@@ -464,6 +467,7 @@ export class GameEngine {
         this.updateDashboard(true);
         this.host.dataset.finished='true';
         this.host.dispatchEvent(new CustomEvent('candle-battles-finished'));
+        this.maybeFreezeForCapture();
     }
     private begin(r:Readonly<Round>): void {
         this.clearDialogue();
@@ -803,6 +807,29 @@ export class GameEngine {
         const top=Math.max(hudBottom,Math.min(this.host.clientHeight-height-20,y-height-tailReach));
         bubble.style.left=left+'px'; bubble.style.top=top+'px';
         bubble.style.setProperty('--tail-x',Math.max(18,Math.min(width-18,x-left))+'px');
+    }
+    // Social capture freezes one poster frame: the settled victory/defeat pose
+    // when the battle is over, or the home stance once the replay caught up.
+    private maybeFreezeForCapture(): void {
+        if(!this.options.socialCapture || this.captureFrozen || !this.feed || this.catchUpReplay) return;
+        if(!this.terminal && this.mode!=='live') return;
+        this.captureFrozen=true;
+        this.paused=true;
+        this.audio.pause();
+        this.clearDialogue();
+        if(!this.terminal) {
+            this.active=undefined; this.combatElapsed=0;
+            this.left?.resetPresentation(); this.right?.resetPresentation();
+        }
+        this.left?.root.setPosition(330,this.shell?185:260);
+        this.right?.root.setPosition(950,this.shell?185:260);
+        this.left?.freezePose(); this.right?.freezePose();
+        this.left?.update(this.time,0); this.right?.update(this.time,0);
+        this.host.dataset.paused='true';
+        this.host.dataset.captureFrame='frozen';
+        this.updateClocks();
+        this.updateDashboard(true);
+        this.host.dispatchEvent(new CustomEvent('candle-battles-capture-frozen'));
     }
     dispose():void {
         if(this.disposed)return; this.disposed=true;

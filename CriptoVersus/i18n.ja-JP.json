@@ -429,7 +429,23 @@
     "chart": "正規化した価格推移",
     "opening": "始値",
     "closing": "終値",
-    "disclaimer": "過去の市場データです。投資助言ではありません。"
+    "disclaimer": "過去の市場データです。投資助言ではありません。",
+    "capture": {
+      "roundOf": "ラウンド {0}/{1}",
+      "finalScore": "最終スコア",
+      "scoreFinalLabel": "最終結果",
+      "winnerTag": "勝利",
+      "bubble1": "今日のは俺の勝ちだ。",
+      "bubble2": "そのキャンドルは弱いぞ。",
+      "bubble3": "まだ逆転できる。",
+      "bubble4": "くらえ！",
+      "bubble5": "俺は高値で決済する。",
+      "bubble6": "圧力を感じるか？",
+      "finalWinner": "言ったろ！",
+      "finalLoser": "再戦だ！",
+      "finalDraw": "引き分けだ！",
+      "finalDrawReply": "次のラウンドで決着！"
+    }
     },
     "priceCrossover": {
       "seo": {

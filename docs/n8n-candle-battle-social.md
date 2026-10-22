@@ -145,6 +145,42 @@ conteúdo antes de publicar. A página prerenderiza título, descrição, Open
 Graph, Twitter Card e URL canônica. Não configure `og:image` enquanto não
 houver imagem pública persistida e verificável.
 
+### Captura social compacta (Binance Square)
+
+Para imagens de postagem social use o modo compacto em vez da página inteira:
+
+- URL de captura: `publicUrl` + `?mode=socialCompact` (a cultura continua vindo
+  do caminho, ex.: `/pt/social/candle-battle/{matchId}?mode=socialCompact`).
+- Seletor de captura: `#candle-battle-social-capture[data-social-ready="true"]`.
+- Capture **somente esse elemento** (screenshot do elemento, `fullPage: false`);
+  a página completa não entra na imagem.
+- Viewport sugerido: **1200x900**; o bloco renderiza com largura fixa de 1200px
+  e altura compacta (~525px, proporção horizontal de banner).
+
+O bloco contém apenas cabeçalho compacto (logo CriptoVersus, selo Candle
+Battle, pares, status e linha de rodada/placar), a arena com os personagens,
+os balões de fala fixos (`data-cb-capture-bubble`) e o placar simplificado, e um
+rodapé discreto. Não há gráfico de evolução, cards de duração, contagem de
+candles, painel de confrontos nem controles de replay na imagem.
+
+Contrato de prontidão do modo compacto:
+
+| Atributo em `#candle-battle-social-capture` | Significado |
+|---|---|
+| `data-social-ready="true"` | Fontes, imagens e quadro congelado prontos; pode capturar. |
+| `data-capture-frame="frozen"` | Cena congelada em um quadro de pôster. |
+| `data-replay-ready="true"` | Quadro pretendido atingido (vitória/derrota em partida finalizada; cena parada em partida em andamento). |
+| `data-replay-ready="false"` | Captura degradada (renderer ausente/falho ou fallback de timeout); verifique a imagem antes de publicar. |
+| `data-match-status` | `finished`, `in_progress` ou `unknown`. |
+| `data-replay-failure` | Motivo da falha do renderer, quando aplicável. |
+
+Em partida em andamento os balões fixos aparecem sempre na imagem, sem depender
+do timing da animação. Em partida finalizada a arena congela no quadro de
+vitória/derrota e os balões trazem as frases de encerramento. Se o motor não
+congelar em até 40 segundos, a página congela a cena pelo controle de pausa e
+marca `data-replay-ready="false"`. O restante do fluxo de reserva, confirmação e
+publicação permanece o mesmo da seção anterior.
+
 Não há identificador de partida de produção verificado neste repositório.
 Obtenha uma URL existente por `selectedMatchId` e `publicUrl` da API antes de
 adicioná-la ao workflow. O identificador 41 dos testes é somente uma fixture

@@ -1,7 +1,7 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261021a';
-import { CandleRenderer } from './renderer.js?v=20261021a';
-import { AudioManager } from './audio.js?v=20261021a';
-import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261021a';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261022a';
+import { CandleRenderer } from './renderer.js?v=20261022a';
+import { AudioManager } from './audio.js?v=20261022a';
+import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261022a';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -38,6 +38,7 @@ export class GameEngine {
         this.history = [];
         this.replayHistory = [];
         this.paused = false;
+        this.captureFrozen = false;
         this.started = false;
         this.reduced = false;
         this.speed = 1;
@@ -307,6 +308,7 @@ export class GameEngine {
         this.updateDashboard(true);
         if (!this.paused && feed.finished && this.mode === 'live' && !this.active && this.clock.count === 0)
             this.finish();
+        this.maybeFreezeForCapture();
     }
     reconcile() {
         if (!this.terminal)
@@ -577,6 +579,7 @@ export class GameEngine {
             this.finish();
         if (this.mode === 'live' && this.feed?.finished && !this.active && this.clock.count === 0)
             this.finish();
+        this.maybeFreezeForCapture();
     }
     matchLimit() {
         const start = this.feed?.matchStartTime, end = this.feed?.matchEndTime;
@@ -642,6 +645,7 @@ export class GameEngine {
         this.updateDashboard(true);
         this.host.dataset.finished = 'true';
         this.host.dispatchEvent(new CustomEvent('candle-battles-finished'));
+        this.maybeFreezeForCapture();
     }
     begin(r) {
         this.clearDialogue();
@@ -1105,6 +1109,35 @@ export class GameEngine {
         bubble.style.left = left + 'px';
         bubble.style.top = top + 'px';
         bubble.style.setProperty('--tail-x', Math.max(18, Math.min(width - 18, x - left)) + 'px');
+    }
+    // Social capture freezes one poster frame: the settled victory/defeat pose
+    // when the battle is over, or the home stance once the replay caught up.
+    maybeFreezeForCapture() {
+        if (!this.options.socialCapture || this.captureFrozen || !this.feed || this.catchUpReplay)
+            return;
+        if (!this.terminal && this.mode !== 'live')
+            return;
+        this.captureFrozen = true;
+        this.paused = true;
+        this.audio.pause();
+        this.clearDialogue();
+        if (!this.terminal) {
+            this.active = undefined;
+            this.combatElapsed = 0;
+            this.left?.resetPresentation();
+            this.right?.resetPresentation();
+        }
+        this.left?.root.setPosition(330, this.shell ? 185 : 260);
+        this.right?.root.setPosition(950, this.shell ? 185 : 260);
+        this.left?.freezePose();
+        this.right?.freezePose();
+        this.left?.update(this.time, 0);
+        this.right?.update(this.time, 0);
+        this.host.dataset.paused = 'true';
+        this.host.dataset.captureFrame = 'frozen';
+        this.updateClocks();
+        this.updateDashboard(true);
+        this.host.dispatchEvent(new CustomEvent('candle-battles-capture-frozen'));
     }
     dispose() {
         if (this.disposed)

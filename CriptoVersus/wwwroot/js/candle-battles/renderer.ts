@@ -142,6 +142,13 @@ export class CandleRenderer {
         if (reduced) this.sprite.anims.pause();
         else this.sprite.anims.resume();
     }
+    /** Hold the last illustrated frame so social captures stay still. */
+    freezePose(): void {
+        this.frozen = true;
+        this.sprite.anims.stop();
+        const frames = this.animation === 'idle' ? 1 : ACTION_FRAME_COUNTS[this.animation as Exclude<FighterAnimation, 'idle'>];
+        this.sprite.setFrame(fighterFrame(this.side, 'neutral', this.animation, frames));
+    }
     get geometry(): Geometry | undefined { return this.visibleGeometry && { ...this.visibleGeometry }; }
     get financialSnapshot(): Candle | undefined { return this.last && { ...this.last }; }
     get faceSize(): { width: number; height: number } { return { width: this.sprite.width, height: this.sprite.height }; }
