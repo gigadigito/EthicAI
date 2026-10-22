@@ -67,7 +67,83 @@ public sealed class CandleBattleSocialTests
         SeedMatch(db, 44, "AAVEUSDT", "LINKUSDT", skipSnapshots: true);
         var absent = await service.GetByMatchIdAsync(44, "pt-BR", true, default);
         Assert.False(absent!.ReplayAvailable);
+        Assert.Equal("no_persisted_rounds", absent.ReplayUnavailableReason);
         Assert.Empty(absent.Rounds);
+    }
+
+    [Fact]
+    public async Task OngoingPartialTie_ReplaysPersistedRoundsWithoutFinalWinner()
+    {
+        using var db = CreateDbContext();
+        SeedBattle(db, 50, "AVAUSDT", "PUMPUSDT", MatchStatus.Ongoing, rounds: 14,
+            pattern: i => i % 2 == 0 ? "left" : "right");
+
+        var result = await CreateService(db).GetByMatchIdAsync(50, "pt-BR", true, default);
+
+        Assert.NotNull(result);
+        Assert.True(result.ReplayAvailable);
+        Assert.Null(result.ReplayUnavailableReason);
+        Assert.Equal(14, result.ConfrontationCount);
+        Assert.Equal(14, result.Rounds.Count);
+        Assert.Equal(7, result.ScoreA);
+        Assert.Equal(7, result.ScoreB);
+        Assert.Null(result.WinnerSymbol);
+        Assert.NotNull(result.DurationMinutes);
+        Assert.True(result.DurationMinutes >= 0);
+        Assert.False(result.CanPost);
+        Assert.Equal("match_not_completed", result.SkipReason);
+    }
+
+    [Fact]
+    public async Task CompletedBattleMissingFirstScheduledRound_RemainsReplayableButIneligible()
+    {
+        using var db = CreateDbContext();
+        SeedBattle(db, 51, "AVAUSDT", "PUMPUSDT");
+        var first = db.Set<CandleBattlesRound>().Where(x => x.MatchId == 51)
+            .OrderBy(x => x.OpenTimeUtc).First();
+        db.Set<CandleBattlesRound>().Remove(first);
+        await db.SaveChangesAsync();
+
+        var result = await CreateService(db).GetByMatchIdAsync(51, "pt-BR", true, default);
+
+        Assert.NotNull(result);
+        Assert.True(result.ReplayAvailable);
+        Assert.Null(result.ReplayUnavailableReason);
+        Assert.Equal(17, result.ConfrontationCount);
+        Assert.Equal(17, result.Rounds.Count);
+        Assert.False(result.CanPost);
+        Assert.Equal("incomplete_battle_data", result.SkipReason);
+        Assert.Equal(result.ScoreA > result.ScoreB ? "AVAUSDT" : result.ScoreB > result.ScoreA ? "PUMPUSDT" : null,
+            result.WinnerSymbol);
+    }
+
+    [Fact]
+    public async Task MalformedPersistedRound_ReportsTransformationFailureWithoutHidingPersistedCount()
+    {
+        using var db = CreateDbContext();
+        var start = DateTime.UtcNow.AddMinutes(-10);
+        start = new DateTime(start.Year, start.Month, start.Day, start.Hour, start.Minute / 5 * 5, 0, DateTimeKind.Utc);
+        SeedMatch(db, 52, "AVAUSDT", "PUMPUSDT", MatchStatus.Ongoing,
+            startTimeUtc: start, endTimeUtc: null, skipSnapshots: true);
+        db.Set<CandleBattlesRound>().Add(new CandleBattlesRound
+        {
+            MatchId = 52,
+            OpenTimeUtc = start,
+            LeftCandleJson = "{invalid",
+            RightCandleJson = "{invalid",
+            Winner = "draw",
+            RuleVersion = CandleBattlesResolver.Version,
+            ConfirmedAtUtc = start.AddMinutes(5)
+        });
+        await db.SaveChangesAsync();
+
+        var result = await CreateService(db).GetByMatchIdAsync(52, "pt-BR", true, default);
+
+        Assert.NotNull(result);
+        Assert.Equal(1, result.ConfrontationCount);
+        Assert.Empty(result.Rounds);
+        Assert.False(result.ReplayAvailable);
+        Assert.Equal("no_replayable_rounds", result.ReplayUnavailableReason);
     }
 
     [Fact]
@@ -201,7 +277,8 @@ public sealed class CandleBattleSocialTests
     }
 
     private static CandleBattleSocialService CreateService(EthicAIDbContext db)
-        => new(db, CreatePublication(db), Options.Create(new CandleBattleSocialOptions()), CreateConfiguration());
+        => new(db, CreatePublication(db), Options.Create(new CandleBattleSocialOptions()), CreateConfiguration(),
+            NullLogger<CandleBattleSocialService>.Instance);
 
     private static CandleBattlePublicationService CreatePublication(EthicAIDbContext db)
         => new(db, Options.Create(new CandleBattleSocialOptions()));

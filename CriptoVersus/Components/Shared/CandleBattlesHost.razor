@@ -5,6 +5,7 @@
 @inject LocalizationService L
 @inject IJSRuntime JS
 @inject IConfiguration Config
+@inject ILogger<CandleBattlesHost> Logger
 @implements IAsyncDisposable
 
 <link rel="stylesheet" href="/css/candle-battles-dialogue.css?v=20261016e" />
@@ -67,6 +68,7 @@
 @code {
     [Parameter] public int MatchId { get; set; }
     [Parameter] public string Culture { get; set; } = "en";
+    [Parameter] public EventCallback<string> OnFailure { get; set; }
     private ElementReference _canvas;
     private IJSObjectReference? _module;
     private IJSObjectReference? _engine;
@@ -80,6 +82,7 @@
     private bool _failed;
     private bool _baseline;
     private bool _finished;
+    private string? _lastFailure;
     private string _status = string.Empty;
     private string _renderedCulture = string.Empty;
     private static readonly string[] LabelKeys = ["arcade", "forming", "waiting", "finished", "matchTime", "nextBattle", "round", "fight", "wins", "matchFinished", "finalScore", "incomplete", "recent", "lines", "page", "territory", "draw", "strength", "nextStrength", "crushing", "combo", "domination", "comeback", "candleClose", "awaitingClose", "viewAll", "information", "candleState", "status", "champion", "watchReplay", "volume", "change5m", "currentBattle"];
@@ -102,13 +105,15 @@
     }
     private async Task InitializeAsync()
     {
+        var stage = "module_import";
         try
         {
             _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261021a.js");
+            stage = "renderer_initialization";
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
                 new { mode = MatchId == 0 ? "demo" : "live", culture = Culture, labels = LabelKeys.ToDictionary(k => k, T), battleDurationMs = Math.Clamp(Config.GetValue("CandleBattles:AnimationDurationMs", 3800), 3000, 5000), crushingDifference = Math.Clamp(Config.GetValue("CandleBattles:CrushingDifference", 25), 0, 100) });
             if (_disposed) return;
-            _failed = false;
+            _failed = false; _lastFailure = null;
             if (MatchId > 0)
             {
                 await RefreshAsync();
@@ -122,8 +127,13 @@
                 }
             }
         }
-        catch (JSDisconnectedException) { }
-        catch (Exception) { _failed = true; _status = T("error"); }
+        catch (JSDisconnectedException ex) { Logger.LogDebug(ex, "Candle Battles renderer disconnected. MatchId={MatchId}, Stage={Stage}", MatchId, stage); }
+        catch (Exception ex)
+        {
+            var failure = stage == "renderer_initialization" && ex.Message.Contains("asset", StringComparison.OrdinalIgnoreCase)
+                ? "sprite_load" : stage;
+            await ReportFailureAsync(failure, ex);
+        }
         if (!_disposed) await InvokeAsync(StateHasChanged);
     }
     private void OnDashboardChanged(string? payload) { if (!_disposed) _ = InvokeAsync(RefreshAsync); }
@@ -138,6 +148,7 @@
         if (_disposed || _engine is null) return;
         try { if (!await _refresh.WaitAsync(0, _lifetime.Token)) return; }
         catch (OperationCanceledException) { return; }
+        var stage = "api_unavailable";
         try
         {
             CandleBattlesFeedDto feed;
@@ -151,19 +162,28 @@
                 _cursor = feed.NextCursor;
             } while (feed.HasMore && !_disposed);
             if (_disposed) return;
+            stage = "replay_execution";
             await _engine.InvokeVoidAsync("receive", feed with { Rounds = _rounds.ToArray() }, !_baseline || _failed);
-            _baseline = true; _failed = false;
+            _baseline = true; _failed = false; _lastFailure = null;
             _finished = feed.Finished;
             if (_finished) Hub.DashboardChanged -= OnDashboardChanged;
             _status = feed.Finished ? T("finished") : feed.Status == "live" ? T("forming") : T("waiting");
         }
         catch (OperationCanceledException) { }
-        catch (JSDisconnectedException) { }
-        catch (Exception) { _failed = true; _status = T("error"); }
+        catch (JSDisconnectedException ex) { Logger.LogDebug(ex, "Candle Battles renderer disconnected. MatchId={MatchId}, Stage={Stage}", MatchId, stage); }
+        catch (Exception ex) { await ReportFailureAsync(stage, ex); }
         finally { _refresh.Release(); }
         if (!_disposed) await InvokeAsync(StateHasChanged);
     }
     private Task Retry() => _engine is null ? (_initialization = InitializeAsync()) : RefreshAsync();
+    private async Task ReportFailureAsync(string failure, Exception ex)
+    {
+        _failed = true; _status = T("error");
+        Logger.LogError(ex, "Candle Battles failed. MatchId={MatchId}, Failure={Failure}", MatchId, failure);
+        if (_lastFailure == failure) return;
+        _lastFailure = failure;
+        if (OnFailure.HasDelegate) await OnFailure.InvokeAsync(failure);
+    }
     public async ValueTask DisposeAsync()
     {
         _disposed = true; Hub.DashboardChanged -= OnDashboardChanged; _lifetime.Cancel();

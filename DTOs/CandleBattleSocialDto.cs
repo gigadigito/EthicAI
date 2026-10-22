@@ -39,6 +39,7 @@ public sealed class CandleBattleSocialResponse
     public IReadOnlyList<string> SelectionReasons { get; init; } = [];
     public IReadOnlyList<CandleBattlesRoundDto> Rounds { get; init; } = [];
     public bool ReplayAvailable { get; init; }
+    public string? ReplayUnavailableReason { get; init; }
     public bool CanPost { get; init; }
     public string? SkipReason { get; init; }
     public bool AlreadyPublished { get; init; }

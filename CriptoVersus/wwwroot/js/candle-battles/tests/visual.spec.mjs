@@ -177,6 +177,21 @@ test('LIVE reconciles immutable history and heartbeat never creates points',asyn
  await expect(page).toHaveScreenshot('persisted-history-arena.png');
 });
 
+test('ongoing partial history autoplays a tied score without a final celebration',async({page})=>{
+ await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine);
+ const partial=await page.evaluate(async()=>{
+  const {demoRound}=await import('/js/dist/candle-battles/model.js');
+  const rounds=Array.from({length:14},(_,i)=>{const source=demoRound(i);const winner=i%2===0?'left':'right';return {...source,matchId:90,id:`90:5m:${source.left.openTime}`,winner};});
+  window.engine.receive({matchId:90,leftSymbol:'AVAUSDT',rightSymbol:'PUMPUSDT',left:null,right:null,rounds,status:'live',finished:false,
+   matchStartTime:rounds[0].left.openTime,expectedRounds:18,serverTime:rounds.at(-1).left.closeTime+1000},true);
+  for(let i=0;i<500&&window.engine.mode!=='live';i++)window.engine.update(100);
+  return {mode:window.engine.mode,terminal:window.engine.terminal,score:window.engine.snapshot().score,
+   finished:document.querySelector('#arena').dataset.finished,leftFinal:window.engine.left.finalVisualState,
+   rightFinal:window.engine.right.finalVisualState,canvas:document.querySelectorAll('#arena canvas').length};
+ });
+ expect(partial).toEqual({mode:'live',terminal:false,score:{left:7,right:7},finished:undefined,leftFinal:'none',rightFinal:'none',canvas:1});
+});
+
 test('historical match autoplays, observes pause and 2x, then freezes after eighteen rounds',async({page})=>{
  test.setTimeout(30000);
  await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine);
@@ -225,6 +240,8 @@ test('a server-finished partial market window displays its confirmed final score
  await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine);
  const final=await page.evaluate(async()=>{
   const {demoRound,PERIOD}=await import('/js/dist/candle-battles/model.js');
+  const {watchReadiness}=await import('/js/candleBattleSocial.mjs');
+  await watchReadiness('candle-battle-social-card',true,true);
   const rounds=Array.from({length:17},(_,i)=>({...demoRound(i),matchId:93,id:`93:5m:${demoRound(i).left.openTime}`}));
   window.engine.receive({matchId:93,leftSymbol:'AVAXUSDT',rightSymbol:'OPUSDT',left:null,right:null,rounds,status:'finished',finished:true,
    matchStartTime:rounds[0].left.openTime,matchEndTime:rounds[0].left.openTime+18*PERIOD,expectedRounds:18},true);
@@ -233,7 +250,8 @@ test('a server-finished partial market window displays its confirmed final score
   return {terminal:window.engine.terminal,result:window.engine.hud.get('result').text,status:window.engine.hud.get('status').text,
    round:window.engine.hud.get('round').text,score:window.engine.snapshot().score,leftName:window.engine.hud.get('leftName').text,
    rightName:window.engine.hud.get('rightName').text,leftFinal:window.engine.left.finalVisualState,rightFinal:window.engine.right.finalVisualState,
-   bubbleVisible:!window.engine.bubble.hidden,finalLine:window.engine.currentLine};
+   bubbleVisible:!window.engine.bubble.hidden,finalLine:window.engine.currentLine,
+   canvas:document.querySelectorAll('#arena canvas').length,fighters:[window.engine.left.root.visible,window.engine.right.root.visible]};
  });
  expect(final.terminal).toBe(true);expect(final.result).toContain('FINAL SCORE');expect(final.result).not.toContain('INCOMPLETE');
  expect(final.round).toContain('17 / 17');expect(final.score).toEqual({left:9,right:7});
@@ -241,6 +259,9 @@ test('a server-finished partial market window displays its confirmed final score
  expect(final.leftName).toBe('AVAX');expect(final.rightName).toBe('OP');
  expect(final.leftFinal).toBe('winner');expect(final.rightFinal).toBe('loser');
  expect(final.bubbleVisible).toBe(true);expect(final.finalLine.text.length).toBeGreaterThan(0);
+ expect(final.canvas).toBe(1);expect(final.fighters).toEqual([true,true]);
+ await expect.poll(()=>page.evaluate(()=>document.querySelector('#candle-battle-social-card').dataset.socialReady)).toBe('true');
+ expect(await page.evaluate(()=>document.querySelector('#candle-battle-social-card').dataset.replayReady)).toBe('true');
  const dialogue=await page.evaluate(()=>{const e=window.engine;e.command('pause');const line=e.currentLine;e.update(1000);const held=e.currentLine===line;
   e.command('pause');for(let i=0;i<3;i++)e.update(100);return {held,reply:e.currentLine};});
  expect(dialogue.held).toBe(true);expect(dialogue.reply.side).not.toBe(final.finalLine.side);
@@ -249,6 +270,16 @@ test('a server-finished partial market window displays its confirmed final score
   return {left:fighter('left'),right:fighter('right')};});
  expect(replay.left).toEqual({state:'none',animation:'candle-left-neutral-idle',alpha:1,rotation:0,x:330});
  expect(replay.right).toEqual({state:'none',animation:'candle-right-neutral-idle',alpha:1,rotation:0,x:950});
+});
+
+test('renderer initialization reports the exact sprite asset that failed',async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.route('**/games/candle-battles/assets/modular.png*',route=>route.abort());
+ await page.goto('/js/candle-battles/tests/shell.html');
+ await expect.poll(()=>errors.find(message=>message.includes('Candle Battles asset failed to load'))??'',{timeout:8000})
+  .toContain('modular');
+ expect(errors.join('\n')).toContain('/games/candle-battles/assets/modular.png');
+ expect(await page.locator('#arena canvas').count()).toBe(0);
 });
 
 test('native controls unlock supplied audio, change volume and enter fullscreen',async({page})=>{

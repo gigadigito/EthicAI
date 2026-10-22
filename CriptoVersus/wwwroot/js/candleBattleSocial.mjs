@@ -23,6 +23,10 @@ export async function watchReadiness(id, replayAvailable, completed) {
       root.dataset.socialReady = 'true';
     }
   };
+  if (root.dataset.replayFailure) {
+    await ready();
+    return;
+  }
   const onFinished = () => { void ready(); };
   const onReady = () => {
     if (!completed || canvas?.dataset.finished === 'true') void ready();
@@ -38,6 +42,14 @@ export async function watchReadiness(id, replayAvailable, completed) {
     canvas?.removeEventListener('candle-battles-ready', onReady);
     canvas?.removeEventListener('candle-battles-finished', onFinished);
   });
+}
+
+export function reportFailure(id, reason) {
+  const root = document.getElementById(id);
+  if (!root) return;
+  root.dataset.replayFailure = reason || 'unknown';
+  root.dataset.replayReady = 'false';
+  root.dataset.socialReady = 'true';
 }
 
 export function disposeReadiness(id) {

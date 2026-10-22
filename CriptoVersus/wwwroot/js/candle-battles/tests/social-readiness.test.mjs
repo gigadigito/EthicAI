@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { watchReadiness, disposeReadiness } from '../../candleBattleSocial.mjs';
+import { watchReadiness, disposeReadiness, reportFailure } from '../../candleBattleSocial.mjs';
 
 function page() {
   const canvas = new EventTarget();
@@ -36,5 +36,16 @@ test('historical summary becomes capturable without replay', async () => {
   await new Promise(setImmediate);
   assert.equal(root.dataset.socialReady, 'true');
   assert.equal(root.dataset.replayReady, 'false');
+  disposeReadiness('social-test');
+});
+
+test('renderer failure makes the persisted fallback capturable with an observable reason', async () => {
+  const { root } = page();
+  await watchReadiness('social-test', true, true);
+  reportFailure('social-test', 'renderer_initialization');
+  await new Promise(setImmediate);
+  assert.equal(root.dataset.socialReady, 'true');
+  assert.equal(root.dataset.replayReady, 'false');
+  assert.equal(root.dataset.replayFailure, 'renderer_initialization');
   disposeReadiness('social-test');
 });

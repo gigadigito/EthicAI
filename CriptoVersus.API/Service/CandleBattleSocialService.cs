@@ -21,14 +21,17 @@ public sealed class CandleBattleSocialService : ICandleBattleSocialService
     private readonly ICandleBattlePublicationService _publication;
     private readonly CandleBattleSocialOptions _options;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<CandleBattleSocialService> _logger;
 
     public CandleBattleSocialService(EthicAIDbContext db, ICandleBattlePublicationService publication,
-        IOptions<CandleBattleSocialOptions> options, IConfiguration configuration)
+        IOptions<CandleBattleSocialOptions> options, IConfiguration configuration,
+        ILogger<CandleBattleSocialService> logger)
     {
         _db = db;
         _publication = publication;
         _options = options.Value;
         _configuration = configuration;
+        _logger = logger;
     }
 
     public async Task<CandleBattleSocialResponse?> GetByMatchIdAsync(int matchId, string language, bool includeRounds, CancellationToken ct)
@@ -72,40 +75,65 @@ public sealed class CandleBattleSocialService : ICandleBattleSocialService
             ? new DateTimeOffset(DateTime.SpecifyKind(match.EndTime.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds()
             : (long?)null;
         var rounds = new List<CandleBattlesRoundDto>(ordered.Length);
-        var valid = firstOpen.HasValue && !string.IsNullOrWhiteSpace(symbolA) && !string.IsNullOrWhiteSpace(symbolB);
+        var rejectedRounds = 0;
         foreach (var row in ordered)
         {
             CandleBattlesRoundDto round;
             try { round = CandleBattlesRoundProjection.ToDto(row); }
-            catch (JsonException) { valid = false; continue; }
-            var expectedOpen = firstOpen + rounds.Count * CandleBattlesResolver.PeriodMs;
-            valid &= round.Left.OpenTime == expectedOpen
-                && round.Right.OpenTime == expectedOpen
-                && (!endMs.HasValue || round.Left.CloseTime <= endMs.Value)
-                && round.Left.Confirmed && round.Right.Confirmed
-                && CandleBattlesResolver.IsValid(round.Left) && CandleBattlesResolver.IsValid(round.Right)
-                && string.Equals(round.Left.Symbol, symbolA, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(round.Right.Symbol, symbolB, StringComparison.OrdinalIgnoreCase)
-                && row.RuleVersion is CandleBattlesResolver.Version or CandleBattlesResolver.LegacyStrengthVersion
-                && (row.RuleVersion != CandleBattlesResolver.Version
-                    || row.Winner == CandleBattlesResolver.ResolveWinner(round.Left, round.Right, row.LeftStrength, row.RightStrength));
+            catch (JsonException ex)
+            {
+                rejectedRounds++;
+                _logger.LogWarning(ex,
+                    "Candle Battle replay round transformation failed. MatchId={MatchId}, OpenTimeUtc={OpenTimeUtc}",
+                    match.MatchId, row.OpenTimeUtc);
+                continue;
+            }
+            var rejection = ReplayRejection(round, row, symbolA, symbolB, endMs);
+            if (rejection is not null)
+            {
+                rejectedRounds++;
+                _logger.LogWarning(
+                    "Candle Battle replay round rejected. MatchId={MatchId}, OpenTimeUtc={OpenTimeUtc}, Reason={Reason}",
+                    match.MatchId, row.OpenTimeUtc, rejection);
+                continue;
+            }
             rounds.Add(round);
         }
-        var count = rounds.Count;
-        var complete = valid && count == CandleBattlesResolver.ExpectedRounds
+        var count = ordered.Length;
+        var replayAvailable = rounds.Count > 0;
+        var replayUnavailableReason = replayAvailable ? null
+            : count == 0 ? "no_persisted_rounds"
+            : rejectedRounds > 0 ? "no_replayable_rounds"
+            : "insufficient_historical_data";
+        if (!replayAvailable)
+            _logger.LogWarning(
+                "Candle Battle replay unavailable. MatchId={MatchId}, PersistedRounds={PersistedRounds}, RejectedRounds={RejectedRounds}, Reason={Reason}",
+                match.MatchId, count, rejectedRounds, replayUnavailableReason);
+
+        var publicationSequenceValid = firstOpen.HasValue
+            && !string.IsNullOrWhiteSpace(symbolA)
+            && !string.IsNullOrWhiteSpace(symbolB)
+            && rejectedRounds == 0
+            && rounds.Count == CandleBattlesResolver.ExpectedRounds
+            && rounds.Select((round, index) => round.Left.OpenTime == firstOpen.Value + index * CandleBattlesResolver.PeriodMs)
+                .All(x => x);
+        var complete = publicationSequenceValid
             && state is { Complete: true, Status: "finished" };
         var scoreA = rounds.Count(x => x.Winner == "left");
         var scoreB = rounds.Count(x => x.Winner == "right");
-        var winner = scoreA == scoreB ? null : scoreA > scoreB ? symbolA : symbolB;
-        var (interest, reasons) = valid ? Score(rounds, scoreA, scoreB) : (0, (IReadOnlyList<string>)[]);
+        var final = match.Status == MatchStatus.Completed && state is { Complete: true, Status: "finished" };
+        var winner = !final || scoreA == scoreB ? null : scoreA > scoreB ? symbolA : symbolB;
+        var (interest, reasons) = publicationSequenceValid ? Score(rounds, scoreA, scoreB) : (0, (IReadOnlyList<string>)[]);
         var (canPost, skipReason) = _options.Enabled
             ? Eligibility(match, state, publication, complete) : (false, "disabled");
         string? publicUrl = null;
         if (match.Status == MatchStatus.Completed && complete
             && PriceCrossoverSocialPublicUrl.TryBuildCandleBattle(ResolvePublicBaseUrl(),
                 match.MatchId, language, out var builtUrl)) publicUrl = builtUrl;
-        var duration = match.StartTime.HasValue && match.EndTime.HasValue
-            ? (int?)Math.Round((match.EndTime.Value - match.StartTime.Value).TotalMinutes, MidpointRounding.AwayFromZero)
+        var generatedAtUtc = DateTime.UtcNow;
+        var durationEnd = match.Status == MatchStatus.Completed ? match.EndTime : generatedAtUtc;
+        var duration = match.StartTime.HasValue && durationEnd.HasValue && durationEnd.Value >= match.StartTime.Value
+            ? (int?)Math.Round((durationEnd.Value - match.StartTime.Value).TotalMinutes, MidpointRounding.AwayFromZero)
             : null;
         return new CandleBattleSocialResponse
         {
@@ -121,13 +149,33 @@ public sealed class CandleBattleSocialService : ICandleBattleSocialService
             ScoreA = scoreA, ScoreB = scoreB, WinnerSymbol = winner,
             ConfrontationCount = count, ExpectedConfrontations = CandleBattlesResolver.ExpectedRounds,
             InterestScore = interest, SelectionReasons = reasons,
-            Rounds = includeRounds ? rounds : [], ReplayAvailable = count > 0 && valid,
+            Rounds = includeRounds ? rounds : [], ReplayAvailable = replayAvailable,
+            ReplayUnavailableReason = replayUnavailableReason,
             CanPost = canPost, SkipReason = skipReason,
             AlreadyPublished = publication?.Status == PriceCrossoverPublicationStatuses.Posted,
             Publication = publication,
             PublicUrl = publicUrl, PublicUrlAvailable = publicUrl is not null,
-            GeneratedAtUtc = DateTime.UtcNow
+            GeneratedAtUtc = generatedAtUtc
         };
+    }
+
+    private static string? ReplayRejection(CandleBattlesRoundDto round, CandleBattlesRound row,
+        string symbolA, string symbolB, long? endMs)
+    {
+        if (round.Left.OpenTime != round.Right.OpenTime) return "round_open_time_mismatch";
+        if (endMs.HasValue && round.Left.CloseTime > endMs.Value) return "round_after_match_end";
+        if (!round.Left.Confirmed || !round.Right.Confirmed) return "unconfirmed_candle";
+        if (!CandleBattlesResolver.IsValid(round.Left) || !CandleBattlesResolver.IsValid(round.Right))
+            return "invalid_candle";
+        if (!string.Equals(round.Left.Symbol, symbolA, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(round.Right.Symbol, symbolB, StringComparison.OrdinalIgnoreCase))
+            return "symbol_mismatch";
+        if (row.RuleVersion is not (CandleBattlesResolver.Version or CandleBattlesResolver.LegacyStrengthVersion))
+            return "unsupported_rule_version";
+        if (row.RuleVersion == CandleBattlesResolver.Version
+            && row.Winner != CandleBattlesResolver.ResolveWinner(round.Left, round.Right, row.LeftStrength, row.RightStrength))
+            return "winner_mismatch";
+        return null;
     }
 
     public async Task<CandleBattleHighlightResponse> GetHighlightAsync(int lookbackHours, string language,
