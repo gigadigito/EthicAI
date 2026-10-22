@@ -12,6 +12,11 @@
 .cbs-capture__stage{display:grid;grid-template-rows:450px 65px;min-height:0}
 .cbs-capture__arena{position:relative;overflow:hidden;background:#101722}
 .cbs-capture__bubbles{position:absolute;inset:0;z-index:10;pointer-events:none}
+.cbs-capture__rounds{position:absolute;z-index:11;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:5px;pointer-events:none}
+.cbs-capture__rounds i{width:16px;height:16px;border:1px solid #2b4b5f;border-radius:3px;background:#0c1c2a}
+.cbs-capture__rounds i.is-left{border-color:#b8ff00;background:#b8ff00;box-shadow:0 0 8px rgba(184,255,0,.55)}
+.cbs-capture__rounds i.is-right{border-color:#31d3d0;background:#31d3d0;box-shadow:0 0 8px rgba(49,211,208,.55)}
+.cbs-capture__rounds i.is-draw{border-color:#9fb6c6;background:#3a5265}
 .cbs-capture__bubble{position:absolute;max-width:min(260px,22%)}
 .cbs-capture__bubble--left{left:1%;top:8px;transform:rotate(-1.2deg)}
 .cbs-capture__bubble--right{right:1%;top:8px;left:auto;transform:rotate(1.2deg)}

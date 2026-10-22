@@ -304,6 +304,10 @@ export class GameEngine {
         this.releaseUnusedLogoTextures();
         this.hud.get('leftName')?.setText(displaySymbol(feed.leftSymbol));
         this.hud.get('rightName')?.setText(displaySymbol(feed.rightSymbol));
+        if (this.options.socialCapture) {
+            this.mountCapturePoster();
+            return;
+        }
         this.updateMarket();
         if (!this.paused)
             this.updateClocks();
@@ -311,6 +315,54 @@ export class GameEngine {
         if (!this.paused && feed.finished && this.mode === 'live' && !this.active && this.clock.count === 0)
             this.finish();
         this.maybeFreezeForCapture();
+    }
+    // Social capture mounts one poster frame directly: the persisted history is
+    // applied without cinematics and the fighters hold their final pose, so the
+    // capture never runs the replay timeline.
+    mountCapturePoster() {
+        this.clearDialogue();
+        this.autoplayInitialized = true;
+        this.mode = 'live';
+        this.started = true;
+        this.catchUpReplay = false;
+        this.active = undefined;
+        this.combatElapsed = 0;
+        this.clock.clear();
+        this.territory.reset();
+        this.state.reset();
+        this.completedRounds = 0;
+        this.updateMarket();
+        for (const r of this.history) {
+            this.territory.apply(r);
+            this.clock.enqueue(r);
+        }
+        while (this.clock.next()) { /* deduplication baseline only, no cinematics */ }
+        this.completedRounds = this.history.length;
+        this.left?.root.setPosition(330, this.shell ? 185 : 260);
+        this.right?.root.setPosition(950, this.shell ? 185 : 260);
+        this.left?.resetPresentation();
+        this.right?.resetPresentation();
+        const last = this.history[this.history.length - 1];
+        if (last) {
+            const range = sharedRange([last.left, last.right]);
+            this.left?.setCandle(last.left, range, true);
+            this.right?.setCandle(last.right, range, true);
+        }
+        // Asset logos load asynchronously: hold the poster until the textures
+        // settle so the captured frame never shows a placeholder.
+        const settle = () => {
+            if (this.disposed || this.captureFrozen)
+                return;
+            if (this.loadingLogos.size > 0) {
+                this.scene?.load.once('complete', settle);
+                return;
+            }
+            if (this.feed?.finished)
+                this.finish();
+            else
+                this.freezeForCapture();
+        };
+        settle();
     }
     reconcile() {
         if (!this.terminal)
@@ -1129,6 +1181,8 @@ export class GameEngine {
     maybeFreezeForCapture() {
         if (!this.options.socialCapture || this.captureFrozen || !this.feed || this.catchUpReplay)
             return;
+        if (this.loadingLogos.size > 0)
+            return;
         if (!this.terminal && this.mode !== 'live')
             return;
         this.freezeForCapture();
@@ -1136,6 +1190,10 @@ export class GameEngine {
     freezeForCapture() {
         if (this.captureFrozen || this.disposed)
             return;
+        if (this.feed?.finished && !this.terminal) {
+            this.finish();
+            return;
+        }
         this.captureFrozen = true;
         this.paused = true;
         this.audio.pause();

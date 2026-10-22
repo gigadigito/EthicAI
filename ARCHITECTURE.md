@@ -607,12 +607,25 @@ a fixed 1200x675 (16:9) poster — `data-poster-size="1200x675"` — built from
 three regions (80px header, 515px arena stage, 80px footer) and is the only
 screenshot target for Binance Square-style images. The header carries the brand,
 the Candle Battle badge, the pairs and the match status; the arena stage is the
-Phaser arena plus two pinned comic speech bubbles (`data-cb-capture-bubble`) and
-one score band (`RUNE 9 x 8 STRK`, winner tag when finished); the footer carries
-the single state line (`Placar atual · Rodada 8 de 18` or
+Phaser arena plus two pinned comic speech bubbles (`data-cb-capture-bubble`),
+one compact strip of round tiles (`data-cb-capture-rounds`, one tile per
+`ExpectedConfrontations`: neon in asset A's colour when A won the round, neon in
+B's colour when B won, grey for a draw, dark for a confrontation that has not
+happened yet) and one score band (`RUNE 9 x 8 STRK`, winner tag when finished);
+the footer carries the single state line (`Placar atual · Rodada 8 de 18` or
 `Resultado final · RUNE venceu!`) plus the discreet brand and disclaimer. It
-reuses the same `CandleBattleSocialResponse` data; only the presentation differs.
-The full page keeps rendering unchanged without the query parameter.
+reuses the same `CandleBattleSocialResponse` data (including `Rounds` for the
+tiles); only the presentation differs. The full page keeps rendering unchanged
+without the query parameter.
+
+The capture never plays the replay timeline. `GameEngine.mountCapturePoster`
+applies the persisted history without cinematics (territory and score from
+`TerritoryManager.apply`), poses the fighters on the last confirmed candles and
+freezes immediately: `finish()` for completed battles (victory/defeat pose) or
+the home stance for ongoing ones, waiting only for the async asset-logo textures
+before freezing. `replayElapsed`/`replayIndex` stay at zero and no
+intermediate state is ever shown; readiness fires roughly one second after the
+arena mounts.
 
 `CandleBattlesHost` has two render paths: the full operational game (toolbar,
 audio, dashboard, technical panels, replay controls) and an arena-only path used
@@ -621,11 +634,9 @@ when `SocialCapture=true`, which renders just the arena canvas and a hidden
 arena-only path passes `socialCapture` and `shell` to the Phaser engine, which
 frames the poster (`frameCapturePoster`: camera zoom around the fighters, asset
 logos on the floor) and freezes one deterministic frame through
-`GameEngine.freezeForCapture` (victory/defeat pose after `finish()` for completed
-battles, home stance once the replay catches up to live), pausing the sprite
-montages via `CandleRenderer.freezePose` and emitting
-`candle-battles-capture-frozen`. Once frozen the engine ignores further feeds so
-the captured frame cannot move.
+`GameEngine.freezeForCapture`, pausing the sprite montages via
+`CandleRenderer.freezePose` and emitting `candle-battles-capture-frozen`. Once
+frozen the engine ignores further feeds so the captured frame cannot move.
 
 The capture readiness contract is
 `#candle-battle-social-capture[data-social-ready="true"]`, produced by

@@ -10,6 +10,7 @@
          data-social-ready="false"
          data-capture-frame="pending"
          data-poster-size="1200x675"
+         data-round-tiles="@RoundTiles.Count"
          data-match-status="@MatchStatusAttr"
          data-replay-available="@(_battle?.ReplayAvailable == true ? "true" : "false")">
     @if (_battle is null)
@@ -31,6 +32,12 @@
                 <div class="cbs-capture__bubbles" data-cb-capture-bubbles>
                     @Bubble(LeftBubbleText, "left", LeftBubbleKind)
                     @Bubble(RightBubbleText, "right", RightBubbleKind)
+                </div>
+                <div class="cbs-capture__rounds" data-cb-capture-rounds role="img" aria-label="@T("rounds")">
+                    @foreach (var tile in RoundTiles)
+                    {
+                        <i class="@tile"></i>
+                    }
                 </div>
             </div>
             <div class="cbs-capture__score">
@@ -72,6 +79,24 @@
         && string.Equals(_battle.WinnerSymbol, _battle.AssetB.Symbol, StringComparison.OrdinalIgnoreCase);
     private bool FinalDraw => IsFinal && _battle?.WinnerSymbol is null;
     private string MatchStatusAttr => _battle is null ? "unknown" : IsFinal ? "finished" : "in_progress";
+
+    // One compact tile per expected confrontation: neon for a decided round,
+    // dim grey for a draw, dark for a confrontation that has not happened yet.
+    private IReadOnlyList<string> RoundTiles
+    {
+        get
+        {
+            var expected = Math.Clamp(_battle?.ExpectedConfrontations ?? 18, 1, 40);
+            var tiles = new List<string>(expected);
+            for (var i = 0; i < expected; i++)
+            {
+                var winner = _battle is not null && i < _battle.Rounds.Count ? _battle.Rounds[i].Winner : null;
+                tiles.Add(winner == "left" ? "is-left" : winner == "right" ? "is-right"
+                    : winner is null ? "is-pending" : "is-draw");
+            }
+            return tiles;
+        }
+    }
 
     private string StateLine
     {

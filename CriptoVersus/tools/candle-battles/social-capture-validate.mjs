@@ -14,8 +14,9 @@ await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
 let failures = 0;
 
-async function validate(label, { matchId, finished, score, viewport }) {
+async function validate(label, { matchId, finished, score, tiles, viewport }) {
   const page = await browser.newPage({ viewport });
+  const startedAt = Date.now();
   const logoRequests = [];
   page.on('response', response => {
     if (response.url().includes('/futurebol/team-logo/')) logoRequests.push(response.status());
@@ -23,6 +24,7 @@ async function validate(label, { matchId, finished, score, viewport }) {
   await page.goto(`${base}/pt/social/candle-battle/${matchId}?mode=socialCompact`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#candle-battle-social-capture', { timeout: 30000 });
   await page.waitForFunction(() => document.querySelector('#candle-battle-social-capture')?.dataset.socialReady === 'true', null, { timeout: 60000 });
+  const readyMs = Date.now() - startedAt;
 
   const state = await page.evaluate(() => {
     const root = document.querySelector('#candle-battle-social-capture');
@@ -38,6 +40,7 @@ async function validate(label, { matchId, finished, score, viewport }) {
     const canvasRect = box(canvas ?? canvasHost);
     const scoreRect = box(document.querySelector('.cbs-capture__score'));
     const bubbles = [...root.querySelectorAll('[data-cb-capture-bubble]')].map(element => ({ text: element.textContent.trim(), rect: box(element) }));
+    const tileClasses = [...root.querySelectorAll('[data-cb-capture-rounds] i')].map(element => element.className);
     const overlap = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
     const overflow = [...root.querySelectorAll('*')]
       .map(element => ({ element, rect: element.getBoundingClientRect() }))
@@ -63,6 +66,13 @@ async function validate(label, { matchId, finished, score, viewport }) {
       },
       score: document.querySelector('.cbs-capture__points').textContent.replace(/\s+/g, ' ').trim(),
       stateLine: document.querySelector('.cbs-capture__state-line').textContent.trim(),
+      tiles: {
+        total: tileClasses.length,
+        left: tileClasses.filter(name => name === 'is-left').length,
+        right: tileClasses.filter(name => name === 'is-right').length,
+        draw: tileClasses.filter(name => name === 'is-draw').length,
+        pending: tileClasses.filter(name => name === 'is-pending').length
+      },
       matchStatus: root.dataset.matchStatus,
       captureFrame: root.dataset.captureFrame,
       arenaFrame: canvasHost.dataset.captureFrame,
@@ -82,9 +92,11 @@ async function validate(label, { matchId, finished, score, viewport }) {
     ['3. canvas dentro da arena', state.canvasInsideArena, String(state.canvasInsideArena)],
     ['5. balões HQ presentes', state.bubbles.count === 2 && state.bubbles.texts.every(text => text.length > 0) && state.bubbles.clearScore && state.bubbles.separate, state.bubbles.texts.join(' | ')],
     ['6. placar correto', state.score.replace(/\s/g, '').includes(score.replace(/\s/g, '')), state.score],
+    ['6b. quadradinhos das rodadas', state.tiles.total === 18 && state.tiles.left === tiles.left && state.tiles.right === tiles.right && state.tiles.pending === tiles.pending, JSON.stringify(state.tiles)],
     ['7. sem elementos cortados', state.overflow.length === 0, JSON.stringify(state.overflow)],
     ['8. logos carregados', logoRequests.length >= 2 && logoRequests.every(status => status === 200), logoRequests.join(',') || 'nenhum'],
     ['9. frame congelado', state.captureFrame === 'frozen' && state.arenaFrame === 'frozen', `${state.captureFrame}/${state.arenaFrame}`],
+    ['9b. prontidão rápida sem replay', readyMs < 8000, `${readyMs}ms`],
     ['10. screenshot 1200x675', size.width === 1200 && size.height === 675, `${size.width}x${size.height}`],
     [`status ${finished ? 'finalizada' : 'em andamento'}`, state.matchStatus === (finished ? 'finished' : 'in_progress') && state.replayReady === 'true', `${state.matchStatus}/${state.replayReady}`]
   ];
@@ -96,9 +108,9 @@ async function validate(label, { matchId, finished, score, viewport }) {
   console.log(`state line: ${state.stateLine}`);
 }
 
-await validate('ongoing-desktop', { matchId: 90, finished: false, score: '10 × 4', viewport: { width: 1440, height: 900 } });
-await validate('finished-desktop', { matchId: 91, finished: true, score: '12 × 6', viewport: { width: 1440, height: 900 } });
-await validate('ongoing-mobile', { matchId: 90, finished: false, score: '10 × 4', viewport: { width: 390, height: 844 } });
+await validate('ongoing-desktop', { matchId: 90, finished: false, score: '10 × 4', tiles: { left: 10, right: 4, pending: 4 }, viewport: { width: 1440, height: 900 } });
+await validate('finished-desktop', { matchId: 91, finished: true, score: '12 × 6', tiles: { left: 12, right: 6, pending: 0 }, viewport: { width: 1440, height: 900 } });
+await validate('ongoing-mobile', { matchId: 90, finished: false, score: '10 × 4', tiles: { left: 10, right: 4, pending: 4 }, viewport: { width: 390, height: 844 } });
 
 await browser.close();
 console.log(failures === 0 ? '\nTODOS OS CHECKS PASSARAM' : `\n${failures} CHECK(S) FALHARAM`);

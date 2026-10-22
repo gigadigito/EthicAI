@@ -159,11 +159,21 @@ Para imagens de postagem social use o modo compacto em vez da página inteira:
 O bloco é um pôster com três regiões fixas (cabeçalho 80px, arena 515px, rodapé
 80px) e contém apenas: cabeçalho (logo CriptoVersus, selo Candle Battle, pares e
 status), a arena com os personagens inteiros, os logos dos ativos, os balões de
-fala fixos (`data-cb-capture-bubble`) e o placar único (`RUNE 9 × 8 STRK`, com
-selo de vencedor quando finalizada), e o rodapé com a linha de estado
+fala fixos (`data-cb-capture-bubble`), a faixa de quadradinhos das rodadas
+(`data-cb-capture-rounds`) e o placar único (`RUNE 9 × 8 STRK`, com selo de
+vencedor quando finalizada), e o rodapé com a linha de estado
 (`Placar atual · Rodada 8 de 18` / `Resultado final · RUNE venceu!`), a marca e o
 disclaimer. A interface operacional do Candle Battles (controles, áudio,
 dashboard, painéis técnicos) não existe no DOM deste modo.
+
+A captura **não executa o replay**: a cena é montada diretamente no quadro final
+(a história persistida é aplicada sem cinemática e os personagens assumem a pose
+final congelada — vitória/derrota quando a partida está finalizada, posição base
+coerente com o placar quando está em andamento). Não há play/pause nem timeline:
+a prontidão dispara em ~1s após a montagem da arena. A faixa de quadradinhos
+mostra `ExpectedConfrontations` casas — neon na cor do ativo A quando A venceu a
+rodada, neon na cor do ativo B quando B venceu, cinza quando houve empate e
+apagada quando o confronto ainda não ocorreu.
 
 Contrato de prontidão do modo compacto:
 

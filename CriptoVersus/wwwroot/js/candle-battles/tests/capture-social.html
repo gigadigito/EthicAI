@@ -26,6 +26,7 @@
         <div class="candle-battles__bubble candle-battles__bubble--speech cbs-capture__bubble cbs-capture__bubble--left" data-cb-capture-bubble="left" style="--tail-x:74%"><span data-cb-capture="bubbleLeft"></span></div>
         <div class="candle-battles__bubble candle-battles__bubble--speech cbs-capture__bubble cbs-capture__bubble--right" data-cb-capture-bubble="right" style="--tail-x:26%"><span data-cb-capture="bubbleRight"></span></div>
       </div>
+      <div class="cbs-capture__rounds" data-cb-capture-rounds role="img" aria-label="Confrontations"></div>
     </div>
 
     <div class="cbs-capture__score">
@@ -63,8 +64,17 @@ const set = (key, value) => { for (const el of document.querySelectorAll(`[data-
 const short = symbol => symbol.replace(/USDT$/i, '');
 const pair = symbol => short(symbol) + '/USDT';
 
-window.setCapture = ({ matchId, leftSymbol, rightSymbol, scoreA, scoreB, confrontations, expected, finished }) => {
+window.setCapture = ({ matchId, leftSymbol, rightSymbol, scoreA, scoreB, confrontations, expected, finished, winners = [] }) => {
   const root = document.querySelector('#candle-battle-social-capture');
+  const tiles = document.querySelector('[data-cb-capture-rounds]');
+  tiles.replaceChildren();
+  for (let i = 0; i < expected; i++) {
+    const tile = document.createElement('i');
+    const winner = winners[i];
+    tile.className = winner === 'left' ? 'is-left' : winner === 'right' ? 'is-right' : winner == null ? 'is-pending' : 'is-draw';
+    tiles.append(tile);
+  }
+  root.dataset.roundTiles = String(expected);
   set('pairA', pair(leftSymbol)); set('pairB', pair(rightSymbol));
   set('status', finished ? 'Completed' : 'In progress');
   document.querySelector('[data-cb-capture="status"]').classList.toggle('is-final', !!finished);

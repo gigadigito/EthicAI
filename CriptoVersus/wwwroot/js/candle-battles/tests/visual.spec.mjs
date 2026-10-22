@@ -356,6 +356,8 @@ async function captureState(page) {
     const leftBubble = bubble('left'), rightBubble = bubble('right');
     const leftFighter = fighter('left'), rightFighter = fighter('right');
     const logos = { count: engine.logos.size, textures: [...engine.logos.values()].map(image => image.texture.key) };
+    const tiles = [...document.querySelectorAll('[data-cb-capture-rounds] i')].map(element => element.className);
+    const replay = { catchUp: engine.catchUpReplay, elapsed: engine.replayElapsed, index: engine.replayIndex };
     const overflow = [...root.querySelectorAll('*')]
       .map(element => ({ element, rect: element.getBoundingClientRect() }))
       .filter(({ element, rect }) => rect.width > 0 && !element.hidden && (rect.left < rootRect.left - 1 || rect.right > rootRect.right + 1 || rect.top < rootRect.top - 1 || rect.bottom > rootRect.bottom + 1))
@@ -381,12 +383,20 @@ async function captureState(page) {
           && !overlap(leftBubble.rect, rightFighter.screen) && !overlap(rightBubble.rect, leftFighter.screen)
       },
       logos,
+      tiles: {
+        total: tiles.length,
+        left: tiles.filter(name => name === 'is-left').length,
+        right: tiles.filter(name => name === 'is-right').length,
+        draw: tiles.filter(name => name === 'is-draw').length,
+        pending: tiles.filter(name => name === 'is-pending').length
+      },
+      replay,
       overflow
     };
   }, captureCard);
 }
 
-function assertPoster(state) {
+function assertPoster(state, tiles) {
   expect(state.poster).toEqual({ width: 1200, height: 675 });
   expect(state.regions.header).toBeCloseTo(80, 0);
   expect(state.regions.stage).toBeCloseTo(515, 0);
@@ -408,6 +418,8 @@ function assertPoster(state) {
   expect(state.bubbles.clearFighters).toBe(true);
   expect(state.logos.count).toBe(2);
   expect(state.logos.textures.every(key => key.startsWith('coin-'))).toBe(true);
+  expect(state.tiles).toMatchObject(tiles);
+  expect(state.replay).toEqual({ catchUp: false, elapsed: 0, index: 0 });
   expect(state.overflow).toEqual([]);
   expect(state.captureFrame).toBe('frozen');
   expect(state.arenaFrame).toBe('frozen');
@@ -423,14 +435,14 @@ test('compact social capture is a fixed 1200x675 poster without any game control
       return { ...source, matchId: 90, id: `90:5m:${source.left.openTime}`, winner: i % 2 === 0 ? 'left' : 'right' };
     });
     const forming = candle => ({ ...candle, openTime: rounds.at(-1).left.openTime + PERIOD, closeTime: rounds.at(-1).left.openTime + 2 * PERIOD, updatedAt: rounds.at(-1).left.closeTime + 1000, confirmed: false });
-    window.setCapture({ matchId: 90, leftSymbol: 'AVAUSDT', rightSymbol: 'PUMPUSDT', scoreA: 7, scoreB: 7, confrontations: 14, expected: 18, finished: false });
+    window.setCapture({ matchId: 90, leftSymbol: 'AVAUSDT', rightSymbol: 'PUMPUSDT', scoreA: 7, scoreB: 7, confrontations: 14, expected: 18, finished: false, winners: rounds.map(round => round.winner) });
     window.engine.receive({ matchId: 90, leftSymbol: 'AVAUSDT', rightSymbol: 'PUMPUSDT', left: forming(rounds.at(-1).left), right: forming(rounds.at(-1).right),
       rounds, status: 'live', finished: false, matchStartTime: rounds[0].left.openTime, expectedRounds: 18, serverTime: rounds.at(-1).left.closeTime + 1000 }, true);
     await window.watchCapture();
   });
   await expect.poll(() => page.evaluate(card => document.querySelector(card).dataset.socialReady, captureCard), { timeout: 30000 }).toBe('true');
   const state = await captureState(page);
-  assertPoster(state);
+  assertPoster(state, { total: 18, left: 7, right: 7, draw: 0, pending: 4 });
   expect(state.matchStatus).toBe('in_progress');
   expect(state.replayReady).toBe('true');
   expect(state.scoreText).toContain('7');
@@ -447,16 +459,22 @@ test('compact social capture freezes the victory frame of a finished match', asy
   await page.evaluate(async () => {
     const { demoRound, MATCH_DURATION } = await import('/js/dist/candle-battles/model.js');
     const rounds = Array.from({ length: 18 }, (_, i) => ({ ...demoRound(i), matchId: 91, id: `91:5m:${demoRound(i).left.openTime}` }));
+    window.expectedTiles = {
+      left: rounds.filter(round => round.winner === 'left').length,
+      right: rounds.filter(round => round.winner === 'right').length,
+      draw: rounds.filter(round => round.winner === 'draw').length
+    };
     window.setCapture({ matchId: 91, leftSymbol: 'RUNEUSDT', rightSymbol: 'STRKUSDT',
       scoreA: rounds.filter(r => r.winner === 'left').length, scoreB: rounds.filter(r => r.winner === 'right').length,
-      confrontations: 18, expected: 18, finished: true });
+      confrontations: 18, expected: 18, finished: true, winners: rounds.map(round => round.winner) });
     window.engine.receive({ matchId: 91, leftSymbol: 'RUNEUSDT', rightSymbol: 'STRKUSDT', left: null, right: null, rounds, status: 'finished', finished: true,
       matchStartTime: rounds[0].left.openTime, matchEndTime: rounds[0].left.openTime + MATCH_DURATION, expectedRounds: 18 }, true);
     await window.watchCapture();
   });
   await expect.poll(() => page.evaluate(card => document.querySelector(card).dataset.socialReady, captureCard), { timeout: 30000 }).toBe('true');
   const state = await captureState(page);
-  assertPoster(state);
+  const expectedTiles = await page.evaluate(() => window.expectedTiles);
+  assertPoster(state, { total: 18, ...expectedTiles, pending: 0 });
   expect(state.matchStatus).toBe('finished');
   expect(state.replayReady).toBe('true');
   expect(state.stateLine).toMatch(/Final result/i);
@@ -484,14 +502,14 @@ test('compact social capture exports 1200x675 on mobile viewports too', async ({
       return { ...source, matchId: 92, id: `92:5m:${source.left.openTime}`, winner: i % 2 === 0 ? 'left' : 'right' };
     });
     const forming = candle => ({ ...candle, openTime: rounds.at(-1).left.openTime + PERIOD, closeTime: rounds.at(-1).left.openTime + 2 * PERIOD, updatedAt: rounds.at(-1).left.closeTime + 1000, confirmed: false });
-    window.setCapture({ matchId: 92, leftSymbol: 'RUNEUSDT', rightSymbol: 'STRKUSDT', scoreA: 3, scoreB: 3, confrontations: 6, expected: 18, finished: false });
+    window.setCapture({ matchId: 92, leftSymbol: 'RUNEUSDT', rightSymbol: 'STRKUSDT', scoreA: 3, scoreB: 3, confrontations: 6, expected: 18, finished: false, winners: rounds.map(round => round.winner) });
     window.engine.receive({ matchId: 92, leftSymbol: 'RUNEUSDT', rightSymbol: 'STRKUSDT', left: forming(rounds.at(-1).left), right: forming(rounds.at(-1).right),
       rounds, status: 'live', finished: false, matchStartTime: rounds[0].left.openTime, expectedRounds: 18, serverTime: rounds.at(-1).left.closeTime + 1000 }, true);
     await window.watchCapture();
   });
   await expect.poll(() => page.evaluate(card => document.querySelector(card).dataset.socialReady, captureCard), { timeout: 30000 }).toBe('true');
   const state = await captureState(page);
-  assertPoster(state);
+  assertPoster(state, { total: 18, left: 3, right: 3, draw: 0, pending: 12 });
   const shot = await page.locator(captureCard).screenshot({ path: testInfo.outputPath('candle-battle-social-capture-mobile.png') });
   expect(pngSize(shot)).toEqual({ width: 1200, height: 675 });
 });
