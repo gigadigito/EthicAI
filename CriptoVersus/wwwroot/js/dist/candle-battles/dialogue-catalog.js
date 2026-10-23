@@ -62,6 +62,30 @@ export function fillTemplate(text, data) {
 }
 const catalogs = new Map();
 export const FALLBACK_LANGUAGE = 'en';
+/**
+ * Single source of truth for finished-match dialogue roles, keyed by the
+ * stable catalog id shared by every language. For sequences the role belongs
+ * to the author of the first turn (turns alternate roles); for phrases it is
+ * the role of the speaker. Roles must be bound to arena sides through the
+ * official match result, never inferred from left/right position.
+ */
+export const RESULT_ROLES = {
+    'seq.041': 'winner', 'seq.042': 'loser', 'seq.043': 'winner', 'seq.044': 'winner',
+    'seq.045': 'winner', 'seq.079': 'winner', 'seq.080': 'loser', 'seq.113': 'winner',
+    'seq.114': 'winner', 'seq.115': 'loser', 'seq.136': 'winner', 'seq.146': 'winner',
+    'seq.150': 'loser',
+    'result.001': 'winner', 'result.002': 'loser', 'result.003': 'winner', 'result.004': 'winner',
+    'result.005': 'winner', 'result.006': 'winner', 'result.007': 'winner', 'result.008': 'winner',
+    'result.009': 'winner', 'result.010': 'winner', 'result.011': 'loser', 'result.012': 'winner',
+    'result.013': 'winner', 'result.014': 'winner', 'result.015': 'winner', 'result.016': 'winner',
+    'result.017': 'winner', 'result.018': 'loser', 'result.019': 'winner', 'result.020': 'winner',
+    'result.021': 'winner', 'result.022': 'winner', 'result.023': 'loser', 'result.024': 'winner',
+    'result.025': 'winner', 'result.026': 'winner', 'result.027': 'loser', 'result.028': 'winner',
+    'result.029': 'winner', 'result.030': 'winner'
+};
+export function counterpartRole(role) {
+    return role === 'winner' ? 'loser' : 'winner';
+}
 export function registerCatalog(catalog) {
     catalogs.set(catalog.language.toLowerCase(), catalog);
 }
@@ -85,13 +109,21 @@ export function resolveCatalog(culture) {
     return catalogs.get(FALLBACK_LANGUAGE) ?? { language: FALLBACK_LANGUAGE, phrases: [], sequences: [] };
 }
 export function toPhrase(seed) {
-    return { id: seed[0], family: seed[1], category: seed[2], length: seed[3], tone: seed[4], text: seed[5] };
+    const phrase = {
+        id: seed[0], family: seed[1], category: seed[2], length: seed[3], tone: seed[4], text: seed[5]
+    };
+    if (seed[2] === 'result')
+        phrase.resultRole = RESULT_ROLES[seed[0]];
+    return phrase;
 }
 export function toSequence(seed) {
-    return {
+    const sequence = {
         id: seed[0], family: seed[1], category: seed[2], moment: seed[3], tone: seed[4],
         turns: seed.slice(5).filter((turn) => typeof turn === 'string' && turn.length > 0)
     };
+    if (seed[2] === 'result')
+        sequence.leadRole = RESULT_ROLES[seed[0]];
+    return sequence;
 }
 /** Categories that may speak in a given battle moment, most specific first. */
 export const MOMENT_CATEGORIES = {

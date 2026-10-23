@@ -692,6 +692,21 @@ reuse of the least recent lines) and selection uses seeded, id-stable rolls.
 deterministically from `data-dialogue-context` so the same battle always
 screenshots the same lines.
 
+Finished-match lines are bound to characters by role, never by arena position.
+`RESULT_ROLES` in `dialogue-catalog.ts` is the single source of truth for which
+role each `result.*` phrase and `seq.*` conversation was authored for (for
+sequences the role belongs to the first turn and turns alternate). The winner
+side is resolved only from official match data in `resolveWinnerSide`
+(`winnerSymbol` matched against the asset symbols, falling back to the explicit
+winner side): the left/right sides are then bound through that result, so a
+loser-led conversation such as `seq.042` always puts the defeat line on the
+loser regardless of which asset is on the left. `captureExchange` derives the
+exchange from `winnerSymbol`/`scoreA`/`scoreB` (the social capture sends
+`winnerSymbol` in `data-dialogue-context`; `game.ts` prefers the official
+`scoreLeft`/`scoreRight` of the feed over its locally accumulated territory
+score). Finished draws use the neutral `draw` moment content and never claim
+victory or defeat.
+
 See `docs/n8n-candle-battle-social.md` for the independent workflow contract.
 
 ## Price Crossover Social Flow

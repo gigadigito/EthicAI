@@ -3,8 +3,8 @@
 @using CriptoVersus.Web.Services
 @inject LocalizationService L
 
-<link rel="stylesheet" href="/css/candle-battles-dialogue.css?v=20261023b" />
-<link rel="stylesheet" href="/css/candle-battle-social-capture.css?v=20261023b" />
+<link rel="stylesheet" href="/css/candle-battles-dialogue.css?v=20261023c" />
+<link rel="stylesheet" href="/css/candle-battle-social-capture.css?v=20261023c" />
 
 <section id="candle-battle-social-capture" class="cbs-capture"
          data-social-ready="false"
@@ -137,6 +137,7 @@
                 ["round"] = _battle.ConfrontationCount,
                 ["expectedRounds"] = _battle.ExpectedConfrontations,
                 ["finished"] = IsFinal,
+                ["winnerSymbol"] = _battle.WinnerSymbol,
                 ["winner"] = winner,
                 ["lastWinner"] = lastWinner,
                 ["streak"] = streak > 0 ? streak : null,

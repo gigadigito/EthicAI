@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    CandleBattleDialogueEngine, lineDuration,
+    CandleBattleDialogueEngine, lineDuration, resolveWinnerSide, RESULT_ROLES,
     fillTemplate, personalityFor, resolveCatalog, templateVars, LENGTH_BANDS
 } from '../../dist/candle-battles/dialogue-engine.js';
 
@@ -238,4 +238,143 @@ test('simulated battles show low repetition and wide variety', () => {
     assert.ok(distinct >= matches * 4, `expected wide variety across ${matches} matches, got ${distinct} distinct lines`);
     assert.ok(families.size >= 12, `expected many joke families, got ${families.size}`);
     assert.ok(totalLines >= matches * perMatch * 2, 'expected two lines per exchange');
+});
+
+// Finished-match roles come from the official result, never from arena sides.
+const roleOfLine = line => {
+    const [id, turn] = String(line.phraseId).split('#');
+    const base = RESULT_ROLES[id];
+    if (base === undefined) return undefined;
+    if (turn === undefined) return base;
+    return Number(turn) % 2 === 0 ? base : (base === 'winner' ? 'loser' : 'winner');
+};
+
+const captureOptions = (overrides = {}) => ({
+    matchId: 42035,
+    culture: 'pt-BR',
+    leftSymbol: 'ARKUSDT',
+    rightSymbol: 'SKHYBUSDT',
+    scoreA: 8,
+    scoreB: 9,
+    round: 17,
+    expectedRounds: 18,
+    finished: true,
+    winnerSymbol: 'SKHYBUSDT',
+    winner: 'right',
+    ...overrides
+});
+
+const assertResultRoles = (lines, winnerSide) => {
+    assert.equal(lines[0].side, 'left');
+    assert.equal(lines[1].side, 'right');
+    const winnerLine = lines[winnerSide === 'left' ? 0 : 1];
+    const loserLine = lines[winnerSide === 'left' ? 1 : 0];
+    assert.equal(roleOfLine(winnerLine), 'winner', `winner said: ${winnerLine.text} (${winnerLine.phraseId})`);
+    assert.equal(roleOfLine(loserLine), 'loser', `loser said: ${loserLine.text} (${loserLine.phraseId})`);
+    assert.equal(winnerLine.role, 'winner');
+    assert.equal(loserLine.role, 'loser');
+    assert.equal(winnerLine.kind, 'shout');
+    assert.equal(loserLine.kind, 'thought');
+    for (const line of lines) assert.ok(line.text.length > 0 && !line.text.includes('{'));
+};
+
+test('official winner symbol resolves the winning side, never the arena position', () => {
+    assert.equal(resolveWinnerSide({ leftSymbol: 'ARKUSDT', rightSymbol: 'SKHYBUSDT', winnerSymbol: 'SKHYBUSDT', winner: 'left' }), 'right');
+    assert.equal(resolveWinnerSide({ leftSymbol: 'ARKUSDT', rightSymbol: 'SKHYBUSDT', winnerSymbol: 'arkusdt' }), 'left');
+    assert.equal(resolveWinnerSide({ leftSymbol: 'ARKUSDT', rightSymbol: 'SKHYBUSDT', winnerSymbol: ' ', winner: 'right' }), 'right');
+    assert.equal(resolveWinnerSide({ leftSymbol: 'ARKUSDT', rightSymbol: 'SKHYBUSDT', winnerSymbol: null, winner: 'draw' }), 'draw');
+    assert.equal(resolveWinnerSide({ leftSymbol: 'ARKUSDT', rightSymbol: 'SKHYBUSDT' }), 'draw');
+    assert.equal(resolveWinnerSide({ leftSymbol: 'SKHYBUSDT', rightSymbol: 'ARKUSDT', winnerSymbol: 'ARKUSDT' }), 'right');
+});
+
+test('asset A wins: the winner only speaks victory lines and the loser only defeat lines', () => {
+    for (let matchId = 1; matchId <= 60; matchId++) {
+        const lines = new CandleBattleDialogueEngine(true).captureExchange(captureOptions({
+            matchId, leftSymbol: 'ARKUSDT', rightSymbol: 'SKHYBUSDT', scoreA: 9, scoreB: 8,
+            winnerSymbol: 'ARKUSDT', winner: 'left'
+        }));
+        assertResultRoles(lines, 'left');
+    }
+});
+
+test('asset B wins 8x9: roles follow the official result, not the left side', () => {
+    for (let matchId = 1; matchId <= 60; matchId++) {
+        const lines = new CandleBattleDialogueEngine(true).captureExchange(captureOptions({
+            matchId, scoreA: 8, scoreB: 9, winnerSymbol: 'SKHYBUSDT', winner: 'right'
+        }));
+        assertResultRoles(lines, 'right');
+    }
+});
+
+test('a wide 17x1 score keeps the winner in the winner role', () => {
+    for (let matchId = 1; matchId <= 40; matchId++) {
+        const lines = new CandleBattleDialogueEngine(true).captureExchange(captureOptions({
+            matchId, scoreA: 1, scoreB: 17, winnerSymbol: 'SKHYBUSDT', winner: 'right'
+        }));
+        assertResultRoles(lines, 'right');
+    }
+});
+
+test('asset order differing from the renderer order still binds roles to the symbols', () => {
+    for (let matchId = 1; matchId <= 40; matchId++) {
+        const swapped = new CandleBattleDialogueEngine(true).captureExchange(captureOptions({
+            matchId, leftSymbol: 'SKHYBUSDT', rightSymbol: 'ARKUSDT', scoreA: 9, scoreB: 8,
+            winnerSymbol: 'ARKUSDT', winner: 'right'
+        }));
+        assertResultRoles(swapped, 'right');
+        const mirrored = new CandleBattleDialogueEngine(true).captureExchange(captureOptions({
+            matchId, leftSymbol: 'SKHYBUSDT', rightSymbol: 'ARKUSDT', scoreA: 8, scoreB: 9,
+            winnerSymbol: 'SKHYBUSDT', winner: 'left'
+        }));
+        assertResultRoles(mirrored, 'left');
+    }
+});
+
+test('repeated captures of the same finished match keep identical, role-coherent dialogues', () => {
+    const options = captureOptions({ matchId: 42035 });
+    const renders = Array.from({ length: 5 }, () =>
+        new CandleBattleDialogueEngine(true).captureExchange(options).map(line => line.text));
+    for (const render of renders) assert.deepEqual(render, renders[0]);
+    const lines = new CandleBattleDialogueEngine(true).captureExchange(options);
+    assertResultRoles(lines, 'right');
+});
+
+test('loser-led conversations land their turns on the correct characters', () => {
+    const loserLed = ['seq.042', 'seq.080', 'seq.115', 'seq.150'];
+    let seen = 0;
+    for (let matchId = 1; matchId <= 400; matchId++) {
+        const lines = new CandleBattleDialogueEngine(true).captureExchange(captureOptions({ matchId }));
+        assertResultRoles(lines, 'right');
+        const base = String(lines[1].phraseId).split('#')[0];
+        if (loserLed.includes(base)) {
+            seen++;
+            assert.equal(roleOfLine(lines[1]), 'winner', lines[1].text);
+            assert.equal(roleOfLine(lines[0]), 'loser', lines[0].text);
+        }
+    }
+    assert.ok(seen >= 1, 'expected at least one loser-led conversation in the capture pool');
+});
+
+test('finished draws never invent a winner or claim victory', () => {
+    for (let matchId = 1; matchId <= 40; matchId++) {
+        const lines = new CandleBattleDialogueEngine(true).captureExchange(captureOptions({
+            matchId, scoreA: 9, scoreB: 9, winnerSymbol: null, winner: 'draw'
+        }));
+        assert.equal(lines[0].side, 'left');
+        assert.equal(lines[1].side, 'right');
+        for (const line of lines) {
+            assert.equal(roleOfLine(line), undefined, line.text);
+            assert.equal(line.kind, 'speech');
+        }
+    }
+});
+
+test('every result catalog entry in every culture declares its winner/loser role', () => {
+    for (const culture of CULTURES) {
+        const catalog = resolveCatalog(culture);
+        for (const seed of catalog.phrases)
+            if (seed[2] === 'result') assert.ok(RESULT_ROLES[seed[0]], `${culture}: ${seed[0]} has no result role`);
+        for (const seed of catalog.sequences)
+            if (seed[2] === 'result') assert.ok(RESULT_ROLES[seed[0]], `${culture}: ${seed[0]} has no result role`);
+    }
 });

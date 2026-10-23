@@ -5,7 +5,7 @@ import { AudioManager } from './audio.js';
 import { DialogueClock, Line, lineDuration } from './dialogue.js';
 import { CandleBattleDialogueEngine } from './dialogue-engine.js';
 
-export interface Feed { matchId: number; leftSymbol: string; rightSymbol: string; left: Candle | null; right: Candle | null; rounds: Round[]; status: string; finished: boolean; matchStartTime?: number | null; matchEndTime?: number | null; expectedRounds?: number; serverTime?: number | null; }
+export interface Feed { matchId: number; leftSymbol: string; rightSymbol: string; left: Candle | null; right: Candle | null; rounds: Round[]; status: string; finished: boolean; matchStartTime?: number | null; matchEndTime?: number | null; expectedRounds?: number; serverTime?: number | null; scoreLeft?: number; scoreRight?: number; }
 export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; socialCapture?: boolean; shell?: boolean; }
 const displaySymbol = (symbol: string): string => symbol.replace(/USDT$/i, '');
 export async function create(host: HTMLElement, options: Options): Promise<GameEngine> {
@@ -492,7 +492,7 @@ export class GameEngine {
         if(this.terminal || !this.feed?.finished) return;
         this.terminal=true; this.started=false; this.audio.pause();
         const incomplete=this.feed.status==='incomplete' || this.feed.status!=='finished';
-        const left=this.territory.score.left,right=this.territory.score.right;
+        const left=this.feed.scoreLeft??this.territory.score.left,right=this.feed.scoreRight??this.territory.score.right;
         const winner=left===right?this.text('draw','DRAW'):displaySymbol(left>right?this.feed.leftSymbol:this.feed.rightSymbol);
         if (!incomplete && left !== right) {
             const winningSide: Side = left > right ? 'left' : 'right';
@@ -714,7 +714,7 @@ export class GameEngine {
         if (cultureChanged) {
             this.clearDialogue();
             if (this.terminal && this.feed?.status==='finished') {
-                const left=this.territory.score.left,right=this.territory.score.right;
+                const left=this.feed.scoreLeft??this.territory.score.left,right=this.feed.scoreRight??this.territory.score.right;
                 this.finale=this.dialogueEngine.captureExchange({
                     matchId:this.feed.matchId,
                     culture:culture!,

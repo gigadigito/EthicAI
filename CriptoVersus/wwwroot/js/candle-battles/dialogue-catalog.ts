@@ -14,6 +14,8 @@ export type DialogueMoment =
     | 'banter' | 'roundWin' | 'roundLoss' | 'draw'
     | 'leadChange' | 'opening' | 'finale' | 'result';
 export type DialogueDataFlag = 'change' | 'volume' | 'streak' | 'score';
+/** Role of the character a finished-match line was authored for. */
+export type ResultRole = 'winner' | 'loser';
 
 /** [id, family, category, length, tone, text] */
 export type PhraseSeed = readonly [string, string, DialogueCategory, DialogueLength, DialogueTone, string];
@@ -33,6 +35,8 @@ export interface DialoguePhrase {
     length: DialogueLength;
     tone: DialogueTone;
     text: string;
+    /** Role of the speaker this result line was authored for. */
+    resultRole?: ResultRole;
 }
 
 export interface DialogueSequence {
@@ -42,6 +46,8 @@ export interface DialogueSequence {
     moment: DialogueMoment;
     tone: DialogueTone;
     turns: string[];
+    /** Role of the author of the first turn; turns alternate roles from there. */
+    leadRole?: ResultRole;
 }
 
 export interface DialogueLine {
@@ -50,6 +56,8 @@ export interface DialogueLine {
     text: string;
     phraseId?: string;
     family?: string;
+    /** Role of the speaking character in a finished match. */
+    role?: ResultRole;
 }
 
 export interface TemplateData {
@@ -132,6 +140,32 @@ export function fillTemplate(text: string, data: TemplateData): string | null {
 const catalogs = new Map<string, DialogueCatalog>();
 export const FALLBACK_LANGUAGE = 'en';
 
+/**
+ * Single source of truth for finished-match dialogue roles, keyed by the
+ * stable catalog id shared by every language. For sequences the role belongs
+ * to the author of the first turn (turns alternate roles); for phrases it is
+ * the role of the speaker. Roles must be bound to arena sides through the
+ * official match result, never inferred from left/right position.
+ */
+export const RESULT_ROLES: Readonly<Record<string, ResultRole>> = {
+    'seq.041': 'winner', 'seq.042': 'loser', 'seq.043': 'winner', 'seq.044': 'winner',
+    'seq.045': 'winner', 'seq.079': 'winner', 'seq.080': 'loser', 'seq.113': 'winner',
+    'seq.114': 'winner', 'seq.115': 'loser', 'seq.136': 'winner', 'seq.146': 'winner',
+    'seq.150': 'loser',
+    'result.001': 'winner', 'result.002': 'loser', 'result.003': 'winner', 'result.004': 'winner',
+    'result.005': 'winner', 'result.006': 'winner', 'result.007': 'winner', 'result.008': 'winner',
+    'result.009': 'winner', 'result.010': 'winner', 'result.011': 'loser', 'result.012': 'winner',
+    'result.013': 'winner', 'result.014': 'winner', 'result.015': 'winner', 'result.016': 'winner',
+    'result.017': 'winner', 'result.018': 'loser', 'result.019': 'winner', 'result.020': 'winner',
+    'result.021': 'winner', 'result.022': 'winner', 'result.023': 'loser', 'result.024': 'winner',
+    'result.025': 'winner', 'result.026': 'winner', 'result.027': 'loser', 'result.028': 'winner',
+    'result.029': 'winner', 'result.030': 'winner'
+};
+
+export function counterpartRole(role: ResultRole): ResultRole {
+    return role === 'winner' ? 'loser' : 'winner';
+}
+
 export function registerCatalog(catalog: DialogueCatalog): void {
     catalogs.set(catalog.language.toLowerCase(), catalog);
 }
@@ -156,14 +190,20 @@ export function resolveCatalog(culture: string): DialogueCatalog {
 }
 
 export function toPhrase(seed: PhraseSeed): DialoguePhrase {
-    return { id: seed[0], family: seed[1], category: seed[2], length: seed[3], tone: seed[4], text: seed[5] };
+    const phrase: DialoguePhrase = {
+        id: seed[0], family: seed[1], category: seed[2], length: seed[3], tone: seed[4], text: seed[5]
+    };
+    if (seed[2] === 'result') phrase.resultRole = RESULT_ROLES[seed[0]];
+    return phrase;
 }
 
 export function toSequence(seed: SequenceSeed): DialogueSequence {
-    return {
+    const sequence: DialogueSequence = {
         id: seed[0], family: seed[1], category: seed[2], moment: seed[3], tone: seed[4],
         turns: seed.slice(5).filter((turn): turn is string => typeof turn === 'string' && turn.length > 0)
     };
+    if (seed[2] === 'result') sequence.leadRole = RESULT_ROLES[seed[0]];
+    return sequence;
 }
 
 /** Categories that may speak in a given battle moment, most specific first. */

@@ -1,8 +1,8 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261023c';
-import { CandleRenderer } from './renderer.js?v=20261023c';
-import { AudioManager } from './audio.js?v=20261023c';
-import { DialogueClock, lineDuration } from './dialogue.js?v=20261023c';
-import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261023c';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261023d';
+import { CandleRenderer } from './renderer.js?v=20261023d';
+import { AudioManager } from './audio.js?v=20261023d';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261023d';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261023d';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -684,7 +684,7 @@ export class GameEngine {
         this.started = false;
         this.audio.pause();
         const incomplete = this.feed.status === 'incomplete' || this.feed.status !== 'finished';
-        const left = this.territory.score.left, right = this.territory.score.right;
+        const left = this.feed.scoreLeft ?? this.territory.score.left, right = this.feed.scoreRight ?? this.territory.score.right;
         const winner = left === right ? this.text('draw', 'DRAW') : displaySymbol(left > right ? this.feed.leftSymbol : this.feed.rightSymbol);
         if (!incomplete && left !== right) {
             const winningSide = left > right ? 'left' : 'right';
@@ -982,7 +982,7 @@ export class GameEngine {
         if (cultureChanged) {
             this.clearDialogue();
             if (this.terminal && this.feed?.status === 'finished') {
-                const left = this.territory.score.left, right = this.territory.score.right;
+                const left = this.feed.scoreLeft ?? this.territory.score.left, right = this.feed.scoreRight ?? this.territory.score.right;
                 this.finale = this.dialogueEngine.captureExchange({
                     matchId: this.feed.matchId,
                     culture: culture,

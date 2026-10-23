@@ -1,14 +1,30 @@
 // CandleBattleDialogueEngine: contextual, anti-repetitive dialogue selection
 // shared by the Phaser battles and the social capture. Pure local logic: no
 // HTTP, no timers, deterministic under a seed.
-import { FAMILY_DATA, LINE_DURATION, MOMENT_CATEGORIES, fillTemplate, personalityFor, resolveCatalog, templateVars, toPhrase, toSequence } from './dialogue-catalog.js?v=20261023c';
-import './dialogue-phrases-pt.js?v=20261023c';
-import './dialogue-phrases-en.js?v=20261023c';
-import './dialogue-phrases-es-fr-de.js?v=20261023c';
-import './dialogue-phrases-it-ja-zh.js?v=20261023c';
+import { FAMILY_DATA, LINE_DURATION, MOMENT_CATEGORIES, counterpartRole, fillTemplate, personalityFor, resolveCatalog, templateVars, toPhrase, toSequence } from './dialogue-catalog.js?v=20261023d';
+import './dialogue-phrases-pt.js?v=20261023d';
+import './dialogue-phrases-en.js?v=20261023d';
+import './dialogue-phrases-es-fr-de.js?v=20261023d';
+import './dialogue-phrases-it-ja-zh.js?v=20261023d';
 // Re-exported so consumers (and tests) share one catalog module instance even
 // when the published runtime rewrites relative imports with cache-busting tags.
-export { fillTemplate, personalityFor, resolveCatalog, templateVars, LENGTH_BANDS } from './dialogue-catalog.js?v=20261023c';
+export { fillTemplate, personalityFor, resolveCatalog, templateVars, LENGTH_BANDS, RESULT_ROLES, counterpartRole } from './dialogue-catalog.js?v=20261023d';
+/**
+ * Single source of truth for the finished-match roles: the official
+ * `winnerSymbol` decides which side won; the explicit side is only a fallback
+ * when the symbol is unavailable. An unrecognized result never invents a
+ * winner beyond the given fallback, and an undecided result is a draw.
+ */
+export function resolveWinnerSide(options) {
+    const official = options.winnerSymbol?.trim().toLowerCase();
+    if (official) {
+        if (official === options.leftSymbol.trim().toLowerCase())
+            return 'left';
+        if (official === options.rightSymbol.trim().toLowerCase())
+            return 'right';
+    }
+    return options.winner === 'left' || options.winner === 'right' ? options.winner : 'draw';
+}
 const FALLBACK = 'en';
 const indexCache = new Map();
 function indexFor(language) {
@@ -142,59 +158,74 @@ export class CandleBattleDialogueEngine {
             ];
             tones = [opener.tone, reply.tone];
         }
-        const sides = turns.map((_, i) => (i % 2 === 0 ? context.speaker : (context.speaker === 'left' ? 'right' : 'left')));
+        const sides = this.bindSides(context, sequence, turns.length);
+        const roles = this.bindRoles(context, sequence, turns.length);
         const lines = turns.map((turn, i) => ({
             side: sides[i],
             kind: kindFor(tones[i] ?? 'taunting', i === 0 ? 'opener' : 'reply'),
             text: turn.text,
             phraseId: turn.phraseId,
-            family: turn.family
+            family: turn.family,
+            ...(roles[i] ? { role: roles[i] } : {})
         }));
         this.exchange++;
         return lines;
     }
+    /** Side of each turn: by role for finished matches, alternating otherwise. */
+    bindSides(context, sequence, count) {
+        const opponent = context.speaker === 'left' ? 'right' : 'left';
+        if (context.moment !== 'result' || !context.speakerRole) {
+            return Array.from({ length: count }, (_, i) => (i % 2 === 0 ? context.speaker : opponent));
+        }
+        const speakerRole = context.speakerRole;
+        const lead = sequence?.leadRole ?? speakerRole;
+        return Array.from({ length: count }, (_, i) => (i % 2 === 0 ? lead : counterpartRole(lead)) === speakerRole ? context.speaker : opponent);
+    }
+    bindRoles(context, sequence, count) {
+        if (context.moment !== 'result' || !context.speakerRole)
+            return Array.from({ length: count }, () => undefined);
+        const speakerRole = context.speakerRole;
+        const lead = sequence?.leadRole ?? speakerRole;
+        return Array.from({ length: count }, (_, i) => (i % 2 === 0 ? lead : counterpartRole(lead)));
+    }
     /** Deterministic two-line capture dialogue; frozen and coherent per match. */
     captureExchange(options) {
-        const winner = options.winner === 'right' ? 'right' : 'left';
-        const draw = options.finished && (options.winner === 'draw' || options.winner == null);
+        const winnerSide = resolveWinnerSide(options);
+        const decided = options.finished === true && winnerSide !== 'draw';
+        const winner = winnerSide === 'right' ? 'right' : 'left';
         const context = {
             matchId: options.matchId,
             culture: options.culture,
-            speaker: options.finished && !draw ? winner : 'left',
-            speakerSymbol: options.finished && !draw
+            speaker: decided ? winner : 'left',
+            speakerSymbol: decided
                 ? (winner === 'left' ? options.leftSymbol : options.rightSymbol)
                 : options.leftSymbol,
-            opponentSymbol: options.finished && !draw
+            opponentSymbol: decided
                 ? (winner === 'left' ? options.rightSymbol : options.leftSymbol)
                 : options.rightSymbol,
+            speakerRole: decided ? 'winner' : undefined,
             round: options.round,
             expectedRounds: options.expectedRounds,
             score: { left: options.scoreA, right: options.scoreB },
-            moment: options.finished ? 'result' : (options.round <= 3 ? 'opening' : options.expectedRounds - options.round <= 3 ? 'finale' : 'banter'),
+            moment: options.finished
+                ? (decided ? 'result' : 'draw')
+                : (options.round <= 3 ? 'opening' : options.expectedRounds - options.round <= 3 ? 'finale' : 'banter'),
             changePercent: options.changePercent,
             hasVolume: options.hasVolume,
             streak: options.streak
         };
-        const lines = this.pickExchange(context).slice(0, 2);
-        if (options.finished && !draw) {
-            const loser = winner === 'left' ? 'right' : 'left';
-            const ordered = winner === 'left'
-                ? [lines[0], lines[1]]
-                : [lines[1], lines[0]];
+        const lines = this.pickExchange(context);
+        const left = lines.find(line => line.side === 'left') ?? lines[0];
+        const right = lines.find(line => line.side === 'right') ?? lines[1];
+        if (decided) {
             return [
-                { ...ordered[0], side: 'left', kind: 'shout' },
-                { ...ordered[1], side: 'right', kind: 'thought' }
-            ];
-        }
-        if (options.finished && draw) {
-            return [
-                { ...lines[0], side: 'left', kind: 'speech' },
-                { ...lines[1], side: 'right', kind: 'speech' }
+                { ...left, side: 'left', kind: winner === 'left' ? 'shout' : 'thought' },
+                { ...right, side: 'right', kind: winner === 'right' ? 'shout' : 'thought' }
             ];
         }
         return [
-            { ...lines[0], side: 'left', kind: 'speech' },
-            { ...lines[1], side: 'right', kind: 'speech' }
+            { ...left, side: 'left', kind: 'speech' },
+            { ...right, side: 'right', kind: 'speech' }
         ];
     }
     templateData(context) {
@@ -276,12 +307,14 @@ export class CandleBattleDialogueEngine {
         const weights = PERSONALITY_TONES_LOCAL[personality];
         return (weights[tone] ?? 0) * 1.15;
     }
-    pickPhrase(context, data, flags, lengthBias, salt, reference) {
+    pickPhrase(context, data, flags, lengthBias, salt, reference, role) {
         const personality = personalityFor(context.speakerSymbol);
         const categories = MOMENT_CATEGORIES[context.moment];
         const eligible = [];
         for (const phrase of reference.phrases.values()) {
             if (!categories.includes(phrase.category))
+                continue;
+            if (role !== undefined && phrase.resultRole !== role)
                 continue;
             if (!this.familyAllowed(phrase.family, flags))
                 continue;
@@ -304,6 +337,14 @@ export class CandleBattleDialogueEngine {
                 best = phrase;
             }
         }
+        if (!best && role !== undefined) {
+            for (const phrase of reference.phrases.values()) {
+                if (phrase.resultRole === role) {
+                    best = phrase;
+                    break;
+                }
+            }
+        }
         if (!best) {
             for (const phrase of reference.phrases.values()) {
                 if (phrase.category === 'taunt') {
@@ -324,6 +365,8 @@ export class CandleBattleDialogueEngine {
         const eligible = [];
         for (const sequence of reference.sequences.values()) {
             if (!moments.includes(sequence.moment))
+                continue;
+            if (context.moment === 'result' && sequence.leadRole === undefined)
                 continue;
             if (!this.familyAllowed(sequence.family, flags))
                 continue;
@@ -358,10 +401,11 @@ export class CandleBattleDialogueEngine {
         return best;
     }
     pickPair(context, replyContext, reference) {
+        const speakerRole = context.moment === 'result' ? (context.speakerRole ?? 'winner') : undefined;
         const mediumBias = { short: 0, medium: 2.2, long: 1.8 };
-        const opener = this.pickPhrase(context, this.templateData(context), this.dataFlags(context), mediumBias, 11, reference);
+        const opener = this.pickPhrase(context, this.templateData(context), this.dataFlags(context), mediumBias, 11, reference, speakerRole);
         const replyBias = { short: 0.2, medium: 2, long: 1.6 };
-        const reply = this.pickPhrase(replyContext, this.templateData(replyContext), this.dataFlags(context), replyBias, 22, reference);
+        const reply = this.pickPhrase(replyContext, this.templateData(replyContext), this.dataFlags(context), replyBias, 22, reference, speakerRole ? counterpartRole(speakerRole) : undefined);
         return [opener, reply];
     }
     markUsed(id, family) {
