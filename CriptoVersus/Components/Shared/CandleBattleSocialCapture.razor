@@ -11,6 +11,7 @@
          data-capture-frame="pending"
          data-poster-size="1200x675"
          data-round-tiles="@RoundTiles.Count"
+         data-dialogue-context="@DialogueContextJson"
          data-match-status="@MatchStatusAttr"
          data-replay-available="@(_battle?.ReplayAvailable == true ? "true" : "false")">
     @if (_battle is null)
@@ -30,8 +31,10 @@
             <div class="cbs-capture__arena">
                 <CandleBattlesHost @key="MatchId" MatchId="MatchId" Culture="@Culture" SocialCapture="true" OnFailure="OnFailure" />
                 <div class="cbs-capture__bubbles" data-cb-capture-bubbles>
-                    @Bubble(LeftBubbleText, "left", LeftBubbleKind)
-                    @Bubble(RightBubbleText, "right", RightBubbleKind)
+                    <div class="candle-battles__bubble candle-battles__bubble--speech cbs-capture__bubble cbs-capture__bubble--left"
+                         data-cb-capture-bubble="left" style="--tail-x:74%"><span></span></div>
+                    <div class="candle-battles__bubble candle-battles__bubble--speech cbs-capture__bubble cbs-capture__bubble--right"
+                         data-cb-capture-bubble="right" style="--tail-x:26%"><span></span></div>
                 </div>
                 <div class="cbs-capture__rounds" data-cb-capture-rounds role="img" aria-label="@T("rounds")">
                     @foreach (var tile in RoundTiles)
@@ -110,37 +113,44 @@
         }
     }
 
-    // Deterministic comic lines so the same match always captures the same poster.
-    private const int BubbleCount = 14;
-    private string LeftBubbleText => BubbleFor("left");
-    private string RightBubbleText => BubbleFor("right");
-    private string LeftBubbleKind => BubbleKindFor("left");
-    private string RightBubbleKind => BubbleKindFor("right");
-
-    private string BubbleFor(string side)
+    // Context for the shared dialogue engine; deterministic per match + status.
+    private string DialogueContextJson
     {
-        if (_battle is null) return string.Empty;
-        if (!IsFinal) return T($"capture.bubble{(BubbleIndex(side) % BubbleCount) + 1}");
-        if (FinalDraw) return side == "left" ? T("capture.finalDraw") : T("capture.finalDrawReply");
-        return side == "left" ? LeftWon ? T("capture.finalWinner") : T("capture.finalLoser")
-            : RightWon ? T("capture.finalWinner") : T("capture.finalLoser");
+        get
+        {
+            if (_battle is null) return string.Empty;
+            var winner = !IsFinal ? null : FinalDraw ? "draw" : LeftWon ? "left" : "right";
+            var winners = _battle.Rounds.Select(round => round.Winner).ToList();
+            var lastWinner = winners.Count > 0 ? winners[^1] : null;
+            var streak = 0;
+            if (lastWinner is "left" or "right")
+                for (var i = winners.Count - 1; i >= 0 && winners[i] == lastWinner; i--) streak++;
+            var hasVolume = _battle.Rounds.Any(round => round.Left.Volume.HasValue || round.Right.Volume.HasValue);
+            var payload = new Dictionary<string, object?>
+            {
+                ["matchId"] = _battle.MatchId,
+                ["culture"] = CultureCode,
+                ["leftSymbol"] = _battle.AssetA.Symbol,
+                ["rightSymbol"] = _battle.AssetB.Symbol,
+                ["scoreA"] = _battle.ScoreA,
+                ["scoreB"] = _battle.ScoreB,
+                ["round"] = _battle.ConfrontationCount,
+                ["expectedRounds"] = _battle.ExpectedConfrontations,
+                ["finished"] = IsFinal,
+                ["winner"] = winner,
+                ["lastWinner"] = lastWinner,
+                ["streak"] = streak > 0 ? streak : null,
+                ["hasVolume"] = hasVolume
+            };
+            return System.Text.Json.JsonSerializer.Serialize(payload);
+        }
     }
 
-    private string BubbleKindFor(string side)
+    private string CultureCode => Culture switch
     {
-        if (_battle is null || !IsFinal || FinalDraw) return "speech";
-        var won = side == "left" ? LeftWon : RightWon;
-        return won ? "shout" : "thought";
-    }
-
-    private int BubbleIndex(string side)
-    {
-        var offset = side == "left" ? 0 : 2;
-        return (MatchId % BubbleCount + offset) % BubbleCount;
-    }
-
-    private RenderFragment Bubble(string text, string side, string kind) => @<div class="candle-battles__bubble candle-battles__bubble--@kind cbs-capture__bubble cbs-capture__bubble--@side"
-            data-cb-capture-bubble="@side" style="@($"--tail-x:{(side == "left" ? "74%" : "26%")}")"><span>@text</span></div>;
+        "pt" => "pt-BR", "zh" => "zh-CN", "es" => "es-ES", "fr" => "fr-FR",
+        "de" => "de-DE", "it" => "it-IT", "ja" => "ja-JP", _ => "en-US"
+    };
 
     protected override void OnParametersSet()
     {

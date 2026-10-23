@@ -11,17 +11,19 @@ await writeFile(new URL('wwwroot/js/dist/candle-battles/package.json', root), JS
 // Browser ESM caches each relative import independently. Publish immutable file
 // names because the production CDN does not vary static assets by query string.
 // Keep this revision in sync with CandleBattlesHost.razor.
-const revision = '20261023b';
+const revision = '20261023c';
 const modules = new URL('wwwroot/js/dist/candle-battles/', root);
-const runtimeFiles = ['audio.js', 'model.js', 'renderer.js', 'dialogue.js', 'game.js'];
+const runtimeFiles = ['audio.js', 'model.js', 'renderer.js', 'dialogue.js', 'game.js',
+    'dialogue-catalog.js', 'dialogue-engine.js', 'dialogue-phrases-pt.js', 'dialogue-phrases-en.js',
+    'dialogue-phrases-es-fr-de.js', 'dialogue-phrases-it-ja-zh.js'];
 for (const file of runtimeFiles) {
     const url = new URL(file, modules);
     const source = await readFile(url, 'utf8');
-    const queryVersioned = source.replace(/(from\s+['"])(\.\/[^'"]+\.js)(['"])/g, (_match, before, path, after) =>
+    const queryVersioned = source.replace(/((?:from|import)\s+['"])(\.\/[^'"]+\.js)(['"])/g, (_match, before, path, after) =>
         `${before}${path}?v=${revision}${after}`);
     if (queryVersioned !== source) await writeFile(url, queryVersioned);
 
-    const immutableVersioned = source.replace(/(from\s+['"])(\.\/[^'"]+)\.js(['"])/g, (_match, before, path, after) =>
+    const immutableVersioned = source.replace(/((?:from|import)\s+['"])(\.\/[^'"]+)\.js(['"])/g, (_match, before, path, after) =>
         `${before}${path}.${revision}.js${after}`);
     await writeFile(new URL(file.replace(/\.js$/, `.${revision}.js`), modules), immutableVersioned);
 }

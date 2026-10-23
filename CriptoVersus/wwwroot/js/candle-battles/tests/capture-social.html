@@ -50,7 +50,7 @@
 
 <script type="module">
 import { create } from '/js/dist/candle-battles/game.js';
-import { watchCaptureReadiness } from '/js/candleBattleSocial.mjs';
+import { watchCaptureReadiness, fillCaptureDialogue } from '/js/candleBattleSocial.mjs';
 
 const labels = { arcade: 'Arcade battle', forming: 'Candle forming', waiting: 'Waiting for confirmed candles', finished: 'Finished',
   matchTime: 'MATCH TIME', nextBattle: 'NEXT BATTLE', round: 'ROUND', fight: 'FIGHT!', wins: 'WINS', matchFinished: 'MATCH FINISHED',
@@ -69,6 +69,7 @@ const pair = symbol => short(symbol) + '/USDT';
 
 window.setCapture = ({ matchId, leftSymbol, rightSymbol, scoreA, scoreB, confrontations, expected, finished, winners = [] }) => {
   const root = document.querySelector('#candle-battle-social-capture');
+  window.roundWinners = winners;
   const tiles = document.querySelector('[data-cb-capture-rounds]');
   tiles.replaceChildren();
   for (let i = 0; i < expected; i++) {
@@ -92,22 +93,26 @@ window.setCapture = ({ matchId, leftSymbol, rightSymbol, scoreA, scoreB, confron
   for (const el of document.querySelectorAll('[data-cb-capture="tagA"]')) el.hidden = !leftWon;
   for (const el of document.querySelectorAll('[data-cb-capture="tagB"]')) el.hidden = !rightWon;
   const draw = finished && scoreA === scoreB;
-  const leftBubble = document.querySelector('[data-cb-capture-bubble="left"]');
-  const rightBubble = document.querySelector('[data-cb-capture-bubble="right"]');
-  for (const el of [leftBubble, rightBubble]) el.classList.remove('candle-battles__bubble--shout', 'candle-battles__bubble--thought');
+  const winner = finished ? (draw ? 'draw' : leftWon ? 'left' : 'right') : null;
+  const roundWinners = winners;
+  const lastWinner = roundWinners.length ? roundWinners[roundWinners.length - 1] : null;
+  let streak = 0;
+  if (lastWinner === 'left' || lastWinner === 'right') {
+    for (let i = roundWinners.length - 1; i >= 0 && roundWinners[i] === lastWinner; i--) streak++;
+  }
+  root.dataset.dialogueContext = JSON.stringify({
+    matchId, culture: 'en-US', leftSymbol, rightSymbol, scoreA, scoreB,
+    round: confrontations, expectedRounds: expected, finished, winner, lastWinner,
+    streak: streak > 0 ? streak : null, hasVolume: true
+  });
   if (!finished) {
-    set('bubbleLeft', phrases[matchId % 14]); set('bubbleRight', phrases[(matchId + 2) % 14]);
     set('stateLine', `Current score · Round ${confrontations} of ${expected}`);
   } else if (draw) {
-    set('bubbleLeft', 'We tied!'); set('bubbleRight', 'Next round, then!');
     set('stateLine', 'Final result · Draw');
   } else {
-    set('bubbleLeft', leftWon ? 'I told you!' : 'I want a rematch!');
-    set('bubbleRight', rightWon ? 'I told you!' : 'I want a rematch!');
-    (leftWon ? leftBubble : rightBubble).classList.add('candle-battles__bubble--shout');
-    (leftWon ? rightBubble : leftBubble).classList.add('candle-battles__bubble--thought');
     set('stateLine', `Final result · ${short(leftWon ? leftSymbol : rightSymbol)} wins!`);
   }
+  void fillCaptureDialogue('candle-battle-social-capture');
 };
 
 window.watchCapture = () => watchCaptureReadiness('candle-battle-social-capture', true,

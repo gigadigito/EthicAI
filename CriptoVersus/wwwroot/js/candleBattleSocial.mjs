@@ -9,6 +9,31 @@ function waitImages(root) {
   })));
 }
 
+/**
+ * Fills the pinned capture bubbles from the shared dialogue engine. The choice
+ * is deterministic per match + status + context, so the same battle always
+ * captures the same lines.
+ */
+export async function fillCaptureDialogue(rootId) {
+  const root = document.getElementById(rootId);
+  if (!root) return;
+  const raw = root.dataset.dialogueContext;
+  if (!raw) return;
+  let context;
+  try { context = JSON.parse(raw); } catch { return; }
+  const { CandleBattleDialogueEngine } = await import('/js/dist/candle-battles/dialogue-engine.js');
+  const engine = new CandleBattleDialogueEngine(true);
+  const lines = engine.captureExchange(context);
+  const bySide = { left: lines[0], right: lines[1] };
+  for (const bubble of root.querySelectorAll('[data-cb-capture-bubble]')) {
+    const line = bySide[bubble.dataset.cbCaptureBubble];
+    if (!line) continue;
+    bubble.className = `candle-battles__bubble candle-battles__bubble--${line.kind} cbs-capture__bubble cbs-capture__bubble--${bubble.dataset.cbCaptureBubble}`;
+    const span = bubble.querySelector('span') ?? bubble;
+    span.textContent = line.text;
+  }
+}
+
 export async function watchReadiness(id, replayAvailable, completed) {
   disposeReadiness(id);
   const root = document.getElementById(id);
@@ -62,6 +87,7 @@ export async function watchCaptureReadiness(id, replayAvailable, completed) {
   disposeReadiness(id);
   const root = document.getElementById(id);
   if (!root) return;
+  await fillCaptureDialogue(id);
   const canvas = root.querySelector('.candle-battles__canvas');
   let disposed = false;
   let settled = false;

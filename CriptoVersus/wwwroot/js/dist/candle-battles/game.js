@@ -1,7 +1,8 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261023b';
-import { CandleRenderer } from './renderer.js?v=20261023b';
-import { AudioManager } from './audio.js?v=20261023b';
-import { DialogueClock, dialogueLines, finalLines } from './dialogue.js?v=20261023b';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js?v=20261023c';
+import { CandleRenderer } from './renderer.js?v=20261023c';
+import { AudioManager } from './audio.js?v=20261023c';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261023c';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261023c';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -58,6 +59,7 @@ export class GameEngine {
         this.time = 0;
         this.combatElapsed = 0;
         this.dialogue = new DialogueClock();
+        this.dialogueEngine = new CandleBattleDialogueEngine();
         this.finaleElapsed = 0;
         this.mode = options.mode;
         this.state = new BattleStateMachine(options.battleDurationMs);
@@ -702,7 +704,18 @@ export class GameEngine {
         this.hud.get('nextBattle')?.setText('');
         this.clearDialogue();
         if (!incomplete) {
-            this.finale = finalLines(this.feed.matchId, this.territory.score, this.options.culture ?? 'en');
+            this.finale = this.dialogueEngine.captureExchange({
+                matchId: this.feed.matchId,
+                culture: this.options.culture ?? 'en',
+                leftSymbol: this.feed.leftSymbol,
+                rightSymbol: this.feed.rightSymbol,
+                scoreA: left,
+                scoreB: right,
+                round: this.completedRounds,
+                expectedRounds: this.feed.expectedRounds ?? 18,
+                finished: true,
+                winner: left === right ? 'draw' : left > right ? 'left' : 'right'
+            });
             this.currentLine = this.finale[0];
             this.positionBubble();
         }
@@ -969,7 +982,19 @@ export class GameEngine {
         if (cultureChanged) {
             this.clearDialogue();
             if (this.terminal && this.feed?.status === 'finished') {
-                this.finale = finalLines(this.feed.matchId, this.territory.score, culture);
+                const left = this.territory.score.left, right = this.territory.score.right;
+                this.finale = this.dialogueEngine.captureExchange({
+                    matchId: this.feed.matchId,
+                    culture: culture,
+                    leftSymbol: this.feed.leftSymbol,
+                    rightSymbol: this.feed.rightSymbol,
+                    scoreA: left,
+                    scoreB: right,
+                    round: this.completedRounds,
+                    expectedRounds: this.feed.expectedRounds ?? 18,
+                    finished: true,
+                    winner: left === right ? 'draw' : left > right ? 'left' : 'right'
+                });
                 this.currentLine = this.finale[0];
                 this.positionBubble();
             }
@@ -1139,14 +1164,37 @@ export class GameEngine {
             this.currentLine = this.finaleElapsed < 3000 ? this.finale[0] : this.finaleElapsed < 6500 ? this.finale[1] : undefined;
         }
         else if (!this.active && (this.started || this.mode === 'live')) {
-            const step = this.dialogue.advance(delta, this.feed?.matchId ?? 0, this.completedRounds + 1);
+            const turns = this.conversation?.length ?? 2;
+            const duration = this.currentLine ? lineDuration(this.currentLine.text) : 1800;
+            const step = this.dialogue.advance(delta, this.feed?.matchId ?? 0, this.completedRounds + 1, turns, duration);
             if (step) {
                 if (step.line === 0) {
                     const previous = this.mode === 'replay' && this.replayIndex > 0 ? this.replayHistory[this.replayIndex - 1] : undefined;
-                    this.conversation = dialogueLines({ matchId: this.feed?.matchId ?? 0, round: this.completedRounds + 1, score: this.territory.score,
-                        left: previous ? { ...previous.left, strength: previous.leftStrength } : this.mode === 'replay' ? undefined : this.market.get('left'),
-                        right: previous ? { ...previous.right, strength: previous.rightStrength } : this.mode === 'replay' ? undefined : this.market.get('right'),
-                        lastWinner: this.territory.lastWinner }, this.options.culture ?? 'en', step.slot);
+                    const speaker = step.slot % 2 === 0 ? 'left' : 'right';
+                    const speakerCandle = previous ? { ...previous[speaker], strength: speaker === 'left' ? previous.leftStrength : previous.rightStrength }
+                        : this.mode === 'replay' ? undefined : this.market.get(speaker);
+                    const opponent = speaker === 'left' ? 'right' : 'left';
+                    const opponentCandle = previous ? { ...previous[opponent], strength: opponent === 'left' ? previous.leftStrength : previous.rightStrength }
+                        : this.mode === 'replay' ? undefined : this.market.get(opponent);
+                    const change = speakerCandle && speakerCandle.open > 0 ? (speakerCandle.close / speakerCandle.open - 1) * 100 : undefined;
+                    const lead = this.territory.score.left - this.territory.score.right;
+                    const fromSpeaker = speaker === 'left' ? lead : -lead;
+                    const last = this.territory.lastWinner;
+                    const moment = fromSpeaker === 0 ? 'draw'
+                        : last === speaker ? 'roundWin' : last && last !== 'draw' ? 'roundLoss' : 'banter';
+                    this.conversation = this.dialogueEngine.pickExchange({
+                        matchId: this.feed?.matchId ?? 0,
+                        culture: this.options.culture ?? 'en',
+                        speaker,
+                        speakerSymbol: speakerCandle?.symbol ?? (speaker === 'left' ? 'LEFT' : 'RIGHT'),
+                        opponentSymbol: opponentCandle?.symbol ?? (opponent === 'left' ? 'LEFT' : 'RIGHT'),
+                        round: this.completedRounds + 1,
+                        expectedRounds: this.feed?.expectedRounds ?? 18,
+                        score: this.territory.score,
+                        moment,
+                        changePercent: change,
+                        hasVolume: !!speakerCandle?.volume
+                    }, step.slot);
                 }
                 this.currentLine = this.conversation?.[step.line];
             }

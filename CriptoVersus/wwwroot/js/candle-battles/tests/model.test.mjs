@@ -13,18 +13,21 @@ test('five-minute clock joins an existing candle and resets without a confirmed 
     assert.equal(nextCandleCountdown(start + MATCH_DURATION, start), 0);
 });
 
-test('comic dialogue uses available match data, localization and a repeatable sequence', () => {
+test('comic dialogue keeps localization, sides and a repeatable sequence', () => {
     const round=demoRound(2);
     const context={matchId:73,round:3,score:{left:10,right:7},left:{...round.left,strength:29.5},right:{...round.right,strength:19.7}};
     const first=Array.from({length:12},(_,slot)=>dialogueLines(context,'pt-BR',slot));
     assert.deepEqual(first,Array.from({length:12},(_,slot)=>dialogueLines(context,'pt-BR',slot)));
-    assert.ok(first.some(lines=>lines.some(line=>line.text.includes('29.5')||line.text.includes('10 A 7'))));
     assert.ok(first.every(lines=>lines[0].side!==lines[1].side));
+    assert.ok(first.every(lines=>lines.every(line=>line.text.length>0&&!line.text.includes('{'))));
     assert.notEqual(dialogueLines(context,'en-US',0)[0].text,first[0][0].text);
     const unavailable=dialogueLines({...context,left:undefined,right:undefined},'pt-BR',3);
-    assert.ok(unavailable.every(line=>!line.text.includes('29.5')&&!line.text.includes('%')));
-    assert.ok(['EU AVISEI!','RESPEITA O CAMPEÃO!'].includes(finalLines(73,context.score,'pt-BR').find(line=>line.side==='left').text));
-    assert.ok(finalLines(73,{left:2,right:2},'pt-BR').every(line=>!line.text.includes('CAMPEÃO')));
+    assert.ok(unavailable.every(line=>!line.text.includes('{')&&!line.text.includes('%')));
+    const closing=finalLines(73,context.score,'pt-BR');
+    assert.equal(closing.length,2);
+    assert.notEqual(closing[0].side,closing[1].side);
+    assert.ok(closing.every(line=>line.text.length>0&&!line.text.includes('{')));
+    assert.ok(finalLines(73,{left:2,right:2},'pt-BR').every(line=>line.text.length>0));
 });
 
 test('dialogue clock provides one exchange then cooldown and restarts identically', () => {

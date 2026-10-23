@@ -659,7 +659,32 @@ behavioral change to the engine, the poster stylesheet or
 (`build-runtime.mjs` revision + the `CandleBattlesHost.razor` import + the
 `?v=` values in `CandleBattleSocialCapture.razor` and `CandleBattleSocial.razor`);
 republishing different content under a reused name serves stale replay or
-unstyled markup from the CDN.
+unstyled markup from the CDN. The build must rewrite both `from './x.js'` and
+side-effect `import './x.js'` specifiers with the cache-busting tag, otherwise
+a module graph can load two instances of the same file and split registries
+(this happened to the dialogue catalogs).
+
+### Candle Battle dialogue engine
+
+Battles and the social capture share `CandleBattleDialogueEngine`
+(`wwwroot/js/candle-battles/dialogue-engine.ts`); the compatibility surface for
+the host is `dialogue.ts` (`dialogueLines`, `finalLines`, `DialogueClock`).
+Phrase data lives in `dialogue-catalog.ts` (types, families, personalities,
+templates) and the `dialogue-phrases-*.ts` modules (stable-id catalogs:
+pt 600 base + 150 conversations; en as fallback; es/fr/de/it/ja/zh cores with
+explicit per-exchange fallback to English — a dialogue never mixes languages).
+Selection is local and event-driven: no HTTP, no per-frame work. Contextual
+moments (`banter`, `roundWin`, `roundLoss`, `draw`, `leadChange`, `opening`,
+`finale`, `result`) map to categories; templates (`{asset}`, `{opponent}`,
+`{round}`, `{remainingRounds}`, `{scoreDifference}`, `{changePercent}`,
+`{streak}`) render only when the underlying market data exists; personalities
+are a stable hash of the asset symbol. Anti-repetition is per match (no exact
+line repeats while alternatives exist, semantic-family cool-down, controlled
+reuse of the least recent lines) and selection uses seeded, id-stable rolls.
+`updateDialogue`/`finish` in `game.ts` and `fillCaptureDialogue` in
+`wwwroot/js/candleBattleSocial.mjs` are the only callers; the capture picks
+deterministically from `data-dialogue-context` so the same battle always
+screenshots the same lines.
 
 See `docs/n8n-candle-battle-social.md` for the independent workflow contract.
 
