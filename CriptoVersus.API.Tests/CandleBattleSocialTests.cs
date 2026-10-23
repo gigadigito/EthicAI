@@ -276,6 +276,140 @@ public sealed class CandleBattleSocialTests
             new PriceCrossoverReleaseRequest { Reason = "retry", ReservedAtUtc = token })).Result);
     }
 
+    [Fact]
+    public async Task MatchStartingMidInterval_IsEligibleWithOnlyItsExigibleConfrontations()
+    {
+        using var db = CreateDbContext();
+        var (_, start, end, firstMs) = MidIntervalWindow();
+        var opens = Enumerable.Range(1, 17).Select(i => firstMs + i * CandleBattlesResolver.PeriodMs).ToArray();
+        SeedWindowBattle(db, 61, "AIUSDT", "DYMUSDT", start, end, opens, i => i < 11 ? "left" : "right");
+        var service = CreateService(db);
+
+        var result = await service.GetByMatchIdAsync(61, "pt-BR", true, default);
+
+        Assert.NotNull(result);
+        Assert.True(result.CanPost);
+        Assert.Null(result.SkipReason);
+        Assert.Equal(17, result.ExpectedConfrontations);
+        Assert.Equal(17, result.ConfrontationCount);
+        Assert.Equal(17, result.Rounds.Count);
+        Assert.Equal(11, result.ScoreA);
+        Assert.Equal(6, result.ScoreB);
+        Assert.Equal("AIUSDT", result.WinnerSymbol);
+        Assert.True(result.PublicUrlAvailable);
+
+        var feed = Assert.IsType<CandleBattlesFeedDto>(Assert.IsType<OkObjectResult>(
+            (await new CandleBattlesController(db).Get(61)).Result).Value);
+        Assert.Equal(feed.ScoreLeft, result.ScoreA);
+        Assert.Equal(feed.ScoreRight, result.ScoreB);
+        Assert.Equal(feed.Rounds.Select(x => x.Winner), result.Rounds.Select(x => x.Winner));
+
+        var candidates = await service.GetCandidatesAsync(6, 10, default);
+        Assert.Equal(61, candidates.SelectedMatchId);
+    }
+
+    [Fact]
+    public async Task MatchStartingMidInterval_IgnoresPersistedPartialFirstInterval()
+    {
+        using var db = CreateDbContext();
+        var (_, start, end, firstMs) = MidIntervalWindow();
+        var period = CandleBattlesResolver.PeriodMs;
+        var opens = Enumerable.Range(0, 18).Select(i => firstMs + i * period).ToArray();
+        // O índice 0 é o intervalo parcial anterior à criação efetiva da partida.
+        SeedWindowBattle(db, 62, "CRCLBUSDT", "TSLABUSDT", start, end, opens,
+            i => i == 0 || i <= 11 ? "left" : "right");
+
+        var result = await CreateService(db).GetByMatchIdAsync(62, "pt-BR", true, default);
+
+        Assert.NotNull(result);
+        Assert.True(result.CanPost);
+        Assert.Equal(17, result.ExpectedConfrontations);
+        Assert.Equal(17, result.ConfrontationCount);
+        Assert.Equal(11, result.ScoreA);
+        Assert.Equal(6, result.ScoreB);
+        Assert.DoesNotContain(result.Rounds, x => x.Left.OpenTime == firstMs);
+    }
+
+    [Theory]
+    [InlineData(9)]
+    [InlineData(1)]
+    public async Task MatchStartingMidInterval_WithRealGap_RemainsIneligible(int missingSlot)
+    {
+        using var db = CreateDbContext();
+        var (_, start, end, firstMs) = MidIntervalWindow();
+        var period = CandleBattlesResolver.PeriodMs;
+        var opens = Enumerable.Range(1, 17).Select(i => firstMs + i * period).ToArray();
+        SeedWindowBattle(db, 70 + missingSlot, "AIUSDT", "DYMUSDT", start, end,
+            opens.Where((_, index) => index + 1 != missingSlot).ToArray(), _ => "left");
+
+        var result = await CreateService(db).GetByMatchIdAsync(70 + missingSlot, "pt-BR", true, default);
+
+        Assert.NotNull(result);
+        Assert.False(result.CanPost);
+        Assert.Equal("incomplete_battle_data", result.SkipReason);
+        Assert.Equal(17, result.ExpectedConfrontations);
+        Assert.Equal(16, result.ConfrontationCount);
+        Assert.True(result.ReplayAvailable);
+    }
+
+    [Fact]
+    public async Task FullyCompleteMatch_RequiresAllEighteenConfrontations()
+    {
+        using var db = CreateDbContext();
+        var now = DateTime.UtcNow.AddHours(-2);
+        var aligned = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute / 5 * 5, 0, DateTimeKind.Utc);
+        var firstMs = new DateTimeOffset(aligned).ToUnixTimeMilliseconds();
+        var opens = Enumerable.Range(0, 18).Select(i => firstMs + i * CandleBattlesResolver.PeriodMs).ToArray();
+        SeedWindowBattle(db, 63, "ALTUSDT", "GTCUSDT", aligned, aligned.AddMinutes(90), opens,
+            i => i < 11 ? "left" : "right");
+
+        var result = await CreateService(db).GetByMatchIdAsync(63, "pt-BR", true, default);
+
+        Assert.NotNull(result);
+        Assert.True(result.CanPost);
+        Assert.Equal(18, result.ExpectedConfrontations);
+        Assert.Equal(18, result.ConfrontationCount);
+        Assert.Equal(18, result.Rounds.Count);
+        Assert.Equal(11, result.ScoreA);
+        Assert.Equal(7, result.ScoreB);
+
+        var feed = Assert.IsType<CandleBattlesFeedDto>(Assert.IsType<OkObjectResult>(
+            (await new CandleBattlesController(db).Get(63)).Result).Value);
+        Assert.Equal(feed.ScoreLeft, result.ScoreA);
+        Assert.Equal(feed.Rounds.Select(x => x.Winner), result.Rounds.Select(x => x.Winner));
+    }
+
+    [Fact]
+    public async Task MatchEndingBeforeScheduledClose_RequiresOnlyConfrontationsInsideItsWindow()
+    {
+        using var db = CreateDbContext();
+        var now = DateTime.UtcNow.AddHours(-2);
+        var aligned = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute / 5 * 5, 0, DateTimeKind.Utc);
+        var firstMs = new DateTimeOffset(aligned).ToUnixTimeMilliseconds();
+        var period = CandleBattlesResolver.PeriodMs;
+        // Fim da partida 87 minutos após o início: o décimo oitavo intervalo não fecha na janela.
+        var opens = Enumerable.Range(0, 17).Select(i => firstMs + i * period).ToArray();
+        SeedWindowBattle(db, 64, "AVAUSDT", "PUMPUSDT", aligned, aligned.AddMinutes(87), opens,
+            i => i < 10 ? "left" : "right");
+
+        var result = await CreateService(db).GetByMatchIdAsync(64, "pt-BR", true, default);
+
+        Assert.NotNull(result);
+        Assert.True(result.CanPost);
+        Assert.Equal(17, result.ExpectedConfrontations);
+        Assert.Equal(17, result.ConfrontationCount);
+        Assert.Equal(10, result.ScoreA);
+        Assert.Equal(7, result.ScoreB);
+    }
+
+    private static (DateTime Aligned, DateTime Start, DateTime End, long FirstMs) MidIntervalWindow()
+    {
+        var now = DateTime.UtcNow.AddHours(-2);
+        var aligned = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute / 5 * 5, 0, DateTimeKind.Utc);
+        var start = aligned.AddMinutes(2);
+        return (aligned, start, start.AddMinutes(90), new DateTimeOffset(aligned).ToUnixTimeMilliseconds());
+    }
+
     private static CandleBattleSocialService CreateService(EthicAIDbContext db)
         => new(db, CreatePublication(db), Options.Create(new CandleBattleSocialOptions()), CreateConfiguration(),
             NullLogger<CandleBattleSocialService>.Instance);
@@ -311,6 +445,37 @@ public sealed class CandleBattleSocialTests
         {
             MatchId = id, NextOpenUtc = aligned.AddMinutes(rounds * 5), UpdatedAtUtc = DateTime.UtcNow,
             Complete = status == MatchStatus.Completed, Status = status == MatchStatus.Completed ? "finished" : "live"
+        });
+        db.SaveChanges();
+    }
+
+    private static void SeedWindowBattle(EthicAIDbContext db, int id, string left, string right,
+        DateTime startTimeUtc, DateTime endTimeUtc, IReadOnlyList<long> roundOpens, Func<int, string> pattern)
+    {
+        SeedMatch(db, id, left, right, MatchStatus.Completed, scoreA: 99, scoreB: 0,
+            startTimeUtc: startTimeUtc, endTimeUtc: endTimeUtc, skipSnapshots: true);
+        for (var i = 0; i < roundOpens.Count; i++)
+        {
+            var open = roundOpens[i];
+            var winner = pattern(i);
+            var leftCandle = Candle(left, open, winner == "left" ? 102m : 99m);
+            var rightCandle = Candle(right, open, winner == "right" ? 102m : 99m);
+            db.Set<CandleBattlesRound>().Add(new CandleBattlesRound
+            {
+                MatchId = id, OpenTimeUtc = DateTimeOffset.FromUnixTimeMilliseconds(open).UtcDateTime,
+                LeftCandleJson = JsonSerializer.Serialize(leftCandle), RightCandleJson = JsonSerializer.Serialize(rightCandle),
+                LeftStrength = 50m, RightStrength = 50m,
+                Winner = CandleBattlesResolver.ResolveWinner(leftCandle, rightCandle, 50m, 50m),
+                RuleVersion = CandleBattlesResolver.Version,
+                ConfirmedAtUtc = DateTimeOffset.FromUnixTimeMilliseconds(open + CandleBattlesResolver.PeriodMs).UtcDateTime
+            });
+        }
+        db.Set<CandleBattlesState>().Add(new CandleBattlesState
+        {
+            MatchId = id,
+            NextOpenUtc = DateTimeOffset.FromUnixTimeMilliseconds(
+                roundOpens[^1] + CandleBattlesResolver.PeriodMs).UtcDateTime,
+            UpdatedAtUtc = DateTime.UtcNow, Complete = true, Status = "finished"
         });
         db.SaveChanges();
     }

@@ -13,6 +13,20 @@ public static class CandleBattlesResolver
     public const long ConfirmationGraceMs = 15 * 60_000;
     public static long FirstOpen(long matchStartMs) => matchStartMs / PeriodMs * PeriodMs;
     public static long LastClose(long matchStartMs) => FirstOpen(matchStartMs) + ExpectedRounds * PeriodMs;
+    // The interval containing a mid-interval match start begins before the match
+    // existed, so it is partial and is never a required confrontation.
+    public static long FirstRequiredOpen(long matchStartMs) => (matchStartMs + PeriodMs - 1) / PeriodMs * PeriodMs;
+    // Exclusive close bound of the match's valid window: the scheduled last close
+    // or an earlier match end.
+    public static long RequiredWindowClose(long matchStartMs, long? matchEndMs)
+        => Math.Min(matchEndMs ?? long.MaxValue, LastClose(matchStartMs));
+    // Five-minute intervals fully contained in the match's valid window.
+    public static int RequiredRounds(long matchStartMs, long? matchEndMs)
+    {
+        var first = FirstRequiredOpen(matchStartMs);
+        var close = RequiredWindowClose(matchStartMs, matchEndMs);
+        return close <= first ? 0 : (int)Math.Min(ExpectedRounds, (close - first) / PeriodMs);
+    }
     public static decimal Strength(CandleBattlesCandleDto candle, IReadOnlyList<CandleBattlesCandleDto> history)
         => CalculateStrength(candle, history, requireConfirmation: true);
 

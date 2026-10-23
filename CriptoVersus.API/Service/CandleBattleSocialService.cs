@@ -47,13 +47,12 @@ public sealed class CandleBattleSocialService : ICandleBattleSocialService
         var query = _db.Set<CandleBattlesRound>().AsNoTracking().Where(x => x.MatchId == matchId);
         if (match.StartTime.HasValue)
         {
-            var startMs = new DateTimeOffset(DateTime.SpecifyKind(match.StartTime.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds();
-            var firstMs = CandleBattlesResolver.FirstOpen(startMs);
-            var lastCloseMs = CandleBattlesResolver.LastClose(startMs);
-            if (match.EndTime.HasValue)
-                lastCloseMs = Math.Min(lastCloseMs, new DateTimeOffset(DateTime.SpecifyKind(match.EndTime.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds());
-            var firstUtc = DateTimeOffset.FromUnixTimeMilliseconds(firstMs).UtcDateTime;
-            var lastOpenUtc = DateTimeOffset.FromUnixTimeMilliseconds(lastCloseMs - CandleBattlesResolver.PeriodMs).UtcDateTime;
+            var startMs = ToUnixMs(match.StartTime.Value);
+            var endMs = match.EndTime.HasValue ? ToUnixMs(match.EndTime.Value) : (long?)null;
+            var firstMs = CandleBattlesResolver.FirstRequiredOpen(startMs);
+            var windowCloseMs = CandleBattlesResolver.RequiredWindowClose(startMs, endMs);
+            var firstUtc = FromUnixMs(firstMs);
+            var lastOpenUtc = FromUnixMs(windowCloseMs - CandleBattlesResolver.PeriodMs);
             query = query.Where(x => x.OpenTimeUtc >= firstUtc && x.OpenTimeUtc <= lastOpenUtc);
         }
         var rows = await query.OrderBy(x => x.OpenTimeUtc).ToListAsync(ct);
@@ -68,12 +67,17 @@ public sealed class CandleBattleSocialService : ICandleBattleSocialService
         var symbolA = match.TeamA?.Currency?.Symbol ?? string.Empty;
         var symbolB = match.TeamB?.Currency?.Symbol ?? string.Empty;
         var ordered = rows.OrderBy(x => x.OpenTimeUtc).ToArray();
-        var firstOpen = match.StartTime.HasValue
-            ? CandleBattlesResolver.FirstOpen(new DateTimeOffset(DateTime.SpecifyKind(match.StartTime.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds())
-            : (long?)null;
-        var endMs = match.EndTime.HasValue
-            ? new DateTimeOffset(DateTime.SpecifyKind(match.EndTime.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds()
-            : (long?)null;
+        var startMs = match.StartTime.HasValue ? ToUnixMs(match.StartTime.Value) : (long?)null;
+        var endMs = match.EndTime.HasValue ? ToUnixMs(match.EndTime.Value) : (long?)null;
+        var firstRequiredMs = startMs.HasValue ? CandleBattlesResolver.FirstRequiredOpen(startMs.Value) : (long?)null;
+        var requiredRounds = startMs.HasValue ? CandleBattlesResolver.RequiredRounds(startMs.Value, endMs) : 0;
+        if (startMs.HasValue)
+        {
+            var firstUtc = FromUnixMs(firstRequiredMs!.Value);
+            var lastOpenUtc = FromUnixMs(CandleBattlesResolver.RequiredWindowClose(startMs.Value, endMs)
+                - CandleBattlesResolver.PeriodMs);
+            ordered = ordered.Where(x => x.OpenTimeUtc >= firstUtc && x.OpenTimeUtc <= lastOpenUtc).ToArray();
+        }
         var rounds = new List<CandleBattlesRoundDto>(ordered.Length);
         var rejectedRounds = 0;
         foreach (var row in ordered)
@@ -110,12 +114,13 @@ public sealed class CandleBattleSocialService : ICandleBattleSocialService
                 "Candle Battle replay unavailable. MatchId={MatchId}, PersistedRounds={PersistedRounds}, RejectedRounds={RejectedRounds}, Reason={Reason}",
                 match.MatchId, count, rejectedRounds, replayUnavailableReason);
 
-        var publicationSequenceValid = firstOpen.HasValue
+        var publicationSequenceValid = firstRequiredMs.HasValue
+            && requiredRounds > 0
             && !string.IsNullOrWhiteSpace(symbolA)
             && !string.IsNullOrWhiteSpace(symbolB)
             && rejectedRounds == 0
-            && rounds.Count == CandleBattlesResolver.ExpectedRounds
-            && rounds.Select((round, index) => round.Left.OpenTime == firstOpen.Value + index * CandleBattlesResolver.PeriodMs)
+            && rounds.Count == requiredRounds
+            && rounds.Select((round, index) => round.Left.OpenTime == firstRequiredMs.Value + index * CandleBattlesResolver.PeriodMs)
                 .All(x => x);
         var complete = publicationSequenceValid
             && state is { Complete: true, Status: "finished" };
@@ -147,7 +152,7 @@ public sealed class CandleBattleSocialService : ICandleBattleSocialService
             AssetA = BuildAsset(symbolA, rounds.Select(x => x.Left).ToArray()),
             AssetB = BuildAsset(symbolB, rounds.Select(x => x.Right).ToArray()),
             ScoreA = scoreA, ScoreB = scoreB, WinnerSymbol = winner,
-            ConfrontationCount = count, ExpectedConfrontations = CandleBattlesResolver.ExpectedRounds,
+            ConfrontationCount = count, ExpectedConfrontations = requiredRounds,
             InterestScore = interest, SelectionReasons = reasons,
             Rounds = includeRounds ? rounds : [], ReplayAvailable = replayAvailable,
             ReplayUnavailableReason = replayUnavailableReason,
@@ -316,4 +321,9 @@ public sealed class CandleBattleSocialService : ICandleBattleSocialService
         ?? _configuration["CriptoVersus:PublicBaseUrl"]
         ?? _configuration["SocialAutomation:PublicBaseUrl"]
         ?? PriceCrossoverSocialPublicUrl.DefaultPublicBaseUrl;
+
+    private static long ToUnixMs(DateTime value)
+        => new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc)).ToUnixTimeMilliseconds();
+
+    private static DateTime FromUnixMs(long value) => DateTimeOffset.FromUnixTimeMilliseconds(value).UtcDateTime;
 }

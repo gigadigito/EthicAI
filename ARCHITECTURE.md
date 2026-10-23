@@ -578,8 +578,14 @@ mutations use the existing `SocialAutomation` policy. The service reads only
 persisted `candle_battles_round` and `candle_battles_state` records and uses
 `CandleBattlesRoundProjection`, shared with `CandleBattlesController`, to normalize
 legacy winners. Its arcade score is separate from `Match.ScoreA/ScoreB`.
-Complete, contiguous 18-round battles with a finished Worker state are eligible
-for publication; incomplete or inconsistent histories remain viewable but cannot
+Battles are eligible for publication when the Worker state is `finished` and
+every confrontation due in the match's valid window is present, contiguous and
+valid: the closed five-minute intervals fully contained in `[StartTime,
+min(EndTime, scheduled eighteenth close)]`. The partial interval containing a
+mid-interval `StartTime` begins before the match existed and is never required,
+so such matches require 17 confrontations; matches starting on an interval
+boundary require up to 18. `ExpectedConfrontations` reports that window-derived
+count. Real gaps or inconsistent histories remain viewable but cannot
 be reserved. Highlight weights and selection limits are configured under
 `CandleBattleSocial`.
 

@@ -54,7 +54,13 @@ retorna `stale_reservation`; guarde o mesmo valor durante todo o fluxo. Em
 `unknown`, inclua também `reservedAtUtc`.
 
 `GET /highlight` é uma consulta pública sem reserva. O ranking exige partida
-encerrada, estado Worker `finished`, 18 confrontos contíguos e candles válidos.
+encerrada, estado Worker `finished` e todos os confrontos efetivamente
+exigíveis na janela válida da partida contíguos e com candles válidos: os
+intervalos fechados de cinco minutos integralmente contidos em `[StartTime,
+min(EndTime, décimo oitavo fechamento agendado)]`. O primeiro intervalo parcial
+de uma partida que começa no meio de um intervalo começou antes da criação
+efetiva da partida e não é exigível; nesses casos `expectedConfrontations` é 17
+e até 18 quando o início coincide com o limite do intervalo.
 Os pesos e limites ficam em `CandleBattleSocial` na configuração da API; a
 categoria usa `Platform=binance_square` e lease padrão de 900 segundos.
 
@@ -104,8 +110,10 @@ reserva para lidar com concorrência.
 ### Seleção e reserva
 
 O seletor examina partidas finalizadas dentro da janela solicitada (limitada
-por `MaxLookbackHours`, padrão 48). Exige estado Worker `finished`, 18 intervalos
-contíguos de cinco minutos, candles confirmados e válidos, símbolos coerentes
+por `MaxLookbackHours`, padrão 48). Exige estado Worker `finished`, todos os
+intervalos de cinco minutos exigíveis na janela válida da partida contíguos e
+confirmados — o primeiro intervalo parcial de um início no meio do intervalo não
+é exigível; início alinhado exige até 18 —, candles válidos, símbolos coerentes
 e vencedores consistentes com o motor. Exclui pares proibidos e limita a
 repetição do mesmo par (`MaxSamePairCandidates`, padrão 1). Ordena elegíveis
 primeiro, depois `interestScore`, data de encerramento e `matchId`. O interesse
