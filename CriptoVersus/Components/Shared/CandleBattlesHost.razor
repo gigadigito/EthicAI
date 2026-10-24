@@ -1,6 +1,6 @@
 @using CriptoVersus.Web.Services
 @using DTOs
-@inject CriptoVersusApiClient Api
+@inject ICandleBattleDataSource DataSource
 @inject DashboardHubClient Hub
 @inject LocalizationService L
 @inject IJSRuntime JS
@@ -79,6 +79,12 @@ else
     [Parameter] public string Culture { get; set; } = "en";
     [Parameter] public bool SocialCapture { get; set; }
     [Parameter] public EventCallback<string> OnFailure { get; set; }
+    /// <summary>Dev tooling: start the replay timeline paused so the panel drives every step.</summary>
+    [Parameter] public bool ManualTimeline { get; set; }
+    /// <summary>Dev tooling: pin the capture poster to one confrontation (0-based). Default is the final frame.</summary>
+    [Parameter] public int? CaptureRound { get; set; }
+    /// <summary>Dev tooling: hold a specific battle phase pose for capture.</summary>
+    [Parameter] public string? CapturePhase { get; set; }
     private ElementReference _canvas;
     private IJSObjectReference? _module;
     private IJSObjectReference? _engine;
@@ -118,10 +124,24 @@ else
         var stage = "module_import";
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261023d.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261024c.js");
             stage = "renderer_initialization";
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
-                new { mode = MatchId == 0 ? "demo" : "live", culture = Culture, labels = LabelKeys.ToDictionary(k => k, T), battleDurationMs = Math.Clamp(Config.GetValue("CandleBattles:AnimationDurationMs", 3800), 3000, 5000), crushingDifference = Math.Clamp(Config.GetValue("CandleBattles:CrushingDifference", 25), 0, 100), socialCapture = SocialCapture, shell = SocialCapture ? true : (bool?)null });
+                new
+                {
+                    mode = MatchId == 0 ? "demo" : "live",
+                    culture = Culture,
+                    labels = LabelKeys.ToDictionary(k => k, T),
+                    battleDurationMs = Math.Clamp(Config.GetValue("CandleBattles:AnimationDurationMs", 3800), 3000, 5000),
+                    crushingDifference = Math.Clamp(Config.GetValue("CandleBattles:CrushingDifference", 25), 0, 100),
+                    socialCapture = SocialCapture,
+                    shell = SocialCapture ? true : (bool?)null,
+                    autoplay = !ManualTimeline,
+                    localLogos = DataSource.GetLocalLogos(MatchId),
+                    captureTarget = CaptureRound is null && CapturePhase is null
+                        ? null
+                        : new { round = CaptureRound, phase = CapturePhase }
+                });
             if (_disposed) return;
             _failed = false; _lastFailure = null;
             if (MatchId > 0)
@@ -130,10 +150,13 @@ else
                 if (_disposed) return;
                 if (!_finished)
                 {
-                    Hub.DashboardChanged -= OnDashboardChanged;
-                    Hub.DashboardChanged += OnDashboardChanged;
+                    if (DataSource.UsesLiveNotifications)
+                    {
+                        Hub.DashboardChanged -= OnDashboardChanged;
+                        Hub.DashboardChanged += OnDashboardChanged;
+                        try { await Hub.EnsureStartedAsync(_lifetime.Token); } catch (OperationCanceledException) { } catch { _status = T("polling"); }
+                    }
                     _poll ??= PollAsync(_lifetime.Token);
-                    try { await Hub.EnsureStartedAsync(_lifetime.Token); } catch (OperationCanceledException) { } catch { _status = T("polling"); }
                 }
             }
         }
@@ -149,7 +172,9 @@ else
     private void OnDashboardChanged(string? payload) { if (!_disposed) _ = InvokeAsync(RefreshAsync); }
     private async Task PollAsync(CancellationToken ct)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+        var interval = DataSource.UpdateInterval;
+        if (interval is null) return;
+        using var timer = new PeriodicTimer(interval.Value);
         try { while (!_finished && await timer.WaitForNextTickAsync(ct)) await InvokeAsync(RefreshAsync); }
         catch (OperationCanceledException) { }
     }
@@ -164,7 +189,7 @@ else
             CandleBattlesFeedDto feed;
             do
             {
-                feed = await Api.GetCandleBattlesAsync(MatchId, _cursor, _lifetime.Token)
+                feed = await DataSource.GetFeedAsync(MatchId, _cursor, _lifetime.Token)
                     ?? throw new InvalidOperationException();
                 foreach (var round in feed.Rounds)
                     if (_rounds.All(r => r.Id != round.Id)) _rounds.Add(round);
@@ -186,6 +211,26 @@ else
         if (!_disposed) await InvokeAsync(StateHasChanged);
     }
     private Task Retry() => _engine is null ? (_initialization = InitializeAsync()) : RefreshAsync();
+    /// <summary>Dev tooling: forward one command to the shared engine (play/pause/seek/step/end/freeze/...).</summary>
+    public async Task EngineCommandAsync(string action, double? value = null)
+    {
+        if (_disposed || _engine is null) return;
+        try
+        {
+            if (value is null) await _engine.InvokeVoidAsync("command", action);
+            else await _engine.InvokeVoidAsync("command", action, value);
+        }
+        catch (JSDisconnectedException) { }
+    }
+    /// <summary>Dev tooling: engine frame/state inspection payload for the sprite panel.</summary>
+    public async Task<System.Text.Json.JsonElement?> InspectAsync()
+    {
+        if (_disposed || _engine is null) return null;
+        try { return await _engine.InvokeAsync<System.Text.Json.JsonElement?>("inspect"); }
+        catch (JSDisconnectedException) { return null; }
+    }
+    /// <summary>Dev tooling: re-read the data source and push the feed again.</summary>
+    public Task ReloadAsync() => RefreshAsync();
     private async Task ReportFailureAsync(string failure, Exception ex)
     {
         _failed = true; _status = T("error");

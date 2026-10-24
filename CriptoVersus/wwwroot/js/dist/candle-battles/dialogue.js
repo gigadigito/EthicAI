@@ -1,4 +1,4 @@
-import { CandleBattleDialogueEngine, lineDuration } from './dialogue-engine.js?v=20261023d';
+import { CandleBattleDialogueEngine, lineDuration } from './dialogue-engine.js?v=20261024c';
 export { lineDuration };
 const hash = (value) => {
     let h = 2166136261;

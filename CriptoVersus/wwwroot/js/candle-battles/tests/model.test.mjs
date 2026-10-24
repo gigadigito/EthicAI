@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase, matchWindow, roundInMatch, clockParts, nextCandleCountdown, MATCH_DURATION, PERIOD } from '../../dist/candle-battles/model.js';
-import { registerFighterAnimations } from '../../dist/candle-battles/renderer.js';
+import { readFileSync } from 'node:fs';
+import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, FinaleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase, resolveFinalePose, matchWindow, roundInMatch, clockParts, nextCandleCountdown, MATCH_DURATION, PERIOD, FINALE_PHASES, FINALE_DURATIONS, FINALE_TOTAL_MS } from '../../dist/candle-battles/model.js';
+import { registerFighterAnimations, registerFinisherAnimations, finisherFrameName, finisherAnimationKey, FINISHER_FRAME_COUNTS, FINISHER_CAPTURE_FRAMES, OVERLAY_FRAMES, OVERLAY_ANCHORS, OVERLAY_SCALES, OVERLAY_KINDS } from '../../dist/candle-battles/renderer.js';
 import { DialogueClock, dialogueLines, finalLines } from '../../dist/candle-battles/dialogue.js';
 
 test('five-minute clock joins an existing candle and resets without a confirmed round', () => {
@@ -218,4 +219,230 @@ test('pausing releases the effect voice limit and dispose clears audio resources
         audio.play('score_point'); assert.equal(clips.length,full+1);
         audio.dispose(); assert.ok(clips.every(c => c.src===''));
     } finally { audio.dispose(); globalThis.Audio=previousAudio; }
+});
+
+// ---------------------------------------------------------------------------
+// Closing cinematic: FinaleStateMachine, sprite fallback and overlays.
+// ---------------------------------------------------------------------------
+
+/** Frames that really exist in modular.png, per the packing convention. */
+const ATLAS_COUNTS = { idle: 1, run: 8, punch: 6, break: 8, recover: 3 };
+const modularFrame = (side, action, frame) => `fighter-${side}-neutral-${action}-${frame}`;
+const modularFrames = new Set(['left', 'right'].flatMap(side =>
+    Object.entries(ATLAS_COUNTS).flatMap(([action, count]) =>
+        Array.from({ length: count }, (_, i) => modularFrame(side, action, i + 1)))));
+
+test('finale timeline runs six ordered phases in about eight seconds and holds the final pose', () => {
+    assert.deepEqual([...FINALE_PHASES], ['MATCH_FINISHED', 'FINISHER_CHARGE', 'FINISHER_ATTACK', 'KNOCKOUT', 'VICTORY_CELEBRATION', 'SOCIAL_FINAL_POSE']);
+    assert.equal(FINALE_DURATIONS.length, FINALE_PHASES.length - 1);
+    assert.equal(FINALE_TOTAL_MS, 8000);
+
+    const machine = new FinaleStateMachine();
+    const seen = [];
+    machine.start(phase => seen.push(phase));
+    assert.deepEqual(seen, ['MATCH_FINISHED']);
+    assert.equal(machine.running, true);
+    assert.equal(machine.settled, false);
+
+    let elapsed = 0;
+    while (!machine.settled && elapsed < 20000) {
+        machine.advance(100, phase => seen.push(phase));
+        elapsed += 100;
+    }
+    assert.deepEqual(seen, [...FINALE_PHASES]);
+    assert.equal(machine.phase, 'SOCIAL_FINAL_POSE');
+    assert.equal(machine.settled, true);
+    assert.ok(Math.abs(elapsed - FINALE_TOTAL_MS) <= 100, `elapsed ${elapsed}`);
+
+    // SOCIAL_FINAL_POSE holds and keeps animating instead of advancing further.
+    for (let i = 0; i < 50; i++) machine.advance(100, phase => seen.push(phase));
+    assert.equal(machine.phase, 'SOCIAL_FINAL_POSE');
+    assert.deepEqual(seen, [...FINALE_PHASES]);
+});
+
+test('finale settle is deterministic and skips the wall clock for social capture', () => {
+    const walk = () => {
+        const machine = new FinaleStateMachine();
+        const seen = [];
+        machine.start(phase => seen.push(phase));
+        machine.settle(phase => seen.push(phase));
+        return { seen, phase: machine.phase, settled: machine.settled };
+    };
+    assert.deepEqual(walk(), walk());
+    assert.deepEqual(walk().seen, [...FINALE_PHASES]);
+    assert.equal(walk().settled, true);
+    // Settling twice cannot leave SOCIAL_FINAL_POSE.
+    const machine = new FinaleStateMachine();
+    const seen = [];
+    machine.start(phase => seen.push(phase));
+    machine.settle(phase => seen.push(phase));
+    machine.settle(phase => seen.push(phase));
+    assert.deepEqual(seen, [...FINALE_PHASES]);
+    // A machine that never started is a no-op.
+    const idle = new FinaleStateMachine();
+    let called = 0;
+    idle.settle(() => called++);
+    assert.equal(called, 0);
+    assert.equal(idle.running, false);
+});
+
+test('finale replay speeds stay identical and reset clears the timeline', () => {
+    const run = speed => {
+        const machine = new FinaleStateMachine();
+        const seen = [];
+        machine.start(phase => seen.push(phase));
+        for (let i = 0; i < 2000 && !machine.settled; i++) machine.advance(16 * speed, phase => seen.push(phase));
+        return seen;
+    };
+    for (const speed of [1, 2, 5, 10]) assert.deepEqual(run(speed), [...FINALE_PHASES]);
+    const machine = new FinaleStateMachine();
+    machine.start();
+    machine.advance(5000, () => {});
+    machine.reset();
+    assert.equal(machine.running, false);
+    assert.equal(machine.phase, 'MATCH_FINISHED');
+    assert.equal(machine.elapsed, 0);
+});
+
+test('finale fallback uses only frames that already exist in modular.png', () => {
+    for (const phase of FINALE_PHASES) for (const role of ['winner', 'loser', 'draw']) {
+        const without = resolveFinalePose(phase, role, false);
+        assert.equal(without.finisher, null, `${phase}/${role} must not require candle-finishers`);
+        assert.ok(Object.hasOwn(ATLAS_COUNTS, without.animation), `${phase}/${role} unknown action ${without.animation}`);
+        if (without.holdFrame != null) {
+            assert.ok(Number.isInteger(without.holdFrame) && without.holdFrame >= 1, `${phase}/${role} bad holdFrame`);
+            assert.ok(without.holdFrame <= ATLAS_COUNTS[without.animation], `${phase}/${role} holdFrame outside modular.png`);
+            assert.ok(modularFrames.has(modularFrame('left', without.animation, without.holdFrame)));
+            assert.ok(modularFrames.has(modularFrame('right', without.animation, without.holdFrame)));
+        }
+        assert.ok(without.celebration >= 0 && without.celebration <= 1);
+        assert.ok(without.defeat >= 0 && without.defeat <= 1);
+        assert.equal(without.role, role);
+    }
+});
+
+test('closing poses keep the winner celebrating and the loser in an animated defeat', () => {
+    const winner = resolveFinalePose('SOCIAL_FINAL_POSE', 'winner', false);
+    const loser = resolveFinalePose('SOCIAL_FINAL_POSE', 'loser', false);
+    assert.equal(winner.celebration, 1);
+    assert.equal(winner.defeat, 0);
+    assert.equal(winner.holdFrame, 2);
+    assert.equal(winner.animation, 'recover');
+    assert.equal(loser.defeat, 1);
+    assert.equal(loser.celebration, 0);
+    assert.equal(loser.animation, 'break');
+    // The held winner frame is the illustrated victory pose already in modular.png.
+    assert.ok(modularFrames.has(modularFrame('left', 'recover', 2)));
+    const charge = resolveFinalePose('FINISHER_CHARGE', 'winner', false);
+    assert.equal(charge.loop, true);
+    assert.equal(charge.animation, 'run');
+    const draw = resolveFinalePose('SOCIAL_FINAL_POSE', 'draw', false);
+    assert.equal(draw.celebration, draw.defeat);
+});
+
+test('finisher sequences are requested only when the optional atlas is available', () => {
+    const expected = {
+        MATCH_FINISHED: [null, null, null],
+        FINISHER_CHARGE: ['charge', 'hurt-stagger', 'charge'],
+        FINISHER_ATTACK: ['attack', 'hurt-stagger', 'attack'],
+        KNOCKOUT: ['attack', 'knockout', 'knockout'],
+        VICTORY_CELEBRATION: ['victory-loop', 'defeated-idle', 'dizzy'],
+        SOCIAL_FINAL_POSE: ['victory-loop', 'defeated-idle', 'dizzy']
+    };
+    for (const phase of FINALE_PHASES) {
+        ['winner', 'loser', 'draw'].forEach((role, index) => {
+            assert.equal(resolveFinalePose(phase, role, true).finisher, expected[phase][index], `${phase}/${role}`);
+            assert.equal(resolveFinalePose(phase, role, false).finisher, null, `${phase}/${role} fallback`);
+        });
+    }
+    for (const [action, count] of Object.entries(FINISHER_FRAME_COUNTS)) {
+        assert.ok(count >= 1);
+        assert.equal(finisherFrameName('left', action, 1), `finisher-left-${action}-1`);
+        assert.equal(finisherAnimationKey('right', action), `finisher-right-${action}`);
+    }
+});
+
+test('optional finisher atlas is a no-op when absent and registers real frames when present', () => {
+    const created = new Map();
+    const bare = {
+        textures: { exists: () => false, get: () => undefined },
+        anims: { exists: key => created.has(key), create: config => created.set(config.key, config) }
+    };
+    registerFinisherAnimations(bare, 'left');
+    assert.equal(created.size, 0);
+
+    const frames = new Set();
+    for (const side of ['left', 'right']) for (const [action, count] of Object.entries(FINISHER_FRAME_COUNTS))
+        for (let i = 1; i <= count; i++) frames.add(finisherFrameName(side, action, i));
+    const loaded = {
+        textures: {
+            exists: key => key === 'candle-finishers',
+            get: () => ({ has: name => frames.has(name) })
+        },
+        anims: { exists: key => created.has(key), create: config => created.set(config.key, config) }
+    };
+    registerFinisherAnimations(loaded, 'left');
+    assert.equal(created.size, Object.keys(FINISHER_FRAME_COUNTS).length);
+    const charge = created.get('finisher-left-charge');
+    assert.equal(charge.frameRate, 8);
+    assert.equal(charge.repeat, -1);
+    assert.deepEqual(charge.frames.map(entry => entry.frame), ['finisher-left-charge-1', 'finisher-left-charge-2', 'finisher-left-charge-3']);
+    const attack = created.get('finisher-left-attack');
+    assert.equal(attack.frameRate, 14);
+    assert.equal(attack.repeat, 0);
+    assert.equal(created.has('finisher-right-charge'), false);
+    // Registering twice cannot duplicate a key.
+    registerFinisherAnimations(loaded, 'left');
+    assert.equal(created.size, Object.keys(FINISHER_FRAME_COUNTS).length);
+});
+
+test('shipped finisher atlas matches the 55-frame Phaser contract', () => {
+    const manifestUrl = new URL('../../../games/candle-battles/assets/candle-finishers.json', import.meta.url);
+    const imageUrl = new URL('../../../games/candle-battles/assets/candle-finishers.png', import.meta.url);
+    const manifest = JSON.parse(readFileSync(manifestUrl, 'utf8'));
+    const image = readFileSync(imageUrl);
+    assert.equal(image.toString('ascii', 1, 4), 'PNG');
+    assert.equal(image.readUInt32BE(16), 1536);
+    assert.equal(image.readUInt32BE(20), 2048);
+    assert.equal(manifest.meta.format, 'RGBA8888');
+    assert.deepEqual(manifest.meta.size, { w: 1536, h: 2048 });
+
+    const expected = [
+        ...Object.values(OVERLAY_FRAMES).flat(),
+        'overlay-spark', 'overlay-dust', 'overlay-ring', 'overlay-trail',
+    ];
+    for (const side of ['left', 'right']) for (const [action, count] of Object.entries(FINISHER_FRAME_COUNTS)) {
+        assert.ok(FINISHER_CAPTURE_FRAMES[action] >= 1 && FINISHER_CAPTURE_FRAMES[action] <= count, `${action} capture frame`);
+        for (let frame = 1; frame <= count; frame++) expected.push(finisherFrameName(side, action, frame));
+    }
+    assert.equal(expected.length, 55);
+    assert.deepEqual(Object.keys(manifest.frames), expected);
+    const rectangles = new Set();
+    for (const name of expected) {
+        const entry = manifest.frames[name];
+        assert.ok(entry, name);
+        assert.deepEqual({ w: entry.frame.w, h: entry.frame.h }, { w: 200, h: 200 });
+        assert.ok(entry.frame.x >= 0 && entry.frame.y >= 0);
+        assert.ok(entry.frame.x + entry.frame.w <= 1536 && entry.frame.y + entry.frame.h <= 2048);
+        const rectangle = `${entry.frame.x},${entry.frame.y},${entry.frame.w},${entry.frame.h}`;
+        assert.equal(rectangles.has(rectangle), false, `${name} overlaps another manifest cell`);
+        rectangles.add(rectangle);
+    }
+});
+
+test('damage overlays keep the measured body anchors and never invent frames', () => {
+    assert.deepEqual([...OVERLAY_KINDS], ['bandage', 'bruise', 'star']);
+    for (const kind of OVERLAY_KINDS) {
+        assert.ok(OVERLAY_FRAMES[kind].length >= 1);
+        assert.ok(OVERLAY_FRAMES[kind].every(name => name.startsWith('overlay-')));
+        const anchor = OVERLAY_ANCHORS[kind];
+        assert.ok(Number.isFinite(anchor.x) && Number.isFinite(anchor.y));
+        // Anchors stay inside the 200x200 cell measured from modular.png:
+        // feet at y=197, head top in [82,115], speech anchor at y=32.
+        assert.ok(anchor.y < 0 && anchor.y >= -165, `${kind} anchor y ${anchor.y}`);
+        assert.ok(Math.abs(anchor.x) < 30, `${kind} anchor x ${anchor.x}`);
+        assert.ok(OVERLAY_SCALES[kind] > 0 && OVERLAY_SCALES[kind] < 1, `${kind} scale ${OVERLAY_SCALES[kind]}`);
+    }
+    assert.ok(OVERLAY_ANCHORS.star.y < OVERLAY_ANCHORS.bandage.y);
+    assert.ok(OVERLAY_ANCHORS.bandage.y < OVERLAY_ANCHORS.bruise.y);
 });

@@ -60,6 +60,16 @@ As animações consomem apenas resultados confirmados. O heartbeat atualiza o pr
 
 Cada vitória cria um ponto e um bloco quadrado. Empates não criam nenhum dos dois. A grade tem 20 colunas e 6 linhas; linhas completas ficam no histórico, contam uma vez e não concedem pontos. Cada página cheia é preservada. Território usa somente vitórias como denominador. Combo, domínio e virada são efeitos visuais e sonoros. CandleBattles:CrushingDifference ajusta a diferença de força que dispara a vitória esmagadora (padrão 25, entre 0 e 100), sem alterar pontos.
 
+## Encerramento cinematográfico
+
+`FinaleStateMachine` (`wwwroot/js/candle-battles/model.ts`) comanda a sequência de encerramento `MATCH_FINISHED → FINISHER_CHARGE → FINISHER_ATTACK → KNOCKOUT → VICTORY_CELEBRATION → SOCIAL_FINAL_POSE`. É camada de apresentação separada de `BattleStateMachine`: não lê nem escreve pontuação, candles, território, `BattleClock`, `MarketHeartbeat` ou `candle_battles_round`. As cinco primeiras fases somam 8000 ms (`FINALE_TOTAL_MS`); `SOCIAL_FINAL_POSE` fica em hold e continua animada. `settle` percorre as fases restantes sem relógio de parede, o que o pôster Social e `seekRound` usam para que o quadro capturado não dependa de tempo.
+
+`resolveFinalePose` devolve sempre um par `animation`/`holdFrame` que existe em `modular.png` (`idle`, `run`, `punch`, `break`, `recover`), então o cinematográfico inteiro é visível antes de `candle-finishers.png` existir. O vencedor mantém comemoração contínua e o perdedor uma derrota animada, por intensidades em `CandleRenderer`, não por um flag binário. `modular.png` e `modular.json` não são alterados.
+
+O loader de `candle-finishers.png`/`.json` é opcional: `loaderror` dessa chave é ignorado e seleciona o fallback; qualquer outra falha de asset continua rejeitando a prontidão. `renderer.ts` registra as sequências `finisher-{side}-{action}-{n}` e os decals `overlay-*` (bandage, bruise, star) somente quando o atlas fornece os frames; `attachOverlay` vira no-op caso contrário, sem substituir por arte genérica. Âncoras de overlay são offsets sprite-local da célula 200×200 medida (pés em y=197, topo da cabeça em [82,115], âncora de fala em y=32) e acompanham escala, inclinação e orientação. As duas equipes continuam sendo ilustrações distintas, nunca cópias espelhadas.
+
+A captura Social só congela depois que a composição definitiva existe: `freezeForCapture` settle o cinematográfico em andamento, compõe e só emite `candle-battles-capture-frozen` após um quadro renderizado. `dataset.finaleState` no host reporta a fase e vale `SOCIAL_FINAL_POSE` quando o pôster congela. Os contratos existentes (`data-capture-frame`, `data-social-ready`, `candle-battles-finished`, pinagem por `captureTarget`) permanecem iguais.
+
 ## Assets e áudio
 
 Preparação reproduzível:

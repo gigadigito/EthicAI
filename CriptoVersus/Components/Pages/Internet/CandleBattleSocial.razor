@@ -12,7 +12,7 @@
 @using System.Globalization
 @using DTOs
 @using CriptoVersus.Web.Services
-@inject CriptoVersusApiClient Api
+@inject CriptoVersus.Web.Services.ICandleBattleDataSource DataSource
 @inject AppCultureService AppCulture
 @inject LocalizationService L
 @inject RouteLocalizationService Routes
@@ -39,7 +39,8 @@
 
 @if (SocialCompact)
 {
-    <CandleBattleSocialCapture Battle="_battle" MatchId="MatchId" Culture="@Culture" Error="@_error" OnFailure="OnReplayFailureAsync" />
+    <CandleBattleSocialCapture Battle="_battle" MatchId="MatchId" Culture="@Culture" Error="@_error" OnFailure="OnReplayFailureAsync"
+                              CaptureRound="CaptureRound" CapturePhase="CapturePhase" />
 }
 else
 {
@@ -122,14 +123,20 @@ else
 
 @code {
     [Parameter] public int MatchId { get; set; }
-    [SupplyParameterFromQuery(Name = "mode")] public string? Mode { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "mode")] public string? Mode { get; set; }
+    /// <summary>Dev tooling: preview a culture other than the URL segment.</summary>
+    [Parameter] public string? CultureOverride { get; set; }
+    /// <summary>Dev tooling: pin the capture poster to one confrontation (0-based).</summary>
+    [Parameter] public int? CaptureRound { get; set; }
+    /// <summary>Dev tooling: hold a specific battle phase pose for capture.</summary>
+    [Parameter] public string? CapturePhase { get; set; }
     private CandleBattleSocialResponse? _battle;
     private string? _error;
     private CancellationTokenSource _lifetime = new();
     private IJSObjectReference? _module;
     private string? _replayFailure;
     private int _watchedMatchId;
-    private string Culture => AppCulture.NormalizeRouteCulture(Nav.ToBaseRelativePath(Nav.Uri).Split('/')[0]);
+    private string Culture => CultureOverride ?? AppCulture.NormalizeRouteCulture(Nav.ToBaseRelativePath(Nav.Uri).Split('/')[0]);
     private string CultureCode => Culture switch { "pt" => "pt-BR", "zh" => "zh-CN", "en" => "en-US", "es" => "es-ES", "fr" => "fr-FR", "de" => "de-DE", "it" => "it-IT", "ja" => "ja-JP", _ => "en-US" };
     private string T(string key, params object?[] args) => L.T($"social.candleBattle.{key}", Culture, args);
     private string Title => _battle is null ? $"{T("title")} | CriptoVersus" :
@@ -158,7 +165,7 @@ else
     protected override async Task OnParametersSetAsync()
     {
         _battle = null; _error = null; _replayFailure = null;
-        try { _battle = await Api.GetCandleBattleSocialAsync(MatchId, CultureCode, true, _lifetime.Token);
+        try { _battle = await DataSource.GetSocialAsync(MatchId, CultureCode, true, _lifetime.Token);
             if (_battle is null) _error = T("notFound"); }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception ex) { Logger.LogWarning(ex, "Candle Battle social load failed. MatchId={MatchId}", MatchId); _error = T("error"); }

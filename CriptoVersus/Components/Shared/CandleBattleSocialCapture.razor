@@ -29,7 +29,8 @@
 
         <section class="cbs-capture__stage">
             <div class="cbs-capture__arena">
-                <CandleBattlesHost @key="MatchId" MatchId="MatchId" Culture="@Culture" SocialCapture="true" OnFailure="OnFailure" />
+                <CandleBattlesHost @key="MatchId" MatchId="MatchId" Culture="@Culture" SocialCapture="true" OnFailure="OnFailure"
+                                   CaptureRound="CaptureRound" CapturePhase="CapturePhase" />
                 <div class="cbs-capture__bubbles" data-cb-capture-bubbles>
                     <div class="candle-battles__bubble candle-battles__bubble--speech cbs-capture__bubble cbs-capture__bubble--left"
                          data-cb-capture-bubble="left" style="--tail-x:74%"><span></span></div>
@@ -69,6 +70,10 @@
     [Parameter] public string Culture { get; set; } = "en";
     [Parameter] public string? Error { get; set; }
     [Parameter] public EventCallback<string> OnFailure { get; set; }
+    /// <summary>Dev tooling: pin the capture poster to one confrontation (0-based).</summary>
+    [Parameter] public int? CaptureRound { get; set; }
+    /// <summary>Dev tooling: hold a specific battle phase pose for capture.</summary>
+    [Parameter] public string? CapturePhase { get; set; }
 
     private CandleBattleSocialResponse? _battle;
 

@@ -1,6 +1,6 @@
 // Portuguese (pt-BR) dialogue catalog for Candle Battle.
 // Base phrases are authored as [id, family, category, length, tone, text].
-import { registerCatalog } from './dialogue-catalog.js?v=20261023d';
+import { registerCatalog } from './dialogue-catalog.js?v=20261024c';
 export const ptPhrases = [
     // ── Provocações gerais (100) ────────────────────────────────────────────
     ['taunt.001', 'chart', 'taunt', 'short', 'taunting', 'Essa batalha é minha, {opponent}.'],

@@ -1,0 +1,66 @@
+@page "/dev/candle-battle"
+@using CriptoVersus.Web.Services
+@inject IServiceProvider Services
+@inject IHostEnvironment Environment
+@inject CandleBattleMockOptions MockOptions
+
+<PageTitle>Candle Battle Mock Arena | CriptoVersus Dev</PageTitle>
+
+<CandleBattleDevGate>
+    <div class="cbdev-page">
+        <nav class="cbdev-page__nav">
+            <strong class="cbdev-page__badge">MOCK MODE</strong>
+            <span>Fictional match @_matchId · @_culture</span>
+        </nav>
+        <CandleBattleDevPanel Engine="_host" ActiveMatchId="_matchId" Culture="@_culture" Failure="@_failure" />
+        <CandleBattlesHost @key="_matchId" @ref="_host" MatchId="_matchId" Culture="@_culture" ManualTimeline="true" OnFailure="OnFailureAsync" />
+    </div>
+</CandleBattleDevGate>
+
+@code {
+    [SupplyParameterFromQuery(Name = "match")] public int? MatchQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "culture")] public string? CultureQuery { get; set; }
+
+    private CandleBattlesHost? _host;
+    private string? _failure;
+    private int _matchId;
+    private string _culture = "en";
+
+    protected override void OnInitialized()
+    {
+        _culture = string.IsNullOrWhiteSpace(CultureQuery) ? "en" : CultureQuery!;
+        _matchId = MatchQuery ?? ResolveDefaultMatchId();
+    }
+
+    private int ResolveDefaultMatchId()
+    {
+        if (!CandleBattleMockOptions.IsAllowed(MockOptions, Environment)) return 0;
+        var catalog = Services.GetRequiredService<CandleBattleScenarioCatalog>();
+        return catalog.FindByKey(MockOptions.Scenario)?.MatchId ?? catalog.Scenarios[0].MatchId;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // Publish the engine reference to the panel once the host exists.
+        if (firstRender) _ = InvokeAsync(StateHasChanged);
+    }
+
+    private Task OnFailureAsync(string failure)
+    {
+        _failure = failure;
+        return InvokeAsync(StateHasChanged);
+    }
+}
+
+<style>
+    .cbdev-page__nav {
+        width: min(1440px, calc(100% - 24px));
+        margin: 12px auto 0;
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        color: #8fa2b5;
+        font: 13px/1.5 system-ui, sans-serif;
+    }
+    .cbdev-page__badge { background: #c1f20f; color: #101722; padding: 2px 10px; border-radius: 999px; letter-spacing: .08em; }
+</style>

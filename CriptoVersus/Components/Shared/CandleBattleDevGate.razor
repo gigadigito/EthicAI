@@ -1,0 +1,49 @@
+@using CriptoVersus.Web.Services
+@inject IWebHostEnvironment Environment
+@inject CandleBattleMockOptions MockOptions
+
+<HeadContent><meta name="robots" content="noindex,nofollow,noarchive" /></HeadContent>
+@if (!Environment.IsDevelopment())
+{
+    <main class="cbdev-gate">
+        <h1>Not found</h1>
+        <p>This development route is not available outside the Development environment.</p>
+    </main>
+}
+else if (!CandleBattleMockOptions.IsAllowed(MockOptions, Environment))
+{
+    <main class="cbdev-gate">
+        <span class="cbdev-gate__badge">MOCK MODE</span>
+        <h1>Candle Battle mock mode is disabled</h1>
+        <p>
+            Enable it explicitly in <code>appsettings.Development.json</code> (section <code>CandleBattle:Mock</code>,
+            key <code>Enabled=true</code>) or via the environment variable
+            <code>CandleBattle__Mock__Enabled=true</code>, then restart the web app.
+        </p>
+        <p>Production always blocks this mode, even if the flag is turned on by mistake.</p>
+    </main>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
+
+<style>
+    .cbdev-gate {
+        box-sizing: border-box;
+        width: min(720px, calc(100% - 32px));
+        margin: 48px auto;
+        padding: 24px;
+        border: 1px solid #3d4b5c;
+        border-radius: 12px;
+        background: #131c27;
+        color: #d7e0ea;
+        font: 15px/1.6 system-ui, sans-serif;
+    }
+    .cbdev-gate__badge { background: #c1f20f; color: #101722; padding: 2px 10px; border-radius: 999px; letter-spacing: .08em; font-size: 12px; }
+    .cbdev-gate code { color: #c1f20f; }
+</style>

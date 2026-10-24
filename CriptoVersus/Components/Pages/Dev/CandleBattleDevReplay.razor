@@ -1,0 +1,54 @@
+@page "/dev/candle-battle/replay/{MatchId:int}"
+@using CriptoVersus.Web.Services
+@inject IHostEnvironment Environment
+
+<PageTitle>Candle Battle Mock Replay | CriptoVersus Dev</PageTitle>
+
+<CandleBattleDevGate>
+    <div class="cbdev-page">
+        <nav class="cbdev-page__nav">
+            <strong class="cbdev-page__badge">MOCK MODE</strong>
+            <span>Replay of fictional match @MatchId · @_culture</span>
+            <a href="/dev/candle-battle?match=@MatchId&culture=@_culture">back to arena</a>
+        </nav>
+        <CandleBattleDevPanel Engine="_host" ActiveMatchId="MatchId" Culture="@_culture" Failure="@_failure" />
+        <CandleBattlesHost @key="MatchId" @ref="_host" MatchId="MatchId" Culture="@_culture" ManualTimeline="true" OnFailure="OnFailureAsync" />
+    </div>
+</CandleBattleDevGate>
+
+@code {
+    [Parameter] public int MatchId { get; set; }
+    [SupplyParameterFromQuery(Name = "culture")] public string? CultureQuery { get; set; }
+
+    private CandleBattlesHost? _host;
+    private string? _failure;
+    private string _culture = "en";
+
+    protected override void OnInitialized()
+        => _culture = string.IsNullOrWhiteSpace(CultureQuery) ? "en" : CultureQuery!;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) _ = InvokeAsync(StateHasChanged);
+    }
+
+    private Task OnFailureAsync(string failure)
+    {
+        _failure = failure;
+        return InvokeAsync(StateHasChanged);
+    }
+}
+
+<style>
+    .cbdev-page__nav {
+        width: min(1440px, calc(100% - 24px));
+        margin: 12px auto 0;
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        color: #8fa2b5;
+        font: 13px/1.5 system-ui, sans-serif;
+    }
+    .cbdev-page__nav a { color: #7fd7ff; }
+    .cbdev-page__badge { background: #c1f20f; color: #101722; padding: 2px 10px; border-radius: 999px; letter-spacing: .08em; }
+</style>

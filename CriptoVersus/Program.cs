@@ -77,6 +77,25 @@ builder.Services.AddSingleton<MatchRouteRedirectResolver>();
 builder.Services.AddScoped<IMatchRouteLookupService, ApiMatchRouteLookupService>();
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
     builder.Configuration.GetSection(CriptoVersusBlockchainOptions.SectionName));
+builder.Services.Configure<CandleBattleMockOptions>(
+    builder.Configuration.GetSection(CandleBattleMockOptions.SectionName));
+
+// Candle Battle data source composition: the mock is opt-in, Development-only
+// and impossible to enable from any request. Production always gets the real
+// API-backed source, even if the configuration is wrong.
+var candleBattleMockOptions = builder.Configuration
+    .GetSection(CandleBattleMockOptions.SectionName).Get<CandleBattleMockOptions>()
+    ?? new CandleBattleMockOptions();
+if (candleBattleMockOptions.Enabled && !builder.Environment.IsDevelopment())
+    Console.WriteLine("CANDLE BATTLE MOCK ignorado: disponivel apenas em Development.");
+builder.Services.AddSingleton(candleBattleMockOptions);
+builder.Services.AddSingleton<CandleBattleScenarioCatalog>();
+builder.Services.AddScoped<MockCandleBattleDataSource>();
+builder.Services.AddScoped<RealCandleBattleDataSource>();
+builder.Services.AddScoped<ICandleBattleDataSource>(sp => CandleBattleMockOptions.IsAllowed(
+        candleBattleMockOptions, sp.GetRequiredService<IHostEnvironment>())
+    ? sp.GetRequiredService<MockCandleBattleDataSource>()
+    : sp.GetRequiredService<RealCandleBattleDataSource>());
 
 
 builder.Services.AddServerSideBlazor()
@@ -106,6 +125,21 @@ CultureInfo.DefaultThreadCurrentCulture = defaultCultureInfo;
 CultureInfo.DefaultThreadCurrentUICulture = defaultCultureInfo;
 
 var mediaContentTypeProvider = CreateMediaContentTypeProvider();
+
+// Candle Battle mock routes (/dev/candle-battle/*) are development tooling:
+// outside Development the path answers 404 before any component runs.
+if (!app.Environment.IsDevelopment())
+{
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Path.StartsWithSegments("/dev/candle-battle"))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+        await next();
+    });
+}
 
 CriptoVersusBlockchainStartupLogger.Log(
     app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("CriptoVersus.Web.Blockchain"),

@@ -569,6 +569,46 @@ The arcade host now renders the market cards, one five-minute countdown, match c
 
 `candle-battles/dialogue.ts` owns the local, eight-language comic dialogue catalog and deterministic selection by match, round and idle slot. `game.ts` advances one two-line conversation on the existing presentation clock, including Replay speed and pause, and interrupts it at combat. The HTML bubble tracks the Phaser sprite anchor through the fitted canvas and stays separate from scoring, market data, and the persisted round timeline. Final winner, loser and draw lines use the same presentation layer.
 
+### Candle Battles closing cinematic
+
+`wwwroot/js/candle-battles/model.ts` owns `FinaleStateMachine` and
+`resolveFinalePose`. The closing timeline is presentation-only and separate from
+`BattleStateMachine`: it never reads or writes score, candles, territory,
+`BattleClock`, `MarketHeartbeat` or `candle_battles_round`, so the authoritative
+arcade result cannot drift. The ordered phases are `MATCH_FINISHED`,
+`FINISHER_CHARGE`, `FINISHER_ATTACK`, `KNOCKOUT`, `VICTORY_CELEBRATION` and
+`SOCIAL_FINAL_POSE`; the first five total 8000 ms (`FINALE_TOTAL_MS`) and
+`SOCIAL_FINAL_POSE` holds and keeps animating. `FinaleStateMachine.settle` walks
+the remaining phases without wall-clock time, which is what the social poster and
+`seekRound` use so a captured frame never depends on timing.
+
+`resolveFinalePose` always returns an `animation`/`holdFrame` pair that exists in
+`modular.png` (`idle`, `run`, `punch`, `break`, `recover`), so the whole
+cinematic is visible before `candle-finishers.png` is produced. The optional
+preferred sequence is returned only when the second atlas is loaded. Winner and
+loser poses are independent roles: the winner keeps a continuous celebration and
+the loser an animated defeat, driven by `CandleRenderer` intensities rather than
+by a binary final-state flag. `modular.png` and `modular.json` are not modified.
+
+`game.ts` loads `candle-finishers.png`/`.json` optionally: a `loaderror` for that
+key is ignored and selects the fallback, while every other asset failure still
+rejects readiness. `renderer.ts` registers `finisher-{side}-{action}-{n}`
+sequences and `overlay-*` decals (bandage, bruise, star) only when the atlas
+provides the frames; `CandleRenderer.attachOverlay` degrades to a no-op
+otherwise, so no generic artwork is ever substituted. Overlay anchors are
+sprite-local offsets from the measured 200x200 cell (feet at y=197, head top in
+[82,115], speech anchor at y=32) and follow the fighter's scale, tilt and
+orientation flip. Orientation flipping still distinguishes the two characters:
+the teams are separate illustrations, never mirrored copies.
+
+Social capture composition and announcement are ordered. `freezeForCapture`
+settles an in-flight cinematic first, then composes, and only emits
+`candle-battles-capture-frozen` after a rendered frame of the definitive
+composition; `host.dataset.finaleState` reports the phase and is
+`SOCIAL_FINAL_POSE` when the poster freezes. The existing capture contracts
+(`data-capture-frame`, `data-social-ready`, `candle-battles-finished`,
+`freezeForCapture`, `captureTarget` phase pinning) are unchanged.
+
 ## Candle Battle Social Flow
 
 `CandleBattleSocialController` exposes `/api/social/candle-battle/highlight`,
@@ -593,6 +633,56 @@ be reserved. Highlight weights and selection limits are configured under
 Price Crossover and Candle Battle use separate category/idempotency keys on the
 same table and partial unique index. No new migration is needed. The API owns
 publication writes, while the Worker remains the sole writer of arcade rounds.
+
+## Candle Battle Mock Mode (Development only)
+
+The Web acquires Candle Battle presentation data through one abstraction,
+`CriptoVersus.Web.Services.ICandleBattleDataSource`, with two members for the
+existing contracts (`CandleBattlesFeedDto` and `CandleBattleSocialResponse`) plus
+presentation capabilities (`UpdateInterval`, `UsesLiveNotifications`,
+`GetLocalLogos`). `CandleBattlesHost` and `CandleBattleSocial` only know this
+interface.
+
+```text
+Browser -> CandleBattlesHost/CandleBattleSocial -> ICandleBattleDataSource
+    RealCandleBattleDataSource -> CriptoVersusApiClient -> CriptoVersus.API -> DAL
+    MockCandleBattleDataSource -> CandleBattleScenarioCatalog (mock-data JSON)
+```
+
+The composition root in `CriptoVersus/Program.cs` selects the source once:
+`CandleBattleMockOptions.IsAllowed` requires `CandleBattle:Mock:Enabled=true`
+and the `Development` environment. Production always gets the real source even
+when the flag is misconfigured, and `/dev/candle-battle/*` answers HTTP 404
+outside Development. No request, query string or hub message can enable the
+mock at runtime.
+
+Mock data is deterministic: `mock-data/candle-battles/scenarios/*.json` hold raw
+OHLCV series (20 history + 18 match candles per asset) and are compiled by
+`CandleBattleScenarioCompiler` through `BLL.NFTFutebol.CandleBattlesResolver`,
+so winners, strengths and scores always follow the production combat rules.
+`CandleBattleScenarioGenerator` is the fixed-seed (closed-form, RNG-free)
+regeneration recipe. Each scenario owns a unique fictional `MatchId` (910001+);
+the mock serves only those ids, never persists anything, never calls HTTP or
+SignalR, and returns `CanPost=false` with no publication state or public URL, so
+n8n reservations and social publishing can never fire from simulated data.
+Asset logos travel as data URIs (`GetLocalLogos`) so mock screens render without
+the external icon proxy.
+
+Replay simulation time is the engine's own `replayElapsed` clock, shared by
+combat animation, five-minute countdown and round release. Dev-only engine
+commands (`seek`, `step`, `end`, `replayRound`, `freeze`, `resume`) and the
+`autoplay`/`captureTarget`/`localLogos` options are additive with unchanged
+defaults; production controls never emit them. The shared `game.ts`/`renderer.ts`
+remain the only renderer for real and fictional matches.
+
+Dev routes `/dev/candle-battle`, `/dev/candle-battle/replay/{matchId}` and
+`/dev/candle-battle/social/{matchId}` reuse the production components
+(`CandleBattlesHost`, `CandleBattleSocial`, `CandleBattleSocialCapture`) and the
+same compiled scenario per MatchId, so Arena, Replay and Social always agree.
+`?captureRound=`/`?capturePhase=` pin the compact capture poster to one
+confrontation/frame; capture readiness keeps the existing
+`data-social-ready`/`data-capture-frame` contract and now announces only after a
+fully rendered frame. See `docs/candle-battle-mock-mode.md` for usage.
 Existing publication rows are locked during reserve, confirm and release on
 relational databases. Candle Battle mutations require the current
 `reservedAtUtc` value returned by reserve; `posted` also requires a verified

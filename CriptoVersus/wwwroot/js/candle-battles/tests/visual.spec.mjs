@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 const url='/js/candle-battles/tests/visual.html';
 
 test('arena logos follow the match, share cached textures and keep a symbol fallback',async({page})=>{
@@ -314,6 +315,29 @@ async function openCapture(page) {
   await page.setViewportSize({ width: 1280, height: 900 });
 }
 
+async function renderFinishedCapture(page, { matchId, left, right, leftSymbol = 'BTCUSDT', rightSymbol = 'ETHUSDT' }) {
+  await openCapture(page);
+  await page.evaluate(async scenario => {
+    const { demoRound, MATCH_DURATION } = await import('/js/dist/candle-battles/model.js');
+    const winners = [
+      ...Array(scenario.left).fill('left'),
+      ...Array(scenario.right).fill('right'),
+      ...Array(Math.max(0, 18 - scenario.left - scenario.right)).fill('draw')
+    ];
+    const rounds = winners.map((winner, i) => {
+      const source = demoRound(i);
+      return { ...source, matchId: scenario.matchId, id: `${scenario.matchId}:5m:${source.left.openTime}`, winner };
+    });
+    window.setCapture({ matchId: scenario.matchId, leftSymbol: scenario.leftSymbol, rightSymbol: scenario.rightSymbol,
+      scoreA: scenario.left, scoreB: scenario.right, confrontations: 18, expected: 18, finished: true, winners });
+    window.engine.receive({ matchId: scenario.matchId, leftSymbol: scenario.leftSymbol, rightSymbol: scenario.rightSymbol,
+      left: null, right: null, rounds, scoreLeft: scenario.left, scoreRight: scenario.right, status: 'finished', finished: true,
+      matchStartTime: rounds[0].left.openTime, matchEndTime: rounds[0].left.openTime + MATCH_DURATION, expectedRounds: 18 }, true);
+    await window.watchCapture();
+  }, { matchId, left, right, leftSymbol, rightSymbol });
+  await expect.poll(() => page.evaluate(card => document.querySelector(card).dataset.socialReady, captureCard), { timeout: 30000 }).toBe('true');
+}
+
 async function captureState(page) {
   return page.evaluate(card => {
     const root = document.querySelector(card);
@@ -512,4 +536,366 @@ test('compact social capture exports 1200x675 on mobile viewports too', async ({
   assertPoster(state, { total: 18, left: 3, right: 3, draw: 0, pending: 12 });
   const shot = await page.locator(captureCard).screenshot({ path: testInfo.outputPath('candle-battle-social-capture-mobile.png') });
   expect(pngSize(shot)).toEqual({ width: 1200, height: 675 });
+});
+
+const devFeed = async (page, matchId, { finished = true, rounds = 18 } = {}) => page.evaluate(async ({ matchId, finished, rounds }) => {
+  const { demoRound, PERIOD, MATCH_DURATION } = await import('/js/dist/candle-battles/model.js');
+  const list = Array.from({ length: rounds }, (_, i) => ({ ...demoRound(i), matchId, id: `${matchId}:5m:${demoRound(i).left.openTime}` }));
+  const start = list[0].left.openTime;
+  window.fixtureRounds = list;
+  window.engine.receive({
+    matchId, leftSymbol: 'BTC', rightSymbol: 'ETH', left: null, right: null, rounds: list,
+    status: finished ? 'finished' : 'live', finished,
+    matchStartTime: start, matchEndTime: finished ? start + MATCH_DURATION : null, expectedRounds: 18
+  }, true);
+  return { start, period: PERIOD, ids: list.map(r => r.id) };
+}, { matchId, finished, rounds });
+
+test('dev timeline seek/step/end rebuild state cleanly and finish the match', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');
+  await page.addStyleTag({ path: 'Components/Shared/CandleBattlesHost.razor.css' });
+  await page.waitForFunction(() => window.engine && window.ready);
+  const info = await devFeed(page, 51);
+  const timeline = await page.evaluate(({ period, ids }) => {
+    const e = window.engine;
+    e.command('seek', 5);
+    const sought = e.inspect();
+    e.update(100);
+    const seeked = { ...sought, battle: e.active?.id ?? null };
+    e.command('step', 1);
+    e.update(100);
+    const next = { battle: e.active?.id ?? null, completed: e.inspect().completedRounds };
+    e.command('step', -1);
+    e.update(100);
+    const back = { battle: e.active?.id ?? null, completed: e.inspect().completedRounds };
+    e.command('seek', 0);
+    const clean = e.inspect();
+    e.command('end');
+    const ended = e.inspect();
+    return { seeked, next, back, clean, ended, score: e.snapshot().score, expect: { sixth: ids[5], seventh: ids[6], period } };
+  }, info);
+  expect(timeline.seeked.mode).toBe('replay');
+  expect(timeline.seeked.completedRounds).toBe(5);
+  expect(timeline.seeked.replayElapsed).toBe(6 * timeline.expect.period);
+  expect(timeline.seeked.left.geometry).toBeNull();
+  expect(timeline.seeked.battle).toBe(timeline.expect.sixth);
+  expect(timeline.next.battle).toBe(timeline.expect.seventh);
+  expect(timeline.next.completed).toBe(6);
+  expect(timeline.back.battle).toBe(timeline.expect.sixth);
+  expect(timeline.back.completed).toBe(5);
+  expect(timeline.clean.completedRounds).toBe(0);
+  expect(timeline.clean.left.geometry).toBeNull();
+  expect(timeline.clean.focusRound).toBe(0);
+  expect(timeline.ended.finished).toBe(true);
+  expect(timeline.ended.terminal).toBe(true);
+  expect(timeline.ended.completedRounds).toBe(18);
+  expect(timeline.ended.left.finalState === 'winner' || timeline.ended.left.finalState === 'loser' || timeline.ended.left.finalState === 'draw').toBe(true);
+});
+
+test('dev freeze holds sprite frames for inspection and resume continues playback', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');
+  await page.addStyleTag({ path: 'Components/Shared/CandleBattlesHost.razor.css' });
+  await page.waitForFunction(() => window.engine && window.ready);
+  await devFeed(page, 52);
+  const state = await page.evaluate(() => {
+    const e = window.engine;
+    e.command('replayRound', 3);
+    e.update(100);
+    const playing = e.inspect();
+    e.command('freeze');
+    const frozen = e.inspect();
+    e.command('resume');
+    const resumed = e.inspect();
+    return { playing, frozen, resumed };
+  });
+  expect(state.playing.paused).toBe(false);
+  expect(state.playing.activeRoundId).not.toBeNull();
+  expect(state.frozen.paused).toBe(true);
+  expect(state.frozen.left.frozen).toBe(true);
+  expect(state.frozen.right.frozen).toBe(true);
+  expect(state.frozen.left.frame).toMatch(/^fighter-left-neutral-/);
+  expect(state.frozen.right.frame).toMatch(/^fighter-right-neutral-/);
+  expect(state.resumed.paused).toBe(false);
+  expect(state.resumed.left.frozen).toBe(false);
+});
+
+test('dev replayRound repeats the same confrontation without changing the score', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');
+  await page.addStyleTag({ path: 'Components/Shared/CandleBattlesHost.razor.css' });
+  await page.waitForFunction(() => window.engine && window.ready);
+  await devFeed(page, 53);
+  const runs = await page.evaluate(async () => {
+    const e = window.engine;
+    const play = () => {
+      e.command('replayRound', 3);
+      e.update(100);
+      const first = { battle: e.active?.id ?? null, winner: e.active?.winner ?? null, score: e.snapshot().score };
+      for (let i = 0; i < 50; i++) e.update(100);
+      const after = { battle: e.active?.id ?? null, score: e.snapshot().score, completed: e.inspect().completedRounds };
+      return { first, after };
+    };
+    return [play(), play()];
+  });
+  expect(runs[0].first.battle).toBe(runs[1].first.battle);
+  expect(runs[0].first.winner).toBe(runs[1].first.winner);
+  expect(runs[0].after.completed).toBe(4);
+  expect(runs[1].after.completed).toBe(4);
+  expect(runs[0].after.score).toEqual(runs[1].after.score);
+});
+
+test('captureTarget pins the compact capture to a chosen round and phase', async ({ page }, testInfo) => {
+  test.setTimeout(60000);
+  await page.goto('/js/candle-battles/tests/capture-social.html?captureRound=5&capturePhase=COLLISION');
+  await page.waitForFunction(() => window.engine && window.ready);
+  await page.evaluate(async () => {
+    const { demoRound, MATCH_DURATION } = await import('/js/dist/candle-battles/model.js');
+    const rounds = Array.from({ length: 18 }, (_, i) => ({ ...demoRound(i), matchId: 93, id: `93:5m:${demoRound(i).left.openTime}` }));
+    window.expectedScore = {
+      left: rounds.slice(0, 5).filter(r => r.winner === 'left').length,
+      right: rounds.slice(0, 5).filter(r => r.winner === 'right').length
+    };
+    window.setCapture({ matchId: 93, leftSymbol: 'BTCUSDT', rightSymbol: 'ETHUSDT',
+      scoreA: window.expectedScore.left, scoreB: window.expectedScore.right,
+      confrontations: 5, expected: 18, finished: false, winners: rounds.map(r => r.winner) });
+    window.engine.receive({ matchId: 93, leftSymbol: 'BTCUSDT', rightSymbol: 'ETHUSDT', left: null, right: null,
+      rounds, status: 'finished', finished: true,
+      matchStartTime: rounds[0].left.openTime, matchEndTime: rounds[0].left.openTime + MATCH_DURATION, expectedRounds: 18 }, true);
+    await window.watchCapture();
+  });
+  await expect.poll(() => page.evaluate(() => document.getElementById('candle-battle-social-capture').dataset.captureFrame), { timeout: 30000 }).toBe('frozen');
+  const state = await page.evaluate(() => ({
+    left: { phase: window.engine.left.posePhase, animation: window.engine.left.poseAction, frame: window.engine.left.frameName, final: window.engine.left.finalVisualState },
+    right: { phase: window.engine.right.posePhase, animation: window.engine.right.poseAction },
+    score: window.engine.snapshot().score,
+    expected: window.expectedScore
+  }));
+  expect(state.left.phase).toBe('COLLISION');
+  expect(state.left.animation).toBe('punch');
+  expect(state.left.frame).toMatch(/^fighter-left-neutral-punch-/);
+  expect(state.right.phase).toBe('COLLISION');
+  expect(state.left.final).toBe('none');
+  expect(state.score).toEqual(state.expected);
+  const shot = await page.locator('#candle-battle-social-capture').screenshot({ path: testInfo.outputPath('candle-battle-social-capture-collision.png') });
+  expect(pngSize(shot)).toEqual({ width: 1200, height: 675 });
+});
+
+test('mock local logos load without touching the team-logo route', async ({ page }) => {
+  const requested = [];
+  await page.route('**/futurebol/team-logo/*', route => { requested.push(route.request().url()); return route.fulfill({ status: 500 }); });
+  await page.goto('/js/candle-battles/tests/shell.html?autoplay=0&localLogos=1');
+  await page.addStyleTag({ path: 'Components/Shared/CandleBattlesHost.razor.css' });
+  await page.waitForFunction(() => window.engine && window.ready);
+  await page.evaluate(async () => {
+    const { demoRound, PERIOD } = await import('/js/dist/candle-battles/model.js');
+    const source = demoRound(0);
+    const aligned = source.left.openTime;
+    window.engine.receive({
+      matchId: 54, leftSymbol: 'BTCUSDT', rightSymbol: 'ETHUSDT', left: null, right: null,
+      rounds: [{ ...source, matchId: 54, id: `54:5m:${source.left.openTime}` }],
+      status: 'live', finished: false,
+      matchStartTime: aligned, expectedRounds: 18
+    }, true);
+  });
+  await expect.poll(() => page.evaluate(() => window.engine.loadingLogos.size)).toBe(0);
+  expect(requested).toHaveLength(0);
+  expect(await page.evaluate(() => window.engine.logos.get('left')?.texture.key ?? null)).not.toBeNull();
+});
+
+test('closing cinematic fallback walks all phases when the optional atlas is unavailable', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.route('**/candle-finishers.*', route => route.fulfill({ status: 404, body: '' }));
+  await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');
+  await page.addStyleTag({ path: 'Components/Shared/CandleBattlesHost.razor.css' });
+  await page.waitForFunction(() => window.engine && window.ready);
+  await devFeed(page, 55);
+  const run = await page.evaluate(() => {
+    const e = window.engine;
+    e.command('end');
+    const seen = [e.finaleSequence.phase];
+    const score = e.snapshot().score;
+    for (let i = 0; i < 120 && !e.finaleSequence.settled; i++) {
+      e.update(100);
+      if (e.finaleSequence.phase !== seen[seen.length - 1]) seen.push(e.finaleSequence.phase);
+    }
+    const winnerSide = score.left === score.right ? null : score.left > score.right ? 'left' : 'right';
+    const sample = () => {
+      const sprite = e[winnerSide ?? 'left'].root.list[2];
+      return { y: sprite.y, rotation: sprite.rotation, frame: e[winnerSide ?? 'left'].frameName, drawn: sprite.frame.name };
+    };
+    e.update(100);
+    const first = sample();
+    e.update(100);
+    const second = sample();
+    return {
+      seen,
+      phase: e.finaleSequence.phase,
+      settled: e.finaleSequence.settled,
+      running: e.finaleSequence.running,
+      dataset: e.host.dataset.finaleState,
+      winnerSide,
+      leftFinal: e.left.finalVisualState,
+      rightFinal: e.right.finalVisualState,
+      leftFrame: e.left.frameName,
+      rightFrame: e.right.frameName,
+      leftDrawn: e.left.root.list[2].frame.name,
+      rightDrawn: e.right.root.list[2].frame.name,
+      animated: first.y !== second.y || first.rotation !== second.rotation,
+      score
+    };
+  });
+  expect(run.seen).toEqual(['MATCH_FINISHED', 'FINISHER_CHARGE', 'FINISHER_ATTACK', 'KNOCKOUT', 'VICTORY_CELEBRATION', 'SOCIAL_FINAL_POSE']);
+  expect(run.phase).toBe('SOCIAL_FINAL_POSE');
+  expect(run.dataset).toBe('SOCIAL_FINAL_POSE');
+  expect(run.settled).toBe(true);
+  expect(run.running).toBe(true);
+  expect(run.score.left !== run.score.right).toBe(true);
+  expect(run.winnerSide === 'left' ? run.leftFinal : run.rightFinal).toBe('winner');
+  expect(run.winnerSide === 'left' ? run.rightFinal : run.leftFinal).toBe('loser');
+  // Fallback frames come from modular.png only: no candle-finishers asset exists.
+  expect(run.winnerSide === 'left' ? run.leftFrame : run.rightFrame).toMatch(/^fighter-(left|right)-neutral-recover-2$/);
+  expect(run.winnerSide === 'left' ? run.rightFrame : run.leftFrame).toMatch(/^fighter-(left|right)-neutral-break-1$/);
+  expect(run.winnerSide === 'left' ? run.leftDrawn : run.rightDrawn).toBe(run.winnerSide === 'left' ? run.leftFrame : run.rightFrame);
+  expect(run.winnerSide === 'left' ? run.rightDrawn : run.leftDrawn).toBe(run.winnerSide === 'left' ? run.rightFrame : run.leftFrame);
+  // The winner keeps celebrating and the loser keeps an animated defeat.
+  expect(run.animated).toBe(true);
+});
+
+test('real finisher atlas drives both sides, damage overlays and deterministic social frames', async ({ page }) => {
+  test.setTimeout(60000);
+  await renderFinishedCapture(page, { matchId: 95, left: 12, right: 2 });
+  const finale = await page.evaluate(() => {
+    const e = window.engine;
+    const fighter = side => {
+      const renderer = e[side];
+      const sprite = renderer.root.list[2];
+      return {
+        state: renderer.finalVisualState,
+        frame: renderer.frameName,
+        drawn: sprite.frame.name,
+        texture: sprite.texture.key,
+        overlays: renderer.overlayKinds,
+        scale: Math.abs(sprite.scaleX),
+        rotation: sprite.rotation
+      };
+    };
+    return {
+      left: fighter('left'), right: fighter('right'), score: e.snapshot().score,
+      phase: e.host.dataset.finaleState, intensity: Number(e.host.dataset.finaleIntensity),
+      capture: e.host.dataset.captureFrame
+    };
+  });
+  expect(finale.score).toEqual({ left: 12, right: 2 });
+  expect(finale.phase).toBe('SOCIAL_FINAL_POSE');
+  expect(finale.capture).toBe('frozen');
+  expect(finale.left).toMatchObject({
+    state: 'winner', frame: 'finisher-left-victory-loop-2', drawn: 'finisher-left-victory-loop-2',
+    texture: 'candle-finishers', overlays: [], rotation: 0
+  });
+  expect(finale.right).toMatchObject({
+    state: 'loser', frame: 'finisher-right-defeated-idle-2', drawn: 'finisher-right-defeated-idle-2',
+    texture: 'candle-finishers', overlays: ['bruise', 'star', 'bandage'], rotation: 0
+  });
+  expect(finale.left.scale).toBeCloseTo(finale.right.scale, 5);
+  expect(finale.intensity).toBeGreaterThan(1.4);
+});
+
+test('finale validation captures cover either winner and narrow or wide scores', async ({ page }, testInfo) => {
+  test.setTimeout(120000);
+  const scenarios = [
+    { matchId: 96, left: 12, right: 2, name: 'btc-12-eth-2' },
+    { matchId: 97, left: 6, right: 10, name: 'eth-winner-10-6' },
+    { matchId: 98, left: 9, right: 8, name: 'narrow-9-8' },
+    { matchId: 99, left: 17, right: 1, name: 'wide-17-1' }
+  ];
+  for (const scenario of scenarios) {
+    await renderFinishedCapture(page, scenario);
+    const result = await page.evaluate(() => ({
+      score: window.engine.snapshot().score,
+      left: window.engine.left.finalVisualState,
+      right: window.engine.right.finalVisualState,
+      leftFrame: window.engine.left.frameName,
+      rightFrame: window.engine.right.frameName
+    }));
+    expect(result.score).toEqual({ left: scenario.left, right: scenario.right });
+    expect([result.left, result.right].sort()).toEqual(['loser', 'winner']);
+    expect(`${result.leftFrame} ${result.rightFrame}`).toContain('victory-loop-2');
+    expect(`${result.leftFrame} ${result.rightFrame}`).toContain('defeated-idle-2');
+    const shot = await page.locator(captureCard).screenshot({ path: testInfo.outputPath(`${scenario.name}.png`) });
+    expect(pngSize(shot)).toEqual({ width: 1200, height: 675 });
+  }
+});
+
+test('social capture never announces a frozen frame before the final pose is composed', async ({ page }) => {
+  test.setTimeout(60000);
+  await openCapture(page);
+  await page.evaluate(async () => {
+    const { demoRound, MATCH_DURATION } = await import('/js/dist/candle-battles/model.js');
+    const rounds = Array.from({ length: 18 }, (_, i) => ({ ...demoRound(i), matchId: 94, id: `94:5m:${demoRound(i).left.openTime}` }));
+    window.finaleSamples = [];
+    window.sampler = setInterval(() => {
+      window.finaleSamples.push({
+        capture: document.querySelector('#arena').dataset.captureFrame ?? 'pending',
+        finale: window.engine.host.dataset.finaleState ?? 'none'
+      });
+    }, 10);
+    window.setCapture({ matchId: 94, leftSymbol: 'BTCUSDT', rightSymbol: 'ETHUSDT',
+      scoreA: rounds.filter(r => r.winner === 'left').length, scoreB: rounds.filter(r => r.winner === 'right').length,
+      confrontations: 18, expected: 18, finished: true, winners: rounds.map(round => round.winner) });
+    window.engine.receive({ matchId: 94, leftSymbol: 'BTCUSDT', rightSymbol: 'ETHUSDT', left: null, right: null, rounds,
+      status: 'finished', finished: true, matchStartTime: rounds[0].left.openTime,
+      matchEndTime: rounds[0].left.openTime + MATCH_DURATION, expectedRounds: 18 }, true);
+    await window.watchCapture();
+  });
+  await expect.poll(() => page.evaluate(card => document.querySelector(card).dataset.socialReady, captureCard), { timeout: 30000 }).toBe('true');
+  const state = await page.evaluate(() => {
+    clearInterval(window.sampler);
+    return {
+      samples: window.finaleSamples,
+      capture: document.querySelector('#arena').dataset.captureFrame,
+      finale: window.engine.host.dataset.finaleState,
+      settled: window.engine.finaleSequence.settled,
+      leftFinal: window.engine.left.finalVisualState,
+      rightFinal: window.engine.right.finalVisualState,
+      score: window.engine.snapshot().score
+    };
+  });
+  // Every frozen frame was announced with the definitive composition in place.
+  const frozen = state.samples.filter(sample => sample.capture === 'frozen');
+  expect(frozen.length).toBeGreaterThan(0);
+  expect(frozen.every(sample => sample.finale === 'SOCIAL_FINAL_POSE')).toBe(true);
+  expect(state.capture).toBe('frozen');
+  expect(state.finale).toBe('SOCIAL_FINAL_POSE');
+  expect(state.settled).toBe(true);
+  expect(state.leftFinal === 'winner' || state.rightFinal === 'winner').toBe(true);
+  expect(state.leftFinal === 'loser' || state.rightFinal === 'loser').toBe(true);
+  expect(state.score.left + state.score.right).toBeGreaterThan(0);
+});
+test('host module revision and finisher atlas resolve on the served runtime',async({page,baseURL})=>{
+ const host=await readFile(new URL('../../../../Components/Shared/CandleBattlesHost.razor',import.meta.url),'utf8');
+ const modulePath=host.match(/import",\s*"(\/js\/dist\/candle-battles\/game\.[^"]+)"/)?.[1];
+ expect(modulePath,'CandleBattlesHost must import a versioned game bundle').toBeTruthy();
+ const revision=modulePath.match(/game\.([0-9a-z]+)\.js$/)?.[1];
+ expect(revision,'versioned bundle name must carry a revision').toBeTruthy();
+ const response=await page.request.get(baseURL+modulePath);
+ expect(response.ok(),'host bundle must be served').toBe(true);
+ const bundle=await response.text();
+ expect(bundle).toContain('candle-finishers');
+ for(const suffix of ['png','json']) expect(bundle,`atlas ${suffix} must use the module revision`).toContain(`candle-finishers.${suffix}?v=${revision}`);
+ const specifiers=[...bundle.matchAll(/from\s+['"](\.\/[^'"]+)['"]/g)].map(match=>match[1]);
+ expect(specifiers.length,'bundle must import its runtime siblings').toBeGreaterThan(0);
+ for(const specifier of specifiers){
+  const resolved=await page.request.get(new URL(specifier,baseURL+modulePath).toString());
+  expect(resolved.ok(),`import ${specifier} must resolve`).toBe(true);
+ }
+ for(const asset of ['candle-finishers.png','candle-finishers.json']){
+  const res=await page.request.get(`${baseURL}/games/candle-battles/assets/${asset}`);
+  expect(res.ok(),`${asset} must ship in wwwroot`).toBe(true);
+ }
+ const atlas=await (await page.request.get(`${baseURL}/games/candle-battles/assets/candle-finishers.json`)).json();
+ const frames=Array.isArray(atlas.frames)?atlas.frames.map(frame=>frame.filename):Object.keys(atlas.frames??{});
+ expect(frames).toContain('finisher-left-charge-1');
+ expect(frames).toContain('finisher-right-knockout-1');
 });

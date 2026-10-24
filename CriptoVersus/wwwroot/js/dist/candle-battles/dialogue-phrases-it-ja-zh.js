@@ -1,6 +1,6 @@
 // Localized cores for Italian, Japanese and Chinese. Same stable ID space as
 // the Portuguese/English catalogs; fallback to English is atomic per exchange.
-import { registerCatalog } from './dialogue-catalog.js?v=20261023d';
+import { registerCatalog } from './dialogue-catalog.js?v=20261024c';
 export const itPhrases = [
     ['taunt.001', 'chart', 'taunt', 'short', 'taunting', 'Questa battaglia è mia, {opponent}.'],
     ['taunt.002', 'wick', 'taunt', 'short', 'sarcastic', 'La tua candela è troppo debole per me.'],

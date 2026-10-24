@@ -1,0 +1,214 @@
+@using CriptoVersus.Web.Services
+@implements IAsyncDisposable
+@inject CandleBattleScenarioCatalog Catalog
+
+<aside class="cbdev" aria-label="Candle Battle mock control panel">
+    <header class="cbdev__head">
+        <strong class="cbdev__badge">MOCK MODE</strong>
+        <span class="cbdev__note">Development tools - fictional matches never reach production, the API or social publishing.</span>
+    </header>
+
+    <section class="cbdev__block">
+        <h3>Scenarios</h3>
+        <table class="cbdev__table">
+            <thead><tr><th>Scenario</th><th>Match</th><th>Pair</th><th>State</th><th>Score</th><th>Open</th></tr></thead>
+            <tbody>
+                @foreach (var scenario in Catalog.Scenarios)
+                {
+                    <tr class="@(scenario.MatchId == ActiveMatchId ? "is-active" : null)">
+                        <td>@scenario.Key</td>
+                        <td>@scenario.MatchId</td>
+                        <td>@Base(scenario.LeftSymbol) vs @Base(scenario.RightSymbol)</td>
+                        <td>@scenario.Status@(scenario.Finished ? "" : $" ({scenario.Rounds.Count}/18)")</td>
+                        <td>@scenario.Feed.ScoreLeft : @scenario.Feed.ScoreRight</td>
+                        <td class="cbdev__links">
+                            <a href="@ArenaLink(scenario.MatchId)">arena</a>
+                            <a href="@ReplayLink(scenario.MatchId)">replay</a>
+                            <a href="@SocialLink(scenario.MatchId)">social</a>
+                            <a href="@SocialLink(scenario.MatchId, compact: true)">compact</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+
+    <section class="cbdev__block">
+        <h3>Deterministic social capture</h3>
+        <div class="cbdev__row">
+            <label>Round (0-based) <input type="number" min="0" max="17" @bind="_captureRound" /></label>
+            <label>Phase
+                <select @bind="_capturePhase">
+                    <option value="">final frame</option>
+                    @foreach (var phase in CapturePhases)
+                    {
+                        <option value="@phase">@phase</option>
+                    }
+                </select>
+            </label>
+            <a class="cbdev__button" href="@CaptureLink()">Open social compact capture</a>
+        </div>
+        <p class="cbdev__note">The capture page waits for sprites, logos, Phaser init and one fully rendered frame before signalling <code>data-capture-frame="frozen"</code>.</p>
+    </section>
+
+    @if (Engine is not null)
+    {
+        <section class="cbdev__block">
+            <h3>Playback</h3>
+            <div class="cbdev__row">
+                <button type="button" @onclick="PlayAsync">Play</button>
+                <button type="button" @onclick="PauseAsync">Pause</button>
+                <button type="button" @onclick="RestartAsync">Restart</button>
+                <button type="button" @onclick="FreezeAsync">Freeze sprites</button>
+                <button type="button" @onclick="ResumeAsync">Resume</button>
+            </div>
+            <div class="cbdev__row">
+                <button type="button" @onclick="PreviousAsync">Previous candle</button>
+                <button type="button" @onclick="NextAsync">Next candle</button>
+                <button type="button" @onclick="StartAsync">Go to start</button>
+                <button type="button" @onclick="EndAsync">Jump to final result</button>
+            </div>
+            <div class="cbdev__row">
+                <label>Replay round <input type="number" min="0" max="17" @bind="_replayRound" /></label>
+                <button type="button" @onclick="ReplayRoundAsync">Replay confrontation</button>
+                <label>Speed
+                    <select @bind="_speed">
+                        <option value="1">1x</option>
+                        <option value="2">2x</option>
+                        <option value="5">5x</option>
+                        <option value="10">10x</option>
+                    </select>
+                </label>
+                <button type="button" @onclick="ApplySpeedAsync">Apply speed</button>
+            </div>
+        </section>
+
+        <section class="cbdev__block">
+            <h3>Sprite inspector</h3>
+            <pre class="cbdev__inspect">@_inspect</pre>
+        </section>
+
+        <section class="cbdev__block">
+            <h3>Errors</h3>
+            <pre class="cbdev__inspect">@(_failure ?? "none")</pre>
+        </section>
+    }
+</aside>
+
+@code {
+    private static readonly string[] CapturePhases =
+        ["SPAWNING", "APPROACHING", "ATTACKING", "COLLISION", "DESTROYING", "VICTORY", "BLOCK_FALLING", "BLOCK_LOCKING", "ROUND_COMPLETE"];
+
+    [Parameter] public CandleBattlesHost? Engine { get; set; }
+    [Parameter] public int ActiveMatchId { get; set; }
+    [Parameter] public string Culture { get; set; } = "en";
+    [Parameter] public string? Failure { get; set; }
+
+    private string _inspect = "—";
+    private string? _failure;
+    private int _replayRound;
+    private int _captureRound;
+    private string _capturePhase = "";
+    private int _speed = 1;
+    private readonly CancellationTokenSource _lifetime = new();
+    private Task? _watch;
+
+    protected override void OnInitialized()
+    {
+        _failure = Failure;
+        _watch = WatchInspectorAsync(_lifetime.Token);
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Failure is not null) _failure = Failure;
+    }
+
+    private async Task WatchInspectorAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(700));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                if (Engine is null) continue;
+                var payload = await Engine.InspectAsync();
+                if (payload is null) continue;
+                _inspect = payload.Value.GetRawText();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private Task SendAsync(string action, double? value = null)
+        => Engine is null ? Task.CompletedTask : Engine.EngineCommandAsync(action, value);
+
+    private Task PlayAsync() => SendAsync("start");
+    private Task PauseAsync() => SendAsync("pause");
+    private Task RestartAsync() => SendAsync("replay");
+    private Task FreezeAsync() => SendAsync("freeze");
+    private Task ResumeAsync() => SendAsync("resume");
+    private Task PreviousAsync() => SendAsync("step", -1);
+    private Task NextAsync() => SendAsync("step", 1);
+    private Task StartAsync() => SendAsync("seek", 0);
+    private Task EndAsync() => SendAsync("end");
+    private Task ReplayRoundAsync() => SendAsync("replayRound", _replayRound);
+    private Task ApplySpeedAsync() => SendAsync("speed", _speed);
+
+    private static string Base(string symbol)
+        => symbol.EndsWith("USDT", StringComparison.OrdinalIgnoreCase) ? symbol[..^4] : symbol;
+
+    private string ArenaLink(int matchId) => $"/dev/candle-battle?match={matchId}&culture={Culture}";
+    private string ReplayLink(int matchId) => $"/dev/candle-battle/replay/{matchId}?culture={Culture}";
+    private string SocialLink(int matchId, bool compact = false)
+        => $"/dev/candle-battle/social/{matchId}?culture={Culture}{(compact ? "&mode=socialCompact" : "")}";
+
+    private string CaptureLink()
+    {
+        var phase = string.IsNullOrWhiteSpace(_capturePhase) ? "" : $"&capturePhase={_capturePhase}";
+        return $"/dev/candle-battle/social/{ActiveMatchId}?culture={Culture}&mode=socialCompact&captureRound={_captureRound}{phase}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _lifetime.Cancel();
+        if (_watch is not null) { try { await _watch; } catch (OperationCanceledException) { } }
+        _lifetime.Dispose();
+    }
+}
+
+<style>
+    .cbdev {
+        box-sizing: border-box;
+        margin: 12px auto;
+        width: min(1440px, calc(100% - 24px));
+        padding: 14px 16px;
+        border: 1px solid #3d4b5c;
+        border-radius: 10px;
+        background: #131c27;
+        color: #d7e0ea;
+        font: 13px/1.5 system-ui, sans-serif;
+    }
+    .cbdev__head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+    .cbdev__badge { background: #c1f20f; color: #101722; padding: 2px 10px; border-radius: 999px; letter-spacing: .08em; }
+    .cbdev__note { color: #8fa2b5; }
+    .cbdev__block { margin-top: 14px; border-top: 1px solid #2a3646; padding-top: 10px; }
+    .cbdev__block h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: #9fb2c6; }
+    .cbdev__table { width: 100%; border-collapse: collapse; }
+    .cbdev__table th, .cbdev__table td { text-align: left; padding: 4px 8px; border-bottom: 1px solid #243040; }
+    .cbdev__table tr.is-active td { background: #1d2b3a; }
+    .cbdev__links a { margin-right: 8px; color: #7fd7ff; }
+    .cbdev__row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+    .cbdev__row button, .cbdev__button {
+        background: #223142; color: #e7eef6; border: 1px solid #3b4c60; border-radius: 6px;
+        padding: 5px 10px; cursor: pointer; text-decoration: none; font: inherit;
+    }
+    .cbdev__row button:hover, .cbdev__button:hover { background: #2c4056; }
+    .cbdev__row input, .cbdev__row select { background: #0f1722; color: #e7eef6; border: 1px solid #3b4c60; border-radius: 6px; padding: 3px 6px; }
+    .cbdev__inspect {
+        margin: 0; padding: 8px; background: #0c131c; border-radius: 6px; max-height: 220px;
+        overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 11px;
+    }
+    .cbdev code { color: #c1f20f; }
+</style>

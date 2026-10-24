@@ -272,6 +272,137 @@ export function fighterAnimationForPhase(phase: Phase): FighterAnimation {
     if (phase === "VICTORY" || phase === "ROUND_COMPLETE") return "recover";
     return "idle";
 }
+
+/** Outcome role of a fighter once the match is over. Presentation only. */
+export type FinalRole = "winner" | "loser" | "draw";
+
+/** Closing cinematic. Ordered; the last phase holds and keeps animating. */
+export const FINALE_PHASES = ["MATCH_FINISHED", "FINISHER_CHARGE", "FINISHER_ATTACK", "KNOCKOUT", "VICTORY_CELEBRATION", "SOCIAL_FINAL_POSE"] as const;
+export type FinalePhase = typeof FINALE_PHASES[number];
+
+/** Optional candle-finishers.png sequences. Absent assets degrade to modular.png. */
+export type FinisherAnimation = "charge" | "attack" | "hurt-stagger" | "knockout" | "defeated-idle" | "victory-loop" | "dizzy";
+
+/** SOCIAL_FINAL_POSE holds, so it has no duration of its own. */
+export const FINALE_DURATIONS = [600, 1700, 1100, 1600, 3000] as const;
+export const FINALE_TOTAL_MS = FINALE_DURATIONS.reduce((total, value) => total + value, 0);
+
+export interface ResolvedFinalePose {
+    role: FinalRole;
+    /** Sequence guaranteed to exist in modular.png. */
+    animation: FighterAnimation;
+    /** 1-based modular frame held while the pose is displayed; null lets the sequence play. */
+    holdFrame: number | null;
+    /** True when the sequence keeps repeating until the next phase. */
+    loop: boolean;
+    /** Preferred candle-finishers sequence, or null when the atlas is unavailable. */
+    finisher: FinisherAnimation | null;
+    /** Continuous winner celebration intensity in [0,1]. */
+    celebration: number;
+    /** Animated defeat intensity in [0,1]. */
+    defeat: number;
+}
+
+/**
+ * Selects the closing pose for one fighter. Every `animation` and `holdFrame`
+ * combination resolves to frames that already exist in modular.png, so the
+ * cinematic is fully visible before candle-finishers.png is produced.
+ */
+export function resolveFinalePose(phase: FinalePhase, role: FinalRole, finishers: boolean): ResolvedFinalePose {
+    const pick = (finisher: FinisherAnimation): FinisherAnimation | null => finishers ? finisher : null;
+    const winner = role === "winner", loser = role === "loser";
+    switch (phase) {
+        case "MATCH_FINISHED":
+            return { role, animation: "idle", holdFrame: 1, loop: true, finisher: null,
+                celebration: winner ? .15 : 0, defeat: loser ? .15 : 0 };
+        case "FINISHER_CHARGE":
+            return winner
+                ? { role, animation: "run", holdFrame: null, loop: true, finisher: pick("charge"), celebration: .35, defeat: 0 }
+                : loser
+                    ? { role, animation: "break", holdFrame: 1, loop: false, finisher: pick("hurt-stagger"), celebration: 0, defeat: .4 }
+                    : { role, animation: "run", holdFrame: null, loop: true, finisher: pick("charge"), celebration: .15, defeat: .15 };
+        case "FINISHER_ATTACK":
+            return winner
+                ? { role, animation: "punch", holdFrame: null, loop: false, finisher: pick("attack"), celebration: .55, defeat: 0 }
+                : loser
+                    ? { role, animation: "break", holdFrame: 1, loop: false, finisher: pick("hurt-stagger"), celebration: 0, defeat: .6 }
+                    : { role, animation: "punch", holdFrame: null, loop: false, finisher: pick("attack"), celebration: .2, defeat: .2 };
+        case "KNOCKOUT":
+            return winner
+                ? { role, animation: "punch", holdFrame: 4, loop: false, finisher: pick("attack"), celebration: .75, defeat: 0 }
+                : loser
+                    ? { role, animation: "break", holdFrame: 1, loop: false, finisher: pick("knockout"), celebration: 0, defeat: 1 }
+                    : { role, animation: "break", holdFrame: 1, loop: false, finisher: pick("knockout"), celebration: .15, defeat: .15 };
+        case "VICTORY_CELEBRATION":
+            return winner
+                ? { role, animation: "recover", holdFrame: 2, loop: true, finisher: pick("victory-loop"), celebration: 1, defeat: 0 }
+                : loser
+                    ? { role, animation: "break", holdFrame: 1, loop: true, finisher: pick("defeated-idle"), celebration: 0, defeat: 1 }
+                    : { role, animation: "idle", holdFrame: 1, loop: true, finisher: pick("dizzy"), celebration: .35, defeat: .35 };
+        case "SOCIAL_FINAL_POSE":
+        default:
+            return winner
+                ? { role, animation: "recover", holdFrame: 2, loop: true, finisher: pick("victory-loop"), celebration: 1, defeat: 0 }
+                : loser
+                    ? { role, animation: "break", holdFrame: 1, loop: true, finisher: pick("defeated-idle"), celebration: 0, defeat: 1 }
+                    : { role, animation: "idle", holdFrame: 1, loop: true, finisher: pick("dizzy"), celebration: .35, defeat: .35 };
+    }
+}
+
+/**
+ * Presentation-only closing timeline. It never reads or writes score, candles,
+ * territory or rounds, so the authoritative result cannot drift.
+ */
+export class FinaleStateMachine {
+    phase: FinalePhase = "MATCH_FINISHED";
+    elapsed = 0;
+    private index = 0;
+    private active = false;
+    readonly durationMs: number;
+    constructor(durationMs = FINALE_TOTAL_MS) {
+        this.durationMs = Number.isFinite(durationMs) ? Math.max(2000, Math.min(20000, durationMs)) : FINALE_TOTAL_MS;
+    }
+    get running(): boolean { return this.active; }
+    /** True once SOCIAL_FINAL_POSE is reached; that phase holds and keeps animating. */
+    get settled(): boolean { return this.active && this.index >= FINALE_PHASES.length - 1; }
+    get progress(): number {
+        if (!this.active) return 0;
+        if (this.index >= FINALE_DURATIONS.length) return 1;
+        return Math.min(1, this.elapsed / this.scaled(this.index));
+    }
+    /** Enters MATCH_FINISHED. The caller applies the first pose from `enter`. */
+    start(enter?: (phase: FinalePhase) => void): void {
+        this.active = true; this.index = 0; this.elapsed = 0; this.phase = FINALE_PHASES[0];
+        enter?.(this.phase);
+    }
+    advance(delta: number, enter: (phase: FinalePhase) => void): void {
+        if (!this.active || this.index >= FINALE_DURATIONS.length) return;
+        this.elapsed += Math.max(0, delta);
+        while (this.active && this.index < FINALE_DURATIONS.length && this.elapsed >= this.scaled(this.index)) {
+            this.elapsed -= this.scaled(this.index);
+            this.index++;
+            this.phase = FINALE_PHASES[this.index];
+            enter(this.phase);
+        }
+    }
+    /**
+     * Deterministically walks the remaining phases and stops on SOCIAL_FINAL_POSE.
+     * Used by social capture and seeks so the final composition never depends on
+     * wall-clock timing.
+     */
+    settle(enter: (phase: FinalePhase) => void): void {
+        if (!this.active) return;
+        this.elapsed = 0;
+        while (this.index < FINALE_DURATIONS.length) {
+            this.index++;
+            this.phase = FINALE_PHASES[this.index];
+            enter(this.phase);
+        }
+    }
+    reset(): void { this.active = false; this.index = 0; this.elapsed = 0; this.phase = "MATCH_FINISHED"; }
+    private scaled(index: number): number { return FINALE_DURATIONS[index] * this.durationMs / FINALE_TOTAL_MS; }
+}
+
 const DURATIONS = [350, 650, 350, 180, 600, 550, 800, 220, 100];
 export class BattleStateMachine {
     phase: Phase = "WAITING_MARKET";

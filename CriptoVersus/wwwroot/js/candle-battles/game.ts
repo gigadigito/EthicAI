@@ -1,12 +1,13 @@
 import type PhaserTypes from 'phaser';
-import { Candle, Round, Side, Phase, MarketHeartbeat, BattleClock, BattleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame } from './model.js';
-import { CandleRenderer } from './renderer.js';
+import { Candle, Round, Side, Phase, FinalePhase, FinalRole, MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, resolveFinalePose, FINALE_PHASES } from './model.js';
+import { CandleRenderer, OverlayKind, registerFinisherAnimations } from './renderer.js';
 import { AudioManager } from './audio.js';
 import { DialogueClock, Line, lineDuration } from './dialogue.js';
 import { CandleBattleDialogueEngine } from './dialogue-engine.js';
 
 export interface Feed { matchId: number; leftSymbol: string; rightSymbol: string; left: Candle | null; right: Candle | null; rounds: Round[]; status: string; finished: boolean; matchStartTime?: number | null; matchEndTime?: number | null; expectedRounds?: number; serverTime?: number | null; scoreLeft?: number; scoreRight?: number; }
-export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; socialCapture?: boolean; shell?: boolean; }
+export interface CaptureTarget { round?: number; phase?: string; }
+export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; socialCapture?: boolean; shell?: boolean; autoplay?: boolean; localLogos?: Record<string,string>; captureTarget?: CaptureTarget; }
 const displaySymbol = (symbol: string): string => symbol.replace(/USDT$/i, '');
 export async function create(host: HTMLElement, options: Options): Promise<GameEngine> {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -67,6 +68,7 @@ export class GameEngine {
     private demoElapsed = 0;
     private replayIndex = 0;
     private replayElapsed = 0;
+    private focusRound = -1;
     private autoplayInitialized = false;
     private catchUpReplay = false;
     private completedRounds = 0;
@@ -88,6 +90,10 @@ export class GameEngine {
     private currentLine?: Line;
     private finale?: Line[];
     private finaleElapsed = 0;
+    /** Closing cinematic. Presentation-only: never touches score, candles or rounds. */
+    private readonly finaleSequence = new FinaleStateMachine();
+    private finaleRoles: Record<Side, FinalRole> = { left: 'draw', right: 'draw' };
+    private finaleIntensity = 1;
     constructor(private host: HTMLElement, private options: Options, Phaser: typeof PhaserTypes) {
         this.mode = options.mode;
         this.state = new BattleStateMachine(options.battleDurationMs);
@@ -106,9 +112,18 @@ export class GameEngine {
         class BattleScene extends Phaser.Scene {
             constructor() { super('CandleBattles'); }
             preload(): void {
-                this.load.on('loaderror',(file: PhaserTypes.Loader.File)=>owner.readyReject(
-                    new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`)));
+                this.load.on('loaderror',(file: PhaserTypes.Loader.File)=>{
+                    // candle-finishers is optional: its absence only selects the
+                    // modular.png fallback. Every other asset failure is fatal.
+                    if (String(file?.key) === 'candle-finishers') {
+                        console.warn(`Candle Battles: optional finisher atlas unavailable (${String(file.src)}); keeping modular.png fallback.`);
+                        return;
+                    }
+                    owner.readyReject(
+                    new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
+                });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261024c', '/games/candle-battles/assets/candle-finishers.json?v=20261024c');
             }
             create(): void { owner.setup(this); }
             update(_time: number, delta: number): void { owner.update(delta); }
@@ -235,7 +250,7 @@ export class GameEngine {
     }
     receive(feed: Feed, reconcile = false): void {
         if (this.disposed || this.captureFrozen) return;
-        if (this.feed && this.feed.matchId !== feed.matchId) { this.history=[]; this.market.clear(); this.clock.clear(); this.territory.reset(); this.active=undefined; this.combatElapsed=0; this.state.reset(); this.autoplayInitialized=false; this.catchUpReplay=false; this.terminal=false; this.clearDialogue(); }
+        if (this.feed && this.feed.matchId !== feed.matchId) { this.history=[]; this.market.clear(); this.clock.clear(); this.territory.reset(); this.active=undefined; this.combatElapsed=0; this.state.reset(); this.autoplayInitialized=false; this.catchUpReplay=false; this.terminal=false; this.resetFinale(); this.clearDialogue(); }
         this.feed = feed; this.pendingReconcile ||= reconcile;
         if (feed.serverTime != null && Number.isFinite(feed.serverTime)) { this.serverAnchorMs=feed.serverTime; this.serverReceivedAt=performance.now(); }
         if (!this.scene) return;
@@ -250,9 +265,10 @@ export class GameEngine {
         if (!this.autoplayInitialized && feed.matchStartTime != null) {
             this.autoplayInitialized=true;
             if (this.history.length) {
-                this.catchUpReplay=true;
+                this.catchUpReplay=this.options.autoplay!==false;
                 this.replayHistory=this.history.map(r=>({...r,left:{...r.left},right:{...r.right}}));
-                this.mode='replay'; this.setSpeed(5); this.restart();
+                this.mode='replay'; this.setSpeed(this.options.autoplay===false?1:5); this.restart();
+                if(this.options.autoplay===false){ this.started=false; this.paused=true; this.host.dataset.paused='true'; }
             } else {
                 this.mode='live'; this.started=true; this.reconcile();
             }
@@ -276,7 +292,8 @@ export class GameEngine {
     }
     // Social capture mounts one poster frame directly: the persisted history is
     // applied without cinematics and the fighters hold their final pose, so the
-    // capture never runs the replay timeline.
+    // capture never runs the replay timeline. A captureTarget may pin a specific
+    // confrontation/phase for frame-accurate deterministic screenshots.
     private mountCapturePoster(): void {
         this.clearDialogue();
         this.autoplayInitialized=true;
@@ -290,24 +307,37 @@ export class GameEngine {
         this.state.reset();
         this.completedRounds=0;
         this.updateMarket();
-        for (const r of this.history) { this.territory.apply(r); this.clock.enqueue(r); }
+        const rounds=this.history;
+        const target=this.options.captureTarget;
+        const total=rounds.length;
+        const focus=total===0?null:Math.max(0,Math.min(total-1,Math.round(target?.round??total-1)));
+        const phase=target?.phase??null;
+        const midBattle=phase!==null && ['SPAWNING','APPROACHING','ATTACKING','COLLISION','DESTROYING'].includes(phase);
+        const applyCount=focus==null?0:focus+(midBattle?0:1);
+        for (const r of rounds.slice(0,applyCount)) { this.territory.apply(r); this.clock.enqueue(r); }
         while (this.clock.next()) { /* deduplication baseline only, no cinematics */ }
-        this.completedRounds=this.history.length;
+        this.completedRounds=applyCount;
         this.left?.root.setPosition(330,this.shell?185:260);
         this.right?.root.setPosition(950,this.shell?185:260);
         this.left?.resetPresentation(); this.right?.resetPresentation();
-        const last=this.history[this.history.length-1];
-        if (last) {
-            const range=sharedRange([last.left,last.right]);
-            this.left?.setCandle(last.left,range,true);
-            this.right?.setCandle(last.right,range,true);
+        const focused=focus==null?undefined:rounds[focus];
+        if (focused) {
+            const range=sharedRange([focused.left,focused.right]);
+            this.left?.setCandle(focused.left,range,true);
+            this.right?.setCandle(focused.right,range,true);
+            if (phase) {
+                const asPhase=phase as Phase;
+                this.left?.setPose(asPhase, focused.winner==='left', focused.winner==='draw');
+                this.right?.setPose(asPhase, focused.winner==='right', focused.winner==='draw');
+            }
         }
         // Asset logos load asynchronously: hold the poster until the textures
         // settle so the captured frame never shows a placeholder.
         const settle=():void=>{
             if(this.disposed || this.captureFrozen) return;
             if(this.loadingLogos.size>0) { this.scene?.load.once('complete',settle); return; }
-            if(this.feed?.finished) this.finish();
+            if (phase) this.freezeForCapture(true);
+            else if(this.feed?.finished) this.finish();
             else this.freezeForCapture();
         };
         settle();
@@ -325,6 +355,9 @@ export class GameEngine {
         this.drawTerritory(); this.updateMarket();
         this.completedRounds=this.history.length;
         if(this.feed?.finished)this.finish();
+        // Rebuilds clear every pose, so an already-decided match settles the
+        // cinematic again to restore the definitive composition.
+        if(this.terminal) this.finaleSequence.settle(phase=>this.enterFinale(phase));
         this.updateDashboard(true);
     }
     private updateMarket(): void {
@@ -359,6 +392,14 @@ export class GameEngine {
         if(action==='restart') this.restart();
         if(action==='history') this.showAllHistory=!this.showAllHistory;
         if(action==='socialFreeze') this.freezeForCapture();
+        // Timeline inspection commands (dev tooling). They only move the
+        // replay simulation clock; production controls never emit them.
+        if(action==='seek' && Number.isFinite(value)) this.seekRound(Number(value));
+        if(action==='step' && Number.isFinite(value)) this.seekRound(this.focusRound + (Number(value) < 0 ? -1 : 1));
+        if(action==='replayRound' && Number.isFinite(value)) { this.seekRound(Number(value)); this.started=true; this.paused=false; this.audio.unlock(); this.audio.loop('arena'); }
+        if(action==='end') this.seekRound(this.replaySourceRounds().length);
+        if(action==='freeze') this.devFreeze();
+        if(action==='resume') this.devResume();
         this.host.dataset.paused=String(this.paused); this.host.dataset.mode=this.mode;
         this.hud.get('mode')?.setText(this.mode.toUpperCase()+' · 5M');
         this.controls.querySelector('[data-cb-action="pause"]')?.setAttribute('aria-pressed',String(this.paused));
@@ -374,7 +415,8 @@ export class GameEngine {
         this.clearDialogue();
         delete this.host.dataset.finished;
         this.active=undefined; this.combatElapsed=0; this.clock.clear(); this.territory.reset(); this.state.reset(); this.market.clear(); this.completedRounds=0; this.replayElapsed=0; this.terminal=false;
-        this.tile?.destroy(); this.tile=undefined; this.dropTarget=undefined; this.demoIndex=0; this.demoElapsed=0; this.replayIndex=0;
+        this.resetFinale();
+        this.tile?.destroy(); this.tile=undefined; this.dropTarget=undefined; this.demoIndex=0; this.demoElapsed=0; this.replayIndex=0; this.focusRound=-1;
         for(const effect of this.effects)effect.image.destroy(); this.effects=[]; this.flash=0; this.lineFlash?.clear();
         this.left?.resetPresentation(); this.right?.resetPresentation();
         this.left?.root.setPosition(330,this.shell?185:260); this.right?.root.setPosition(950,this.shell?185:260);
@@ -382,6 +424,107 @@ export class GameEngine {
         if(this.mode==='live') this.reconcile();
         if(this.mode==='demo') this.history=[];
         this.updateClocks();
+    }
+    private replaySourceRounds(): Round[] {
+        return [...this.history].sort((a,b)=>a.left.openTime-b.left.openTime);
+    }
+    /**
+     * Seek the replay simulation to a confrontation boundary. Rounds before the
+     * target are applied instantly (no cinematics), every transient visual is
+     * cleared first, and the shared simulation clock lands on the close of the
+     * target candle so the requested confrontation plays on the next tick.
+     */
+    seekRound(index: number): void {
+        if (this.disposed || this.options.socialCapture) return;
+        const all = this.replaySourceRounds();
+        const total = all.length;
+        const n = Math.max(0, Math.min(Math.round(index), total));
+        this.clearDialogue();
+        this.active = undefined; this.combatElapsed = 0;
+        this.clock.clear(); this.territory.reset(); this.state.reset(); this.market.clear();
+        this.tile?.destroy(); this.tile = undefined; this.dropTarget = undefined;
+        for (const effect of this.effects) effect.image.destroy(); this.effects = [];
+        this.flash = 0; this.lineFlash?.clear();
+        this.left?.clearCandle(); this.right?.clearCandle();
+        this.left?.resetPresentation(); this.right?.resetPresentation();
+        this.left?.root.setPosition(330, this.shell ? 185 : 260); this.right?.root.setPosition(950, this.shell ? 185 : 260);
+        this.left?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+        this.right?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+        this.mode = 'replay';
+        this.autoplayInitialized = true;
+        this.catchUpReplay = false;
+        this.terminal = false;
+        this.resetFinale();
+        delete this.host.dataset.finished;
+        this.replayHistory = all.map(r => ({ ...r, left: { ...r.left }, right: { ...r.right } }));
+        this.replayIndex = n;
+        for (const round of all.slice(0, n)) this.territory.apply(round);
+        this.completedRounds = n;
+        this.focusRound = Math.min(n, Math.max(0, total - 1));
+        this.replayElapsed = total > 0 && n >= total ? this.matchLimit()
+            : Math.min(this.matchLimit(), (n + 1) * PERIOD);
+        this.started = true;
+        this.paused = false;
+        this.hud.get('result')?.setText('');
+        this.drawTerritory();
+        this.updateClocks();
+        this.updateDashboard(true);
+        this.host.dataset.mode = this.mode;
+        this.hud.get('mode')?.setText(this.mode.toUpperCase()+' · 5M');
+        if (total > 0 && n >= total && this.feed?.finished) this.finish();
+    }
+    /** Freeze fighters mid-pose so sprites/frames can be inspected. */
+    private devFreeze(): void {
+        if (this.disposed) return;
+        this.paused = true; this.audio.pause();
+        this.left?.freezePose(); this.right?.freezePose();
+        this.host.dataset.paused = 'true';
+        this.updateDashboard(true);
+    }
+    private devResume(): void {
+        if (this.disposed) return;
+        this.paused = false;
+        this.left?.releaseFrame(); this.right?.releaseFrame();
+        if (this.started && !this.terminal) this.audio.loop('arena');
+        this.host.dataset.paused = 'false';
+        this.updateDashboard(true);
+    }
+    /** Frame/state inspection payload for the development panel. */
+    inspect(): object {
+        const fighter = (renderer?: CandleRenderer): object | null => renderer ? {
+            animation: renderer.poseAction,
+            direction: renderer.poseDirection,
+            phase: renderer.posePhase,
+            frame: renderer.frameName,
+            frozen: renderer.isFrozen,
+            finalState: renderer.finalVisualState,
+            overlays: renderer.overlayKinds,
+            x: renderer.root.x,
+            y: renderer.root.y,
+            geometry: renderer.geometry ?? null
+        } : null;
+        return {
+            mode: this.mode,
+            paused: this.paused,
+            started: this.started,
+            speed: this.speed,
+            terminal: this.terminal,
+            finished: this.host.dataset.finished === 'true',
+            phase: this.state.phase,
+            progress: this.state.progress,
+            finalePhase: this.finaleSequence.phase,
+            finaleRunning: this.finaleSequence.running,
+            finaleSettled: this.finaleSequence.settled,
+            completedRounds: this.completedRounds,
+            focusRound: this.focusRound,
+            replayIndex: this.replayIndex,
+            replayElapsed: this.replayElapsed,
+            activeRoundId: this.active?.id ?? null,
+            captureFrame: this.host.dataset.captureFrame ?? 'none',
+            totalRounds: this.replaySourceRounds().length,
+            left: fighter(this.left),
+            right: fighter(this.right)
+        };
     }
     private showDemoForming(fraction:number): void {
         const r=demoRound(this.demoIndex);
@@ -419,6 +562,8 @@ export class GameEngine {
         }
         if(this.active) this.state.advance(battleDt,p=>this.enter(p));
         const p=this.state.progress;
+        // Closing cinematic runs after the last round and never touches score.
+        if(this.finaleSequence.running) this.finaleSequence.advance(battleDt,phase=>this.enterFinale(phase));
         if (this.active) {
             this.combatElapsed += battleDt;
             const frame = combatFrame(this.active.left, this.active.right, this.active.leftStrength, this.active.rightStrength,
@@ -458,7 +603,9 @@ export class GameEngine {
             }
         }
         if(this.mode==='replay' && !this.active && this.replayElapsed>=this.matchLimit() && this.replayIndex>=this.replayHistory.length) this.finish();
-        if(this.mode==='live' && this.feed?.finished && !this.active && this.clock.count===0) this.finish();
+        // Capture mode always settles through mountCapturePoster so a pinned
+        // captureTarget phase is never overwritten by the live finish path.
+        if(this.mode==='live' && !this.options.socialCapture && this.feed?.finished && !this.active && this.clock.count===0) this.finish();
         this.maybeFreezeForCapture();
     }
     private matchLimit(): number {
@@ -494,13 +641,17 @@ export class GameEngine {
         const incomplete=this.feed.status==='incomplete' || this.feed.status!=='finished';
         const left=this.feed.scoreLeft??this.territory.score.left,right=this.feed.scoreRight??this.territory.score.right;
         const winner=left===right?this.text('draw','DRAW'):displaySymbol(left>right?this.feed.leftSymbol:this.feed.rightSymbol);
-        if (!incomplete && left !== right) {
-            const winningSide: Side = left > right ? 'left' : 'right';
-            const losingSide: Side = winningSide === 'left' ? 'right' : 'left';
+        const decisive=!incomplete && left!==right;
+        const winningSide: Side = left > right ? 'left' : 'right';
+        const losingSide: Side = winningSide === 'left' ? 'right' : 'left';
+        const scoredRounds = Math.max(1, left + right);
+        this.finaleIntensity = decisive ? 1 + Math.min(1, Math.abs(left - right) / scoredRounds) * .7 : 1;
+        this.host.dataset.finaleIntensity = this.finaleIntensity.toFixed(2);
+        if (decisive) {
             (winningSide === 'left' ? this.left : this.right)?.setFinalState('winner');
             (losingSide === 'left' ? this.left : this.right)?.setFinalState('loser');
-            this.burst(winningSide === 'left' ? 360 : 920, 385, winningSide);
-            this.burst(winningSide === 'left' ? 390 : 890, 300, winningSide);
+            this.burst(winningSide === 'left' ? 360 : 920, 385, winningSide, this.finaleIntensity);
+            this.burst(winningSide === 'left' ? 390 : 890, 300, winningSide, this.finaleIntensity);
             this.audio.play('big_win');
         } else {
             this.left?.setFinalState('draw'); this.right?.setFinalState('draw');
@@ -525,15 +676,63 @@ export class GameEngine {
             this.currentLine = this.finale[0];
             this.positionBubble();
         }
+        this.beginFinale(decisive ? (winningSide === 'left' ? 'winner' : 'loser') : 'draw',
+            decisive ? (losingSide === 'left' ? 'winner' : 'loser') : 'draw');
         this.updateClocks();
         this.updateDashboard(true);
         this.host.dataset.finished='true';
         this.host.dispatchEvent(new CustomEvent('candle-battles-finished'));
         this.maybeFreezeForCapture();
     }
+    /**
+     * Starts the ~8s closing cinematic. The social poster never replays it:
+     * capture settles the timeline deterministically so the frame is final.
+     */
+    private beginFinale(leftRole: FinalRole, rightRole: FinalRole): void {
+        this.finaleSequence.reset();
+        this.finaleRoles = { left: leftRole, right: rightRole };
+        this.finaleSequence.start(phase => this.enterFinale(phase));
+        if (this.options.socialCapture) this.finaleSequence.settle(phase => this.enterFinale(phase));
+    }
+    private enterFinale(phase: FinalePhase): void {
+        this.host.dataset.finaleState = phase;
+        this.left?.applyFinalePose(resolveFinalePose(phase, this.finaleRoles.left, this.left.finishersAvailable));
+        this.right?.applyFinalePose(resolveFinalePose(phase, this.finaleRoles.right, this.right.finishersAvailable));
+        this.applyFinaleOverlays(phase);
+        const loserSide: Side | null = this.finaleRoles.left === 'loser' ? 'left' : this.finaleRoles.right === 'loser' ? 'right' : null;
+        const winnerSide: Side | null = this.finaleRoles.left === 'winner' ? 'left' : this.finaleRoles.right === 'winner' ? 'right' : null;
+        if (phase === 'FINISHER_ATTACK' && !this.reduced)
+            this.scene?.cameras.main.shake(Math.round(120 * this.finaleIntensity), .003 * this.finaleIntensity);
+        if (phase === 'KNOCKOUT' && loserSide)
+            this.burst(loserSide === 'left' ? 330 : 950, 385, loserSide, this.finaleIntensity);
+        if (phase === 'VICTORY_CELEBRATION' && winnerSide)
+            this.burst(winnerSide === 'left' ? 360 : 920, 385, winnerSide, this.finaleIntensity);
+    }
+    /** Damage/celebration decals. Each call degrades to a no-op without the optional atlas. */
+    private applyFinaleOverlays(phase: FinalePhase): void {
+        const rank = FINALE_PHASES.indexOf(phase);
+        const loserSide: Side | null = this.finaleRoles.left === 'loser' ? 'left' : this.finaleRoles.right === 'loser' ? 'right' : null;
+        const of = (side: Side): CandleRenderer | undefined => side === 'left' ? this.left : this.right;
+        if (loserSide && rank >= FINALE_PHASES.indexOf('KNOCKOUT')) {
+            of(loserSide)?.attachOverlay('bruise', loserSide === 'left' ? 1 : 2);
+            of(loserSide)?.attachOverlay('star', 2);
+        }
+        if (loserSide && rank >= FINALE_PHASES.indexOf('VICTORY_CELEBRATION'))
+            of(loserSide)?.attachOverlay('bandage', loserSide === 'left' ? 1 : 2);
+        if (!loserSide && rank >= FINALE_PHASES.indexOf('VICTORY_CELEBRATION')) {
+            this.left?.attachOverlay('star', 1); this.right?.attachOverlay('star', 1);
+        }
+    }
+    private resetFinale(): void {
+        this.finaleSequence.reset();
+        this.finaleRoles = { left: 'draw', right: 'draw' };
+        this.finaleIntensity = 1;
+        delete this.host.dataset.finaleState;
+        delete this.host.dataset.finaleIntensity;
+    }
     private begin(r:Readonly<Round>): void {
         this.clearDialogue();
-        this.active=r; this.combatElapsed=0; const range=sharedRange([r.left,r.right]);
+        this.active=r; this.combatElapsed=0; this.focusRound=this.completedRounds; const range=sharedRange([r.left,r.right]);
         this.hud.get('status')?.setText(`${this.text('round','ROUND')} ${this.completedRounds+1} — ${this.text('fight','FIGHT!')}`);
         this.left?.setCandle(r.left,range,true); this.right?.setCandle(r.right,range,true);
         if (this.mode === 'replay') {
@@ -591,6 +790,11 @@ export class GameEngine {
             this.updateDashboard(true);
         }
     }
+    private localLogoUrl(symbol: string): string {
+        const local = this.options.localLogos?.[symbol.trim().toUpperCase()]
+            ?? this.options.localLogos?.[displaySymbol(symbol.trim().toUpperCase())];
+        return local ?? '/futurebol/team-logo/'+encodeURIComponent(symbol);
+    }
     private setLogo(side:Side,symbol:string):void {
         if(!this.scene || this.logoSymbols.get(side)===symbol)return;
         this.logoSymbols.set(side,symbol);
@@ -627,7 +831,7 @@ export class GameEngine {
         };
         scene.load.once('filecomplete-image-'+key,completed);
         scene.load.on('loaderror',failed);
-        scene.load.image(key,'/futurebol/team-logo/'+encodeURIComponent(normalized));
+        scene.load.image(key,this.localLogoUrl(normalized));
         scene.load.start();
     }
     private logoKey(side:Side):string|undefined {
@@ -676,12 +880,13 @@ export class GameEngine {
             points.forEach((p,i)=>{const xx=x+i*95/(points.length-1),yy=132-(p-low)/span*27;if(i===0)this.chart!.moveTo(xx,yy);else this.chart!.lineTo(xx,yy);});this.chart.strokePath();
         }
     }
-    private burst(x:number,y:number,side:Side):void {
+    private burst(x:number,y:number,side:Side,intensity=1):void {
         if(!this.scene || this.reduced) return;
-        const count=this.host.clientWidth<600?8:18;
+        const count=Math.round((this.host.clientWidth<600?8:18)*Math.max(1,Math.min(1.7,intensity)));
         for(let i=0;i<count && this.effects.length<48;i++) {
             const angle=i*2.39996; const image=this.scene.add.image(x,y,'modular',i===0?'impact-'+side:'tile-'+side);
-            image.setDisplaySize(i===0?140:9,i===0?140:9);
+            const size=i===0?140*Math.max(1,Math.min(1.45,intensity)):9;
+            image.setDisplaySize(size,size);
             this.effects.push({image,age:0,vx:Math.cos(angle)*(60+i*7),vy:Math.sin(angle)*(60+i*5)-50});
         }
     }
@@ -792,7 +997,7 @@ export class GameEngine {
                 if(fallback)fallback.textContent=shown.slice(0,3);
                 logo.onload=()=>{logo.hidden=false;if(fallback)fallback.hidden=true;};
                 logo.onerror=()=>{logo.hidden=true;if(fallback)fallback.hidden=false;};
-                logo.src='/futurebol/team-logo/'+encodeURIComponent(symbol);
+                logo.src=this.localLogoUrl(symbol);
             }
         }
         const list=node('history');
@@ -808,7 +1013,7 @@ export class GameEngine {
                 row.append(round);
                 if(r.winner!=='draw'){
                     const symbol=r[r.winner].symbol;
-                    const logo=document.createElement('img');logo.alt='';logo.src='/futurebol/team-logo/'+encodeURIComponent(symbol);
+                    const logo=document.createElement('img');logo.alt='';logo.src=this.localLogoUrl(symbol);
                     logo.onerror=()=>{const fallback=document.createElement('span');fallback.className='candle-battles__history-fallback';fallback.textContent=displaySymbol(symbol).slice(0,2);logo.replaceWith(fallback);};
                     row.append(logo);
                 }
@@ -922,14 +1127,18 @@ export class GameEngine {
         if(!this.terminal && this.mode!=='live') return;
         this.freezeForCapture();
     }
-    freezeForCapture(): void {
+    freezeForCapture(force = false): void {
         if(this.captureFrozen || this.disposed) return;
-        if(this.feed?.finished && !this.terminal) { this.finish(); return; }
+        const holdPose = force || this.options.captureTarget?.phase != null;
+        if(!holdPose && this.feed?.finished && !this.terminal) { this.finish(); return; }
+        // The definitive composition must exist before a frozen frame is
+        // announced, so an in-flight cinematic settles first.
+        if(this.finaleSequence.running) this.finaleSequence.settle(phase=>this.enterFinale(phase));
         this.captureFrozen=true;
         this.paused=true;
         this.audio.pause();
         this.clearDialogue();
-        if(!this.terminal) {
+        if(!this.terminal && !holdPose) {
             this.active=undefined; this.combatElapsed=0;
             this.left?.resetPresentation(); this.right?.resetPresentation();
         }
@@ -939,10 +1148,24 @@ export class GameEngine {
         this.left?.update(this.time,0); this.right?.update(this.time,0);
         this.game.canvas.style.visibility='visible';
         this.host.dataset.paused='true';
-        this.host.dataset.captureFrame='frozen';
         this.updateClocks();
         this.updateDashboard(true);
-        this.host.dispatchEvent(new CustomEvent('candle-battles-capture-frozen'));
+        // Announce readiness only after one fully rendered frame of the frozen
+        // poster so screenshot automation never captures a half-drawn canvas.
+        let announced=false;
+        const announce=():void=>{
+            if(announced || this.disposed) return;
+            if(this.finaleSequence.running && !this.finaleSequence.settled) {
+                this.game.events.once('postrender', announce);
+                setTimeout(announce,250);
+                return;
+            }
+            announced=true;
+            this.host.dataset.captureFrame='frozen';
+            this.host.dispatchEvent(new CustomEvent('candle-battles-capture-frozen'));
+        };
+        this.game.events.once('postrender', announce);
+        setTimeout(announce, 250);
     }
     dispose():void {
         if(this.disposed)return; this.disposed=true;

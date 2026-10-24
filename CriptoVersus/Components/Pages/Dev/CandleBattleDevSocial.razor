@@ -1,0 +1,80 @@
+@page "/dev/candle-battle/social/{MatchId:int}"
+@using CriptoVersus.Web.Services
+@using CriptoVersus.Web.Components.Pages.Internet
+
+<PageTitle>Candle Battle Mock Social | CriptoVersus Dev</PageTitle>
+
+<CandleBattleDevGate>
+    <div class="cbdev-page">
+        @if (!Compact)
+        {
+            <nav class="cbdev-page__nav">
+                <strong class="cbdev-page__badge">MOCK MODE</strong>
+                <span>Social card for fictional match @MatchId · @_culture</span>
+                <a href="/dev/candle-battle?match=@MatchId&culture=@_culture">arena</a>
+                <a href="/dev/candle-battle/replay/@MatchId?culture=@_culture">replay</a>
+                <a href="@CompactLink()">social compact capture</a>
+            </nav>
+            <CandleBattleDevPanel Engine="_host" ActiveMatchId="MatchId" Culture="@_culture" Failure="@_failure" />
+        }
+        <CandleBattleSocial @key="MatchId" MatchId="MatchId" CultureOverride="@_culture" Mode="@Mode"
+                            CaptureRound="CaptureRound" CapturePhase="@CapturePhase" />
+        @if (Compact)
+        {
+            <p class="cbdev-page__foot">
+                <strong class="cbdev-page__badge">MOCK MODE</strong>
+                <a href="/dev/candle-battle/social/@MatchId?culture=@_culture">full social page</a>
+                <a href="/dev/candle-battle?match=@MatchId&culture=@_culture">arena</a>
+                <span>Simulated data — never published.</span>
+            </p>
+        }
+    </div>
+</CandleBattleDevGate>
+
+@code {
+    [Parameter] public int MatchId { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "mode")] public string? Mode { get; set; }
+    [SupplyParameterFromQuery(Name = "culture")] public string? CultureQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "captureRound")] public int? CaptureRound { get; set; }
+    [SupplyParameterFromQuery(Name = "capturePhase")] public string? CapturePhase { get; set; }
+
+    private string _culture = "en";
+    private string? _failure;
+    private CandleBattlesHost? _host;
+
+    private bool Compact => string.Equals(Mode?.Trim(), "socialCompact", StringComparison.OrdinalIgnoreCase);
+
+    protected override void OnInitialized()
+        => _culture = string.IsNullOrWhiteSpace(CultureQuery) ? "en" : CultureQuery!;
+
+    private string CompactLink()
+    {
+        var phase = string.IsNullOrWhiteSpace(CapturePhase) ? "" : $"&capturePhase={CapturePhase}";
+        var round = CaptureRound is null ? "" : $"&captureRound={CaptureRound}";
+        return $"/dev/candle-battle/social/{MatchId}?culture={_culture}&mode=socialCompact{round}{phase}";
+    }
+}
+
+<style>
+    .cbdev-page__nav {
+        width: min(1440px, calc(100% - 24px));
+        margin: 12px auto 0;
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        color: #8fa2b5;
+        font: 13px/1.5 system-ui, sans-serif;
+    }
+    .cbdev-page__nav a { color: #7fd7ff; }
+    .cbdev-page__badge { background: #c1f20f; color: #101722; padding: 2px 10px; border-radius: 999px; letter-spacing: .08em; }
+    .cbdev-page__foot {
+        width: min(1440px, calc(100% - 24px));
+        margin: 10px auto 24px;
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        color: #8fa2b5;
+        font: 12px/1.5 system-ui, sans-serif;
+    }
+    .cbdev-page__foot a { color: #7fd7ff; }
+</style>
