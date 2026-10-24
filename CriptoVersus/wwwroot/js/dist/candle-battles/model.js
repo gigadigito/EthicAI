@@ -272,6 +272,36 @@ export function resolveFinalePose(phase, role, finishers) {
     }
 }
 /**
+ * Per-round result beats: the round winner celebrates and the loser reels,
+ * preferring the optional candle-finishers sequences. Returns null outside the
+ * result window so the caller keeps the phase-driven combat pose. Every modular
+ * fallback names frames that already exist in modular.png. Presentation only:
+ * the beat never reads or writes the authoritative round result.
+ */
+export function resolveRoundResultPose(phase, role, finishers) {
+    const pick = (finisher) => finishers ? finisher : null;
+    const winner = role === "winner", loser = role === "loser";
+    if (phase === "DESTROYING") {
+        return winner ? null
+            : { role, animation: "break", holdFrame: 1, loop: false, finisher: pick("hurt-stagger"), celebration: 0, defeat: loser ? .5 : .35 };
+    }
+    if (phase === "BLOCK_FALLING" || phase === "BLOCK_LOCKING") {
+        // The winner keeps today's neutral stance so the territory tile drop reads clearly.
+        return winner ? null
+            : loser
+                ? { role, animation: "break", holdFrame: 1, loop: true, finisher: pick("dizzy"), celebration: 0, defeat: .65 }
+                : { role, animation: "idle", holdFrame: 1, loop: true, finisher: pick("dizzy"), celebration: .25, defeat: .25 };
+    }
+    if (phase === "VICTORY" || phase === "ROUND_COMPLETE" || phase === "FORMING_CANDLE") {
+        return winner
+            ? { role, animation: "recover", holdFrame: 2, loop: true, finisher: pick("victory-loop"), celebration: .85, defeat: 0 }
+            : loser
+                ? { role, animation: "break", holdFrame: 1, loop: true, finisher: pick("dizzy"), celebration: 0, defeat: .65 }
+                : { role, animation: "idle", holdFrame: 1, loop: true, finisher: pick("dizzy"), celebration: .25, defeat: .25 };
+    }
+    return null;
+}
+/**
  * Presentation-only closing timeline. It never reads or writes score, candles,
  * territory or rounds, so the authoritative result cannot drift.
  */

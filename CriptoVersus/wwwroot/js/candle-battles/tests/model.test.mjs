@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, FinaleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase, resolveFinalePose, matchWindow, roundInMatch, clockParts, nextCandleCountdown, MATCH_DURATION, PERIOD, FINALE_PHASES, FINALE_DURATIONS, FINALE_TOTAL_MS } from '../../dist/candle-battles/model.js';
+import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, FinaleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase, resolveFinalePose, resolveRoundResultPose, matchWindow, roundInMatch, clockParts, nextCandleCountdown, MATCH_DURATION, PERIOD, FINALE_PHASES, FINALE_DURATIONS, FINALE_TOTAL_MS } from '../../dist/candle-battles/model.js';
 import { registerFighterAnimations, registerFinisherAnimations, finisherFrameName, finisherAnimationKey, FINISHER_FRAME_COUNTS, FINISHER_CAPTURE_FRAMES, OVERLAY_FRAMES, OVERLAY_ANCHORS, OVERLAY_SCALES, OVERLAY_KINDS } from '../../dist/candle-battles/renderer.js';
 import { DialogueClock, dialogueLines, finalLines } from '../../dist/candle-battles/dialogue.js';
 
@@ -359,6 +359,54 @@ test('finisher sequences are requested only when the optional atlas is available
         assert.ok(count >= 1);
         assert.equal(finisherFrameName('left', action, 1), `finisher-left-${action}-1`);
         assert.equal(finisherAnimationKey('right', action), `finisher-right-${action}`);
+    }
+});
+
+test('round result beats celebrate the winner and stun the loser with the finisher atlas', () => {
+    const expected = {
+        DESTROYING: [null, 'hurt-stagger', 'hurt-stagger'],
+        VICTORY: ['victory-loop', 'dizzy', 'dizzy'],
+        BLOCK_FALLING: [null, 'dizzy', 'dizzy'],
+        BLOCK_LOCKING: [null, 'dizzy', 'dizzy'],
+        ROUND_COMPLETE: ['victory-loop', 'dizzy', 'dizzy'],
+        FORMING_CANDLE: ['victory-loop', 'dizzy', 'dizzy']
+    };
+    for (const [phase, actions] of Object.entries(expected)) {
+        ['winner', 'loser', 'draw'].forEach((role, index) => {
+            assert.equal(resolveRoundResultPose(phase, role, true)?.finisher ?? null, actions[index], `${phase}/${role}`);
+            assert.equal(resolveRoundResultPose(phase, role, false)?.finisher ?? null, null, `${phase}/${role} fallback`);
+        });
+    }
+    for (const phase of ['SPAWNING', 'APPROACHING', 'ATTACKING', 'COLLISION', 'WAITING_MARKET']) {
+        for (const role of ['winner', 'loser', 'draw']) assert.equal(resolveRoundResultPose(phase, role, true), null, `${phase}/${role}`);
+    }
+    const winner = resolveRoundResultPose('VICTORY', 'winner', false);
+    const loser = resolveRoundResultPose('VICTORY', 'loser', false);
+    assert.equal(winner.celebration, .85);
+    assert.equal(winner.defeat, 0);
+    assert.equal(loser.celebration, 0);
+    assert.ok(loser.defeat > 0);
+    const draw = resolveRoundResultPose('VICTORY', 'draw', false);
+    assert.equal(draw.celebration, draw.defeat);
+});
+
+test('round result fallback uses only frames that already exist in modular.png', () => {
+    for (const phase of ['DESTROYING', 'VICTORY', 'BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE', 'FORMING_CANDLE']) {
+        for (const role of ['winner', 'loser', 'draw']) {
+            const pose = resolveRoundResultPose(phase, role, false);
+            if (!pose) continue;
+            assert.equal(pose.finisher, null, `${phase}/${role} must not require candle-finishers`);
+            assert.ok(Object.hasOwn(ATLAS_COUNTS, pose.animation), `${phase}/${role} unknown action ${pose.animation}`);
+            if (pose.holdFrame != null) {
+                assert.ok(Number.isInteger(pose.holdFrame) && pose.holdFrame >= 1, `${phase}/${role} bad holdFrame`);
+                assert.ok(pose.holdFrame <= ATLAS_COUNTS[pose.animation], `${phase}/${role} holdFrame outside modular.png`);
+                assert.ok(modularFrames.has(modularFrame('left', pose.animation, pose.holdFrame)));
+                assert.ok(modularFrames.has(modularFrame('right', pose.animation, pose.holdFrame)));
+            }
+            assert.ok(pose.celebration >= 0 && pose.celebration <= 1);
+            assert.ok(pose.defeat >= 0 && pose.defeat <= 1);
+            assert.equal(pose.role, role);
+        }
     }
 });
 

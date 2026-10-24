@@ -894,8 +894,56 @@ test('host module revision and finisher atlas resolve on the served runtime',asy
   const res=await page.request.get(`${baseURL}/games/candle-battles/assets/${asset}`);
   expect(res.ok(),`${asset} must ship in wwwroot`).toBe(true);
  }
- const atlas=await (await page.request.get(`${baseURL}/games/candle-battles/assets/candle-finishers.json`)).json();
- const frames=Array.isArray(atlas.frames)?atlas.frames.map(frame=>frame.filename):Object.keys(atlas.frames??{});
- expect(frames).toContain('finisher-left-charge-1');
- expect(frames).toContain('finisher-right-knockout-1');
+  const atlas=await (await page.request.get(`${baseURL}/games/candle-battles/assets/candle-finishers.json`)).json();
+  const frames=Array.isArray(atlas.frames)?atlas.frames.map(frame=>frame.filename):Object.keys(atlas.frames??{});
+  expect(frames).toContain('finisher-left-charge-1');
+  expect(frames).toContain('finisher-right-knockout-1');
+});
+test('round result beats celebrate and stun with the finisher atlas without claiming the match result',async({page})=>{
+ await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');
+ await page.addStyleTag({path:'Components/Shared/CandleBattlesHost.razor.css'});
+ await page.waitForFunction(()=>window.engine&&window.ready);
+ const run=await page.evaluate(()=>{
+  const e=window.engine;
+  e.left.setPose('VICTORY',true,false); e.right.setPose('VICTORY',false,false);
+  const victory={
+   left:e.left.finisherAnimation,right:e.right.finisherAnimation,
+   leftTexture:e.left.root.list[2].texture.key,rightTexture:e.right.root.list[2].texture.key,
+   leftFinal:e.left.finalVisualState,rightFinal:e.right.finalVisualState};
+  e.left.setPose('FORMING_CANDLE',true,false); e.right.setPose('FORMING_CANDLE',true,false);
+  const held={left:e.left.finisherAnimation,right:e.right.finisherAnimation,
+   leftPose:e.left.posePhase,attacking:e.right.posePhase};
+  e.left.setPose('DESTROYING',false,true);
+  const drawHit=e.left.finisherAnimation;
+  e.left.setPose('SPAWNING',true,false);
+  return {victory,held,drawHit,cleared:e.left.finisherAnimation,leftAction:e.left.poseAction,
+   leftFinalAfter:e.left.finalVisualState};
+ });
+ expect(run.victory).toEqual({left:'victory-loop',right:'dizzy',leftTexture:'candle-finishers',rightTexture:'candle-finishers',leftFinal:'none',rightFinal:'none'});
+ expect(run.held).toEqual({left:'victory-loop',right:'dizzy',leftPose:'FORMING_CANDLE',attacking:'FORMING_CANDLE'});
+ expect(run.drawHit).toBe('hurt-stagger');
+ expect(run.cleared).toBeUndefined();
+ expect(run.leftAction).toBe('idle');
+ expect(run.leftFinalAfter).toBe('none');
+});
+test('round result beats keep modular.png fallback frames when the atlas is unavailable',async({page})=>{
+ await page.route('**/candle-finishers.*',route=>route.fulfill({status:404,body:''}));
+ await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');
+ await page.addStyleTag({path:'Components/Shared/CandleBattlesHost.razor.css'});
+ await page.waitForFunction(()=>window.engine&&window.ready);
+ const run=await page.evaluate(()=>{
+  const e=window.engine;
+  e.left.setPose('VICTORY',true,false); e.right.setPose('VICTORY',false,false);
+  return {leftFinisher:e.left.finisherAnimation,rightFinisher:e.right.finisherAnimation,
+   leftFrame:e.left.frameName,rightFrame:e.right.frameName,
+   leftTexture:e.left.root.list[2].texture.key,rightTexture:e.right.root.list[2].texture.key,
+   leftFinal:e.left.finalVisualState};
+ });
+ expect(run.leftFinisher).toBeUndefined();
+ expect(run.rightFinisher).toBeUndefined();
+ expect(run.leftFrame).toBe('fighter-left-neutral-recover-2');
+ expect(run.rightFrame).toBe('fighter-right-neutral-break-1');
+ expect(run.leftTexture).toBe('modular');
+ expect(run.rightTexture).toBe('modular');
+ expect(run.leftFinal).toBe('none');
 });

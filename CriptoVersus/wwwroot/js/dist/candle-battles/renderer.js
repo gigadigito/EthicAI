@@ -1,4 +1,4 @@
-import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate } from './model.js?v=20261024c';
+import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate, resolveRoundResultPose } from './model.js?v=20261024c';
 const CANDLE_LIFT = 60;
 const ACTION_FRAME_COUNTS = {
     // Hold the damage pose while its alpha fades; cycling the source montage
@@ -177,6 +177,17 @@ export class CandleRenderer {
             this.preparation = 0;
         this.win = winner;
         this.draw = draw;
+        if (phase === 'SPAWNING' || phase === 'WAITING_MARKET')
+            this.resultRole = undefined;
+        if (phase === 'DESTROYING' || phase === 'VICTORY')
+            this.resultRole = draw ? 'draw' : winner ? 'winner' : 'loser';
+        if (this.resultRole) {
+            const pose = resolveRoundResultPose(phase, this.resultRole, finishersAvailable(this.scene, this.side));
+            if (pose) {
+                this.applyPose(pose);
+                return;
+            }
+        }
         let next = fighterAnimationForPhase(phase);
         if (next === 'recover')
             next = 'idle';
@@ -189,6 +200,7 @@ export class CandleRenderer {
     }
     setFinalState(state) {
         this.finalState = state;
+        this.resultRole = undefined;
         this.phase = 'FORMING_CANDLE';
         this.preparation = 0;
         this.heldFrame = undefined;
@@ -209,6 +221,11 @@ export class CandleRenderer {
      */
     applyFinalePose(pose) {
         this.finalState = pose.role;
+        this.resultRole = undefined;
+        this.applyPose(pose);
+    }
+    /** Shared pose application for the closing cinematic and round-result beats. */
+    applyPose(pose) {
         this.celebration = pose.celebration;
         this.defeat = pose.defeat;
         this.combat = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
@@ -260,9 +277,12 @@ export class CandleRenderer {
         this.overlays = [];
     }
     get finishersAvailable() { return finishersAvailable(this.scene, this.side); }
+    /** Round-result/finale sequence currently played from the optional atlas. */
+    get finisherAnimation() { return this.finisher; }
     get overlaysAvailable() { return this.overlays.length > 0; }
     get overlayKinds() { return this.overlays.map(entry => entry.kind); }
     resetPresentation() {
+        this.resultRole = undefined;
         this.setPose('FORMING_CANDLE', true);
         this.clearOverlays();
         this.combat = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
@@ -275,8 +295,9 @@ export class CandleRenderer {
     setPresentationScale(scale) { this.presentationScale = scale; }
     setPreparation(tension, time) {
         // The closing cinematic owns the fighter pose; idle tension must not
-        // steal the held victory/defeat frame every tick.
-        if (this.finalState !== 'none')
+        // steal the held victory/defeat frame every tick. Round-result beats
+        // own the pose the same way until the next battle starts.
+        if (this.finalState !== 'none' || this.resultRole)
             return;
         this.preparation = Math.max(0, Math.min(1, tension));
         this.combat = { attack: 0, block: .2 + this.preparation * .35, dodge: .12 * Math.abs(Math.sin(time / 1700)), hit: 0, counter: 0,
@@ -399,17 +420,20 @@ export class CandleRenderer {
         this.sprite.setPosition(spriteX, footY).setScale(scale).setFlipX(this.side === 'right').setRotation(rotation);
         const breakFrame = Math.min(7, Math.floor(progress * 8));
         const recovery = this.phase === 'SPAWNING' ? (Math.min(2, Math.floor(progress * 3)) + 1) / 3 : 1;
-        const alpha = (this.phase === 'DESTROYING' && !this.win) ? 1 - breakFrame / 7 :
+        const bodyAlpha = (this.phase === 'DESTROYING' && !this.win) ? 1 - breakFrame / 7 :
             (!this.draw && !this.win && ['VICTORY', 'BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE'].includes(this.phase)) ? 0 : recovery;
-        this.body.setAlpha(alpha);
+        this.body.setAlpha(bodyAlpha);
         if (this.celebration > 0) {
             const strength = Math.min(1, this.celebration);
             for (let i = 0; i < 3; i++)
                 this.aura.lineStyle(2, this.outline, (.3 - i * .06) * strength)
                     .strokeCircle(0, 178 - celebration, 28 + i * 12 + Math.sin(time / 230 + i) * 5);
         }
-        this.aura.setAlpha(alpha);
-        this.sprite.setAlpha(alpha * (1 - .28 * Math.min(1, this.defeat)));
+        this.aura.setAlpha(bodyAlpha);
+        // The destroyed candle fades while the fighter stays visible to reel or
+        // celebrate the round result until the next battle starts.
+        const spriteAlpha = this.resultRole ? recovery : bodyAlpha;
+        this.sprite.setAlpha(spriteAlpha * (1 - .28 * Math.min(1, this.defeat)));
         this.positionOverlays(time);
     }
     /** Closing pose motion that does not depend on candle geometry. */
