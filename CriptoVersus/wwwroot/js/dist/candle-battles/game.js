@@ -1,9 +1,9 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261024d';
-import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261024d';
-import { CandleRenderer } from './renderer.js?v=20261024d';
-import { AudioManager } from './audio.js?v=20261024d';
-import { DialogueClock, lineDuration } from './dialogue.js?v=20261024d';
-import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261024d';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261024e';
+import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261024e';
+import { CandleRenderer } from './renderer.js?v=20261024e';
+import { AudioManager } from './audio.js?v=20261024e';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261024e';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261024e';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -103,7 +103,7 @@ export class GameEngine {
                     owner.readyReject(new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261024d', '/games/candle-battles/assets/candle-finishers.json?v=20261024d');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261024e', '/games/candle-battles/assets/candle-finishers.json?v=20261024e');
             }
             create() { owner.setup(this); }
             update(_time, delta) { owner.update(delta); }
@@ -116,17 +116,25 @@ export class GameEngine {
         this.observer = new ResizeObserver(() => { if (!this.disposed)
             this.game.scale.refresh(); });
         this.observer.observe(host);
+        this.backgrounded = document.hidden;
         this.visibility = () => {
             this.backgrounded = document.hidden;
             if (document.hidden)
                 this.audio.pause();
-            else if (this.mode === 'live') {
-                this.pendingReconcile = true;
-                if (this.feed)
-                    this.reconcile();
+            else {
+                // Wake and paint from the deterministic simulation state; no
+                // timer or browser-focus side effect is used to advance it.
+                this.game.loop.wake();
+                if (this.mode === 'live') {
+                    this.pendingReconcile = true;
+                    if (this.feed)
+                        this.reconcile();
+                }
+                else if (this.started && !this.paused)
+                    this.audio.loop('arena');
+                if (!this.paused)
+                    this.update(0);
             }
-            else if (this.started && !this.paused)
-                this.audio.loop('arena');
         };
         document.addEventListener('visibilitychange', this.visibility);
         this.motionChange = () => { this.reduced = this.motionQuery.matches; this.left?.setReducedMotion(this.reduced); this.right?.setReducedMotion(this.reduced); };
@@ -221,6 +229,7 @@ export class GameEngine {
         this.readyResolve();
         this.host.dataset.ready = 'true';
         this.host.dispatchEvent(new CustomEvent('candle-battles-ready'));
+        this.ensureFrameLoop();
     }
     label(id, text, x, y, size = 18, color = '#f3f5f7', origin = 0) {
         this.hud.set(id, this.scene.add.text(x, y, text, { fontFamily: 'system-ui, sans-serif', fontSize: size + 'px', color, fontStyle: 'bold' }).setOrigin(origin, 0));
@@ -344,12 +353,23 @@ export class GameEngine {
             return;
         }
         this.updateMarket();
-        if (!this.paused)
+        if (!this.paused) {
+            this.ensureFrameLoop();
             this.updateClocks();
+        }
         this.updateDashboard(true);
         if (!this.paused && feed.finished && this.mode === 'live' && !this.active && this.clock.count === 0)
             this.finish();
         this.maybeFreezeForCapture();
+    }
+    /**
+     * The Phaser visibility handler pauses its frame loop on blur.  Wake it
+     * whenever a visible renderer receives replay state so direct navigation
+     * into a completed social match cannot wait for a later focus transition.
+     */
+    ensureFrameLoop() {
+        if (!this.disposed && !this.paused && !document.hidden)
+            this.game.loop.wake();
     }
     // Social capture mounts one poster frame directly: the persisted history is
     // applied without cinematics and the fighters hold their final pose, so the

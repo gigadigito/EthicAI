@@ -948,6 +948,37 @@ test('round result beats keep modular.png fallback frames when the atlas is unav
  expect(run.leftFinal).toBe('none');
 });
 
+test('each new confrontation restores the fighter baseline after a finisher pose',async({page})=>{
+ await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');
+ await page.addStyleTag({path:'Components/Shared/CandleBattlesHost.razor.css'});
+ await page.waitForFunction(()=>window.engine&&window.ready);
+ const runs=await page.evaluate(async()=>{
+  const {demoRound,resolveFinalePose}=await import('/js/dist/candle-battles/model.js');
+  const e=window.engine,f=e.left,sprite=f.root.list[2],runs=[];
+  for(let index=0;index<10;index++){
+   f.applyFinalePose(resolveFinalePose('KNOCKOUT','loser',true));
+   f.attachOverlay('bruise');
+   f.update(1000+index*100,16);
+   const round=demoRound(index);
+   f.setCandle(round.left,Math.max(round.left.high,round.right.high)-Math.min(round.left.low,round.right.low),true);
+   f.setPose('SPAWNING',true,false);
+   f.update(2000+index*100,16);
+   runs.push({texture:sprite.texture.key,frame:f.frameName,finisher:f.finisherAnimation,
+    final:f.finalVisualState,overlays:f.overlayKinds,x:sprite.x,y:sprite.y,
+    rotation:sprite.rotation,originX:sprite.originX,originY:sprite.originY,
+    scaleX:sprite.scaleX,scaleY:sprite.scaleY,alpha:sprite.alpha});
+  }
+  return runs;
+ });
+ expect(runs).toHaveLength(10);
+ for(const run of runs){
+  expect(run).toMatchObject({texture:'modular',finisher:undefined,final:'none',overlays:[],x:0,y:185,rotation:0,originX:.5,originY:1,alpha:1});
+  expect(run.frame).toMatch(/^fighter-left-neutral-idle-1$/);
+  expect(run.scaleX).toBeCloseTo(.8,6);
+  expect(run.scaleY).toBeCloseTo(.8,6);
+ }
+});
+
 test('fighters get back on their feet after the round-result reaction',async({page})=>{
  await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');
  await page.addStyleTag({path:'Components/Shared/CandleBattlesHost.razor.css'});

@@ -176,7 +176,7 @@ else
         if (_battle is null || _watchedMatchId == MatchId) return;
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/candleBattleSocial.mjs?v=20261023b");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/candleBattleSocial.mjs?v=20261024e");
             if (SocialCompact)
                 await _module.InvokeVoidAsync("watchCaptureReadiness", RootId, _battle.ReplayAvailable, _battle.Status == "Completed");
             else

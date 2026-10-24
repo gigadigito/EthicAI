@@ -1,5 +1,5 @@
-import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate, resolveRoundResultPose, ROUND_RESULT_RETURN_MS } from './model.js?v=20261024d';
-import { frameAt, transformAt } from './combat-animations.js?v=20261024d';
+import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate, resolveRoundResultPose, ROUND_RESULT_RETURN_MS } from './model.js?v=20261024e';
+import { frameAt, transformAt } from './combat-animations.js?v=20261024e';
 const CANDLE_LIFT = 60;
 const ACTION_FRAME_COUNTS = {
     // Hold the damage pose while its alpha fades; cycling the source montage
@@ -198,6 +198,13 @@ export class CandleRenderer {
     }
     setPose(phase, winner, draw = false) {
         const hadFinisher = this.finisher != null;
+        // A new round is a hard presentation boundary. Phaser retains the
+        // current texture, frame and transform when an animation is stopped,
+        // including frames sourced from candle-finishers. Restore the shared
+        // 200px-cell baseline before selecting the next modular animation so a
+        // knockout/fall can never leak its pose into the next candle.
+        if (phase === 'SPAWNING' || phase === 'WAITING_MARKET')
+            this.resetRoundVisualState();
         this.finalState = 'none';
         this.celebration = 0;
         this.defeat = 0;
@@ -333,6 +340,7 @@ export class CandleRenderer {
         this.combatPlan = undefined;
         this.combatStartedAt = 0;
         this.clearImpactFx();
+        this.resetRoundVisualState();
         this.setPose('FORMING_CANDLE', true);
         this.clearOverlays();
         this.combat = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
@@ -340,6 +348,35 @@ export class CandleRenderer {
         this.body.setAlpha(1);
         this.aura.clear().setAlpha(1);
         this.root.setVisible(true);
+    }
+    /**
+     * Clears only transient presentation ownership at a battle boundary. The
+     * OHLC geometry deliberately remains separate, preserving candle-size
+     * proportions while the fighter returns to its canonical atlas cell.
+     */
+    resetRoundVisualState() {
+        this.combatPlan = undefined;
+        this.combatStartedAt = 0;
+        this.clearImpactFx();
+        this.clearOverlays();
+        this.finalState = 'none';
+        this.resultRole = undefined;
+        this.resultHeldSince = undefined;
+        this.finisher = undefined;
+        this.heldFrame = undefined;
+        this.celebration = 0;
+        this.defeat = 0;
+        this.combat = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
+        this.sprite.anims.stop();
+        this.sprite.setTexture('modular', fighterFrame(this.side, 'neutral', 'idle', 1))
+            .setOrigin(.5, 1)
+            .setPosition(0, 185)
+            .setScale(this.presentationScale)
+            .setFlipX(this.side === 'right')
+            .setRotation(0)
+            .setAlpha(1);
+        this.body.setAlpha(1);
+        this.aura.setAlpha(1);
     }
     setCombatMotion(motion) { this.combat = { ...motion }; }
     /**

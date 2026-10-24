@@ -130,7 +130,7 @@ export class GameEngine {
                     new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261024d', '/games/candle-battles/assets/candle-finishers.json?v=20261024d');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261024e', '/games/candle-battles/assets/candle-finishers.json?v=20261024e');
             }
             create(): void { owner.setup(this); }
             update(_time: number, delta: number): void { owner.update(delta); }
@@ -142,11 +142,18 @@ export class GameEngine {
             banner:false, fps:{target:60}, input:{keyboard:false, mouse:false, touch:false} });
         this.observer = new ResizeObserver(() => { if (!this.disposed) this.game.scale.refresh(); });
         this.observer.observe(host);
+        this.backgrounded = document.hidden;
         this.visibility = () => {
             this.backgrounded = document.hidden;
             if (document.hidden) this.audio.pause();
-            else if (this.mode === 'live') { this.pendingReconcile = true; if (this.feed) this.reconcile(); }
-            else if (this.started && !this.paused) this.audio.loop('arena');
+            else {
+                // Wake and paint from the deterministic simulation state; no
+                // timer or browser-focus side effect is used to advance it.
+                this.game.loop.wake();
+                if (this.mode === 'live') { this.pendingReconcile = true; if (this.feed) this.reconcile(); }
+                else if (this.started && !this.paused) this.audio.loop('arena');
+                if (!this.paused) this.update(0);
+            }
         };
         document.addEventListener('visibilitychange', this.visibility);
         this.motionChange = () => { this.reduced = this.motionQuery.matches; this.left?.setReducedMotion(this.reduced); this.right?.setReducedMotion(this.reduced); };
@@ -218,6 +225,7 @@ export class GameEngine {
         if(this.readyTimer)clearTimeout(this.readyTimer);this.readyResolve();
         this.host.dataset.ready = 'true';
         this.host.dispatchEvent(new CustomEvent('candle-battles-ready'));
+        this.ensureFrameLoop();
     }
     private label(id:string,text:string,x:number,y:number,size=18,color='#f3f5f7',origin=0): void {
         this.hud.set(id,this.scene!.add.text(x,y,text,{fontFamily:'system-ui, sans-serif',fontSize:size+'px',color,fontStyle:'bold'}).setOrigin(origin,0));
@@ -292,10 +300,18 @@ export class GameEngine {
         this.hud.get('leftName')?.setText(displaySymbol(feed.leftSymbol)); this.hud.get('rightName')?.setText(displaySymbol(feed.rightSymbol));
         if (this.options.socialCapture) { this.mountCapturePoster(); return; }
         this.updateMarket();
-        if (!this.paused) this.updateClocks();
+        if (!this.paused) { this.ensureFrameLoop(); this.updateClocks(); }
         this.updateDashboard(true);
         if (!this.paused && feed.finished && this.mode==='live' && !this.active && this.clock.count===0) this.finish();
         this.maybeFreezeForCapture();
+    }
+    /**
+     * The Phaser visibility handler pauses its frame loop on blur.  Wake it
+     * whenever a visible renderer receives replay state so direct navigation
+     * into a completed social match cannot wait for a later focus transition.
+     */
+    private ensureFrameLoop(): void {
+        if (!this.disposed && !this.paused && !document.hidden) this.game.loop.wake();
     }
     // Social capture mounts one poster frame directly: the persisted history is
     // applied without cinematics and the fighters hold their final pose, so the
