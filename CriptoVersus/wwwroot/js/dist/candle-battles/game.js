@@ -1054,6 +1054,19 @@ export class GameEngine {
      */
     applyCombatBeats(frame, tension) {
         const round = this.active;
+        // Between confrontations only the preparation pose may own a fighter.
+        // Leaving the previous CombatSequencer plan alive made its manual
+        // frame writer race the normal idle animation after a winner returned
+        // to its corner, which reads as a frantic flicker.
+        if (!round) {
+            for (const side of ['left', 'right']) {
+                this.combatSequencer[side].reset();
+                this.combatPlans[side] = undefined;
+                (side === 'left' ? this.left : this.right)?.clearCombatPlan();
+                this.host.dataset[side === 'left' ? 'combatLeft' : 'combatRight'] = 'none';
+            }
+            return;
+        }
         const seed = round?.left.openTime ?? this.feed?.matchStartTime ?? 0;
         const advantage = round ? combatAdvantage(round.left, round.right, round.leftStrength, round.rightStrength, round.winner) : null;
         const idle = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };

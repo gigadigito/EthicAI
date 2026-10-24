@@ -622,6 +622,16 @@ export class CandleRenderer {
         this.aura.clear();
         for (let i = 4; i >= 1; i--) this.aura.lineStyle(3 + i * 3, this.outline, (.012 + (this.frozen ? 0 : .006 * Math.sin(time / 170))) * (5 - i))
             .strokeRect(-25, g.top, 50, Math.max(1, g.height));
+        // The solid body and wick remain the exact OHLC projection. A very
+        // faint envelope only on an unconfirmed forming candle breathes around
+        // those bounds, making incoming market updates legible without
+        // falsifying the candle size or either fighter's scale.
+        if (this.phase === 'FORMING_CANDLE' && !this.last?.confirmed && !this.frozen) {
+            const pulse = .8 + (Math.sin(time / 430) + 1) * Math.min(2.4, Math.max(.8, g.height * .055));
+            const top = g.top - pulse, height = Math.max(1, g.height + pulse * 2);
+            this.aura.fillStyle(color, .055).fillRect(-27, top, 54, height);
+            this.aura.lineStyle(1.5, this.outline, .38).strokeRect(-27, top, 54, height);
+        }
 
         const facing = this.side === 'left' ? 1 : -1;
         // The candle stays above the fighter. A fixed foot line keeps market
