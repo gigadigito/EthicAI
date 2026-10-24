@@ -947,3 +947,128 @@ test('round result beats keep modular.png fallback frames when the atlas is unav
  expect(run.rightTexture).toBe('modular');
  expect(run.leftFinal).toBe('none');
 });
+
+test('fighters get back on their feet after the round-result reaction',async({page})=>{
+ await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');
+ await page.addStyleTag({path:'Components/Shared/CandleBattlesHost.razor.css'});
+ await page.waitForFunction(()=>window.engine&&window.ready);
+ const run=await page.evaluate(async()=>{
+  const e=window.engine;
+  const {ROUND_RESULT_RETURN_MS,resolveFinalePose}=await import('/js/dist/candle-battles/model.js');
+  e.left.setPose('VICTORY',false,false); e.right.setPose('VICTORY',true,false);
+  e.left.update(1000,16); e.right.update(1000,16);
+  const reaction={left:e.left.finisherAnimation,right:e.right.finisherAnimation};
+  e.left.setPose('FORMING_CANDLE',true,false); e.right.setPose('FORMING_CANDLE',true,false);
+  e.left.update(1100,16); e.right.update(1100,16);
+  const tail={left:e.left.finisherAnimation,right:e.right.finisherAnimation};
+  e.left.update(1000+ROUND_RESULT_RETURN_MS+60,16); e.right.update(1000+ROUND_RESULT_RETURN_MS+60,16);
+  const stoodUp={left:e.left.finisherAnimation,right:e.right.finisherAnimation,
+   leftAction:e.left.poseAction,rightAction:e.right.poseAction,
+   leftFinal:e.left.finalVisualState,rightFinal:e.right.finalVisualState};
+  e.left.applyFinalePose(resolveFinalePose('SOCIAL_FINAL_POSE','loser',true));
+  e.left.update(60000,16);
+  const finale={state:e.left.finalVisualState,finisher:e.left.finisherAnimation};
+  return {reaction,tail,stoodUp,finale,ms:ROUND_RESULT_RETURN_MS};
+ });
+ expect(run.ms).toBeGreaterThan(0);
+ expect(run.reaction).toEqual({left:'dizzy',right:'victory-loop'});
+ expect(run.tail).toEqual({left:'dizzy',right:'victory-loop'});
+ expect(run.stoodUp.left).toBeUndefined();
+ expect(run.stoodUp.right).toBeUndefined();
+ expect(run.stoodUp.leftAction).toBe('idle');
+ expect(run.stoodUp.rightAction).toBe('idle');
+ expect(run.stoodUp.leftFinal).toBe('none');
+ expect(run.finale).toEqual({state:'loser',finisher:'defeated-idle'});
+});
+
+test('combat beats drive real sprite frames and verifiable movement',async({page})=>{
+ await page.goto(url);await page.waitForFunction(()=>window.ready);
+ const result=await page.evaluate(async()=>{
+  const {combatPlan}=await import('/js/dist/candle-battles/combat-animations.js');
+  const item=window.fighters[0],f=item.fighter,sprite=f.root.list[2];
+  f.setReducedMotion(false);
+  const sequenced=['combat_jab','combat_heavy_punch','combat_combo','combat_guard','combat_block','combat_counter','combat_recover','ready_stance','nervous_idle','comeback'];
+  const held=['combat_idle','combat_dodge','combat_hit_light','combat_hit_heavy','combat_pushback','taunt','surprised','confident_idle','exhausted_idle'];
+  const out={sequenced:{},held:{}};
+  for(const state of [...sequenced,...held]){
+   f.setCombatPlan(combatPlan(state),0);
+   const frames=new Set(),xs=new Set(),ys=new Set(),rots=new Set(),scales=new Set();
+   for(let t=0;t<40;t++){f.update(t*40,40);frames.add(f.frameName);xs.add(+sprite.x.toFixed(3));ys.add(+sprite.y.toFixed(3));rots.add(+sprite.rotation.toFixed(4));scales.add(+sprite.scaleX.toFixed(4));}
+   const moved=xs.size+ys.size+rots.size+scales.size;
+   (sequenced.includes(state)?out.sequenced:out.held)[state]={frames:[...frames],moved,state:f.combatState,frame:f.frameName};
+  }
+  f.setCombatPlan(null,0);
+  return out;
+ });
+ for(const [state,info] of Object.entries(result.sequenced)){
+  expect(info.state,`${state} reports itself`).toBe(state);
+  expect(info.frames.length,`${state} must swap distinct sprite frames, saw ${info.frames}`).toBeGreaterThan(1);
+  expect(info.moved,`${state} must move the sprite`).toBeGreaterThan(0);
+  expect(info.frames.every(name=>name.startsWith('fighter-left-neutral-')),`${state} frames stay on one team character`).toBe(true);
+ }
+ for(const [state,info] of Object.entries(result.held)){
+  expect(info.state,`${state} reports itself`).toBe(state);
+  expect(info.moved,`${state} must move the sprite`).toBeGreaterThan(0);
+ }
+});
+
+test('combat beat frames follow the simulation clock at every replay speed',async({page})=>{
+ await page.goto(url);await page.waitForFunction(()=>window.ready);
+ const result=await page.evaluate(async()=>{
+  const {combatPlan}=await import('/js/dist/candle-battles/combat-animations.js');
+  const item=window.fighters[2],f=item.fighter;
+  f.setReducedMotion(false);f.setCombatPlan(combatPlan('combat_combo'),0);
+  const run=(speed,wallStep,count)=>{const seen=[];for(let i=0;i<count;i++){f.update(i*wallStep*speed,wallStep*speed);seen.push(f.frameName);}return seen;};
+  const baseline=run(1,40,30);
+  const speeds={};for(const [speed,wallStep] of [[2,20],[5,8],[10,4]]) speeds[speed]=run(speed,wallStep,30);
+  f.setCombatPlan(null,0);
+  return {baseline,speeds};
+ });
+ for(const [speed,frames] of Object.entries(result.speeds)){
+  expect(frames,`frames diverge at ${speed}x`).toEqual(result.baseline);
+ }
+ expect(new Set(result.baseline).size).toBeGreaterThan(1);
+});
+
+test('combat beats stay inside the arena on desktop and mobile',async({page},testInfo)=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(url+'?kind=game');
+ await page.waitForFunction(()=>window.engine&&document.querySelector('#arena').dataset.ready==='true');
+ await page.evaluate(()=>{window.engine.command('restart');window.engine.command('start');});
+ await expect.poll(()=>page.evaluate(()=>window.engine.snapshot().tiles.length),{timeout:12000}).toBeGreaterThan(0);
+ const bounds=await page.evaluate(()=>{
+  const canvas=document.querySelector('canvas').getBoundingClientRect();
+  const host=document.querySelector('#arena');
+  const sample=()=>['left','right'].map(side=>{
+   const f=side==='left'?window.engine.left:window.engine.right,sprite=f.root.list[2];
+   return {side,state:f.combatState,dataset:host.dataset['combat'+(side==='left'?'Left':'Right')],
+    x:f.root.x+sprite.x,y:f.root.y+sprite.y,width:sprite.displayWidth};
+  });
+  return {canvas:{w:canvas.width,h:canvas.height},samples:sample(),event:host.dataset.combatEvent};
+ });
+ const states=new Set(bounds.samples.map(s=>s.dataset));
+ expect([...states].every(s=>typeof s==='string'),'each fighter reports its beat').toBe(true);
+ for(const s of bounds.samples){
+  expect(s.x-s.width/2,'left edge of the sprite stays in the arena').toBeGreaterThanOrEqual(-4);
+  expect(s.x+s.width/2,'right edge of the sprite stays in the arena').toBeLessThanOrEqual(bounds.canvas.w+4);
+  expect(s.y).toBeGreaterThan(-40);
+ }
+ await page.screenshot({path:testInfo.outputPath('candle-battles-combat-desktop.png')});
+ await page.setViewportSize({width:390,height:844});
+ await expect(page.locator('canvas')).toBeVisible();
+ const mobile=await page.evaluate(()=>{
+  const host=document.querySelector('#arena');
+  return ['left','right'].map(side=>{
+   const f=side==='left'?window.engine.left:window.engine.right;
+   return {state:f.combatState,frame:f.frameName,dataset:host.dataset['combat'+(side==='left'?'Left':'Right')]};
+  });
+ });
+ // A finished match may already be in the closing cinematic, so both the
+ // modular fighters and the optional finisher sequences are valid here.
+ for(const s of mobile){
+  expect(typeof s.dataset).toBe('string');
+  expect(s.frame).toMatch(/^(fighter-(left|right)-neutral-|finisher-(left|right)-)/);
+ }
+ await page.screenshot({path:testInfo.outputPath('candle-battles-combat-mobile.png')});
+ expect(errors).toEqual([]);
+});

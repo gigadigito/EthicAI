@@ -59,13 +59,13 @@ else
         <div class="candle-battles__arena-status" data-cb="battleStatus" aria-live="polite"></div>
         <div class="candle-battles__force candle-battles__force--left"><small>@T("strength")</small><strong data-cb="leftArenaStrength">—</strong><div><i data-cb="leftForceFill"></i></div></div>
         <div class="candle-battles__force candle-battles__force--right"><small>@T("strength")</small><strong data-cb="rightArenaStrength">—</strong><div><i data-cb="rightForceFill"></i></div></div>
+        <div class="candle-battles__final" data-cb="finalPanel" hidden><div><small>@T("matchFinished")</small><h2 data-cb="champion">—</h2><strong data-cb="finalScore">—</strong><p data-cb="finalDetails"></p><button type="button" data-cb-action="replay">@T("watchReplay")</button></div></div>
     </div>
     <div class="candle-battles__bottom" data-cb-shell-bottom>
         <section class="candle-battles__card candle-battles__recent"><h2>@T("recent") <button type="button" data-cb-action="history">@T("viewAll")</button></h2><div data-cb="history"></div></section>
         <section class="candle-battles__card candle-battles__territory"><h2>@T("territory") <small data-cb="territoryCount">0 / 18</small></h2><div class="candle-battles__tiles" data-cb="territory"></div><strong data-cb="territoryPercent">0% / 0%</strong><div class="candle-battles__domain"><i data-cb="domainFill"></i></div></section>
         <section class="candle-battles__card candle-battles__info"><h2>@T("information")</h2><dl><div><dt>@T("candleState")</dt><dd data-cb="candleState">—</dd></div><div><dt>@T("matchTime")</dt><dd data-cb="infoMatchTime">—</dd></div><div><dt>@T("round")</dt><dd data-cb="infoRound">—</dd></div><div><dt>@T("finalScore")</dt><dd data-cb="infoScore">—</dd></div><div><dt>@T("status")</dt><dd data-cb="infoStatus">—</dd></div></dl></section>
     </div>
-    <div class="candle-battles__final" data-cb="finalPanel" hidden><div><small>@T("matchFinished")</small><h2 data-cb="champion">—</h2><strong data-cb="finalScore">—</strong><p data-cb="finalDetails"></p><button type="button" data-cb-action="replay">@T("watchReplay")</button></div></div>
     <footer class="candle-battles__footer" role="status" aria-live="polite">
         <span>@(MatchId == 0 ? T("demo") : T("independent"))</span>
         <span>@_status</span>
@@ -124,7 +124,7 @@ else
         var stage = "module_import";
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261024c.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261024d.js");
             stage = "renderer_initialization";
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
                 new

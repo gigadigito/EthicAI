@@ -277,7 +277,13 @@ export function resolveFinalePose(phase, role, finishers) {
  * result window so the caller keeps the phase-driven combat pose. Every modular
  * fallback names frames that already exist in modular.png. Presentation only:
  * the beat never reads or writes the authoritative round result.
+ *
+ * The pose loops because the battle phases are short, but it must not hold for
+ * the whole candle-forming wait: `ROUND_RESULT_RETURN_MS` bounds how long it
+ * keeps holding once the fighters are back in their corners, after which they
+ * return to a combat stance. Only the closing cinematic holds indefinitely.
  */
+export const ROUND_RESULT_RETURN_MS = 1200;
 export function resolveRoundResultPose(phase, role, finishers) {
     const pick = (finisher) => finishers ? finisher : null;
     const winner = role === "winner", loser = role === "loser";

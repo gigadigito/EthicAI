@@ -11,9 +11,9 @@ await writeFile(new URL('wwwroot/js/dist/candle-battles/package.json', root), JS
 // Browser ESM caches each relative import independently. Publish immutable file
 // names because the production CDN does not vary static assets by query string.
 // Keep this revision in sync with CandleBattlesHost.razor.
-const revision = '20261024c';
+const revision = '20261024d';
 const modules = new URL('wwwroot/js/dist/candle-battles/', root);
-const runtimeFiles = ['audio.js', 'model.js', 'renderer.js', 'dialogue.js', 'game.js',
+const runtimeFiles = ['audio.js', 'model.js', 'combat-animations.js', 'renderer.js', 'dialogue.js', 'game.js',
     'dialogue-catalog.js', 'dialogue-engine.js', 'dialogue-phrases-pt.js', 'dialogue-phrases-en.js',
     'dialogue-phrases-es-fr-de.js', 'dialogue-phrases-it-ja-zh.js'];
 for (const file of runtimeFiles) {

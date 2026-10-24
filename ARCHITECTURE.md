@@ -601,14 +601,53 @@ sprite-local offsets from the measured 200x200 cell (feet at y=197, head top in
 orientation flip. Orientation flipping still distinguishes the two characters:
 the teams are separate illustrations, never mirrored copies.
 
-Social capture composition and announcement are ordered. `freezeForCapture`
-settles an in-flight cinematic first, then composes, and only emits
-`candle-battles-capture-frozen` after a rendered frame of the definitive
-composition; `host.dataset.finaleState` reports the phase and is
-`SOCIAL_FINAL_POSE` when the poster freezes. The existing capture contracts
-(`data-capture-frame`, `data-social-ready`, `candle-battles-finished`,
-`freezeForCapture`, `captureTarget` phase pinning) are unchanged.
-
+  Social capture composition and announcement are ordered. `freezeForCapture`
+  settles an in-flight cinematic first, then composes, and only emits
+  `candle-battles-capture-frozen` after a rendered frame of the definitive
+  composition; `host.dataset.finaleState` reports the phase and is
+  `SOCIAL_FINAL_POSE` when the poster freezes. The existing capture contracts
+  (`data-capture-frame`, `data-social-ready`, `candle-battles-finished`,
+  `freezeForCapture`, `captureTarget` phase pinning) are unchanged.
+  
+  ### Candle Battles in-round combat animations
+  
+  `wwwroot/js/candle-battles/combat-animations.ts` owns the in-round and
+  between-round fighter beats. Like the closing cinematic it is
+  presentation-only: it receives the authoritative round winner as an input and
+  never re-derives a result from pressure, sprite size or candle colour. The
+  winner is always `Round.winner` as resolved by `CandleBattlesResolver`
+  (`((Close - Open) / Open) * 100` with the strength tie-breaker), so a large red
+  candle can never look like the winner because its body is bigger.
+  
+  The module exposes a pure state machine: `resolveCombatState` picks one of 19
+  named beats, `alignToPhase` keeps the beat on the sequence the battle phase
+  already owns, `CombatSequencer` enforces the priority ladder
+  (`finisher > heavyHit > attack > guard > recover > personality > idle`) and
+  `COMBAT_TRANSITIONS` names an explicit cancellation rule for every beat. A
+  lower tier can never cut a critical beat short. `impactLevel` bands an impact
+  as none/light/medium/heavy from real pressure, strength and hit data and
+  returns `none` whenever an input is not finite, so the presentation stays
+  neutral instead of inventing a level. `personalityFor` and `combatHash` are
+  seeded and deterministic; the module contains no `Math.random`.
+  
+  `frameAt` and `transformAt` are pure functions of the simulation clock, which
+  `game.ts` advances with the replay speed. Live play, replay, accelerated
+  replay, seeking and paused playback therefore land on the same drawing and the
+  same transform. `CandleRenderer.setCombatPlan` applies the beat; it is refused
+  while a round-result beat or the closing cinematic is on screen, so those keep
+  their frames untouched. `game.ts` publishes `dataset.combatLeft`,
+  `dataset.combatRight` and `dataset.combatEvent` for inspection and tests.
+  
+  Beats reference only frames already present in `modular.png`, and impact
+  particles use the `overlay-spark`/`-dust`/`-ring`/`-trail` frames that already
+  ship in `candle-finishers.png` but were never registered. Those are arena VFX
+  rather than body decals, so they keep their own registry (`IMPACT_FX_*`) and
+  never join `OVERLAY_KINDS`. No animation is registered from identical frames:
+  `tools/candle-battles/audit-frames.py` writes `frame-audit.json`, which the
+  test suite checks against the shipped PNG hashes. See
+  `docs/candle-battle-combat-animations.md` for the frame inventory, the beat
+  table and the pending sprite specification.
+  
 ## Candle Battle Social Flow
 
 `CandleBattleSocialController` exposes `/api/social/candle-battle/highlight`,

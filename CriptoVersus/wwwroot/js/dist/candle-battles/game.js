@@ -1,8 +1,9 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261024c';
-import { CandleRenderer } from './renderer.js?v=20261024c';
-import { AudioManager } from './audio.js?v=20261024c';
-import { DialogueClock, lineDuration } from './dialogue.js?v=20261024c';
-import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261024c';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261024d';
+import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261024d';
+import { CandleRenderer } from './renderer.js?v=20261024d';
+import { AudioManager } from './audio.js?v=20261024d';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261024d';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261024d';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -59,6 +60,12 @@ export class GameEngine {
         this.backgrounded = false;
         this.time = 0;
         this.combatElapsed = 0;
+        /** In-round combat beats. Presentation only: never touches score or rounds. */
+        this.combatSequencer = { left: new CombatSequencer(), right: new CombatSequencer() };
+        this.combatPlans = { left: undefined, right: undefined };
+        this.roundEvent = 'none';
+        this.lastLeader = null;
+        this.roundImpact = { left: undefined, right: undefined };
         this.dialogue = new DialogueClock();
         this.dialogueEngine = new CandleBattleDialogueEngine();
         this.finaleElapsed = 0;
@@ -96,7 +103,7 @@ export class GameEngine {
                     owner.readyReject(new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261024c', '/games/candle-battles/assets/candle-finishers.json?v=20261024c');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261024d', '/games/candle-battles/assets/candle-finishers.json?v=20261024d');
             }
             create() { owner.setup(this); }
             update(_time, delta) { owner.update(delta); }
@@ -630,6 +637,10 @@ export class GameEngine {
         this.right?.root.setPosition(950, this.shell ? 185 : 260);
         this.left?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
         this.right?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+        this.roundEvent = 'none';
+        this.combatSequencer.left.reset();
+        this.combatSequencer.right.reset();
+        this.combatPlans = { left: undefined, right: undefined };
         this.mode = 'replay';
         this.autoplayInitialized = true;
         this.catchUpReplay = false;
@@ -780,6 +791,7 @@ export class GameEngine {
             this.right?.root.setPosition(rightX, this.shell ? 185 : 260);
             this.left?.setCombatMotion(frame.left);
             this.right?.setCombatMotion(frame.right);
+            this.applyCombatBeats(frame, 0);
         }
         else {
             const remaining = this.candleRemaining();
@@ -788,6 +800,7 @@ export class GameEngine {
             this.right?.root.setPosition(950 - Math.sin(this.time / 1170) * Math.min(5, 2 + tension * 3), this.shell ? 185 : 260);
             this.left?.setPreparation(tension, this.time);
             this.right?.setPreparation(tension, this.time + 650);
+            this.applyCombatBeats(null, tension);
         }
         this.left?.update(this.time, dt, p);
         this.right?.update(this.time, dt, p);
@@ -967,6 +980,9 @@ export class GameEngine {
     }
     begin(r) {
         this.clearDialogue();
+        this.roundEvent = 'none';
+        this.combatSequencer.left.reset();
+        this.combatSequencer.right.reset();
         this.active = r;
         this.combatElapsed = 0;
         this.focusRound = this.completedRounds;
@@ -986,6 +1002,80 @@ export class GameEngine {
         this.state.start();
         this.enter('SPAWNING');
         this.updateDashboard(true);
+    }
+    /**
+     * Records a real match event from the territory and the authoritative
+     * round result. Nothing here invents a market event: the flags only fire
+     * when the score, streak or strength gap actually produced them.
+     */
+    noteRoundEvent(r) {
+        const score = this.territory.score;
+        const leader = score.left === score.right ? 'draw' : score.left > score.right ? 'left' : 'right';
+        const leadChanged = this.lastLeader != null && leader !== 'draw' && leader !== this.lastLeader;
+        this.lastLeader = leader;
+        const crushing = this.options.crushingDifference ?? 25;
+        if (this.territory.special === 'comeback')
+            this.roundEvent = 'recovery';
+        else if (leadChanged)
+            this.roundEvent = 'lead_change';
+        else if (r.winner !== 'draw' && this.territory.streak >= 3)
+            this.roundEvent = 'win_streak';
+        else if (r.winner !== 'draw' && Math.abs(r.leftStrength - r.rightStrength) >= crushing)
+            this.roundEvent = 'dominant_win';
+        else
+            this.roundEvent = 'none';
+        this.host.dataset.combatEvent = this.roundEvent;
+    }
+    /**
+     * Drives the in-round and between-round combat beats for both fighters.
+     * The winner is only ever the authoritative round result and the impact band
+     * only uses real pressure, strength and hit data, so a large red candle can
+     * never look like the winner just because its sprite is bigger.
+     */
+    applyCombatBeats(frame, tension) {
+        const round = this.active;
+        const seed = round?.left.openTime ?? this.feed?.matchStartTime ?? 0;
+        const advantage = round ? combatAdvantage(round.left, round.right, round.leftStrength, round.rightStrength, round.winner) : null;
+        const idle = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
+        for (const side of ['left', 'right']) {
+            // The renderer's phase is authoritative for presentation: a pinned
+            // capture pose must never be contradicted by the engine's timeline.
+            const phase = (side === 'left' ? this.left?.posePhase : this.right?.posePhase)
+                ?? (round ? this.state.phase : 'FORMING_CANDLE');
+            const role = !round ? 'none'
+                : round.winner === 'draw' ? 'draw' : round.winner === side ? 'winner' : 'loser';
+            const impactInputs = {
+                pressure: advantage ? (side === 'left' ? advantage.leftPressure : advantage.rightPressure) : Number.NaN,
+                opponentPressure: advantage ? (side === 'left' ? advantage.rightPressure : advantage.leftPressure) : Number.NaN,
+                strength: round ? (side === 'left' ? round.leftStrength : round.rightStrength) : Number.NaN,
+                opponentStrength: round ? (side === 'left' ? round.rightStrength : round.leftStrength) : Number.NaN,
+                hit: frame ? (side === 'left' ? frame.left.hit : frame.right.hit) : Number.NaN,
+                role,
+            };
+            this.roundImpact[side] = impactInputs;
+            const personalityInputs = {
+                role, event: this.roundEvent, tension, seed,
+                roundIndex: this.completedRounds, streak: this.territory.streak,
+            };
+            const inputs = {
+                phase,
+                role,
+                motion: frame ? (side === 'left' ? frame.left : frame.right) : idle,
+                impact: impactLevel(impactInputs),
+                personality: personalityFor(personalityInputs),
+                event: this.roundEvent,
+                tension,
+                elapsedMs: this.combatElapsed,
+                seed,
+            };
+            const sequencer = this.combatSequencer[side];
+            sequencer.request(resolveCombatState(inputs), this.combatElapsed);
+            const plan = sequencer.update(this.combatElapsed);
+            this.combatPlans[side] = plan;
+            const renderer = side === 'left' ? this.left : this.right;
+            renderer?.setCombatPlan(plan ?? null, this.combatElapsed);
+            this.host.dataset[side === 'left' ? 'combatLeft' : 'combatRight'] = plan?.state ?? 'none';
+        }
     }
     enter(phase) {
         const r = this.active;
@@ -1033,6 +1123,7 @@ export class GameEngine {
         if (phase === 'BLOCK_LOCKING') {
             const oldLines = this.territory.lines;
             const tile = this.territory.apply(r);
+            this.noteRoundEvent(r);
             this.tile?.destroy();
             this.tile = undefined;
             this.dropTarget = undefined;
@@ -1512,6 +1603,15 @@ export class GameEngine {
             this.combatElapsed = 0;
             this.left?.resetPresentation();
             this.right?.resetPresentation();
+        }
+        // A pinned capture pose is authoritative: an ambient idle beat must not
+        // replace the phase frame the poster is supposed to show.
+        if (holdPose) {
+            this.combatSequencer.left.reset();
+            this.combatSequencer.right.reset();
+            this.combatPlans = { left: undefined, right: undefined };
+            this.left?.clearCombatPlan();
+            this.right?.clearCombatPlan();
         }
         this.left?.root.setPosition(330, this.shell ? 185 : 260);
         this.right?.root.setPosition(950, this.shell ? 185 : 260);
