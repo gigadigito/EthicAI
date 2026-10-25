@@ -1,5 +1,5 @@
-import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate, resolveRoundResultPose, ROUND_RESULT_RETURN_MS } from './model.js?v=20261024e';
-import { frameAt, transformAt } from './combat-animations.js?v=20261024e';
+import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate, resolveRoundResultPose, ROUND_RESULT_RETURN_MS } from './model.js?v=20261024f';
+import { frameAt, transformAt } from './combat-animations.js?v=20261024f';
 const CANDLE_LIFT = 60;
 const ACTION_FRAME_COUNTS = {
     // Hold the damage pose while its alpha fades; cycling the source montage
@@ -487,7 +487,12 @@ export class CandleRenderer {
             return;
         this.combat = { attack: 0, block: .2 + this.preparation * .35, dodge: .12 * Math.abs(Math.sin(time / 1700)), hit: 0, counter: 0,
             taunt: this.preparation > .8 ? .18 : .08 * Math.abs(Math.sin(time / 2100)) };
-        const next = this.preparation > .8 && Math.sin(time / 1400) > .8 ? 'run' : 'idle';
+        // Forming candle is an inter-round state.  Its old intermittent `run`
+        // selection exposed side-profile source frames while fighters were
+        // stationary, making them look vertically sliced.  Keep the canonical
+        // idle cell on screen; tension still drives the candle aura and the
+        // subtle stance motion above.
+        const next = 'idle';
         if (this.phase === 'FORMING_CANDLE' && next !== this.animation) {
             this.animation = next;
             this.playAnimation(true);

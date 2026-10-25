@@ -520,7 +520,12 @@ export class CandleRenderer {
         if (this.ownsSpriteFrame) return;
         this.combat = { attack: 0, block: .2 + this.preparation * .35, dodge: .12 * Math.abs(Math.sin(time / 1700)), hit: 0, counter: 0,
             taunt: this.preparation > .8 ? .18 : .08 * Math.abs(Math.sin(time / 2100)) };
-        const next: FighterAnimation = this.preparation > .8 && Math.sin(time / 1400) > .8 ? 'run' : 'idle';
+        // Forming candle is an inter-round state.  Its old intermittent `run`
+        // selection exposed side-profile source frames while fighters were
+        // stationary, making them look vertically sliced.  Keep the canonical
+        // idle cell on screen; tension still drives the candle aura and the
+        // subtle stance motion above.
+        const next: FighterAnimation = 'idle';
         if (this.phase === 'FORMING_CANDLE' && next !== this.animation) { this.animation = next; this.playAnimation(true); }
         if (!this.target && !this.frozen) {
             this.sprite.setPosition(Math.sin(time/900)*(.8+this.preparation*1.5),185+Math.sin(time/650)*(1.2+this.preparation*1.8));

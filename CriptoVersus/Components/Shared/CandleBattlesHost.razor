@@ -124,7 +124,7 @@ else
         var stage = "module_import";
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261024e.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261024f.js");
             stage = "renderer_initialization";
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
                 new
