@@ -91,6 +91,52 @@ public sealed class MatchTimingNormalizationTests
         Assert.Equal(17, dto.ScoreVersion);
         Assert.Equal(new DateTime(2026, 06, 02, 15, 42, 0, DateTimeKind.Utc), dto.ScoreUpdatedAtUtc);
     }
+
+    [Fact]
+    public async Task GetAll_SkipPagesThroughMatchesInStableOrder()
+    {
+        using var db = CreateDbContext();
+        var now = DateTime.UtcNow;
+        SeedMatch(
+            db,
+            status: MatchStatus.Ongoing,
+            startTimeUtc: now.AddHours(-3),
+            endTimeUtc: null);
+
+        db.Match.Add(new Match
+        {
+            MatchId = 2,
+            TeamAId = 10,
+            TeamBId = 20,
+            ScoreA = 0,
+            ScoreB = 0,
+            Status = MatchStatus.Ongoing,
+            StartTime = now.AddHours(-2)
+        });
+        db.Match.Add(new Match
+        {
+            MatchId = 3,
+            TeamAId = 10,
+            TeamBId = 20,
+            ScoreA = 0,
+            ScoreB = 0,
+            Status = MatchStatus.Ongoing,
+            StartTime = now.AddHours(-1)
+        });
+        db.SaveChanges();
+
+        var controller = CreateController(db);
+
+        var firstPage = await controller.GetAll(take: 2, skip: 0, includeParticipants: false, ct: CancellationToken.None);
+        var secondPage = await controller.GetAll(take: 2, skip: 2, includeParticipants: false, ct: CancellationToken.None);
+
+        var firstItems = Assert.IsType<List<MatchDto>>(Assert.IsType<OkObjectResult>(firstPage.Result).Value);
+        var secondItems = Assert.IsType<List<MatchDto>>(Assert.IsType<OkObjectResult>(secondPage.Result).Value);
+
+        Assert.Equal(new[] { 3, 2 }, firstItems.Select(match => match.MatchId).ToArray());
+        Assert.Equal(new[] { 1 }, secondItems.Select(match => match.MatchId).ToArray());
+    }
+
     private static MatchesController CreateController(EthicAIDbContext db)
     {
         var configuration = new ConfigurationBuilder()

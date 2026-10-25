@@ -61,11 +61,13 @@ namespace CriptoVersus.API.Controllers
         public async Task<ActionResult<List<MatchDto>>> GetAll(
             [FromQuery] MatchStatus? status = null,
             [FromQuery] int take = 50,
+            [FromQuery] int skip = 0,
             [FromQuery] bool includeParticipants = false,
             CancellationToken ct = default)
         {
             if (take <= 0) take = 50;
             if (take > 200) take = 200;
+            if (skip < 0) skip = 0;
 
             var now = DateTime.UtcNow;
 
@@ -82,6 +84,8 @@ namespace CriptoVersus.API.Controllers
 
             var matches = await q
                 .OrderByDescending(m => m.StartTime ?? DateTime.MaxValue)
+                .ThenByDescending(m => m.MatchId)
+                .Skip(skip)
                 .Take(take)
                 .ToListAsync(ct);
 

@@ -267,13 +267,13 @@ app.MapMethods("/sitemap-pages.xml", ["GET", "HEAD"], (HttpContext httpContext, 
     SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetPagesSitemapXmlAsync(token), ct));
 
 app.MapMethods("/sitemap-matches-en.xml", ["GET", "HEAD"], (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
-    SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync("en", token), ct));
+    SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync("en", ct: token), ct));
 
 app.MapMethods("/sitemap-matches-pt.xml", ["GET", "HEAD"], (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
-    SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync("pt", token), ct));
+    SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync("pt", ct: token), ct));
 
 app.MapMethods("/sitemap-matches-zh.xml", ["GET", "HEAD"], (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
-    SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync("zh", token), ct));
+    SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync("zh", ct: token), ct));
 
 app.MapMethods("/sitemap-matches-{culture}.xml", ["GET", "HEAD"], async (
     HttpContext httpContext,
@@ -285,8 +285,22 @@ app.MapMethods("/sitemap-matches-{culture}.xml", ["GET", "HEAD"], async (
     if (!cultures.TryNormalizeRouteCulture(culture, out var normalizedCulture))
         return Results.NotFound();
 
-    return await SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync(normalizedCulture, token), ct);
+    return await SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync(normalizedCulture, ct: token), ct);
 });
+
+app.MapMethods("/sitemap-matches-{culture}-{page:int}.xml", ["GET", "HEAD"], async (
+    HttpContext httpContext,
+    string culture,
+    int page,
+    AppCultureService cultures,
+    SitemapService sitemapService,
+    CancellationToken ct) =>
+{
+    if (page < 2 || !cultures.TryNormalizeRouteCulture(culture, out var normalizedCulture))
+        return Results.NotFound();
+
+    return await SitemapHttpResults.WriteXmlAsync(httpContext, token => sitemapService.GetMatchSitemapXmlAsync(normalizedCulture, page, token), ct);
+}).WithOrder(-1);
 
 app.MapGet("/robots.txt", async (SitemapService sitemapService, CancellationToken ct) =>
 {

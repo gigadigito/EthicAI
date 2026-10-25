@@ -12,11 +12,13 @@ public sealed class SitemapService
     private const int SitemapCacheMinutes = 5;
     private const int ConverterTopSymbolLimit = 18;
     private const int ConverterMaxSymbolLimit = 24;
+    private const int SitemapProtocolUrlLimit = 50_000;
     private static readonly string[] StatsVisualSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
     private static readonly string[] ConverterStableSymbols = ["USDT", "USDC", "BUSD", "FDUSD"];
     private static readonly string[] ConverterSeoSymbols = ["ZEC", "XLM"];
     private const string IndexCacheKey = "sitemap::index";
     private const string PagesCacheKey = "sitemap::pages";
+    private const string MatchesCacheKey = "sitemap::matches";
 
     private static readonly XNamespace SitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9";
     private static readonly XNamespace XhtmlNamespace = "http://www.w3.org/1999/xhtml";
@@ -58,11 +60,12 @@ public sealed class SitemapService
     public async Task<string> GetPagesSitemapXmlAsync(CancellationToken ct = default)
         => await GetCachedXmlAsync(PagesCacheKey, () => BuildPagesSitemapXmlAsync(ct));
 
-    public async Task<string> GetMatchSitemapXmlAsync(string culture, CancellationToken ct = default)
+    public async Task<string> GetMatchSitemapXmlAsync(string culture, int page = 1, CancellationToken ct = default)
     {
         var normalizedCulture = _routeLocalization.NormalizeCulture(culture);
-        var cacheKey = $"sitemap::matches::{normalizedCulture}";
-        return await GetCachedXmlAsync(cacheKey, () => BuildMatchSitemapXmlAsync(normalizedCulture, ct));
+        var normalizedPage = Math.Max(1, page);
+        var cacheKey = $"sitemap::matches::{normalizedCulture}::{normalizedPage}";
+        return await GetCachedXmlAsync(cacheKey, () => BuildMatchSitemapXmlAsync(normalizedCulture, normalizedPage, ct));
     }
 
     public Task<string> GetRobotsTxtAsync(CancellationToken ct = default)
@@ -84,14 +87,20 @@ public sealed class SitemapService
         return cached ?? string.Empty;
     }
 
-    private Task<string> BuildSitemapIndexXmlAsync(CancellationToken ct)
+    private async Task<string> BuildSitemapIndexXmlAsync(CancellationToken ct)
     {
         var baseUri = GetPublicBaseUri();
         var now = DateTime.UtcNow;
+        var matchSitemapPages = Math.Max(1, (int)Math.Ceiling(
+            (await GetRelevantMatchesAsync(ct)).Count / (double)MatchesPerSitemap));
 
         var paths = new List<string> { "/sitemap-pages.xml" };
         foreach (var culture in AllRouteCultures)
+        {
             paths.Add($"/sitemap-matches-{culture}.xml");
+            for (var page = 2; page <= matchSitemapPages; page++)
+                paths.Add($"/sitemap-matches-{culture}-{page}.xml");
+        }
 
         var elements = paths
             .Select(path => new XElement(
@@ -103,7 +112,7 @@ public sealed class SitemapService
             new XDeclaration("1.0", "UTF-8", null),
             new XElement(SitemapNamespace + "sitemapindex", elements));
 
-        return Task.FromResult(document.ToString(SaveOptions.DisableFormatting));
+        return document.ToString(SaveOptions.DisableFormatting);
     }
 
     private async Task<string> BuildPagesSitemapXmlAsync(CancellationToken ct)
@@ -183,12 +192,14 @@ public sealed class SitemapService
         return BuildUrlSet(entries);
     }
 
-    private async Task<string> BuildMatchSitemapXmlAsync(string culture, CancellationToken ct)
+    private async Task<string> BuildMatchSitemapXmlAsync(string culture, int page, CancellationToken ct)
     {
         var baseUri = GetPublicBaseUri();
         var entries = new List<SitemapEntry>();
 
-        foreach (var match in await GetRelevantMatchesAsync(ct))
+        foreach (var match in (await GetRelevantMatchesAsync(ct))
+            .Skip((page - 1) * MatchesPerSitemap)
+            .Take(MatchesPerSitemap))
         {
             var slug = _matchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
             if (string.IsNullOrWhiteSpace(slug))
@@ -259,17 +270,69 @@ public sealed class SitemapService
 
     private async Task<IReadOnlyList<MatchDto>> GetRelevantMatchesAsync(CancellationToken ct)
     {
-        var client = _httpClientFactory.CreateClient("CriptoVersusApi");
-        var safeTake = Math.Clamp(_options.ApiTake, 1, 2000);
-        var matches = await client.GetFromJsonAsync<List<MatchDto>>($"api/Matches?take={safeTake}", ct) ?? [];
-        var cutoff = DateTime.UtcNow.AddDays(-Math.Max(1, _options.RecentMatchWindowDays));
+        var matches = await _memoryCache.GetOrCreateAsync(MatchesCacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(SitemapCacheMinutes);
+            return await FetchRelevantMatchesAsync(ct);
+        });
 
-        return matches
+        return matches ?? [];
+    }
+
+    private async Task<IReadOnlyList<MatchDto>> FetchRelevantMatchesAsync(CancellationToken ct)
+    {
+        var client = _httpClientFactory.CreateClient("CriptoVersusApi");
+        var pageSize = Math.Clamp(_options.ApiTake, 1, 200);
+        var matches = new List<MatchDto>();
+        var seenMatchIds = new HashSet<int>();
+        var skip = 0;
+
+        while (true)
+        {
+            var page = await client.GetFromJsonAsync<List<MatchDto>>(
+                $"api/Matches?take={pageSize}&skip={skip}", ct) ?? [];
+
+            var discoveredNewMatch = false;
+            foreach (var match in page)
+            {
+                matches.Add(match);
+                if (match.MatchId > 0 && seenMatchIds.Add(match.MatchId))
+                    discoveredNewMatch = true;
+            }
+
+            if (page.Count < pageSize || !discoveredNewMatch)
+                break;
+
+            skip += page.Count;
+        }
+
+        DateTime? cutoff = _options.RecentMatchWindowDays > 0
+            ? DateTime.UtcNow.AddDays(-_options.RecentMatchWindowDays)
+            : null;
+
+        var indexableMatches = matches
             .Where(match => match.MatchId > 0)
             .Where(match => IsIndexableMatch(match, cutoff))
             .OrderByDescending(GetRelevantTimestampUtc)
-            .Take(Math.Max(1, _options.MaxMatchEntriesPerCulture))
             .ToArray();
+
+        if (_options.MaxMatchEntriesPerCulture > 0)
+            indexableMatches = indexableMatches.Take(_options.MaxMatchEntriesPerCulture).ToArray();
+
+        return indexableMatches
+            .GroupBy(match => match.MatchId)
+            .Select(group => group.First())
+            .OrderByDescending(GetRelevantTimestampUtc)
+            .ToArray();
+    }
+
+    private int MatchesPerSitemap
+    {
+        get
+        {
+            var maxUrls = Math.Clamp(_options.MaxUrlsPerMatchSitemap, 1, SitemapProtocolUrlLimit);
+            return Math.Max(1, maxUrls / SitemapRouteCatalog.MatchFamilies.Count);
+        }
     }
 
     private async Task<IReadOnlyList<StatsArenaTeamDto>> GetIndexableStatsTeamsAsync(CancellationToken ct)
@@ -290,19 +353,22 @@ public sealed class SitemapService
         }
     }
 
-    private bool IsIndexableMatch(MatchDto match, DateTime cutoffUtc)
+    private bool IsIndexableMatch(MatchDto match, DateTime? cutoffUtc)
     {
         if (IsOngoing(match.Status))
             return _options.IncludeOngoingMatches;
 
         if (IsPending(match.Status))
-            return _options.IncludePendingMatches && GetRelevantTimestampUtc(match) >= cutoffUtc;
+            return _options.IncludePendingMatches && IsInsideRecentWindow(match, cutoffUtc);
 
         if (match.IsFinished || IsCompleted(match.Status))
-            return _options.IncludeFinishedMatches && GetRelevantTimestampUtc(match) >= cutoffUtc;
+            return _options.IncludeFinishedMatches && IsInsideRecentWindow(match, cutoffUtc);
 
-        return GetRelevantTimestampUtc(match) >= cutoffUtc;
+        return IsInsideRecentWindow(match, cutoffUtc);
     }
+
+    private static bool IsInsideRecentWindow(MatchDto match, DateTime? cutoffUtc)
+        => !cutoffUtc.HasValue || GetRelevantTimestampUtc(match) >= cutoffUtc.Value;
 
     private Uri GetPublicBaseUri()
     {

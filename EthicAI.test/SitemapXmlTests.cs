@@ -7,6 +7,7 @@ using DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace EthicAI.test;
@@ -160,6 +161,41 @@ public sealed class SitemapXmlTests
     }
 
     [Fact]
+    public async Task MatchSitemaps_IncludeCandleBattlesFromEveryApiPage()
+    {
+        var service = CreateService(new SitemapOptions
+        {
+            ApiTake = 2,
+            MaxUrlsPerMatchSitemap = 8
+        });
+        var xml = await service.GetMatchSitemapXmlAsync("en", page: 2);
+        var locations = GetLocations(xml);
+
+        Assert.Contains($"{PublicBaseUrl}/en/tv/candle/42222/bmt-vs-anime", locations);
+
+        var indexLocations = XDocument.Parse(await service.GetSitemapIndexXmlAsync())
+            .Root!
+            .Elements(SitemapNs + "sitemap")
+            .Select(sitemap => sitemap.Element(SitemapNs + "loc")!.Value)
+            .ToArray();
+        Assert.Contains($"{PublicBaseUrl}/sitemap-matches-en-2.xml", indexLocations);
+    }
+
+    [Fact]
+    public async Task MatchSitemaps_StopPagingWhenApiIgnoresSkip()
+    {
+        var service = CreateService(new SitemapOptions { ApiTake = 2 }, new StickyPageApiHandler());
+
+        var xmlTask = service.GetMatchSitemapXmlAsync("en");
+        var completed = await Task.WhenAny(xmlTask, Task.Delay(TimeSpan.FromSeconds(10)));
+        Assert.Same(xmlTask, completed);
+
+        var locations = GetLocations(await xmlTask);
+        Assert.Contains($"{PublicBaseUrl}/en/tv/candle/42/btc-vs-eth", locations);
+        Assert.Equal(locations.Count, locations.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
     public async Task MatchSitemaps_PreserveFinishedAndOngoingMatchSemantics()
     {
         var service = CreateService();
@@ -188,7 +224,8 @@ public sealed class SitemapXmlTests
             .First(url => url.Element(SitemapNs + "loc")!.Value.EndsWith("/en/candle/42/btc-vs-eth", StringComparison.OrdinalIgnoreCase));
 
         var hrefs = candleUrl.Elements(XhtmlNs + "link")
-            .Where(link => (string?)link.Attribute("rel") == "alternate")
+            .Where(link => (string?)link.Attribute("rel") == "alternate"
+                && (string?)link.Attribute("hreflang") != "x-default")
             .Select(link => (string)link.Attribute("href")!)
             .ToArray();
 
@@ -242,7 +279,7 @@ public sealed class SitemapXmlTests
             {
                 Assert.True(Uri.TryCreate(location, UriKind.Absolute, out var uri), $"URL invalida: {location}");
                 Assert.Equal("https", uri.Scheme);
-                Assert.Equal("www.criptoversus.com", uri.Host);
+                Assert.Contains(uri.Host, new[] { "www.criptoversus.com", "mcp.criptoversus.com" });
                 Assert.DoesNotContain("localhost", location, StringComparison.OrdinalIgnoreCase);
                 Assert.DoesNotContain("127.0.0.1", location);
             }
@@ -324,6 +361,7 @@ public sealed class SitemapXmlTests
         var context = new DefaultHttpContext();
         context.Request.Method = method;
         context.Response.Body = new MemoryStream();
+        context.RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider();
         return context;
     }
 
@@ -333,7 +371,7 @@ public sealed class SitemapXmlTests
             .Select(loc => loc.Value)
             .ToArray();
 
-    private static SitemapService CreateService()
+    private static SitemapService CreateService(SitemapOptions? sitemapOptions = null, HttpMessageHandler? apiHandler = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -347,18 +385,25 @@ public sealed class SitemapXmlTests
         var routes = new RouteLocalizationService(appCulture);
 
         return new SitemapService(
-            new FakeHttpClientFactory(),
+            new FakeHttpClientFactory(apiHandler ?? new FakeApiHandler()),
             configuration,
             new MemoryCache(new MemoryCacheOptions()),
             new MatchSlugHelper(),
             routes,
             languages,
-            Options.Create(new SitemapOptions()));
+            Options.Create(sitemapOptions ?? new SitemapOptions { ApiTake = 2 }));
     }
 
     private sealed class FakeHttpClientFactory : IHttpClientFactory
     {
-        public HttpClient CreateClient(string name) => new(new FakeApiHandler(), disposeHandler: false);
+        private readonly HttpMessageHandler _handler;
+
+        public FakeHttpClientFactory(HttpMessageHandler handler) => _handler = handler;
+
+        public HttpClient CreateClient(string name) => new(_handler, disposeHandler: false)
+        {
+            BaseAddress = new Uri("https://api.test.local")
+        };
     }
 
     private sealed class FakeApiHandler : HttpMessageHandler
@@ -385,6 +430,22 @@ public sealed class SitemapXmlTests
                     TotalPages = 1
                 };
             }
+            else if (path.Contains("api/Matches", StringComparison.OrdinalIgnoreCase)
+                && request.RequestUri.Query.Contains("skip=2", StringComparison.OrdinalIgnoreCase))
+            {
+                payload = new List<MatchDto>
+                {
+                    new()
+                    {
+                        MatchId = 42222,
+                        TeamA = "BMT",
+                        TeamB = "ANIME",
+                        Status = "Completed",
+                        IsFinished = true,
+                        EndTime = DateTime.UtcNow.AddYears(-1)
+                    }
+                };
+            }
             else
             {
                 payload = new List<MatchDto>
@@ -409,6 +470,42 @@ public sealed class SitemapXmlTests
                     }
                 };
             }
+
+            var json = JsonSerializer.Serialize(payload, payload.GetType(), JsonOptions);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            });
+        }
+    }
+
+    private sealed class StickyPageApiHandler : HttpMessageHandler
+    {
+        private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            object payload = new List<MatchDto>
+            {
+                new()
+                {
+                    MatchId = 42,
+                    TeamA = "BTC",
+                    TeamB = "ETH",
+                    Status = "Completed",
+                    IsFinished = true,
+                    EndTime = DateTime.UtcNow.AddDays(-1)
+                },
+                new()
+                {
+                    MatchId = 43,
+                    TeamA = "SOL",
+                    TeamB = "XRP",
+                    Status = "Ongoing",
+                    IsFinished = false,
+                    StartTime = DateTime.UtcNow.AddMinutes(-10)
+                }
+            };
 
             var json = JsonSerializer.Serialize(payload, payload.GetType(), JsonOptions);
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
