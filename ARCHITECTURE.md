@@ -673,6 +673,52 @@ Price Crossover and Candle Battle use separate category/idempotency keys on the
 same table and partial unique index. No new migration is needed. The API owns
 publication writes, while the Worker remains the sole writer of arcade rounds.
 
+## Candle Battle Broadcast Flow (automatic TV director)
+
+`CandleBattleBroadcastSelectionService` selects the content a continuous TV
+broadcast should show next, without touching match state, arcade rounds, scoring
+rules or the social publication flow. `TvController` exposes the two read-only
+endpoints consumed by the external RTMPS transmitter:
+
+- `GET /api/tv/candle-battle/next` picks the content now: a LIVE battle when an
+  eligible one exists, otherwise an integral replay, otherwise `available: false`.
+  The optional `currentMatchId` keeps the current content selected while it is
+  still airing, so a higher-scoring battle never interrupts an ongoing broadcast.
+- `GET /api/tv/candle-battle/{matchId}/broadcast-status` reports real match end
+  (`isFinished`), remaining time and `shouldSwitch` with its reason.
+
+Content priority is `LIVE > REPLAY > waiting screen`. LIVE eligibility requires
+`MatchStatus.Ongoing`, two valid non-stablecoin assets, arcade render data
+(`candle_battles_state` or confirmed rounds) and at least
+`MinimumLiveRemainingSeconds` left; a match whose real end already passed is never
+returned as LIVE. Real end is terminal status, reached `EndTime` or the configured
+`MatchDurationMinutes`, never the close of a five-minute candle. After the real
+end the content stays selected for `FinalResultDisplaySeconds` so the victory
+animation and final result remain visible.
+
+LIVE interest is a deterministic 0-100 score computed by
+`CandleBattleBroadcastInterest` from persisted arcade rounds only: score balance,
+recent candle movement, lead alternations, recent round cadence, remaining time
+and the shared `TvPopularSymbols` recognition catalog. Criteria without real data
+have their weight redistributed instead of being invented. REPLAY interest
+reuses `CandleBattleSocialService` (same weights and `selectionReasons`) while
+ignoring `CanPost`, `AlreadyPublished` and reservation state, which are social
+publication constraints and not broadcast constraints. Replay candidates must be
+integral: validated rounds covering exactly the required confrontation sequence
+and Worker state `finished`. `CandleBattleBroadcastSessionStore` holds the light
+in-process state (current selection, serve start, replay display history and the
+empty-result cache); `CandleBattleBroadcastOptions` (section
+`CandleBattleBroadcast`) holds the policy knobs and clamps them to safe ranges.
+The API mirrors the public TV route `/{culture}/tv/candle/{matchId}/{slug}`
+(`TvCandleBattlePublicUrl`, same mirror pattern as `PriceCrossoverSocialPublicUrl`)
+and never builds URLs from request headers.
+
+The transmitter polls `broadcast-status`, keeps FFmpeg/RTMPS running across
+switches and only navigates when `shouldSwitch` is true; 5xx answers mean a
+transient source failure and must not end the stream. Stream keys and credentials
+never appear in this API, its configuration or its logs. See
+`docs/candle-battle-broadcast.md` for the transmitter integration contract.
+
 ## Candle Battle Mock Mode (Development only)
 
 The Web acquires Candle Battle presentation data through one abstraction,

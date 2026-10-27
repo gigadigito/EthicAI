@@ -1,27 +1,17 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using CriptoVersus.API.Controllers;
 using CriptoVersus.API.Services;
 using DTOs;
 using EthicAI.EntityModel;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
+using static CriptoVersus.API.Tests.ApiAuthorizationTestHarness;
 
 namespace CriptoVersus.API.Tests;
 
 public sealed class SocialAutomationEndpointAuthTests
 {
-    private const string ConfiguredKey = "social-test-key-do-not-use";
-    private const string JwtSigningKey = "unit-test-jwt-signing-key-0123456789abcdef";
-
     private static readonly string[] ProtectedMethods =
     [
         nameof(PriceCrossoverSocialController.GetCandidates),
@@ -236,99 +226,5 @@ public sealed class SocialAutomationEndpointAuthTests
                 HttpContext = new DefaultHttpContext()
             }
         };
-    }
-
-    private static Endpoint EndpointFor(Type controller, string method)
-    {
-        var methodInfo = controller.GetMethod(method)
-            ?? throw new InvalidOperationException($"{controller.Name}.{method} nao encontrado.");
-
-        var metadata = new List<object>();
-        metadata.AddRange(controller.GetCustomAttributes(true));
-        metadata.AddRange(methodInfo.GetCustomAttributes(true));
-
-        return new Endpoint(
-            _ => Task.CompletedTask,
-            new EndpointMetadataCollection(metadata),
-            $"{controller.Name}.{method}");
-    }
-
-    private static string CreateJwt(string signingKey, TimeSpan? lifetime = null)
-    {
-        var credentials = new SigningCredentials(
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
-            SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            claims: [new Claim(ClaimTypes.Name, "tester")],
-            notBefore: DateTime.UtcNow.AddMinutes(-1),
-            expires: DateTime.UtcNow.Add(lifetime ?? TimeSpan.FromMinutes(5)),
-            signingCredentials: credentials);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    private static async Task<int> ExecuteRequestAsync(
-        Endpoint endpoint,
-        string? configuredKey = ConfiguredKey,
-        string? socialKey = null,
-        string? bearerToken = null)
-    {
-        await using var provider = BuildPipelineProvider(configuredKey);
-
-        var context = new DefaultHttpContext { RequestServices = provider };
-        if (socialKey is not null)
-            context.Request.Headers[SocialAutomationDefaults.HeaderName] = socialKey;
-        if (bearerToken is not null)
-            context.Request.Headers.Authorization = $"Bearer {bearerToken}";
-        context.SetEndpoint(endpoint);
-
-        RequestDelegate terminal = httpContext =>
-        {
-            httpContext.Response.StatusCode = StatusCodes.Status200OK;
-            return Task.CompletedTask;
-        };
-
-        var authorization = new AuthorizationMiddleware(
-            terminal,
-            provider.GetRequiredService<IAuthorizationPolicyProvider>());
-        var authentication = new AuthenticationMiddleware(
-            authorization.Invoke,
-            provider.GetRequiredService<IAuthenticationSchemeProvider>());
-
-        await authentication.Invoke(context);
-        return context.Response.StatusCode;
-    }
-
-    private static ServiceProvider BuildPipelineProvider(string? configuredKey)
-    {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.Configure<SocialAutomationOptions>(options => options.ApiKey = configuredKey);
-        services.AddSingleton<ISocialAutomationAuthenticationService, SocialAutomationAuthenticationService>();
-        services
-            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey)),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.FromMinutes(1)
-                };
-            })
-            .AddSocialAutomationKeyAuthentication();
-        services.AddAuthorization(options =>
-        {
-            options.FallbackPolicy = new AuthorizationPolicyBuilder()
-                .RequireAuthenticatedUser()
-                .Build();
-            options.AddSocialAutomationAccessPolicy();
-        });
-
-        return services.BuildServiceProvider();
     }
 }

@@ -14,10 +14,7 @@ public interface ITvHotMatchService
 public sealed class TvHotMatchService : ITvHotMatchService
 {
     private const int MatchDurationMinutes = 90;
-    private static readonly HashSet<string> PopularSymbols = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX", "LINK", "SUI"
-    };
+    private static readonly IReadOnlySet<string> PopularSymbols = TvPopularSymbols.Catalog;
 
     private readonly EthicAIDbContext _db;
     private readonly IConfiguration _configuration;

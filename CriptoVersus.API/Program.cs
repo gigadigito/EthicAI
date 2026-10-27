@@ -95,6 +95,9 @@ builder.Services.AddScoped<IPriceCrossoverSocialService, PriceCrossoverSocialSer
 builder.Services.AddScoped<IPriceCrossoverHighlightSelector, PriceCrossoverHighlightSelector>();
 builder.Services.AddScoped<ICandleBattlePublicationService, CandleBattlePublicationService>();
 builder.Services.AddScoped<ICandleBattleSocialService, CandleBattleSocialService>();
+builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+builder.Services.AddSingleton<ICandleBattleBroadcastSessionStore, CandleBattleBroadcastSessionStore>();
+builder.Services.AddScoped<ICandleBattleBroadcastSelectionService, CandleBattleBroadcastSelectionService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient(nameof(SocialVsRenderService));
 builder.Services.AddHttpClient(nameof(SocialComposeFinalService));
@@ -108,6 +111,8 @@ builder.Services.Configure<PriceCrossoverOptions>(
     builder.Configuration.GetSection(PriceCrossoverOptions.SectionName));
 builder.Services.Configure<CandleBattleSocialOptions>(
     builder.Configuration.GetSection(CandleBattleSocialOptions.SectionName));
+builder.Services.Configure<CandleBattleBroadcastOptions>(
+    builder.Configuration.GetSection(CandleBattleBroadcastOptions.SectionName));
 builder.Services.Configure<CriptoVersusAiOptions>(
     builder.Configuration.GetSection(CriptoVersusAiOptions.SectionName));
 builder.Services.Configure<AudioGenerationOptions>(
@@ -228,6 +233,9 @@ builder.Services.AddSignalR();
 
 builder.Services.AddMemoryCache();
 
+// Rate limit por IP somente dos endpoints anonimos de transmissao da Candle Battle TV.
+builder.Services.AddRateLimiter(options => options.AddTvBroadcastRateLimiting());
+
 builder.Services.AddHostedService<PostgresChangeListener>();
 
 var connStr = builder.Configuration.GetConnectionString("Default");
@@ -307,6 +315,7 @@ app.UseStaticFiles(new StaticFileOptions
 });
 app.UseRouting();
 app.UseCors(browserCorsPolicy);
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
