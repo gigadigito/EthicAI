@@ -21,6 +21,29 @@ Base de producao: `https://api.criptoversus.com` (ambos anonimos, somente GET).
 `next` aceita query opcional `currentMatchId` (partida em exibicao) e `culture`
 (`pt`, `en`, `es`, ...; padrao `CandleBattleBroadcast:PlaybackCulture`).
 
+## Acesso publico e limites
+
+Os dois endpoints sao `GET` anonimos (`[AllowAnonymous]`): o transmissor nao
+possui JWT e nao deve possui-lo. Todo o restante da API continua exigindo
+autenticacao (fallback policy global). As respostas contem somente dados publicos
+de partida (simbolos, placares, status e URL publica da pagina de TV) — nenhum
+token, chave, segredo, carteira ou dado administrativo.
+
+- **Rate limit**: 120 requisicoes por minuto por IP (politica `tv-broadcast`),
+  janela fixa. Acima do limite a resposta e `429` com cabecalho
+  `Retry-After: 60` — tratar como falha transitoria (backoff, como em `5xx`),
+  nunca como motivo de parar a transmissao. O polling normal de um transmissor
+  fica em torno de 12 requisicoes por minuto.
+- **Consultas limitadas no servidor**: as varreduras de LIVE e REPLAY sao
+  limitadas (`MaxReplayCandidates`, `ReplayLookbackHours` e janela de rounds por
+  partida) e resultados sem conteudo ficam em cache por `SelectionCacheSeconds`;
+  o acesso anonimo nao dispara consultas ilimitadas.
+- **Publicacao**: as rotas precisam existir na versao implantada da API
+  (confira `GET /swagger/v1/swagger.json` de producao). Enquanto a rota nao
+  existe, a fallback policy da API responde `401` para requisicoes sem JWT — o
+  transmissor deve tratar `401` como "endpoint ainda nao publicado" e alertar,
+  sem trocar a chave de transmissao nem reiniciar o pipeline.
+
 ## Contrato de `GET /api/tv/candle-battle/next`
 
 ```json
@@ -89,7 +112,8 @@ Campos e semantica:
   `source_unavailable`.
 
 Codigos HTTP: `200` com `available: true|false`; `503` quando
-`skipReason = source_unavailable` (falha temporaria de origem).
+`skipReason = source_unavailable` (falha temporaria de origem); `429` acima do
+limite de requisicoes por IP (tambem transitorio, ver Acesso publico e limites).
 
 ## Contrato de `GET /api/tv/candle-battle/{matchId}/broadcast-status`
 
@@ -123,7 +147,7 @@ Codigos HTTP: `200` com `available: true|false`; `503` quando
 | `no_content` | nada a exibir para esse matchId |
 
 Codigos HTTP: `200`, `404` (partida inexistente), `400` (matchId invalido),
-`503` (falha temporaria).
+`503` (falha temporaria), `429` (limite de requisicoes por IP, transitorio).
 
 ## Regras do diretor
 
@@ -137,10 +161,11 @@ Codigos HTTP: `200`, `404` (partida inexistente), `400` (matchId invalido),
    adequada. O historico anti-repeticao (`replayHistorySize`, padrao 20) evita
    reexibir o mesmo replay continuamente; replays ainda nao exibidos tem
    prioridade.
-4. **Falhas**: resposta `5xx` ou `source_unavailable` e transitoria — **nao**
-   encerrar a transmissao nem trocar de partida. Manter o conteudo atual, aplicar
-   backoff (sugerido: 15 s, 30 s, 60 s, maximo 120 s) e voltar a consultar.
-   Resposta `200` com `available: false` e conteudo legitimo (tela de espera).
+4. **Falhas**: resposta `5xx`, `429` ou `source_unavailable` e transitoria —
+   **nao** encerrar a transmissao nem trocar de partida. Manter o conteudo atual,
+   aplicar backoff (sugerido: 15 s, 30 s, 60 s, maximo 120 s) e voltar a
+   consultar. Resposta `200` com `available: false` e conteudo legitimo (tela de
+   espera).
 
 ## Adaptacao do stream.py versao 8
 

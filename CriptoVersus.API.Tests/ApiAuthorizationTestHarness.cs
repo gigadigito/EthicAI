@@ -83,22 +83,33 @@ internal static class ApiAuthorizationTestHarness
         if (bearerToken is not null)
             context.Request.Headers.Authorization = $"Bearer {bearerToken}";
         if (remoteIp is not null)
-            context.Connection.RemoteIp = IPAddress.Parse(remoteIp);
+            context.Connection.RemoteIpAddress = IPAddress.Parse(remoteIp);
         context.SetEndpoint(endpoint);
         return context;
     }
 
     public static RequestDelegate BuildPipeline(ServiceProvider provider, bool withRateLimiter)
     {
-        var app = new ApplicationBuilder(provider);
-        if (withRateLimiter) app.UseRateLimiter();
-        app.UseAuthentication();
-        app.UseAuthorization();
-        app.Run(httpContext =>
+        RequestDelegate terminal = httpContext =>
         {
             httpContext.Response.StatusCode = StatusCodes.Status200OK;
             return Task.CompletedTask;
-        });
+        };
+
+        var authorization = new AuthorizationMiddleware(
+            terminal,
+            provider.GetRequiredService<IAuthorizationPolicyProvider>());
+        var authentication = new AuthenticationMiddleware(
+            authorization.Invoke,
+            provider.GetRequiredService<IAuthenticationSchemeProvider>());
+
+        if (!withRateLimiter)
+            return authentication.Invoke;
+
+        // Mesma ordem da producao: rate limit externo, depois autenticacao e autorizacao.
+        var app = new ApplicationBuilder(provider);
+        app.UseRateLimiter();
+        app.Run(authentication.Invoke);
         return app.Build();
     }
 

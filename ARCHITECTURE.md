@@ -713,6 +713,14 @@ The API mirrors the public TV route `/{culture}/tv/candle/{matchId}/{slug}`
 (`TvCandleBattlePublicUrl`, same mirror pattern as `PriceCrossoverSocialPublicUrl`)
 and never builds URLs from request headers.
 
+Both endpoints are anonymous (`[AllowAnonymous]`) because the external
+transmitter has no JWT; the API-wide fallback policy keeps every other route
+authenticated. They return only public match data and are rate limited per IP
+(`TvBroadcastRateLimiter` policy `tv-broadcast`, 120 requests/minute, `429` with
+`Retry-After`), with bounded server-side scans and the empty-result cache above.
+Unmatched routes still get challenged with `401` by the fallback policy, so the
+endpoints only answer once this code is deployed to the API.
+
 The transmitter polls `broadcast-status`, keeps FFmpeg/RTMPS running across
 switches and only navigates when `shouldSwitch` is true; 5xx answers mean a
 transient source failure and must not end the stream. Stream keys and credentials

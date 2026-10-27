@@ -31,7 +31,7 @@ public static class TvBroadcastRateLimiter
         };
         options.AddPolicy(PolicyName, httpContext =>
         {
-            var partitionKey = httpContext.Connection.RemoteIp?.ToString() ?? "unknown";
+            var partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = limit,
