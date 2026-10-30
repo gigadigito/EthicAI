@@ -14,6 +14,7 @@ using BLL;
 using BLL.Blockchain;
 using DTOs;
 using DAL.NftFutebol;
+using CriptoVersus.Worker.MarketFlow;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -77,6 +78,11 @@ Console.WriteLine("=================================");
 Console.ResetColor();
 
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("MoneyFlowTransport", client =>
+{
+    client.Timeout = Timeout.InfiniteTimeSpan;
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("CriptoVersus-Worker-MoneyFlow/1.0");
+});
 builder.Services.AddHttpClient<BinanceKlineClient>(client => client.Timeout = TimeSpan.FromSeconds(8));
 builder.Services.AddScoped<CandleBattlesRoundService>();
 builder.Services.AddMemoryCache();
@@ -94,6 +100,8 @@ builder.Services.Configure<DataRetentionOptions>(
     builder.Configuration.GetSection(DataRetentionOptions.SectionName));
 builder.Services.Configure<ArenaSentimentOptions>(
     builder.Configuration.GetSection(ArenaSentimentOptions.ConfigSection));
+builder.Services.Configure<MarketFlowOptions>(
+    builder.Configuration.GetSection(MarketFlowOptions.SectionName));
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
     builder.Configuration.GetSection(CriptoVersusBlockchainOptions.SectionName));
 
@@ -161,6 +169,16 @@ builder.Services.AddScoped<OffChainCustodyFundsService>();
 builder.Services.AddScoped<HybridContractCustodyFundsService>();
 builder.Services.AddScoped<FullOnChainFundsService>();
 builder.Services.AddScoped<ICandleBattleScoringService, CandleBattleScoringService>();
+builder.Services.AddSingleton<MarketFlowMetrics>();
+builder.Services.AddSingleton<MarketFlowHttpSnapshotSink>();
+builder.Services.AddSingleton<IMarketFlowSnapshotSink>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MarketFlowOptions>>().Value;
+    return options.TransportEnabled
+        ? sp.GetRequiredService<MarketFlowHttpSnapshotSink>()
+        : new NullMarketFlowSnapshotSink();
+});
+builder.Services.AddSingleton<IMarketFlowTransport, BinanceMarketFlowTransport>();
 builder.Services.AddScoped<ICriptoVersusFundsService>(sp =>
 {
     var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<CriptoVersusBlockchainOptions>>().Value;
@@ -212,6 +230,8 @@ builder.Services.AddSingleton<IMatchScoringEngine, MatchScoringEngine>();
 // Worker
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddHostedService<DataRetentionWorker>();
+builder.Services.AddHostedService<MarketFlowStreamService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<MarketFlowHttpSnapshotSink>());
 
 var host = builder.Build();
 

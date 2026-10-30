@@ -120,6 +120,28 @@ test('arcade plays rounds, replays, resizes, pauses and releases the canvas',asy
  await page.evaluate(()=>window.engine.dispose());await expect(page.locator('canvas')).toHaveCount(0);expect(errors).toEqual([]);
 });
 
+test('live Money Flow renders bounded positive and negative effects, then clears them for replay',async({page},testInfo)=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine&&window.ready);
+ const visual=await page.evaluate(async()=>{
+  const engine=window.engine;
+  engine.receive({matchId:88,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  const flow=await import('/js/dist/candle-battles/money-flow.20261024f.js');
+  const batch=(symbol,sequence,firstPrice,lastPrice,isPartial=false)=>({matchId:88,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice,lastPrice,highPrice:lastPrice,lowPrice:firstPrice,isPartial});
+  flow.receiveMoneyFlowBatch(batch('BTCUSDT',1,'100','100.4'));
+  flow.receiveMoneyFlowBatch(batch('ETHUSDT',1,'100','99.6',true));
+  for(let index=0;index<10;index++) engine.update(50);
+  return engine.inspect().moneyFlow;
+ });
+ expect(visual.active).toBe(true);expect(visual.bags).toBeGreaterThan(0);expect(visual.signs).toBeGreaterThan(0);
+ expect(visual.left.displayedCandle).toBeGreaterThan(.5);expect(visual.right.displayedCandle).toBeLessThan(.5);
+ expect(visual.bags).toBeLessThanOrEqual(12);expect(visual.signs).toBeLessThanOrEqual(12);
+ await page.screenshot({path:testInfo.outputPath('money-flow-live.png'),fullPage:true});
+ const replay=await page.evaluate(()=>{window.engine.command('replay');window.engine.update(16);return window.engine.inspect().moneyFlow;});
+ expect(replay.active).toBe(false);expect(replay.bags).toBe(0);expect(replay.signs).toBe(0);
+ expect(errors).toEqual([]);
+});
+
 test('decorative bounce and pulse cannot resize OHLC or fixed-size accessories; reversal passes through doji',async({page})=>{
  await page.goto(url);await page.waitForFunction(()=>window.ready);
  const result=await page.evaluate(()=>{

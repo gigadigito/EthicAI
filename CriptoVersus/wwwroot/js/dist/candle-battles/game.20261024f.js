@@ -4,6 +4,7 @@ import { CandleRenderer } from './renderer.20261024f.js';
 import { AudioManager } from './audio.20261024f.js';
 import { DialogueClock, lineDuration } from './dialogue.20261024f.js';
 import { CandleBattleDialogueEngine } from './dialogue-engine.20261024f.js';
+import { MoneyFlowController } from './money-flow-visual.20261024f.js';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -188,6 +189,8 @@ export class GameEngine {
         this.lineFlash = scene.add.graphics().setDepth(20);
         this.left = new CandleRenderer(scene, 'left', 330, this.shell ? 185 : 260);
         this.right = new CandleRenderer(scene, 'right', 950, this.shell ? 185 : 260);
+        if (this.options.moneyFlowVisualEffects && !this.options.socialCapture)
+            this.moneyFlow = new MoneyFlowController(scene);
         if (this.shell) {
             this.left.root.setDepth(2);
             this.right.root.setDepth(2);
@@ -288,6 +291,7 @@ export class GameEngine {
         }
         this.feed = feed;
         this.pendingReconcile || (this.pendingReconcile = reconcile);
+        this.moneyFlow?.setLiveMatch(feed.matchId, feed.leftSymbol, feed.rightSymbol, this.mode === 'live' && !feed.finished);
         if (feed.serverTime != null && Number.isFinite(feed.serverTime)) {
             this.serverAnchorMs = feed.serverTime;
             this.serverReceivedAt = performance.now();
@@ -739,6 +743,7 @@ export class GameEngine {
             replayIndex: this.replayIndex,
             replayElapsed: this.replayElapsed,
             activeRoundId: this.active?.id ?? null,
+            moneyFlow: this.moneyFlow?.inspect() ?? null,
             captureFrame: this.host.dataset.captureFrame ?? 'none',
             totalRounds: this.replaySourceRounds().length,
             left: fighter(this.left),
@@ -824,6 +829,7 @@ export class GameEngine {
         }
         this.left?.update(this.time, dt, p);
         this.right?.update(this.time, dt, p);
+        this.updateMoneyFlow(dt);
         this.updateDialogue(battleDt);
         if (this.tile && this.dropTarget)
             this.tile.setPosition(this.dropTarget.x, 470 + (this.dropTarget.y - 470) * p * p);
@@ -867,6 +873,15 @@ export class GameEngine {
         if (this.mode === 'live' && !this.options.socialCapture && this.feed?.finished && !this.active && this.clock.count === 0)
             this.finish();
         this.maybeFreezeForCapture();
+    }
+    updateMoneyFlow(delta) {
+        if (!this.moneyFlow || !this.feed)
+            return;
+        const enabled = this.mode === 'live' && !this.feed.finished && !this.options.socialCapture;
+        this.moneyFlow.setLiveMatch(this.feed.matchId, this.feed.leftSymbol, this.feed.rightSymbol, enabled);
+        if (!enabled)
+            return;
+        this.moneyFlow.update(delta, this.left?.speechAnchorX ?? 330, this.left?.speechAnchorY ?? (this.shell ? 185 : 260), this.right?.speechAnchorX ?? 950, this.right?.speechAnchorY ?? (this.shell ? 185 : 260));
     }
     matchLimit() {
         const start = this.feed?.matchStartTime, end = this.feed?.matchEndTime;
@@ -1687,6 +1702,8 @@ export class GameEngine {
         document.removeEventListener('visibilitychange', this.visibility);
         this.motionQuery.removeEventListener('change', this.motionChange);
         this.audio.dispose();
+        this.moneyFlow?.destroy();
+        this.moneyFlow = undefined;
         this.game.destroy(true);
         this.history = [];
         this.market.clear();

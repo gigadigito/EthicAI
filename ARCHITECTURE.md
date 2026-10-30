@@ -233,8 +233,19 @@ Responsibilities:
 - Notify the API after state changes.
 - Request procedural audio resolution from the API.
 - Aggregate and delete old metric data.
+- Optionally ingest Binance Spot `@aggTrade` market-flow data in a separate, feature-flagged hosted service. This flow is in-memory only and is not part of authoritative candle, score, settlement, replay, or dashboard processing.
 
 The Worker is not called by the API to perform a cycle. It runs independently as a hosted service.
+
+#### Optional Market Flow ingestion
+
+`CriptoVersus.Worker/MarketFlow` is a non-authoritative Binance Spot `@aggTrade` pipeline. When `CandleBattles:MoneyFlow:Enabled` is true, one Worker instance opens one combined-stream connection and subscribes once per configured, normalized symbol. It validates aggregate trades, deduplicates `(symbol, aggregateTradeId)`, bounds the input buffer, marks batches partial after a detected gap or overflow, and aggregates non-empty 250 ms event-time windows. Release is based on a monotonic processing clock, so Binance/local wall-clock skew cannot delay realtime delivery; original event timestamps and local receive/publish diagnostics remain separate.
+
+When both `CandleBattles:MoneyFlow:Enabled` and `TransportEnabled` are true, the bounded HTTP sink sends compact snapshot batches to `POST /internal/market-flow/batches`, authenticated with `X-Money-Flow-Worker-Key` and deduplicated by source/symbol/sequence. The API refreshes an in-memory active-match registry on a controlled interval, resolves one symbol to many ongoing matches, and publishes the dedicated `money_flow_batch` event only to `candle-battles-moneyflow:{matchId}` groups. The Web `DashboardHubClient` rejoins groups after reconnect and `CandleBattlesHost` forwards the payload to the bounded, presentation-only `money-flow` JavaScript buffer without rerendering Blazor or changing official candles.
+
+The shared service key is supplied only through configuration/environment (`CandleBattles__MoneyFlow__WorkerApiKey`); no key is stored in repository settings.
+
+The Worker deployment topology and API backplane are external to this repository; no replica coordinator or SignalR backplane is present. The flags must remain disabled unless deployment has designated exactly one ingesting Worker instance and single/multi-instance routing has been validated. Symbols are explicitly configured because the current Candle Battle persistence flow has no external subscription registry. The pipeline remains in-memory and does not write database records, replay trades, or affect scoring/settlement.
 
 ### BLL / Businnes
 
@@ -339,6 +350,13 @@ sequenceDiagram
         Worker->>API: POST dashboard notification
         Worker->>API: POST audio resolve when enabled
     end
+
+    loop Optional Money Flow transport
+        Worker->>API: POST /internal/market-flow/batches (bounded, keyed)
+        API->>API: Resolve symbol to active match groups
+        API-->>Web: SignalR money_flow_batch per match group
+        Web-->>Browser: Bounded JavaScript buffer (visual-only)
+    end
 ```
 
 The API reads Worker state from PostgreSQL. It does not query the Worker process directly.
@@ -368,7 +386,8 @@ sequenceDiagram
 Notes:
 
 - `DashboardHubClient` runs in the Web server process.
-- The active event contract is the string `dashboard_changed`.
+- The active general event contract is the string `dashboard_changed`; Money Flow uses the separate `money_flow_batch` event and per-match groups.
+- Money Flow group membership is validated against ongoing matches by `MoneyFlowMatchRegistry`; the internal Worker endpoint fails closed without its configured service key.
 - A legacy JavaScript hub client exists but is not the active path.
 - Multi-instance API deployment would require a SignalR backplane or managed SignalR service.
 

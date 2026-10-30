@@ -5,10 +5,11 @@ import { CandleRenderer, OverlayKind, registerFinisherAnimations } from './rende
 import { AudioManager } from './audio.js';
 import { DialogueClock, Line, lineDuration } from './dialogue.js';
 import { CandleBattleDialogueEngine } from './dialogue-engine.js';
+import { MoneyFlowController } from './money-flow-visual.js';
 
 export interface Feed { matchId: number; leftSymbol: string; rightSymbol: string; left: Candle | null; right: Candle | null; rounds: Round[]; status: string; finished: boolean; matchStartTime?: number | null; matchEndTime?: number | null; expectedRounds?: number; serverTime?: number | null; scoreLeft?: number; scoreRight?: number; }
 export interface CaptureTarget { round?: number; phase?: string; }
-export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; socialCapture?: boolean; shell?: boolean; autoplay?: boolean; localLogos?: Record<string,string>; captureTarget?: CaptureTarget; }
+export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; socialCapture?: boolean; shell?: boolean; autoplay?: boolean; localLogos?: Record<string,string>; captureTarget?: CaptureTarget; moneyFlowVisualEffects?: boolean; }
 const displaySymbol = (symbol: string): string => symbol.replace(/USDT$/i, '');
 export async function create(host: HTMLElement, options: Options): Promise<GameEngine> {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -93,6 +94,7 @@ export class GameEngine {
     private readonly dialogue = new DialogueClock();
     private readonly dialogueEngine = new CandleBattleDialogueEngine();
     private readonly bubble: HTMLElement | null;
+    private moneyFlow?: MoneyFlowController;
     private conversation?: Line[];
     private currentLine?: Line;
     private finale?: Line[];
@@ -197,6 +199,7 @@ export class GameEngine {
         this.label('percent','50% / 50%',640,772,16,'#f3f5f7',.5);
         this.chart = scene.add.graphics(); this.lineFlash = scene.add.graphics().setDepth(20);
         this.left = new CandleRenderer(scene,'left',330,this.shell?185:260); this.right = new CandleRenderer(scene,'right',950,this.shell?185:260);
+        if (this.options.moneyFlowVisualEffects && !this.options.socialCapture) this.moneyFlow = new MoneyFlowController(scene);
         if (this.shell) {
             this.left.root.setDepth(2); this.right.root.setDepth(2);
             for (const side of ['left','right'] as const) {
@@ -267,6 +270,7 @@ export class GameEngine {
         if (this.disposed || this.captureFrozen) return;
         if (this.feed && this.feed.matchId !== feed.matchId) { this.history=[]; this.market.clear(); this.clock.clear(); this.territory.reset(); this.active=undefined; this.combatElapsed=0; this.state.reset(); this.autoplayInitialized=false; this.catchUpReplay=false; this.terminal=false; this.resetFinale(); this.clearDialogue(); }
         this.feed = feed; this.pendingReconcile ||= reconcile;
+        this.moneyFlow?.setLiveMatch(feed.matchId, feed.leftSymbol, feed.rightSymbol, this.mode === 'live' && !feed.finished);
         if (feed.serverTime != null && Number.isFinite(feed.serverTime)) { this.serverAnchorMs=feed.serverTime; this.serverReceivedAt=performance.now(); }
         if (!this.scene) return;
         for (const side of ['left','right'] as const) {
@@ -546,6 +550,7 @@ export class GameEngine {
             replayIndex: this.replayIndex,
             replayElapsed: this.replayElapsed,
             activeRoundId: this.active?.id ?? null,
+            moneyFlow: this.moneyFlow?.inspect() ?? null,
             captureFrame: this.host.dataset.captureFrame ?? 'none',
             totalRounds: this.replaySourceRounds().length,
             left: fighter(this.left),
@@ -609,6 +614,7 @@ export class GameEngine {
             this.applyCombatBeats(null, tension);
         }
         this.left?.update(this.time,dt,p); this.right?.update(this.time,dt,p);
+        this.updateMoneyFlow(dt);
         this.updateDialogue(battleDt);
         if(this.tile && this.dropTarget) this.tile.setPosition(this.dropTarget.x,470+(this.dropTarget.y-470)*p*p);
         this.flash=Math.max(0,this.flash-dt/500);
@@ -635,6 +641,15 @@ export class GameEngine {
         // captureTarget phase is never overwritten by the live finish path.
         if(this.mode==='live' && !this.options.socialCapture && this.feed?.finished && !this.active && this.clock.count===0) this.finish();
         this.maybeFreezeForCapture();
+    }
+    private updateMoneyFlow(delta: number): void {
+        if (!this.moneyFlow || !this.feed) return;
+        const enabled = this.mode === 'live' && !this.feed.finished && !this.options.socialCapture;
+        this.moneyFlow.setLiveMatch(this.feed.matchId, this.feed.leftSymbol, this.feed.rightSymbol, enabled);
+        if (!enabled) return;
+        this.moneyFlow.update(delta,
+            this.left?.speechAnchorX ?? 330, this.left?.speechAnchorY ?? (this.shell ? 185 : 260),
+            this.right?.speechAnchorX ?? 950, this.right?.speechAnchorY ?? (this.shell ? 185 : 260));
     }
     private matchLimit(): number {
         const start=this.feed?.matchStartTime, end=this.feed?.matchEndTime;
@@ -1296,7 +1311,7 @@ export class GameEngine {
         if(this.readyTimer)clearTimeout(this.readyTimer);
         this.controls.removeEventListener('click',this.controlClick);this.controls.removeEventListener('input',this.controlInput);
         this.observer.disconnect();document.removeEventListener('visibilitychange',this.visibility);
-        this.motionQuery.removeEventListener('change',this.motionChange);this.audio.dispose();this.game.destroy(true);
+        this.motionQuery.removeEventListener('change',this.motionChange);this.audio.dispose();this.moneyFlow?.destroy();this.moneyFlow=undefined;this.game.destroy(true);
         this.history=[];this.market.clear();this.clock.clear();this.effects=[];this.hud.clear();
         this.logos.clear();this.logoFallbacks.clear();this.logoSymbols.clear();this.loadingLogos.clear();this.ownedLogoTextures.clear();
         this.scene=undefined;delete this.host.dataset.ready;

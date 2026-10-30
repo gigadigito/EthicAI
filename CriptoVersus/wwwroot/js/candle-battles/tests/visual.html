@@ -5,7 +5,7 @@ import { demoRound } from '/js/dist/candle-battles/model.js';
 const kind=new URLSearchParams(location.search).get('kind');
 if(kind==='game'||kind==='live') {
  const {create}=await import('/js/dist/candle-battles/game.js');
- window.engine=await create(document.querySelector('#arena'),{mode:kind==='live'?'live':'demo',reducedMotion:true,labels:{forming:'FORMING CANDLE',nextStrength:'NEXT STRENGTH',arcade:'INDEPENDENT ARCADE SCORE',recent:'RECENT BATTLES',lines:'LINES',page:'PAGE',territory:'TERRITORY CONTROL',strength:'STRENGTH',waiting:'WAITING FOR MARKET',draw:'DRAW'}});
+ window.engine=await create(document.querySelector('#arena'),{mode:kind==='live'?'live':'demo',moneyFlowVisualEffects:kind==='live',reducedMotion:true,labels:{forming:'FORMING CANDLE',nextStrength:'NEXT STRENGTH',arcade:'INDEPENDENT ARCADE SCORE',recent:'RECENT BATTLES',lines:'LINES',page:'PAGE',territory:'TERRITORY CONTROL',strength:'STRENGTH',waiting:'WAITING FOR MARKET',draw:'DRAW'}});
  window.ready=true;
 } else {
  const configs=[['SMALL',100.05,103,98,5],['MEDIUM',103,104,99,6],['LARGE',108,109,97,10],['DOJI',100,107,93,10],['EXTREME WICKS',100.15,130,75,35]];

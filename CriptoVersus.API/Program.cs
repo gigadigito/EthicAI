@@ -119,6 +119,8 @@ builder.Services.Configure<AudioGenerationOptions>(
     builder.Configuration.GetSection(AudioGenerationOptions.SectionName));
 builder.Services.Configure<ProceduralAudioFeatureOptions>(
     builder.Configuration.GetSection(ProceduralAudioFeatureOptions.SectionName));
+builder.Services.Configure<MoneyFlowTransportOptions>(
+    builder.Configuration.GetSection(MoneyFlowTransportOptions.SectionName));
 builder.Services.Configure<CommunityMatchOptions>(
     builder.Configuration.GetSection(CommunityMatchOptions.SectionName));
 builder.Services.Configure<CommunityCaptchaOptions>(
@@ -237,6 +239,11 @@ builder.Services.AddMemoryCache();
 builder.Services.AddRateLimiter(options => options.AddTvBroadcastRateLimiting());
 
 builder.Services.AddHostedService<PostgresChangeListener>();
+builder.Services.AddSingleton<MoneyFlowMetrics>();
+builder.Services.AddSingleton<MoneyFlowMatchRegistry>();
+builder.Services.AddSingleton<MoneyFlowDispatcher>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<MoneyFlowDispatcher>());
+builder.Services.AddSingleton<IMoneyFlowWorkerAuthenticationService, MoneyFlowWorkerAuthenticationService>();
 
 var connStr = builder.Configuration.GetConnectionString("Default");
 if (string.IsNullOrWhiteSpace(connStr))

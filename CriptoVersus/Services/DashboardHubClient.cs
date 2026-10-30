@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using DTOs;
 
 namespace CriptoVersus.Web.Services
 {
@@ -27,6 +28,8 @@ namespace CriptoVersus.Web.Services
         private int _disposing;
 
         public event Action<string?>? DashboardChanged;
+        public event Action<MoneyFlowClientBatchDto>? MoneyFlowBatchReceived;
+        private readonly HashSet<int> _moneyFlowMatches = [];
 
         public HubConnectionState State => _hub?.State ?? HubConnectionState.Disconnected;
         public string? ConnectionId => _hub?.ConnectionId;
@@ -69,6 +72,7 @@ namespace CriptoVersus.Web.Services
 
                 _logger.LogInformation("Starting hub... id={id} url={url}", _id, _hubUrl);
                 await _hub.StartAsync(linked.Token);
+                await RejoinMoneyFlowGroupsAsync(linked.Token);
                 _logger.LogInformation("Hub started OK id={id} connId={connId} state={state}", _id, _hub.ConnectionId, _hub.State);
             }
             catch (Exception ex)
@@ -123,6 +127,11 @@ namespace CriptoVersus.Web.Services
                 DashboardChanged?.Invoke(payload);
             });
 
+            hub.On<MoneyFlowClientBatchDto>("money_flow_batch", batch =>
+            {
+                if (batch is not null) MoneyFlowBatchReceived?.Invoke(batch);
+            });
+
 
             hub.Reconnecting += ex =>
             {
@@ -133,7 +142,7 @@ namespace CriptoVersus.Web.Services
             hub.Reconnected += connId =>
             {
                 _logger.LogInformation("Hub reconnected id={id} connId={connId} state={state}", _id, connId, hub.State);
-                return Task.CompletedTask;
+                return RejoinMoneyFlowGroupsAsync(_lifetimeCts.Token);
             };
 
             hub.Closed += ex =>
@@ -161,6 +170,46 @@ namespace CriptoVersus.Web.Services
 
                 return Task.CompletedTask;
             };
+        }
+
+        public async Task<bool> SubscribeToMoneyFlowAsync(int matchId, CancellationToken ct = default)
+        {
+            if (matchId <= 0 || Volatile.Read(ref _disposing) == 1) return false;
+            lock (_moneyFlowMatches) _moneyFlowMatches.Add(matchId);
+            try
+            {
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetimeCts.Token);
+                await EnsureStartedAsync(linked.Token);
+                if (_hub?.State != HubConnectionState.Connected) return false;
+                await _hub.InvokeAsync("JoinMoneyFlow", matchId, linked.Token);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Money-flow group subscription failed. matchId={matchId}", matchId);
+                return false;
+            }
+        }
+
+        public async Task UnsubscribeFromMoneyFlowAsync(int matchId, CancellationToken ct = default)
+        {
+            if (matchId <= 0) return;
+            lock (_moneyFlowMatches) _moneyFlowMatches.Remove(matchId);
+            if (_hub?.State != HubConnectionState.Connected) return;
+            try { await _hub.InvokeAsync("LeaveMoneyFlow", matchId, ct); }
+            catch (Exception ex) { _logger.LogDebug(ex, "Money-flow group unsubscribe failed. matchId={matchId}", matchId); }
+        }
+
+        private async Task RejoinMoneyFlowGroupsAsync(CancellationToken ct)
+        {
+            if (_hub?.State != HubConnectionState.Connected) return;
+            int[] matches;
+            lock (_moneyFlowMatches) matches = _moneyFlowMatches.ToArray();
+            foreach (var matchId in matches)
+            {
+                try { await _hub.InvokeAsync("JoinMoneyFlow", matchId, ct); }
+                catch (Exception ex) { _logger.LogDebug(ex, "Money-flow group rejoin failed. matchId={matchId}", matchId); }
+            }
         }
 
         private static string? ExtractPayload(object?[]? args)

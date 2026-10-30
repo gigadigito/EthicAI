@@ -592,8 +592,10 @@ export class CandleRenderer {
     get finalVisualState(): FinalFighterState { return this.finalState; }
     get speechAnchor(): { x: number; y: number } {
         // The atlas frame includes transparent padding above the illustrated face.
-        return { x: this.root.x + this.sprite.x, y: this.root.y + this.sprite.y - 165 };
+        return { x: this.speechAnchorX, y: this.speechAnchorY };
     }
+    get speechAnchorX(): number { return this.root.x + this.sprite.x; }
+    get speechAnchorY(): number { return this.root.y + this.sprite.y - 165; }
 
     update(time: number, delta: number, progress = 0): void {
         this.clockNow = Number.isFinite(time) ? time : this.clockNow;

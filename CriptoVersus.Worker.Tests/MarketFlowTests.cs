@@ -1,0 +1,174 @@
+using System.Text;
+using System.Diagnostics;
+using CriptoVersus.Worker.MarketFlow;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+
+namespace CriptoVersus.Worker.Tests;
+
+public sealed class MarketFlowTests
+{
+    private static readonly DateTimeOffset Start = DateTimeOffset.FromUnixTimeMilliseconds(1_700_000_000_000);
+
+    [Fact]
+    public void Parse_ValidAggTrade_MapsTakerBuyAndQuoteValue()
+    {
+        const string json = "{\"e\":\"aggTrade\",\"s\":\"btcusdt\",\"a\":12,\"p\":\"100.25\",\"q\":\"2\",\"T\":1700000000000,\"m\":false}";
+
+        Assert.True(BinanceAggregateTradeParser.TryParse(Encoding.UTF8.GetBytes(json), out var trade));
+        Assert.NotNull(trade);
+        Assert.Equal("BTCUSDT", trade.Symbol);
+        Assert.True(trade.IsTakerBuy);
+        Assert.Equal(200.50m, trade.QuoteQuantity);
+    }
+
+    [Theory]
+    [InlineData("{\"e\":\"aggTrade\",\"s\":\"BTCUSDT\",\"a\":1,\"p\":\"0\",\"q\":\"1\",\"T\":1700000000000,\"m\":true}")]
+    [InlineData("{\"e\":\"aggTrade\",\"s\":\"BTCUSDT\",\"a\":1,\"p\":\"1\",\"q\":\"-1\",\"T\":1700000000000,\"m\":true}")]
+    [InlineData("{\"e\":\"aggTrade\",\"s\":\"BTCUSDT\",\"a\":1,\"p\":\"1\",\"q\":\"1\",\"T\":0,\"m\":true}")]
+    [InlineData("{\"e\":\"aggTrade\",\"s\":\"BTCUSDT\",\"a\":1,\"p\":\"1\",\"q\":\"1\",\"T\":1700000000000}")]
+    public void Parse_InvalidAggTrade_IsRejected(string json)
+        => Assert.False(BinanceAggregateTradeParser.TryParse(Encoding.UTF8.GetBytes(json), out _));
+
+    [Fact]
+    public void Parse_BuyerIsMaker_MapsToTakerSell()
+    {
+        const string json = "{\"e\":\"aggTrade\",\"s\":\"ETHUSDT\",\"a\":5,\"p\":\"3\",\"q\":\"4\",\"T\":1700000000000,\"m\":true}";
+        BinanceAggregateTradeParser.TryParse(Encoding.UTF8.GetBytes(json), out var trade);
+        Assert.False(trade!.IsTakerBuy);
+    }
+
+    [Fact]
+    public void Aggregator_AggregatesBothAggressorSidesAndPrices()
+    {
+        var aggregator = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20);
+        aggregator.Add(Trade("BTCUSDT", 1, 100m, 2m, 10, false));
+        aggregator.Add(Trade("BTCUSDT", 2, 98m, 1m, 80, true));
+        aggregator.Add(Trade("BTCUSDT", 3, 105m, 3m, 90, false));
+
+        var snapshot = Assert.Single(aggregator.FlushDue(Start.AddMilliseconds(250)));
+        Assert.Equal(3, snapshot.TradeCount);
+        Assert.Equal(6m, snapshot.TotalBaseQuantity);
+        Assert.Equal(5m, snapshot.TakerBuyBaseQuantity);
+        Assert.Equal(1m, snapshot.TakerSellBaseQuantity);
+        Assert.Equal(515m, snapshot.TakerBuyQuote);
+        Assert.Equal(98m, snapshot.TakerSellQuote);
+        Assert.Equal(417m, snapshot.NetQuote);
+        Assert.Equal(100m, snapshot.FirstPrice);
+        Assert.Equal(105m, snapshot.LastPrice);
+        Assert.Equal(105m, snapshot.HighPrice);
+        Assert.Equal(98m, snapshot.LowPrice);
+    }
+
+    [Fact]
+    public void Aggregator_SeparatesWindowsSymbolsAndOutOfOrderEvents()
+    {
+        var aggregator = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20);
+        aggregator.Add(Trade("ETHUSDT", 2, 3m, 1m, 300, false));
+        aggregator.Add(Trade("BTCUSDT", 2, 11m, 1m, 260, false));
+        aggregator.Add(Trade("BTCUSDT", 1, 10m, 1m, 20, true));
+
+        var snapshots = aggregator.FlushDue(Start.AddMilliseconds(600));
+        Assert.Equal(3, snapshots.Count);
+        Assert.Contains(snapshots, x => x.Symbol == "BTCUSDT" && x.FirstPrice == 10m && x.LastPrice == 10m);
+        Assert.Contains(snapshots, x => x.Symbol == "BTCUSDT" && x.FirstPrice == 11m);
+        Assert.Contains(snapshots, x => x.Symbol == "ETHUSDT");
+        Assert.Empty(aggregator.FlushDue(Start.AddSeconds(1)));
+    }
+
+    [Fact]
+    public void Deduplicator_ReconnectReplayIsNotCountedAndGapMarksDiagnosticResult()
+    {
+        var deduplicator = new MarketFlowDeduplicator(10);
+        Assert.Equal(MarketFlowDeduplicationResult.Accepted, deduplicator.Add(Trade("BTCUSDT", 10, 1m, 1m, 0, false)));
+        Assert.Equal(MarketFlowDeduplicationResult.Duplicate, deduplicator.Add(Trade("BTCUSDT", 10, 1m, 1m, 0, false)));
+        Assert.Equal(MarketFlowDeduplicationResult.GapDetected, deduplicator.Add(Trade("BTCUSDT", 12, 1m, 1m, 0, false)));
+        Assert.Equal(MarketFlowDeduplicationResult.Accepted, deduplicator.Add(Trade("BTCUSDT", 11, 1m, 1m, 0, false)));
+    }
+
+    [Fact]
+    public void Aggregator_GapOrOverflowMarksExistingWindowPartial()
+    {
+        var aggregator = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20);
+        aggregator.Add(Trade("BTCUSDT", 1, 10m, 1m, 0, false));
+        aggregator.MarkDataLoss("BTCUSDT", Start.AddMilliseconds(100));
+        var snapshot = Assert.Single(aggregator.FlushDue(Start.AddMilliseconds(250)));
+        Assert.True(snapshot.IsPartial);
+    }
+
+    [Fact]
+    public void Aggregator_ProcessingFlushIgnoresTenSecondEventClockSkew()
+    {
+        var aggregator = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20);
+        var receivedAt = DateTimeOffset.UtcNow;
+        var receivedMonotonic = Stopwatch.GetTimestamp();
+        var eventTime = receivedAt.AddSeconds(-10);
+        var trade = new BinanceAggregateTrade("BTCUSDT", 1, 100m, 1m, eventTime, false);
+
+        aggregator.Add(new MarketFlowTradeEnvelope(trade, receivedAt, receivedMonotonic));
+
+        var dueTimestamp = receivedMonotonic + (long)(Stopwatch.Frequency * 0.251);
+        var snapshots = aggregator.FlushDueByProcessing(receivedAt.AddMilliseconds(251), dueTimestamp);
+
+        var snapshot = Assert.Single(snapshots);
+        Assert.Equal(eventTime, snapshot.FirstTradeTime);
+        Assert.Equal(receivedAt, snapshot.ReceivedAtUtc);
+    }
+
+    [Fact]
+    public void Buffer_IsBoundedAndRejectsOverflow()
+    {
+        var buffer = new MarketFlowTradeBuffer(1);
+        Assert.True(buffer.TryWrite(Trade("BTCUSDT", 1, 1m, 1m, 0, false)));
+        Assert.False(buffer.TryWrite(Trade("BTCUSDT", 2, 1m, 1m, 0, false)));
+        Assert.True(buffer.TryRead(out _));
+    }
+
+    [Fact]
+    public void Options_RejectUnsafeValuesAndEnforceBinanceConnectionAge()
+    {
+        Assert.Throws<InvalidOperationException>(() => new MarketFlowOptions { MaxSymbols = 1025 }.Validate());
+        Assert.Throws<InvalidOperationException>(() => new MarketFlowOptions { MaxConnectionAgeMinutes = 1440 }.Validate());
+    }
+
+    [Fact]
+    public async Task StreamService_DisabledFeatureDoesNotOpenTransport()
+    {
+        var transport = new ControlledTransport();
+        var service = CreateService(new MarketFlowOptions { Enabled = false }, transport);
+        await service.StartAsync(CancellationToken.None);
+        await service.StopAsync(CancellationToken.None);
+        Assert.Equal(0, transport.Calls);
+    }
+
+    [Fact]
+    public async Task StreamService_CancellationStopsTransportGracefully()
+    {
+        var transport = new ControlledTransport();
+        var service = CreateService(new MarketFlowOptions { Enabled = true, Symbols = ["BTCUSDT"] }, transport);
+        await service.StartAsync(CancellationToken.None);
+        await transport.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await service.StopAsync(CancellationToken.None);
+        Assert.Equal(1, transport.Calls);
+    }
+
+    private static BinanceAggregateTrade Trade(string symbol, long id, decimal price, decimal quantity, int offsetMs, bool buyerIsMaker)
+        => new(symbol, id, price, quantity, Start.AddMilliseconds(offsetMs), buyerIsMaker);
+
+    private static MarketFlowStreamService CreateService(MarketFlowOptions options, ControlledTransport transport)
+        => new(Options.Create(options), transport, new NullMarketFlowSnapshotSink(), TimeProvider.System,
+            new MarketFlowMetrics(), NullLogger<MarketFlowStreamService>.Instance);
+
+    private sealed class ControlledTransport : IMarketFlowTransport
+    {
+        public int Calls { get; private set; }
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task RunAsync(IReadOnlyCollection<string> symbols, Func<ReadOnlyMemory<byte>, CancellationToken, ValueTask> onMessage, int maxMessageBytes, CancellationToken cancellationToken)
+        {
+            Calls++;
+            Started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+        }
+    }
+}
