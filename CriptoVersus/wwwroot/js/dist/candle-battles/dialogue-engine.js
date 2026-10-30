@@ -1,14 +1,14 @@
 // CandleBattleDialogueEngine: contextual, anti-repetitive dialogue selection
 // shared by the Phaser battles and the social capture. Pure local logic: no
 // HTTP, no timers, deterministic under a seed.
-import { FAMILY_DATA, LINE_DURATION, MOMENT_CATEGORIES, counterpartRole, fillTemplate, personalityFor, resolveCatalog, templateVars, toPhrase, toSequence } from './dialogue-catalog.js?v=20261024f';
-import './dialogue-phrases-pt.js?v=20261024f';
-import './dialogue-phrases-en.js?v=20261024f';
-import './dialogue-phrases-es-fr-de.js?v=20261024f';
-import './dialogue-phrases-it-ja-zh.js?v=20261024f';
+import { FAMILY_DATA, LINE_DURATION, MOMENT_CATEGORIES, counterpartRole, fillTemplate, personalityFor, resolveCatalog, templateVars, toPhrase, toSequence } from './dialogue-catalog.js?v=20261030a';
+import './dialogue-phrases-pt.js?v=20261030a';
+import './dialogue-phrases-en.js?v=20261030a';
+import './dialogue-phrases-es-fr-de.js?v=20261030a';
+import './dialogue-phrases-it-ja-zh.js?v=20261030a';
 // Re-exported so consumers (and tests) share one catalog module instance even
 // when the published runtime rewrites relative imports with cache-busting tags.
-export { fillTemplate, personalityFor, resolveCatalog, templateVars, LENGTH_BANDS, RESULT_ROLES, counterpartRole } from './dialogue-catalog.js?v=20261024f';
+export { fillTemplate, personalityFor, resolveCatalog, templateVars, LENGTH_BANDS, RESULT_ROLES, counterpartRole } from './dialogue-catalog.js?v=20261030a';
 /**
  * Single source of truth for the finished-match roles: the official
  * `winnerSymbol` decides which side won; the explicit side is only a fallback

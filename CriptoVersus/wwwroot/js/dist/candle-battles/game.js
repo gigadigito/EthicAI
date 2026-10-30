@@ -1,10 +1,10 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261024f';
-import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261024f';
-import { CandleRenderer } from './renderer.js?v=20261024f';
-import { AudioManager } from './audio.js?v=20261024f';
-import { DialogueClock, lineDuration } from './dialogue.js?v=20261024f';
-import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261024f';
-import { MoneyFlowController } from './money-flow-visual.js?v=20261024f';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261030a';
+import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261030a';
+import { CandleRenderer } from './renderer.js?v=20261030a';
+import { AudioManager } from './audio.js?v=20261030a';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261030a';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261030a';
+import { MoneyFlowController } from './money-flow-visual.js?v=20261030a';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';

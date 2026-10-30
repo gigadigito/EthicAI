@@ -134,7 +134,7 @@ else
         var stage = "module_import";
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261024f.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261030a.js");
             stage = "renderer_initialization";
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
                 new
@@ -154,7 +154,7 @@ else
                         : new { round = CaptureRound, phase = CapturePhase }
                 });
             if (IsMoneyFlowEnabled && !SocialCapture)
-                _moneyFlowModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/money-flow.20261024f.js");
+                _moneyFlowModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/money-flow.20261030a.js");
             if (_disposed) return;
             _failed = false; _lastFailure = null;
             if (MatchId > 0)

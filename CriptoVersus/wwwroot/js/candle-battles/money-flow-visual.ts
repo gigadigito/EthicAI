@@ -1,6 +1,6 @@
 import type PhaserTypes from 'phaser';
 import type { MoneyFlowBatch } from './money-flow.js';
-import { getMoneyFlowBuffer } from './money-flow.js';
+import { getMoneyFlowBuffer, inspectMoneyFlowBuffer } from './money-flow.js';
 import type { Side } from './model.js';
 
 export type MoneyFlowDirection = 'positive' | 'negative' | 'neutral';
@@ -15,6 +15,7 @@ export interface MoneyFlowVisualSnapshot {
     negativeEnergy: number;
     accumulator: number;
     displayedCandle: number;
+    referencePrice?: number;
 }
 
 const clamp = (value: number, min = 0, max = 1): number => Math.max(min, Math.min(max, value));
@@ -24,12 +25,16 @@ const finite = (value: string): number => {
 };
 
 /** Price movement is authoritative for the visual direction; quote flow only weights its strength. */
-export function decideMoneyFlow(batch: MoneyFlowBatch): MoneyFlowVisualDecision {
+export function decideMoneyFlow(batch: MoneyFlowBatch, previousPrice?: number): MoneyFlowVisualDecision {
     const first = finite(batch.firstPrice);
     const last = finite(batch.lastPrice);
-    if (first <= 0 || last <= 0 || last === first) return { direction: 'neutral', intensity: 0 };
+    if (first <= 0 || last <= 0) return { direction: 'neutral', intensity: 0 };
+    // A 250ms window may contain only one trade, in which case first === last.
+    // Compare it to the preceding valid observation rather than discarding it.
+    const baseline = previousPrice != null && previousPrice > 0 ? previousPrice : first;
+    if (last === baseline) return { direction: 'neutral', intensity: 0 };
 
-    const relativeMove = Math.abs(last - first) / Math.max(Math.abs(first), Number.EPSILON);
+    const relativeMove = Math.abs(last - baseline) / Math.max(Math.abs(baseline), Number.EPSILON);
     const buy = Math.abs(finite(batch.takerBuyQuote));
     const sell = Math.abs(finite(batch.takerSellQuote));
     const net = Math.abs(finite(batch.netQuote));
@@ -37,7 +42,7 @@ export function decideMoneyFlow(batch: MoneyFlowBatch): MoneyFlowVisualDecision 
     const tradeSignal = Math.min(1, Math.log10(Math.max(1, batch.tradeCount)) / 3);
     const intensity = clamp((.18 + clamp(relativeMove / .004) * .57 + clamp(flowBalance) * .17 + tradeSignal * .08)
         * (batch.isPartial ? .55 : 1));
-    return { direction: last > first ? 'positive' : 'negative', intensity };
+    return { direction: last > baseline ? 'positive' : 'negative', intensity };
 }
 
 /** Framework-free smoothing state so the visual rules are testable without a Phaser canvas. */
@@ -46,9 +51,14 @@ export class MoneyFlowVisualState {
     private negativeEnergy = 0;
     private accumulator = 0;
     private displayedCandle = .5;
+    private lastObservedPrice?: number;
 
     ingest(batch: MoneyFlowBatch): MoneyFlowVisualDecision {
-        const decision = decideMoneyFlow(batch);
+        const last = finite(batch.lastPrice);
+        const decision = decideMoneyFlow(batch, this.lastObservedPrice);
+        // Establish a baseline from the first valid observation without
+        // inventing movement; subsequent one-trade batches use this reference.
+        if (last > 0) this.lastObservedPrice = last;
         if (decision.direction === 'positive') {
             this.positiveEnergy = clamp(this.positiveEnergy + decision.intensity);
             this.accumulator = clamp(this.accumulator + decision.intensity * .38, -1, 1);
@@ -74,13 +84,15 @@ export class MoneyFlowVisualState {
     get negative(): number { return this.negativeEnergy; }
     get displayed(): number { return this.displayedCandle; }
     get accumulatorValue(): number { return this.accumulator; }
+    get referencePrice(): number | undefined { return this.lastObservedPrice; }
 
     snapshot(): MoneyFlowVisualSnapshot {
         return {
             positiveEnergy: this.positiveEnergy,
             negativeEnergy: this.negativeEnergy,
             accumulator: this.accumulator,
-            displayedCandle: this.displayedCandle
+            displayedCandle: this.displayedCandle,
+            referencePrice: this.lastObservedPrice
         };
     }
 
@@ -89,6 +101,7 @@ export class MoneyFlowVisualState {
         this.negativeEnergy = 0;
         this.accumulator = 0;
         this.displayedCandle = .5;
+        this.lastObservedPrice = undefined;
     }
 }
 
@@ -196,6 +209,7 @@ export class MoneyFlowController {
             signs: this.signs.activeCount,
             bagPoolSize: this.bags.size,
             signPoolSize: this.signs.size,
+            buffer: this.matchId ? inspectMoneyFlowBuffer(this.matchId) : null,
             left: this.effects.left.state.snapshot(),
             right: this.effects.right.state.snapshot()
         };

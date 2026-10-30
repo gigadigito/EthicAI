@@ -1,6 +1,6 @@
 // English (en-US) dialogue catalog for Candle Battle. Fallback language for
 // cultures without their own catalog; exchanges never mix languages.
-import { registerCatalog } from './dialogue-catalog.js?v=20261024f';
+import { registerCatalog } from './dialogue-catalog.js?v=20261030a';
 export const enPhrases = [
     // ── General taunts (100) ────────────────────────────────────────────────
     ['taunt.001', 'chart', 'taunt', 'short', 'taunting', 'This battle is mine, {opponent}.'],

@@ -1,16 +1,21 @@
-import { getMoneyFlowBuffer } from './money-flow.js?v=20261024f';
+import { getMoneyFlowBuffer, inspectMoneyFlowBuffer } from './money-flow.js?v=20261030a';
 const clamp = (value, min = 0, max = 1) => Math.max(min, Math.min(max, value));
 const finite = (value) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
 };
 /** Price movement is authoritative for the visual direction; quote flow only weights its strength. */
-export function decideMoneyFlow(batch) {
+export function decideMoneyFlow(batch, previousPrice) {
     const first = finite(batch.firstPrice);
     const last = finite(batch.lastPrice);
-    if (first <= 0 || last <= 0 || last === first)
+    if (first <= 0 || last <= 0)
         return { direction: 'neutral', intensity: 0 };
-    const relativeMove = Math.abs(last - first) / Math.max(Math.abs(first), Number.EPSILON);
+    // A 250ms window may contain only one trade, in which case first === last.
+    // Compare it to the preceding valid observation rather than discarding it.
+    const baseline = previousPrice != null && previousPrice > 0 ? previousPrice : first;
+    if (last === baseline)
+        return { direction: 'neutral', intensity: 0 };
+    const relativeMove = Math.abs(last - baseline) / Math.max(Math.abs(baseline), Number.EPSILON);
     const buy = Math.abs(finite(batch.takerBuyQuote));
     const sell = Math.abs(finite(batch.takerSellQuote));
     const net = Math.abs(finite(batch.netQuote));
@@ -18,7 +23,7 @@ export function decideMoneyFlow(batch) {
     const tradeSignal = Math.min(1, Math.log10(Math.max(1, batch.tradeCount)) / 3);
     const intensity = clamp((.18 + clamp(relativeMove / .004) * .57 + clamp(flowBalance) * .17 + tradeSignal * .08)
         * (batch.isPartial ? .55 : 1));
-    return { direction: last > first ? 'positive' : 'negative', intensity };
+    return { direction: last > baseline ? 'positive' : 'negative', intensity };
 }
 /** Framework-free smoothing state so the visual rules are testable without a Phaser canvas. */
 export class MoneyFlowVisualState {
@@ -29,7 +34,12 @@ export class MoneyFlowVisualState {
         this.displayedCandle = .5;
     }
     ingest(batch) {
-        const decision = decideMoneyFlow(batch);
+        const last = finite(batch.lastPrice);
+        const decision = decideMoneyFlow(batch, this.lastObservedPrice);
+        // Establish a baseline from the first valid observation without
+        // inventing movement; subsequent one-trade batches use this reference.
+        if (last > 0)
+            this.lastObservedPrice = last;
         if (decision.direction === 'positive') {
             this.positiveEnergy = clamp(this.positiveEnergy + decision.intensity);
             this.accumulator = clamp(this.accumulator + decision.intensity * .38, -1, 1);
@@ -54,12 +64,14 @@ export class MoneyFlowVisualState {
     get negative() { return this.negativeEnergy; }
     get displayed() { return this.displayedCandle; }
     get accumulatorValue() { return this.accumulator; }
+    get referencePrice() { return this.lastObservedPrice; }
     snapshot() {
         return {
             positiveEnergy: this.positiveEnergy,
             negativeEnergy: this.negativeEnergy,
             accumulator: this.accumulator,
-            displayedCandle: this.displayedCandle
+            displayedCandle: this.displayedCandle,
+            referencePrice: this.lastObservedPrice
         };
     }
     reset() {
@@ -67,6 +79,7 @@ export class MoneyFlowVisualState {
         this.negativeEnergy = 0;
         this.accumulator = 0;
         this.displayedCandle = .5;
+        this.lastObservedPrice = undefined;
     }
 }
 /** A fixed-capacity pool. Released instances are reused instead of recreated for each batch. */
@@ -175,6 +188,7 @@ export class MoneyFlowController {
             signs: this.signs.activeCount,
             bagPoolSize: this.bags.size,
             signPoolSize: this.signs.size,
+            buffer: this.matchId ? inspectMoneyFlowBuffer(this.matchId) : null,
             left: this.effects.left.state.snapshot(),
             right: this.effects.right.state.snapshot()
         };

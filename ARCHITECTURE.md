@@ -245,6 +245,8 @@ When both `CandleBattles:MoneyFlow:Enabled` and `TransportEnabled` are true, the
 
 The shared service key is supplied only through configuration/environment (`CandleBattles__MoneyFlow__WorkerApiKey`); no key is stored in repository settings.
 
+On the Web side, the optional Phaser-only `MoneyFlowController` is created only when the Web process has `Enabled`, `TransportEnabled`, and `VisualEffectsEnabled` set. It reads the bounded buffer through the same immutable runtime module used by `CandleBattlesHost`, keeps a per-symbol last-valid-price reference so one-trade batches still represent real movement, and uses quote flow only to weight intensity. It never runs in replay or social capture and never changes official OHLC, score, or match state.
+
 The Worker deployment topology and API backplane are external to this repository; no replica coordinator or SignalR backplane is present. The flags must remain disabled unless deployment has designated exactly one ingesting Worker instance and single/multi-instance routing has been validated. Symbols are explicitly configured because the current Candle Battle persistence flow has no external subscription registry. The pipeline remains in-memory and does not write database records, replay trades, or affect scoring/settlement.
 
 ### BLL / Businnes

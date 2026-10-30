@@ -23,6 +23,15 @@ test('partial batches are intentionally conservative', () => {
   assert.ok(partial < full);
 });
 
+test('single-price batches use the preceding valid price without inventing an initial move', () => {
+  const state = new MoneyFlowVisualState();
+  assert.deepEqual(state.ingest(batch({ firstPrice: '100', lastPrice: '100' })), { direction: 'neutral', intensity: 0 });
+  assert.equal(state.referencePrice, 100);
+  assert.equal(state.ingest(batch({ sequence: 2, firstPrice: '100.3', lastPrice: '100.3' })).direction, 'positive');
+  assert.equal(state.ingest(batch({ sequence: 3, firstPrice: '99.8', lastPrice: '99.8' })).direction, 'negative');
+  assert.equal(state.ingest(batch({ sequence: 4, firstPrice: '99.8', lastPrice: '99.8' })).direction, 'neutral');
+});
+
 test('visual accumulator is bounded, smoothed, and responds in both directions', () => {
   const state = new MoneyFlowVisualState();
   for (let index = 0; index < 10; index++) state.ingest(batch({ sequence: index + 1 }));
