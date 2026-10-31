@@ -1,7 +1,7 @@
 // Localized cores for Spanish, French and German. Same stable ID space as the
 // Portuguese/English catalogs; the engine falls back to English atomically per
 // exchange when an id is missing, so a dialogue never mixes languages.
-import { registerCatalog } from './dialogue-catalog.js?v=20261030a';
+import { registerCatalog } from './dialogue-catalog.js?v=20261030b';
 export const esPhrases = [
     ['taunt.001', 'chart', 'taunt', 'short', 'taunting', 'Esta batalla es mía, {opponent}.'],
     ['taunt.002', 'wick', 'taunt', 'short', 'sarcastic', 'Tu vela está demasiado floja para mí.'],

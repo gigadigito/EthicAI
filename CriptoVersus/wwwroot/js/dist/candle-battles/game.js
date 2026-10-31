@@ -1,10 +1,10 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261030a';
-import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261030a';
-import { CandleRenderer } from './renderer.js?v=20261030a';
-import { AudioManager } from './audio.js?v=20261030a';
-import { DialogueClock, lineDuration } from './dialogue.js?v=20261030a';
-import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261030a';
-import { MoneyFlowController } from './money-flow-visual.js?v=20261030a';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261030b';
+import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261030b';
+import { CandleRenderer } from './renderer.js?v=20261030b';
+import { AudioManager } from './audio.js?v=20261030b';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261030b';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261030b';
+import { MoneyFlowController } from './money-flow-visual.js?v=20261030b';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -104,7 +104,7 @@ export class GameEngine {
                     owner.readyReject(new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261024f', '/games/candle-battles/assets/candle-finishers.json?v=20261024f');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261030b', '/games/candle-battles/assets/candle-finishers.json?v=20261030b');
             }
             create() { owner.setup(this); }
             update(_time, delta) { owner.update(delta); }

@@ -35,6 +35,9 @@ export function decideMoneyFlow(batch: MoneyFlowBatch, previousPrice?: number): 
     if (last === baseline) return { direction: 'neutral', intensity: 0 };
 
     const relativeMove = Math.abs(last - baseline) / Math.max(Math.abs(baseline), Number.EPSILON);
+    // Sub-precision jitter is not market movement: keep the flow neutral
+    // instead of flickering signs over float noise.
+    if (relativeMove < 1e-9) return { direction: 'neutral', intensity: 0 };
     const buy = Math.abs(finite(batch.takerBuyQuote));
     const sell = Math.abs(finite(batch.takerSellQuote));
     const net = Math.abs(finite(batch.netQuote));
@@ -122,9 +125,9 @@ export class ReusablePool<T extends { active: boolean }> {
     forEach(callback: (item: T) => void): void { this.items.forEach(callback); }
 }
 
-interface BagParticle { active: boolean; graphic: PhaserTypes.GameObjects.Graphics; side: Side; positive: boolean; age: number; lifetime: number; x: number; y: number; vx: number; vy: number; targetX: number; targetY: number; }
+interface BagParticle { active: boolean; graphic: PhaserTypes.GameObjects.Graphics; side: Side; positive: boolean; age: number; lifetime: number; x: number; y: number; startX: number; startY: number; targetX: number; targetY: number; phase: number; }
 interface SignParticle { active: boolean; text: PhaserTypes.GameObjects.Text; side: Side; age: number; lifetime: number; x: number; y: number; vx: number; vy: number; }
-interface SideFx { state: MoneyFlowVisualState; candle: PhaserTypes.GameObjects.Graphics; glow: PhaserTypes.GameObjects.Graphics; positiveCooldown: number; negativeCooldown: number; }
+interface SideFx { state: MoneyFlowVisualState; glow: PhaserTypes.GameObjects.Graphics; positiveCooldown: number; negativeCooldown: number; }
 
 const MAX_BAGS_PER_SIDE = 6;
 const MAX_SIGNS_PER_SIDE = 6;
@@ -149,12 +152,12 @@ export class MoneyFlowController {
             right: this.createSideFx()
         };
         this.bags = new ReusablePool(MAX_BAGS_PER_SIDE * 2, () => ({
-            active: false, graphic: scene.add.graphics().setDepth(5).setVisible(false), side: 'left', positive: true,
-            age: 0, lifetime: 0, x: 0, y: 0, vx: 0, vy: 0, targetX: 0, targetY: 0
+            active: false, graphic: scene.add.graphics().setDepth(12).setVisible(false), side: 'left', positive: true,
+            age: 0, lifetime: 0, x: 0, y: 0, startX: 0, startY: 0, targetX: 0, targetY: 0, phase: 0
         }));
         this.signs = new ReusablePool(MAX_SIGNS_PER_SIDE * 2, () => ({
-            active: false, text: scene.add.text(0, 0, '+', { fontFamily: 'monospace', fontSize: '20px', fontStyle: 'bold', color: '#b8ff64' })
-                .setOrigin(.5).setDepth(6).setVisible(false), side: 'left', age: 0, lifetime: 0, x: 0, y: 0, vx: 0, vy: 0
+            active: false, text: scene.add.text(0, 0, '+', { fontFamily: 'monospace', fontSize: '28px', fontStyle: 'bold', color: '#b8ff64', stroke: '#071317', strokeThickness: 4 })
+                .setOrigin(.5).setDepth(13).setVisible(false), side: 'left', age: 0, lifetime: 0, x: 0, y: 0, vx: 0, vy: 0
         }));
     }
 
@@ -184,17 +187,21 @@ export class MoneyFlowController {
             const anchorY = side === 'left' ? leftY : rightY;
             fx.positiveCooldown = Math.max(0, fx.positiveCooldown - deltaMs);
             fx.negativeCooldown = Math.max(0, fx.negativeCooldown - deltaMs);
-            this.drawOverheadCandle(fx, anchorX, anchorY);
+            // The original overhead OHLC candle belongs to CandleRenderer and is
+            // never duplicated here. Money Flow only adds discrete absorption
+            // lighting around the fighter plus the money-bag stream.
             this.drawGlow(fx, anchorX, anchorY);
-            if (fx.state.positive > .12 && fx.positiveCooldown === 0) {
+            const positiveDominant = fx.state.positive >= fx.state.negative;
+            if (positiveDominant && fx.state.positive > .055 && fx.positiveCooldown === 0) {
                 this.spawnBag(side, true, anchorX, anchorY, fx.state.positive);
                 this.spawnSign(side, true, anchorX, anchorY);
-                fx.positiveCooldown = 210 + (1 - fx.state.positive) * 260;
+                // Higher energy emits more often, within the hard object limits.
+                fx.positiveCooldown = 240 + (1 - fx.state.positive) * 260;
             }
-            if (fx.state.negative > .12 && fx.negativeCooldown === 0) {
+            if (!positiveDominant && fx.state.negative > .055 && fx.negativeCooldown === 0) {
                 this.spawnBag(side, false, anchorX, anchorY, fx.state.negative);
                 this.spawnSign(side, false, anchorX, anchorY);
-                fx.negativeCooldown = 240 + (1 - fx.state.negative) * 280;
+                fx.negativeCooldown = 260 + (1 - fx.state.negative) * 270;
             }
         }
         this.updateBags(deltaMs);
@@ -225,22 +232,27 @@ export class MoneyFlowController {
         this.reset();
         this.bags.forEach(item => item.graphic.destroy());
         this.signs.forEach(item => item.text.destroy());
-        for (const side of SIDES) { this.effects[side].candle.destroy(); this.effects[side].glow.destroy(); }
+        for (const side of SIDES) this.effects[side].glow.destroy();
     }
 
     private createSideFx(): SideFx {
-        return { state: new MoneyFlowVisualState(), candle: this.scene.add.graphics().setDepth(6).setVisible(false), glow: this.scene.add.graphics().setDepth(3).setVisible(false), positiveCooldown: 0, negativeCooldown: 0 };
+        return { state: new MoneyFlowVisualState(), glow: this.scene.add.graphics().setDepth(3).setVisible(false), positiveCooldown: 0, negativeCooldown: 0 };
     }
 
     private consumeBufferedBatches(): void {
         if (!this.matchId) return;
+        const left = this.symbols.left, right = this.symbols.right;
         for (const batch of getMoneyFlowBuffer(this.matchId)) {
-            const side = batch.symbol.toUpperCase() === this.symbols.left ? 'left' : batch.symbol.toUpperCase() === this.symbols.right ? 'right' : undefined;
-            if (!side) continue;
-            const key = `${side}:${batch.symbol}`;
-            if ((this.lastSequence.get(key) ?? 0) >= batch.sequence) continue;
-            this.lastSequence.set(key, batch.sequence);
-            this.effects[side].state.ingest(batch);
+            const symbol = batch.symbol.toUpperCase();
+            const sides: Side[] = [];
+            if (symbol === left) sides.push('left');
+            if (symbol === right) sides.push('right');
+            for (const side of sides) {
+                const key = `${side}:${batch.symbol}`;
+                if ((this.lastSequence.get(key) ?? 0) >= batch.sequence) continue;
+                this.lastSequence.set(key, batch.sequence);
+                this.effects[side].state.ingest(batch);
+            }
         }
     }
 
@@ -251,15 +263,15 @@ export class MoneyFlowController {
         const bag = this.bags.acquire();
         if (!bag) return;
         bag.side = side; bag.positive = positive; bag.age = 0;
-        bag.lifetime = positive ? 760 : 1350;
-        bag.x = anchorX + (Math.random() - .5) * 78;
-        bag.y = positive ? anchorY - 125 - Math.random() * 48 : anchorY + 18;
-        bag.targetX = anchorX + (Math.random() - .5) * 22;
-        bag.targetY = positive ? anchorY + 8 : anchorY + 118 + Math.random() * 16;
-        bag.vx = (Math.random() - .5) * (positive ? 22 : 48);
-        bag.vy = positive ? 130 + energy * 125 : 80 + energy * 80;
+        bag.lifetime = positive ? 1250 : 2300;
+        bag.x = anchorX + (Math.random() - .5) * 72;
+        bag.y = positive ? anchorY - 128 - Math.random() * 36 : anchorY + 18;
+        bag.startX = bag.x; bag.startY = bag.y;
+        bag.targetX = anchorX + (Math.random() - .5) * 26;
+        bag.targetY = positive ? anchorY + 14 : anchorY + 138 + Math.random() * 10;
+        bag.phase = Math.random() * Math.PI * 2;
         this.drawBag(bag.graphic, positive);
-        bag.graphic.setPosition(bag.x, bag.y).setScale(1).setAlpha(positive ? .94 : .9).setVisible(true);
+        bag.graphic.setPosition(bag.x, bag.y).setScale(.9 + energy * .22).setAlpha(1).setVisible(true);
     }
 
     private spawnSign(side: Side, positive: boolean, anchorX: number, anchorY: number): void {
@@ -268,29 +280,38 @@ export class MoneyFlowController {
         if (activeForSide >= MAX_SIGNS_PER_SIDE) return;
         const sign = this.signs.acquire();
         if (!sign) return;
-        sign.side = side; sign.age = 0; sign.lifetime = 640;
-        sign.x = anchorX + (Math.random() - .5) * 90;
-        sign.y = positive ? anchorY - 82 : anchorY + 30;
+        sign.side = side; sign.age = 0; sign.lifetime = 1100;
+        sign.x = anchorX + (Math.random() - .5) * 82;
+        sign.y = positive ? anchorY - 96 : anchorY + 46;
         sign.vx = (Math.random() - .5) * 18;
         sign.vy = positive ? -30 : 24;
-        sign.text.setText(positive ? '+' : '-').setColor(positive ? '#b9ff69' : '#ff7777').setPosition(sign.x, sign.y).setAlpha(.95).setVisible(true);
+        sign.text.setText(positive ? '+' : '\u2212').setColor(positive ? '#b9ff69' : '#ff7777')
+            .setPosition(sign.x, sign.y).setAlpha(.95).setVisible(true);
     }
 
     private updateBags(deltaMs: number): void {
         this.bags.forEach(bag => {
             if (!bag.active) return;
             bag.age += deltaMs;
-            const t = clamp(bag.age / (bag.positive ? 650 : 700));
             if (bag.positive) {
-                bag.x += (bag.targetX - bag.x) * Math.min(1, deltaMs / 240) + bag.vx * deltaMs / 1000;
-                bag.y += (bag.targetY - bag.y) * Math.min(1, deltaMs / 220) + bag.vy * deltaMs / 1000;
-                bag.graphic.setScale(1 - t * .22).setAlpha(Math.max(0, .94 - Math.max(0, t - .72) * 3.4));
+                // Money descends smoothly toward the fighter and is absorbed:
+                // gentle sway on the way down, shrink + fade at the body.
+                const fallDuration = 1000;
+                const t = clamp(bag.age / fallDuration);
+                const eased = t * t * (3 - 2 * t);
+                bag.x = bag.startX + (bag.targetX - bag.startX) * eased + Math.sin(bag.phase + t * Math.PI * 3) * 7 * (1 - t);
+                bag.y = bag.startY + (bag.targetY - bag.startY) * eased;
+                bag.graphic.setScale(1 - t * .18).setAlpha(Math.max(0, 1 - Math.max(0, bag.age - 1000) / 250));
             } else {
-                bag.x += bag.vx * deltaMs / 1000;
-                bag.vy += deltaMs * .19;
-                bag.y = Math.min(bag.targetY, bag.y + bag.vy * deltaMs / 1000);
-                const settled = bag.y >= bag.targetY - .5;
-                bag.graphic.setScale(settled ? .9 : 1).setAlpha(settled ? Math.max(0, 1 - (bag.age - 700) / 650) : .9);
+                // Money leaves the fighter under light gravity, settles near
+                // the feet briefly, then is removed in a controlled fade.
+                const fallDuration = 850;
+                const t = clamp(bag.age / fallDuration);
+                const gravity = t * t;
+                bag.x = bag.startX + (bag.targetX - bag.startX) * gravity + Math.sin(bag.phase + t * Math.PI * 2) * 4 * (1 - t);
+                bag.y = bag.startY + (bag.targetY - bag.startY) * gravity;
+                const settled = t >= 1;
+                bag.graphic.setScale(settled ? .94 : 1.04).setAlpha(settled ? Math.max(0, 1 - Math.max(0, bag.age - 1750) / 550) : 1);
             }
             bag.graphic.setPosition(bag.x, bag.y);
             if (bag.age >= bag.lifetime) { bag.graphic.setVisible(false); this.bags.release(bag); }
@@ -309,26 +330,25 @@ export class MoneyFlowController {
     private clearParticles(): void {
         this.bags.forEach(bag => bag.graphic.setVisible(false)); this.bags.releaseAll();
         this.signs.forEach(sign => sign.text.setVisible(false)); this.signs.releaseAll();
-        for (const side of ['left', 'right'] as const) { this.effects[side].candle.setVisible(false); this.effects[side].glow.setVisible(false); }
+        for (const side of SIDES) this.effects[side].glow.setVisible(false);
     }
 
     private drawBag(graphic: PhaserTypes.GameObjects.Graphics, positive: boolean): void {
-        const fabric = positive ? 0xc7a647 : 0xa87842;
-        graphic.clear().fillStyle(0x201710, .9).fillRect(-9, -9, 18, 19)
-            .fillStyle(fabric, 1).fillRect(-7, -7, 14, 16).fillRect(-4, -11, 8, 5)
-            .fillStyle(positive ? 0x203f20 : 0x482222, 1).fillRect(-2, -2, 4, 6)
-            .lineStyle(1, 0xffef9c, .8).strokeRect(-7, -7, 14, 16);
-    }
-
-    private drawOverheadCandle(fx: SideFx, anchorX: number, anchorY: number): void {
-        const height = 22 + fx.state.displayed * 46;
-        const positive = fx.state.accumulatorValue >= 0;
-        const color = positive ? 0x9fe84b : 0xed6868;
-        const y = anchorY - 93;
-        fx.candle.clear().setVisible(true).lineStyle(2, 0x06131b, 1).lineBetween(anchorX, y - height / 2 - 9, anchorX, y + height / 2 + 9)
-            .lineStyle(1, color, .95).lineBetween(anchorX, y - height / 2 - 9, anchorX, y + height / 2 + 9)
-            .fillStyle(0x07131b, .95).fillRect(anchorX - 10, y - height / 2, 20, height)
-            .fillStyle(color, .95).fillRect(anchorX - 8, y - height / 2 + 2, 16, Math.max(4, height - 4));
+        // Pixel-art money sack: gold fabric, tied neck, chunky '$' stamp and a
+        // discrete bright rim so the bags read clearly against the dark arena.
+        const fabric = positive ? 0xd9b356 : 0xb98f4a;
+        const shade = positive ? 0xa97f2e : 0x8d6431;
+        graphic.clear()
+            .fillStyle(0x1b1206, .95).fillRect(-15, -14, 30, 34)
+            .fillStyle(fabric, 1).fillRect(-13, -11, 26, 28)
+            .fillStyle(shade, 1).fillRect(-13, 10, 26, 7)
+            .fillRect(-10, -16, 20, 6).fillRect(-6, -19, 12, 4)
+            .fillStyle(0x7c4f1d, 1).fillRect(-8, -13, 16, 4)
+            .fillStyle(0x2c1d07, 1).fillRect(-2, -7, 4, 18)
+            .fillRect(-6, -6, 12, 4).fillRect(-6, 1, 12, 4)
+            .fillRect(-6, -6, 4, 5).fillRect(2, -2, 4, 5)
+            .fillStyle(0xffe9a8, .55).fillRect(-11, -9, 4, 8)
+            .lineStyle(2, positive ? 0xffe9a8 : 0xe7c98c, .85).strokeRect(-13, -11, 26, 28);
     }
 
     private drawGlow(fx: SideFx, anchorX: number, anchorY: number): void {

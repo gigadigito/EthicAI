@@ -22,7 +22,7 @@ export interface MoneyFlowBatch {
 }
 
 interface BufferedBatch { batch: MoneyFlowBatch; receivedMonotonicMs: number; }
-interface State { latestSequence: number; dropped: number; duplicates: number; gaps: number; items: BufferedBatch[]; }
+interface State { latestSequenceBySymbol: Map<string, number>; dropped: number; duplicates: number; gaps: number; items: BufferedBatch[]; }
 
 const DEFAULT_CAPACITY = 32;
 const MAX_AGE_MS = 15_000;
@@ -31,7 +31,7 @@ const states = new Map<number, State>();
 function stateFor(matchId: number): State {
     let state = states.get(matchId);
     if (!state) {
-        state = { latestSequence: 0, dropped: 0, duplicates: 0, gaps: 0, items: [] };
+        state = { latestSequenceBySymbol: new Map(), dropped: 0, duplicates: 0, gaps: 0, items: [] };
         states.set(matchId, state);
     }
     return state;
@@ -47,9 +47,10 @@ function valid(batch: MoneyFlowBatch): boolean {
 export function receiveMoneyFlowBatch(batch: MoneyFlowBatch, capacity = DEFAULT_CAPACITY): boolean {
     if (!valid(batch)) return false;
     const state = stateFor(batch.matchId);
-    if (batch.sequence <= state.latestSequence) { state.duplicates++; return false; }
-    if (state.latestSequence > 0 && batch.sequence > state.latestSequence + 1) { state.gaps++; batch = { ...batch, isPartial: true }; }
-    state.latestSequence = batch.sequence;
+    const latestSequence = state.latestSequenceBySymbol.get(batch.symbol) ?? 0;
+    if (batch.sequence <= latestSequence) { state.duplicates++; return false; }
+    if (latestSequence > 0 && batch.sequence > latestSequence + 1) { state.gaps++; batch = { ...batch, isPartial: true }; }
+    state.latestSequenceBySymbol.set(batch.symbol, batch.sequence);
     const now = performance.now();
     state.items.push({ batch, receivedMonotonicMs: now });
     const limit = Math.max(1, Math.min(500, capacity));
@@ -69,7 +70,8 @@ export function getMoneyFlowBuffer(matchId: number): MoneyFlowBatch[] {
     return state?.items.map(item => item.batch) ?? [];
 }
 
-export function inspectMoneyFlowBuffer(matchId: number): { count: number; latestSequence: number; dropped: number; duplicates: number; gaps: number } {
+export function inspectMoneyFlowBuffer(matchId: number): { count: number; latestSequence: number; symbolCount: number; dropped: number; duplicates: number; gaps: number } {
     const state = stateFor(matchId);
-    return { count: state.items.length, latestSequence: state.latestSequence, dropped: state.dropped, duplicates: state.duplicates, gaps: state.gaps };
+    const latestSequence = Math.max(0, ...state.latestSequenceBySymbol.values());
+    return { count: state.items.length, latestSequence, symbolCount: state.latestSequenceBySymbol.size, dropped: state.dropped, duplicates: state.duplicates, gaps: state.gaps };
 }

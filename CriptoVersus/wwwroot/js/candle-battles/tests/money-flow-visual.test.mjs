@@ -16,6 +16,23 @@ test('price movement decides visual direction independently of net quote', () =>
   assert.deepEqual(decideMoneyFlow(batch({ lastPrice: '100' })), { direction: 'neutral', intensity: 0 });
 });
 
+test('sub-precision jitter keeps the flow neutral instead of flickering', () => {
+  assert.deepEqual(decideMoneyFlow(batch({ lastPrice: '100.00000000000001' }), 100), { direction: 'neutral', intensity: 0 });
+  assert.equal(decideMoneyFlow(batch({ lastPrice: '100.001' }), 100).direction, 'positive');
+});
+
+test('tiny real moves stay weaker than large ones', () => {
+  const tiny = decideMoneyFlow(batch({ lastPrice: '100.002' }), 100).intensity;
+  const large = decideMoneyFlow(batch({ lastPrice: '104' }), 100).intensity;
+  assert.ok(tiny > 0);
+  assert.ok(tiny < large);
+});
+
+test('invalid prices never produce a direction', () => {
+  assert.deepEqual(decideMoneyFlow(batch({ firstPrice: '0', lastPrice: '100' })), { direction: 'neutral', intensity: 0 });
+  assert.deepEqual(decideMoneyFlow(batch({ firstPrice: '100', lastPrice: 'NaN' })), { direction: 'neutral', intensity: 0 });
+});
+
 test('partial batches are intentionally conservative', () => {
   const full = decideMoneyFlow(batch()).intensity;
   const partial = decideMoneyFlow(batch({ isPartial: true })).intensity;

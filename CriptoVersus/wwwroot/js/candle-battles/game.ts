@@ -132,7 +132,7 @@ export class GameEngine {
                     new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261024f', '/games/candle-battles/assets/candle-finishers.json?v=20261024f');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261030b', '/games/candle-battles/assets/candle-finishers.json?v=20261030b');
             }
             create(): void { owner.setup(this); }
             update(_time: number, delta: number): void { owner.update(delta); }

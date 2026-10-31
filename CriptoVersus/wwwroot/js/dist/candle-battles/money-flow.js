@@ -4,7 +4,7 @@ const states = new Map();
 function stateFor(matchId) {
     let state = states.get(matchId);
     if (!state) {
-        state = { latestSequence: 0, dropped: 0, duplicates: 0, gaps: 0, items: [] };
+        state = { latestSequenceBySymbol: new Map(), dropped: 0, duplicates: 0, gaps: 0, items: [] };
         states.set(matchId, state);
     }
     return state;
@@ -19,15 +19,16 @@ export function receiveMoneyFlowBatch(batch, capacity = DEFAULT_CAPACITY) {
     if (!valid(batch))
         return false;
     const state = stateFor(batch.matchId);
-    if (batch.sequence <= state.latestSequence) {
+    const latestSequence = state.latestSequenceBySymbol.get(batch.symbol) ?? 0;
+    if (batch.sequence <= latestSequence) {
         state.duplicates++;
         return false;
     }
-    if (state.latestSequence > 0 && batch.sequence > state.latestSequence + 1) {
+    if (latestSequence > 0 && batch.sequence > latestSequence + 1) {
         state.gaps++;
         batch = { ...batch, isPartial: true };
     }
-    state.latestSequence = batch.sequence;
+    state.latestSequenceBySymbol.set(batch.symbol, batch.sequence);
     const now = performance.now();
     state.items.push({ batch, receivedMonotonicMs: now });
     const limit = Math.max(1, Math.min(500, capacity));
@@ -54,5 +55,6 @@ export function getMoneyFlowBuffer(matchId) {
 }
 export function inspectMoneyFlowBuffer(matchId) {
     const state = stateFor(matchId);
-    return { count: state.items.length, latestSequence: state.latestSequence, dropped: state.dropped, duplicates: state.duplicates, gaps: state.gaps };
+    const latestSequence = Math.max(0, ...state.latestSequenceBySymbol.values());
+    return { count: state.items.length, latestSequence, symbolCount: state.latestSequenceBySymbol.size, dropped: state.dropped, duplicates: state.duplicates, gaps: state.gaps };
 }

@@ -62,6 +62,9 @@ public sealed class MoneyFlowMatchRegistry : IAsyncDisposable
             }
             _bySymbol = next.ToDictionary(pair => pair.Key, pair => pair.Value.Distinct().ToArray(), StringComparer.Ordinal);
             _refreshedAt = DateTimeOffset.UtcNow;
+            _logger.LogInformation("Money-flow registry refreshed: symbols={SymbolCount} groups={GroupCount} matches=[{Matches}]",
+                _bySymbol.Count, _bySymbol.Values.Sum(x => x.Length),
+                string.Join(",", _bySymbol.SelectMany(p => p.Value.Select(id => $"{p.Key}->{id}")).Take(20)));
             _metrics.SetGroups(_bySymbol.Values.Sum(x => x.Length));
         }
         catch (Exception ex)

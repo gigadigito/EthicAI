@@ -404,6 +404,10 @@ export class CandleRenderer {
         this.celebration = 0;
         this.defeat = 0;
         this.combat = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
+        // The idle animation must be re-entered explicitly: a bare anims.stop()
+        // leaves currentAnim pointing at the stale finisher sequence after a
+        // replay or a new confrontation.
+        this.animation = 'idle';
         this.sprite.anims.stop();
         this.sprite.setTexture('modular', fighterFrame(this.side, 'neutral', 'idle', 1))
             .setOrigin(.5, 1)
@@ -412,6 +416,7 @@ export class CandleRenderer {
             .setFlipX(this.side === 'right')
             .setRotation(0)
             .setAlpha(1);
+        this.playAnimation(true);
         this.body.setAlpha(1);
         this.aura.setAlpha(1);
     }
@@ -508,7 +513,12 @@ export class CandleRenderer {
         this.impactFx = [];
     }
 
-    setPresentationScale(scale: number): void { this.presentationScale = scale; }
+    setPresentationScale(scale: number): void {
+        this.presentationScale = scale;
+        // Keep the sprite on the presentation baseline immediately; otherwise
+        // the fighter visibly resizes only at the first geometry update.
+        this.sprite.setScale(scale);
+    }
     setPreparation(tension: number, time: number): void {
         this.expireResultBeat(time);
         // The closing cinematic owns the fighter pose; idle tension must not
@@ -684,8 +694,10 @@ export class CandleRenderer {
         }
         this.aura.setAlpha(bodyAlpha);
         // The destroyed candle fades while the fighter stays visible to reel or
-        // celebrate the round result until the next battle starts.
-        const spriteAlpha = this.resultRole ? recovery : bodyAlpha;
+        // celebrate the round result until the next battle starts. The spawn
+        // recovery ramp belongs to the candle body only: the fighter sprite is
+        // restored to its full baseline whenever a new confrontation begins.
+        const spriteAlpha = this.resultRole ? recovery : 1;
         this.sprite.setAlpha(spriteAlpha * (1 - .28 * Math.min(1, this.defeat)) * (1 - .45 * (ct?.flash ?? 0)));
         this.positionImpactFx(Math.max(0, delta), facing, scale);
         this.positionOverlays(time);
