@@ -2,14 +2,17 @@ using System.Diagnostics;
 
 namespace CriptoVersus.Worker.MarketFlow;
 
-public sealed class MarketFlowAggregator(TimeSpan window, int maxTrackedWindows)
+public sealed class MarketFlowAggregator(TimeSpan window, int maxTrackedWindows, Dictionary<string, long>? nextSequenceBySymbol = null)
 {
     private readonly long _windowMilliseconds = Math.Max(1, (long)window.TotalMilliseconds);
     private readonly int _maxTrackedWindows = Math.Max(2, maxTrackedWindows);
     private readonly SortedDictionary<(string Symbol, long StartMs), Bucket> _buckets = new();
     private readonly HashSet<(string Symbol, long StartMs)> _partialWindows = new();
     private readonly Dictionary<string, long> _lastFlushedWindowBySymbol = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, long> _nextSequenceBySymbol = new(StringComparer.Ordinal);
+    // Per-symbol sequence counters may be shared across aggregator instances so that a
+    // Binance reconnect (e.g. after the active symbol set changes) continues the monotonic
+    // sequence instead of restarting at 1 and being dropped as a duplicate downstream.
+    private readonly Dictionary<string, long> _nextSequenceBySymbol = nextSequenceBySymbol ?? new(StringComparer.Ordinal);
 
     public bool Add(BinanceAggregateTrade trade)
         => Add(new MarketFlowTradeEnvelope(trade, DateTimeOffset.UtcNow, Stopwatch.GetTimestamp()));

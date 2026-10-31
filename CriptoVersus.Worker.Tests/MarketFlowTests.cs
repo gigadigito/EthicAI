@@ -254,6 +254,35 @@ public sealed class MarketFlowTests
         Assert.Equal(1, transport.Calls);
     }
 
+    [Fact]
+    public void Aggregator_SequencesStayMonotonicAcrossReconnectWhenCounterIsShared()
+    {
+        var shared = new Dictionary<string, long>(StringComparer.Ordinal);
+        var first = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20, shared);
+        first.Add(Trade("BTCUSDT", 1, 10m, 1m, 0, false));
+        var firstSnapshots = first.FlushDue(Start.AddMilliseconds(250));
+        Assert.Equal(1, Assert.Single(firstSnapshots).Sequence);
+
+        // Simulates the Worker reconnecting after the active symbol set changes: a new
+        // aggregator is created but the per-symbol sequence counter is shared.
+        var second = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20, shared);
+        second.Add(Trade("BTCUSDT", 2, 11m, 1m, 300, false));
+        var secondSnapshots = second.FlushDue(Start.AddMilliseconds(600));
+        Assert.Equal(2, Assert.Single(secondSnapshots).Sequence);
+    }
+
+    [Fact]
+    public void Aggregator_SequencesRestartPerInstanceWhenCounterIsNotShared()
+    {
+        var first = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20);
+        first.Add(Trade("BTCUSDT", 1, 10m, 1m, 0, false));
+        Assert.Equal(1, Assert.Single(first.FlushDue(Start.AddMilliseconds(250))).Sequence);
+
+        var second = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20);
+        second.Add(Trade("BTCUSDT", 2, 11m, 1m, 300, false));
+        Assert.Equal(1, Assert.Single(second.FlushDue(Start.AddMilliseconds(600))).Sequence);
+    }
+
     private static BinanceAggregateTrade Trade(string symbol, long id, decimal price, decimal quantity, int offsetMs, bool buyerIsMaker)
         => new(symbol, id, price, quantity, Start.AddMilliseconds(offsetMs), buyerIsMaker);
 

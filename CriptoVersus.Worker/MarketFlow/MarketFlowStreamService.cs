@@ -43,6 +43,9 @@ public sealed class MarketFlowStreamService : BackgroundService
         var activeSymbolCount = 0;
         var reportedEmpty = false;
         var attempt = 0;
+        // Owned by the service execution so per-symbol sequences stay monotonic across
+        // Binance reconnects (which happen whenever the active symbol set changes).
+        var sequenceBySymbol = new Dictionary<string, long>(StringComparer.Ordinal);
 
         void SetActiveSymbolCount(int next)
         {
@@ -90,7 +93,7 @@ public sealed class MarketFlowStreamService : BackgroundService
                 var symbolsChanged = false;
                 try
                 {
-                    var connection = RunConnectionAsync(options, symbols, subscriptionCancellation.Token);
+                    var connection = RunConnectionAsync(options, symbols, sequenceBySymbol, subscriptionCancellation.Token);
                     while (!connection.IsCompleted)
                     {
                         await Task.Delay(TimeSpan.FromSeconds(options.SubscriptionRefreshSeconds), stoppingToken);
@@ -146,13 +149,13 @@ public sealed class MarketFlowStreamService : BackgroundService
             .Take(options.MaxSymbols)
             .ToArray();
 
-    private async Task RunConnectionAsync(MarketFlowOptions options, IReadOnlyCollection<string> symbols, CancellationToken stoppingToken)
+    private async Task RunConnectionAsync(MarketFlowOptions options, IReadOnlyCollection<string> symbols, Dictionary<string, long> sequenceBySymbol, CancellationToken stoppingToken)
     {
         using var connectionCancellation = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         connectionCancellation.CancelAfter(TimeSpan.FromMinutes(options.MaxConnectionAgeMinutes));
         var buffer = new MarketFlowTradeBuffer(options.MaxBufferedTrades);
         var deduplicator = new MarketFlowDeduplicator(options.DeduplicationCapacity);
-        var aggregator = new MarketFlowAggregator(TimeSpan.FromMilliseconds(options.AggregationWindowMs), Math.Max(8, options.MaxBufferedTrades / 10));
+        var aggregator = new MarketFlowAggregator(TimeSpan.FromMilliseconds(options.AggregationWindowMs), Math.Max(8, options.MaxBufferedTrades / 10), sequenceBySymbol);
         var aggregatorGate = new object();
         var allowedSymbols = new HashSet<string>(symbols, StringComparer.Ordinal);
         var received = _transport.RunAsync(symbols, (payload, ct) => OnMessageAsync(payload, allowedSymbols, deduplicator, buffer, aggregator, aggregatorGate, ct), options.MaxMessageBytes, connectionCancellation.Token);
