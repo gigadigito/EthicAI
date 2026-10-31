@@ -10,6 +10,7 @@ public sealed class MarketFlowStreamService : BackgroundService
     private readonly IOptions<MarketFlowOptions> _options;
     private readonly IMarketFlowTransport _transport;
     private readonly IMarketFlowSnapshotSink _sink;
+    private readonly IMarketFlowSymbolSource _symbolSource;
     private readonly TimeProvider _timeProvider;
     private readonly MarketFlowMetrics _metrics;
     private readonly ILogger<MarketFlowStreamService> _logger;
@@ -18,6 +19,7 @@ public sealed class MarketFlowStreamService : BackgroundService
         IOptions<MarketFlowOptions> options,
         IMarketFlowTransport transport,
         IMarketFlowSnapshotSink sink,
+        IMarketFlowSymbolSource symbolSource,
         TimeProvider timeProvider,
         MarketFlowMetrics metrics,
         ILogger<MarketFlowStreamService> logger)
@@ -25,6 +27,7 @@ public sealed class MarketFlowStreamService : BackgroundService
         _options = options;
         _transport = transport;
         _sink = sink;
+        _symbolSource = symbolSource;
         _timeProvider = timeProvider;
         _metrics = metrics;
         _logger = logger;
@@ -37,30 +40,88 @@ public sealed class MarketFlowStreamService : BackgroundService
             return;
 
         options.Validate();
-        var symbols = PriceSymbolSetBuilder.NormalizeSymbols(options.Symbols).Order(StringComparer.Ordinal).Take(options.MaxSymbols).ToArray();
-        if (symbols.Length == 0)
-        {
-            _logger.LogWarning("Market flow is enabled but no symbols are configured; no Binance connection will be opened.");
-            return;
-        }
-        if (symbols.Length < PriceSymbolSetBuilder.NormalizeSymbols(options.Symbols).Count)
-            _logger.LogWarning("Market flow symbol configuration exceeded MaxSymbols; only {SymbolCount} symbols are used.", symbols.Length);
+        var activeSymbolCount = 0;
+        var reportedEmpty = false;
+        var attempt = 0;
 
-        _metrics.ActiveSymbols.Add(symbols.Length);
-        _logger.LogInformation("Market flow ingestion starting. source=AggTrade symbols={SymbolCount} windowMs={WindowMs}", symbols.Length, options.AggregationWindowMs);
+        void SetActiveSymbolCount(int next)
+        {
+            var delta = next - activeSymbolCount;
+            if (delta != 0) _metrics.ActiveSymbols.Add(delta);
+            activeSymbolCount = next;
+        }
+
         try
         {
-            var attempt = 0;
             while (!stoppingToken.IsCancellationRequested)
             {
+                string[] symbols;
                 try
                 {
-                    await RunConnectionAsync(options, symbols, stoppingToken);
+                    symbols = await ResolveSymbolsAsync(options, stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Market flow active-symbol refresh failed; retaining no subscription until the next refresh.");
+                    await Task.Delay(TimeSpan.FromSeconds(options.SubscriptionRefreshSeconds), stoppingToken);
+                    continue;
+                }
+
+                if (symbols.Length == 0)
+                {
+                    SetActiveSymbolCount(0);
+                    if (!reportedEmpty)
+                    {
+                        _logger.LogWarning("Market flow is enabled but no ongoing-match or explicit symbols are available; no Binance connection will be opened.");
+                        reportedEmpty = true;
+                    }
+                    await Task.Delay(TimeSpan.FromSeconds(options.SubscriptionRefreshSeconds), stoppingToken);
+                    continue;
+                }
+
+                reportedEmpty = false;
+                SetActiveSymbolCount(symbols.Length);
+                _logger.LogInformation("Market flow ingestion starting. source=AggTrade symbols={SymbolCount} windowMs={WindowMs}", symbols.Length, options.AggregationWindowMs);
+                using var subscriptionCancellation = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                var symbolsChanged = false;
+                try
+                {
+                    var connection = RunConnectionAsync(options, symbols, subscriptionCancellation.Token);
+                    while (!connection.IsCompleted)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(options.SubscriptionRefreshSeconds), stoppingToken);
+                        string[] refreshed;
+                        try
+                        {
+                            refreshed = await ResolveSymbolsAsync(options, stoppingToken);
+                        }
+                        catch (Exception ex) when (ex is not OperationCanceledException)
+                        {
+                            _logger.LogWarning(ex, "Market flow active-symbol refresh failed; retaining the current Binance subscription.");
+                            continue;
+                        }
+
+                        if (symbols.SequenceEqual(refreshed, StringComparer.Ordinal)) continue;
+                        symbolsChanged = true;
+                        _logger.LogInformation("Market flow active symbols changed. previous={PreviousCount} current={CurrentCount}; reconnecting.",
+                            symbols.Length, refreshed.Length);
+                        subscriptionCancellation.Cancel();
+                    }
+
+                    await connection;
                     attempt = 0;
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
                     break;
+                }
+                catch (OperationCanceledException) when (symbolsChanged)
+                {
+                    attempt = 0;
                 }
                 catch (Exception ex)
                 {
@@ -74,10 +135,16 @@ public sealed class MarketFlowStreamService : BackgroundService
         finally
         {
             _metrics.SetConnectionStatus(false);
-            _metrics.ActiveSymbols.Add(-symbols.Length);
+            SetActiveSymbolCount(0);
             _logger.LogInformation("Market flow ingestion stopped.");
         }
     }
+
+    private async Task<string[]> ResolveSymbolsAsync(MarketFlowOptions options, CancellationToken cancellationToken)
+        => PriceSymbolSetBuilder.NormalizeSymbols(await _symbolSource.GetSymbolsAsync(cancellationToken))
+            .Order(StringComparer.Ordinal)
+            .Take(options.MaxSymbols)
+            .ToArray();
 
     private async Task RunConnectionAsync(MarketFlowOptions options, IReadOnlyCollection<string> symbols, CancellationToken stoppingToken)
     {

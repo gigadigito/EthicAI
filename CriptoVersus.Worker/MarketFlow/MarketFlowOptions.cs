@@ -14,6 +14,7 @@ public sealed class MarketFlowOptions
     public int MaxWorkItemsPerCycle { get; set; } = 2_000;
     public int DeduplicationCapacity { get; set; } = 50_000;
     public int MaxConnectionAgeMinutes { get; set; } = 1_430;
+    public int SubscriptionRefreshSeconds { get; set; } = 15;
     public bool DiagnosticsEnabled { get; set; }
     public bool TransportEnabled { get; set; }
     public string? ApiBatchUrl { get; set; }
@@ -41,6 +42,8 @@ public sealed class MarketFlowOptions
             throw new InvalidOperationException("CandleBattles:MoneyFlow processing limits are invalid.");
         if (MaxConnectionAgeMinutes is < 1 or > 1_430)
             throw new InvalidOperationException("CandleBattles:MoneyFlow:MaxConnectionAgeMinutes must be at most 1430.");
+        if (SubscriptionRefreshSeconds is < 1 or > 300)
+            throw new InvalidOperationException("CandleBattles:MoneyFlow:SubscriptionRefreshSeconds must be between 1 and 300.");
         if (TransportTimeoutMs is < 100 or > 30_000)
             throw new InvalidOperationException("CandleBattles:MoneyFlow:TransportTimeoutMs is outside the safe range.");
         if (TransportQueueCapacity is < 1 or > 10_000)

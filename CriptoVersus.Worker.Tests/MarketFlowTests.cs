@@ -1,5 +1,6 @@
 using System.Text;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 using CriptoVersus.Worker.MarketFlow;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -129,6 +130,7 @@ public sealed class MarketFlowTests
     {
         Assert.Throws<InvalidOperationException>(() => new MarketFlowOptions { MaxSymbols = 1025 }.Validate());
         Assert.Throws<InvalidOperationException>(() => new MarketFlowOptions { MaxConnectionAgeMinutes = 1440 }.Validate());
+        Assert.Throws<InvalidOperationException>(() => new MarketFlowOptions { SubscriptionRefreshSeconds = 0 }.Validate());
     }
 
     [Fact]
@@ -152,23 +154,155 @@ public sealed class MarketFlowTests
         Assert.Equal(1, transport.Calls);
     }
 
+    [Fact]
+    public async Task StreamService_ReconnectsWhenOngoingMatchSymbolsChange()
+    {
+        var transport = new ControlledTransport();
+        var symbols = new MutableSymbolSource(["BTCUSDT"]);
+        var service = CreateService(new MarketFlowOptions
+        {
+            Enabled = true,
+            SubscriptionRefreshSeconds = 1
+        }, transport, symbols);
+
+        await service.StartAsync(CancellationToken.None);
+        await transport.WaitForCallsAsync(1, TimeSpan.FromSeconds(2));
+        symbols.Set(["ETHUSDT", "SOLUSDT"]);
+        await transport.WaitForCallsAsync(2, TimeSpan.FromSeconds(4));
+        await service.StopAsync(CancellationToken.None);
+
+        var subscriptions = transport.Subscriptions.ToArray();
+        Assert.Equal(["BTCUSDT"], subscriptions[0]);
+        Assert.Equal(["ETHUSDT", "SOLUSDT"], subscriptions[1]);
+    }
+
+    [Fact]
+    public async Task StreamService_NoSymbols_DoesNotOpenTransport()
+    {
+        var transport = new ControlledTransport();
+        var symbols = new MutableSymbolSource([]);
+        var service = CreateService(new MarketFlowOptions { Enabled = true, SubscriptionRefreshSeconds = 1 }, transport, symbols);
+
+        await service.StartAsync(CancellationToken.None);
+        await Task.Delay(300, CancellationToken.None);
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.Equal(0, transport.Calls);
+    }
+
+    [Fact]
+    public async Task StreamService_TransientSymbolFailure_RetainsCurrentSubscription()
+    {
+        var transport = new ControlledTransport();
+        var symbols = new MutableSymbolSource(["BTCUSDT"]);
+        var service = CreateService(new MarketFlowOptions { Enabled = true, SubscriptionRefreshSeconds = 1 }, transport, symbols);
+
+        await service.StartAsync(CancellationToken.None);
+        await transport.WaitForCallsAsync(1, TimeSpan.FromSeconds(2));
+
+        symbols.FailNext(2);
+        await Task.Delay(1500, CancellationToken.None);
+
+        Assert.Equal(1, transport.Calls);
+        await service.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task StreamService_RecoversAfterSymbolSourceFailure()
+    {
+        var transport = new ControlledTransport();
+        var symbols = new MutableSymbolSource(["BTCUSDT"]);
+        var service = CreateService(new MarketFlowOptions { Enabled = true, SubscriptionRefreshSeconds = 1 }, transport, symbols);
+
+        await service.StartAsync(CancellationToken.None);
+        await transport.WaitForCallsAsync(1, TimeSpan.FromSeconds(2));
+
+        symbols.FailNext(1);
+        symbols.Set(["ETHUSDT"]);
+        await transport.WaitForCallsAsync(2, TimeSpan.FromSeconds(4));
+
+        await service.StopAsync(CancellationToken.None);
+        Assert.Equal(2, transport.Calls);
+    }
+
+    [Fact]
+    public async Task StreamService_DoesNotReconnectWhenUnchanged()
+    {
+        var transport = new ControlledTransport();
+        var symbols = new MutableSymbolSource(["BTCUSDT"]);
+        var service = CreateService(new MarketFlowOptions { Enabled = true, SubscriptionRefreshSeconds = 1 }, transport, symbols);
+
+        await service.StartAsync(CancellationToken.None);
+        await transport.WaitForCallsAsync(1, TimeSpan.FromSeconds(2));
+        await Task.Delay(1200, CancellationToken.None);
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.Equal(1, transport.Calls);
+    }
+
+    [Fact]
+    public async Task StreamService_CancellationDuringSymbolRefresh_StopsGracefully()
+    {
+        var transport = new ControlledTransport();
+        var symbols = new MutableSymbolSource(["BTCUSDT"]);
+        var service = CreateService(new MarketFlowOptions { Enabled = true, SubscriptionRefreshSeconds = 1 }, transport, symbols);
+
+        await service.StartAsync(CancellationToken.None);
+        await transport.WaitForCallsAsync(1, TimeSpan.FromSeconds(2));
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.Equal(1, transport.Calls);
+    }
+
     private static BinanceAggregateTrade Trade(string symbol, long id, decimal price, decimal quantity, int offsetMs, bool buyerIsMaker)
         => new(symbol, id, price, quantity, Start.AddMilliseconds(offsetMs), buyerIsMaker);
 
-    private static MarketFlowStreamService CreateService(MarketFlowOptions options, ControlledTransport transport)
-        => new(Options.Create(options), transport, new NullMarketFlowSnapshotSink(), TimeProvider.System,
+    private static MarketFlowStreamService CreateService(
+        MarketFlowOptions options,
+        ControlledTransport transport,
+        IMarketFlowSymbolSource? symbolSource = null)
+        => new(Options.Create(options), transport, new NullMarketFlowSnapshotSink(),
+            symbolSource ?? new MutableSymbolSource(options.Symbols), TimeProvider.System,
             new MarketFlowMetrics(), NullLogger<MarketFlowStreamService>.Instance);
 
     private sealed class ControlledTransport : IMarketFlowTransport
     {
-        public int Calls { get; private set; }
+        private int _calls;
+        public int Calls => Volatile.Read(ref _calls);
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public ConcurrentQueue<string[]> Subscriptions { get; } = new();
 
         public async Task RunAsync(IReadOnlyCollection<string> symbols, Func<ReadOnlyMemory<byte>, CancellationToken, ValueTask> onMessage, int maxMessageBytes, CancellationToken cancellationToken)
         {
-            Calls++;
+            Subscriptions.Enqueue(symbols.Order(StringComparer.Ordinal).ToArray());
+            Interlocked.Increment(ref _calls);
             Started.TrySetResult();
             await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
         }
+
+        public async Task WaitForCallsAsync(int expected, TimeSpan timeout)
+        {
+            using var cancellation = new CancellationTokenSource(timeout);
+            while (Calls < expected)
+                await Task.Delay(25, cancellation.Token);
+        }
+    }
+
+    private sealed class MutableSymbolSource(IEnumerable<string> symbols) : IMarketFlowSymbolSource
+    {
+        private string[] _symbols = symbols.ToArray();
+        private int _failuresRemaining;
+
+        public Task<IReadOnlyCollection<string>> GetSymbolsAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Volatile.Read(ref _failuresRemaining) > 0 && Interlocked.Decrement(ref _failuresRemaining) >= 0)
+                throw new InvalidOperationException("Simulated symbol source failure.");
+            return Task.FromResult<IReadOnlyCollection<string>>(Volatile.Read(ref _symbols));
+        }
+
+        public void Set(IEnumerable<string> symbols) => Volatile.Write(ref _symbols, symbols.ToArray());
+
+        public void FailNext(int count) => Interlocked.Add(ref _failuresRemaining, count);
     }
 }

@@ -179,6 +179,7 @@ builder.Services.AddSingleton<IMarketFlowSnapshotSink>(sp =>
         : new NullMarketFlowSnapshotSink();
 });
 builder.Services.AddSingleton<IMarketFlowTransport, BinanceMarketFlowTransport>();
+builder.Services.AddSingleton<IMarketFlowSymbolSource, ActiveMatchMarketFlowSymbolSource>();
 builder.Services.AddScoped<ICriptoVersusFundsService>(sp =>
 {
     var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<CriptoVersusBlockchainOptions>>().Value;
