@@ -13,6 +13,10 @@ public sealed class MarketFlowAggregator(TimeSpan window, int maxTrackedWindows,
     // Binance reconnect (e.g. after the active symbol set changes) continues the monotonic
     // sequence instead of restarting at 1 and being dropped as a duplicate downstream.
     private readonly Dictionary<string, long> _nextSequenceBySymbol = nextSequenceBySymbol ?? new(StringComparer.Ordinal);
+    // A fresh per-symbol sequence starts from a wall-clock watermark so that a Worker process
+    // restart also yields higher sequences than any prior session, keeping the transport-level
+    // deduplication (keyed by source and symbol) from discarding a restarted stream as duplicates.
+    private static long NewSequenceSeed() => Math.Max(1, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 
     public bool Add(BinanceAggregateTrade trade)
         => Add(new MarketFlowTradeEnvelope(trade, DateTimeOffset.UtcNow, Stopwatch.GetTimestamp()));
@@ -49,7 +53,7 @@ public sealed class MarketFlowAggregator(TimeSpan window, int maxTrackedWindows,
         {
             _buckets.Remove(pair.Key);
             _lastFlushedWindowBySymbol[pair.Key.Symbol] = pair.Key.StartMs;
-            var sequence = _nextSequenceBySymbol.TryGetValue(pair.Key.Symbol, out var previous) ? previous + 1 : 1;
+            var sequence = _nextSequenceBySymbol.TryGetValue(pair.Key.Symbol, out var previous) ? previous + 1 : NewSequenceSeed();
             _nextSequenceBySymbol[pair.Key.Symbol] = sequence;
             snapshots.Add(pair.Value.ToSnapshot(sequence));
         }
@@ -80,7 +84,7 @@ public sealed class MarketFlowAggregator(TimeSpan window, int maxTrackedWindows,
         {
             _buckets.Remove(pair.Key);
             _lastFlushedWindowBySymbol[pair.Key.Symbol] = pair.Key.StartMs;
-            var sequence = _nextSequenceBySymbol.TryGetValue(pair.Key.Symbol, out var previous) ? previous + 1 : 1;
+            var sequence = _nextSequenceBySymbol.TryGetValue(pair.Key.Symbol, out var previous) ? previous + 1 : NewSequenceSeed();
             _nextSequenceBySymbol[pair.Key.Symbol] = sequence;
             snapshots.Add(pair.Value.ToSnapshot(sequence));
         }

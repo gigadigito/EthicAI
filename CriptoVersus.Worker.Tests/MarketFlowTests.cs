@@ -261,26 +261,30 @@ public sealed class MarketFlowTests
         var first = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20, shared);
         first.Add(Trade("BTCUSDT", 1, 10m, 1m, 0, false));
         var firstSnapshots = first.FlushDue(Start.AddMilliseconds(250));
-        Assert.Equal(1, Assert.Single(firstSnapshots).Sequence);
+        var firstSequence = Assert.Single(firstSnapshots).Sequence;
+        Assert.True(firstSequence > 0);
 
         // Simulates the Worker reconnecting after the active symbol set changes: a new
         // aggregator is created but the per-symbol sequence counter is shared.
         var second = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20, shared);
         second.Add(Trade("BTCUSDT", 2, 11m, 1m, 300, false));
         var secondSnapshots = second.FlushDue(Start.AddMilliseconds(600));
-        Assert.Equal(2, Assert.Single(secondSnapshots).Sequence);
+        Assert.Equal(firstSequence + 1, Assert.Single(secondSnapshots).Sequence);
     }
 
     [Fact]
-    public void Aggregator_SequencesRestartPerInstanceWhenCounterIsNotShared()
+    public void Aggregator_SequencesNeverRegressAcrossInstancesWhenCounterIsNotShared()
     {
         var first = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20);
         first.Add(Trade("BTCUSDT", 1, 10m, 1m, 0, false));
-        Assert.Equal(1, Assert.Single(first.FlushDue(Start.AddMilliseconds(250))).Sequence);
+        var firstSequence = Assert.Single(first.FlushDue(Start.AddMilliseconds(250))).Sequence;
 
+        // Without a shared counter a new instance reseeds from a wall-clock watermark, which is
+        // still greater than any earlier session so transport deduplication accepts the stream.
         var second = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20);
         second.Add(Trade("BTCUSDT", 2, 11m, 1m, 300, false));
-        Assert.Equal(1, Assert.Single(second.FlushDue(Start.AddMilliseconds(600))).Sequence);
+        var secondSequence = Assert.Single(second.FlushDue(Start.AddMilliseconds(600))).Sequence;
+        Assert.True(secondSequence >= firstSequence);
     }
 
     private static BinanceAggregateTrade Trade(string symbol, long id, decimal price, decimal quantity, int offsetMs, bool buyerIsMaker)
