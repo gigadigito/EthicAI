@@ -1,5 +1,6 @@
-import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate, resolveRoundResultPose, ROUND_RESULT_RETURN_MS } from './model.js?v=20261101a';
-import { frameAt, transformAt } from './combat-animations.js?v=20261101a';
+import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate, resolveRoundResultPose, ROUND_RESULT_RETURN_MS } from './model.js?v=20261101b';
+import { frameAt, transformAt } from './combat-animations.js?v=20261101b';
+import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261101b';
 const CANDLE_LIFT = 60;
 const ACTION_FRAME_COUNTS = {
     // Hold the damage pose while its alpha fades; cycling the source montage
@@ -578,18 +579,16 @@ export class CandleRenderer {
     get speechAnchorX() { return this.root.x + this.sprite.x; }
     get speechAnchorY() { return this.root.y + this.sprite.y - 165; }
     get moneyFlowAnchors() {
-        const centreX = this.root.x + this.sprite.x;
-        const groundY = this.root.y + this.sprite.y;
-        const laneLeft = this.side === 'left' ? 80 : 720;
-        const laneRight = this.side === 'left' ? 560 : 1200;
-        return {
-            head: { x: centreX, y: groundY - 165 },
-            body: { x: centreX, y: groundY - 90 },
-            hands: { x: centreX + (this.side === 'left' ? 28 : -28), y: groundY - 92 },
-            feet: { x: centreX, y: groundY - 4 },
-            ground: { x: centreX, y: groundY + 4 },
-            collectionBounds: { left: laneLeft, right: laneRight, top: 20, bottom: Math.min(460, groundY + 12) },
-        };
+        // Anchor offsets derive from the live sprite scale so the money-flow
+        // region follows the real fighter instead of assuming the 0.8 baseline.
+        return buildMoneyFlowAnchors({
+            side: this.side,
+            centreX: this.root.x + this.sprite.x,
+            groundY: this.root.y + this.sprite.y,
+            fighterScale: this.presentationScale,
+            laneLeft: this.side === 'left' ? 80 : 720,
+            laneRight: this.side === 'left' ? 560 : 1200,
+        });
     }
     update(time, delta, progress = 0) {
         this.clockNow = Number.isFinite(time) ? time : this.clockNow;

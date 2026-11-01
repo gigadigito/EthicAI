@@ -143,7 +143,7 @@ test('live Money Flow renders bounded positive and negative effects, then clears
   for(let index=0;index<10;index++) engine.update(50);
   return engine.inspect().moneyFlow;
  },flowUrl);
- expect(visual.active).toBe(true);expect(visual.renderMode).toBe('procedural');expect(visual.bags).toBeGreaterThan(0);expect(visual.signs).toBeGreaterThan(0);
+ expect(visual.active).toBe(true);expect(visual.renderMode).toBe('sprites');expect(visual.collectors.enabled).toBe(false);expect(visual.bags).toBeGreaterThan(0);expect(visual.signs).toBeGreaterThan(0);
  expect(visual.left.displayedCandle).toBeGreaterThan(.5);expect(visual.right.displayedCandle).toBeLessThan(.5);
  expect(visual.bags).toBeLessThanOrEqual(12);expect(visual.signs).toBeLessThanOrEqual(12);
  await page.screenshot({path:testInfo.outputPath('money-flow-live.png'),fullPage:true});
@@ -325,6 +325,216 @@ test('money flow mock scenarios stay per-symbol, bounded and isolated across rep
   return engine.inspect().moneyFlow;
  });
  expect(finished.active).toBe(false);expect(finished.bags).toBe(0);
+ expect(errors).toEqual([]);
+});
+
+test('money flow bag sprites drive real atlas frames across the expanded region',async({page},testInfo)=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(url+'?kind=live&collectors=1');await page.waitForFunction(()=>window.engine&&window.ready);
+ const flowUrl=await moneyFlowModuleUrl(page);
+ await page.evaluate(async({flowUrl})=>{
+  const engine=window.engine;
+  engine.receive({matchId:93,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  window.__flow=await import(flowUrl);
+  window.__seq=0;
+  window.__drive=(direction)=>{
+   const flow=window.__flow;
+   const batch=(symbol,sequence,firstPrice,lastPrice)=>({matchId:93,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:28,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice,lastPrice,highPrice:lastPrice,lowPrice:firstPrice,isPartial:false});
+   const sequence=++window.__seq;
+   const leftMove=direction==='inverted'?-1:1;
+   flow.receiveMoneyFlowBatch(batch('BTCUSDT',sequence,'100',String(100+leftMove*.55)));
+   flow.receiveMoneyFlowBatch(batch('ETHUSDT',sequence,'100',String(100-leftMove*.55)));
+   const seen={falling:false,landing:false,resting:false,frames:new Set(),signFrames:new Set(),spread:{left:[Infinity,-Infinity],right:[Infinity,-Infinity]},outOfBounds:false,burnDuringAvailable:false};
+   for(let tick=0;tick<10;tick++){
+    engine.update(55);
+    const state=engine.inspect().moneyFlow;
+    for(const bag of state.bagStates){
+     seen.frames.add(bag.frame);
+     if(/^bag-fall-/.test(bag.frame))seen.falling=true;
+     if(/^bag-squash-/.test(bag.frame))seen.landing=true;
+     if(bag.frame==='bag-burn-1')seen.resting=true;
+     if(bag.state==='AVAILABLE'&&/^bag-burn-([2-9]|1[0-2])$/.test(bag.frame))seen.burnDuringAvailable=true;
+     if(bag.state!=='CARRIED'){
+      const spread=seen.spread[bag.side];
+      spread[0]=Math.min(spread[0],bag.x);spread[1]=Math.max(spread[1],bag.x);
+      const inRegion=(bag.x>=170&&bag.x<=570)||(bag.x>=710&&bag.x<=1110);
+      if(!inRegion||bag.y<235||bag.y>475)seen.outOfBounds=true;
+     }
+    }
+    for(const sign of state.signStates)seen.signFrames.add(sign.frame);
+   }
+   return {falling:seen.falling,landing:seen.landing,resting:seen.resting,outOfBounds:seen.outOfBounds,
+    burnDuringAvailable:seen.burnDuringAvailable,spread:seen.spread,
+    frames:[...seen.frames],signFrames:[...seen.signFrames]};
+  };
+ },{flowUrl});
+ const merged={falling:false,landing:false,resting:false,outOfBounds:false,burnDuringAvailable:false,frames:new Set(),signFrames:new Set(),spread:{left:[Infinity,-Infinity],right:[Infinity,-Infinity]}};
+ for(let round=0;round<6;round++){
+  const seen=await page.evaluate(direction=>window.__drive(direction),round%2?'inverted':'normal');
+  merged.falling||=seen.falling;merged.landing||=seen.landing;merged.resting||=seen.resting;
+  merged.outOfBounds||=seen.outOfBounds;merged.burnDuringAvailable||=seen.burnDuringAvailable;
+  for(const frame of seen.frames)merged.frames.add(frame);
+  for(const frame of seen.signFrames)merged.signFrames.add(frame);
+  for(const side of ['left','right']){
+   merged.spread[side][0]=Math.min(merged.spread[side][0],seen.spread[side][0]);
+   merged.spread[side][1]=Math.max(merged.spread[side][1],seen.spread[side][1]);
+  }
+  if(round===1)await page.screenshot({path:testInfo.outputPath('money-flow-bag-positive-falling.png'),fullPage:true});
+  if(round===4)await page.screenshot({path:testInfo.outputPath('money-flow-bag-negative-resting.png'),fullPage:true});
+ }
+ const snapshot=await page.evaluate(()=>window.engine.inspect().moneyFlow);
+ expect(snapshot.renderMode).toBe('sprites');
+ expect(merged.falling,'fall bags use bag-fall frames').toBe(true);
+ expect(merged.landing,'landing bags use bag-squash frames').toBe(true);
+ expect(merged.resting,'resting bags hold the golden bag-burn-1 frame').toBe(true);
+ expect(merged.frames.has('procedural')).toBe(false);
+ expect([...merged.signFrames].some(frame=>frame.startsWith('positive-coins-')),'positive accents use the coin sequence').toBe(true);
+ expect([...merged.signFrames].some(frame=>frame.startsWith('negative-arrows-')),'negative accents use the arrow sequence').toBe(true);
+ expect(merged.spread.left[1]-merged.spread.left[0],'left side bags spread across the region').toBeGreaterThan(150);
+ expect(merged.spread.right[1]-merged.spread.right[0],'right side bags spread across the region').toBeGreaterThan(150);
+ expect(merged.outOfBounds,'every visible bag stays in its safe half').toBe(false);
+ expect(merged.burnDuringAvailable,'available bags never burn').toBe(false);
+ await page.screenshot({path:testInfo.outputPath('money-flow-arena-desktop.png'),fullPage:true});
+ await page.setViewportSize({width:390,height:844});
+ await page.evaluate(()=>window.engine.game.scale.refresh());
+ await expect.poll(()=>page.locator('#arena canvas').evaluate(canvas=>canvas.getBoundingClientRect().width)).toBeLessThanOrEqual(390);
+ await page.screenshot({path:testInfo.outputPath('money-flow-arena-mobile.png'),fullPage:true});
+ const replay=await page.evaluate(()=>{window.engine.command('replay');window.engine.update(16);return window.engine.inspect().moneyFlow;});
+ expect(replay.bags).toBe(0);expect(replay.signs).toBe(0);expect(replay.terminalFx).toBe(0);
+ expect(errors).toEqual([]);
+});
+
+test('negative bags stay available after landing and burn only at the end',async({page},testInfo)=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(url+'?kind=live&collectors=1&quality=high');await page.waitForFunction(()=>window.engine&&window.ready);
+ const flowUrl=await moneyFlowModuleUrl(page);
+ const run=await page.evaluate(async({flowUrl})=>{
+  const engine=window.engine;
+  engine.receive({matchId:94,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  const flow=await import(flowUrl);
+  const batch=(symbol,sequence,firstPrice,lastPrice)=>({matchId:94,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:30,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'110',takerSellQuote:'30',netQuote:'80',firstPrice,lastPrice,highPrice:firstPrice,lowPrice:lastPrice,isPartial:false});
+  const seen={availableRest:false,carried:false,portal:false,maxTerminalFx:0,prematureBurn:false,completedNegative:false};
+  let prior=new Map();
+  for(let tick=1;tick<=170;tick++){
+   flow.receiveMoneyFlowBatch(batch('BTCUSDT',tick,'100',String(100-tick*.4)));
+   flow.receiveMoneyFlowBatch(batch('ETHUSDT',tick,'100',String(100-tick*.4)));
+   engine.update(60);
+   const state=engine.inspect().moneyFlow,cycles=state.collectors.cycles;
+   const current=new Map(cycles.map(c=>[c.id,c.polarity]));
+   for(const [id,polarity] of prior)if(!current.has(id)&&polarity==='negative')seen.completedNegative=true;
+   prior=current;
+   for(const cycle of cycles){if(cycle.polarity==='negative'&&cycle.portalVisible)seen.portal=true;}
+   seen.maxTerminalFx=Math.max(seen.maxTerminalFx,state.terminalFx);
+   for(const bag of state.bagStates){
+    if(bag.state==='AVAILABLE'&&bag.frame==='bag-burn-1'&&bag.polarity==='negative')seen.availableRest=true;
+    if(bag.state==='CARRIED')seen.carried=true;
+    if(/^bag-burn-([2-9]|1[0-2])$/.test(bag.frame))seen.prematureBurn=true;
+   }
+  }
+  return seen;
+ },{flowUrl});
+ expect(run.availableRest,'negative bags rest as golden bags after landing').toBe(true);
+ expect(run.carried,'a demon picks the bag up').toBe(true);
+ expect(run.portal,'the infernal portal opens').toBe(true);
+ expect(run.completedNegative,'the demon handoff completes').toBe(true);
+ expect(run.maxTerminalFx,'the burn sequence plays at the ending').toBeGreaterThanOrEqual(1);
+ expect(run.prematureBurn,'bag-burn never runs while a bag is live').toBe(false);
+ await page.screenshot({path:testInfo.outputPath('money-flow-demon-portal.png'),fullPage:true});
+ const replay=await page.evaluate(()=>{window.engine.command('replay');window.engine.update(16);return window.engine.inspect().moneyFlow;});
+ expect(replay.bags).toBe(0);expect(replay.terminalFx).toBe(0);
+ expect(errors).toEqual([]);
+});
+
+test('angels and demons reach lateral bags inside the safe arena',async({page},testInfo)=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(url+'?kind=live&collectors=1&quality=high');await page.waitForFunction(()=>window.engine&&window.ready);
+ const flowUrl=await moneyFlowModuleUrl(page);
+ const run=await page.evaluate(async({flowUrl})=>{
+  const engine=window.engine;
+  engine.receive({matchId:95,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  const flow=await import(flowUrl);
+  const batch=(symbol,sequence,firstPrice,lastPrice)=>({matchId:95,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:32,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice,lastPrice,highPrice:lastPrice,lowPrice:firstPrice,isPartial:false});
+  const seen={maxGrabGap:0,grabSamples:0,outOfBounds:false,portalSpread:{left:[Infinity,-Infinity],right:[Infinity,-Infinity]},cycleSpread:{left:[Infinity,-Infinity],right:[Infinity,-Infinity]},portalOut:false,angelTop:false,demonBottom:false};
+  for(let tick=1;tick<=170;tick++){
+   const leftMove=tick%2?1:-1;
+   flow.receiveMoneyFlowBatch(batch('BTCUSDT',tick,'100',String(100+leftMove*.55)));
+   flow.receiveMoneyFlowBatch(batch('ETHUSDT',tick,'100',String(100-leftMove*.55)));
+   engine.update(60);
+   const state=engine.inspect().moneyFlow,cycles=state.collectors.cycles,bags=state.bagStates;
+   for(const cycle of cycles){
+    const spread=seen.cycleSpread[cycle.side];
+    spread[0]=Math.min(spread[0],cycle.x);spread[1]=Math.max(spread[1],cycle.x);
+    if(cycle.x<78||cycle.x>1202||cycle.y<-95||(!cycle.masked&&cycle.y>478)){
+     seen.outOfBounds=true;
+     if(!seen.outSample)seen.outSample={state:cycle.state,side:cycle.side,x:+cycle.x.toFixed(1),y:+cycle.y.toFixed(1),masked:cycle.masked};
+    }
+    if(cycle.polarity==='positive'&&cycle.y<40)seen.angelTop=true;
+    if(cycle.state==='demon-emerge'||cycle.state==='demon-idle'){
+     const portal=seen.portalSpread[cycle.side];
+     portal[0]=Math.min(portal[0],cycle.x);portal[1]=Math.max(portal[1],cycle.x);
+     if((cycle.side==='left'&&(cycle.x<178||cycle.x>562))||(cycle.side==='right'&&(cycle.x<718||cycle.x>1102)))seen.portalOut=true;
+    }
+    if(cycle.state==='angel-grab'||cycle.state==='demon-grab'||cycle.state==='demon-tug'){
+     const owned=bags.find(b=>b.id===cycle.bagId);
+     if(owned){seen.grabSamples++;seen.maxGrabGap=Math.max(seen.maxGrabGap,Math.abs(cycle.x-owned.x));}
+    }
+   }
+  }
+  return {...seen,cycleSpread:seen.cycleSpread,portalSpread:seen.portalSpread};
+ },{flowUrl});
+ expect(run.grabSamples,'collectors reached bags during capture').toBeGreaterThan(0);
+ expect(run.maxGrabGap,'the collector sprite sits on the bag it captures').toBeLessThan(60);
+ expect(run.cycleSpread.left[1]-run.cycleSpread.left[0],'left collectors move laterally').toBeGreaterThan(80);
+ expect(run.cycleSpread.right[1]-run.cycleSpread.right[0],'right collectors move laterally').toBeGreaterThan(80);
+ expect(run.portalOut,'portals stay inside the safe floor region').toBe(false);
+  expect(run.outOfBounds,`collectors stay inside their arena half: ${JSON.stringify(run.outSample)}`).toBe(false);
+ expect(run.angelTop,'angels ascend past the top of the arena').toBe(true);
+ await page.screenshot({path:testInfo.outputPath('money-flow-collectors-lateral.png'),fullPage:true});
+ expect(errors).toEqual([]);
+});
+
+test('reduced motion freezes effect frames and quality presets bound collectors',async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(url+'?kind=live&collectors=1&reduced=1');await page.waitForFunction(()=>window.engine&&window.ready);
+ const flowUrl=await moneyFlowModuleUrl(page);
+ const reduced=await page.evaluate(async({flowUrl})=>{
+  const engine=window.engine;
+  engine.receive({matchId:96,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  const flow=await import(flowUrl);
+  const batch=(symbol,sequence,lastPrice)=>({matchId:96,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice:'100',lastPrice,highPrice:lastPrice,lowPrice:'100',isPartial:false});
+  const frames=[];
+  for(let tick=1;tick<=40;tick++){
+   flow.receiveMoneyFlowBatch(batch('BTCUSDT',tick,String(100+tick*.4)));
+   engine.update(60);
+   const state=engine.inspect().moneyFlow;
+   for(const bag of state.bagStates)if(bag.visualPhase==='falling')frames.push(bag.frame);
+   for(const sign of state.signStates)frames.push(sign.frame);
+  }
+  return {reducedMotion:engine.inspect().moneyFlow.reducedMotion,frames};
+ },{flowUrl});
+ expect(reduced.reducedMotion).toBe(true);
+ expect(reduced.frames.length).toBeGreaterThan(0);
+ expect(new Set(reduced.frames).size,'reduced motion holds first frames').toBeLessThanOrEqual(2);
+ await page.goto(url+'?kind=live&collectors=1&quality=low');await page.waitForFunction(()=>window.engine&&window.ready);
+ const low=await page.evaluate(async({flowUrl})=>{
+  const engine=window.engine;
+  engine.receive({matchId:97,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  const flow=await import(flowUrl);
+  const batch=(symbol,sequence,lastPrice)=>({matchId:97,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice:'100',lastPrice,highPrice:lastPrice,lowPrice:'100',isPartial:false});
+  let maxLeft=0,maxRight=0;
+  for(let tick=1;tick<=120;tick++){
+   flow.receiveMoneyFlowBatch(batch('BTCUSDT',tick,String(100+tick*.4)));
+   flow.receiveMoneyFlowBatch(batch('ETHUSDT',tick,String(100-tick*.4)));
+   engine.update(60);
+   const cycles=engine.inspect().moneyFlow.collectors.cycles;
+   maxLeft=Math.max(maxLeft,cycles.filter(c=>c.side==='left').length);
+   maxRight=Math.max(maxRight,cycles.filter(c=>c.side==='right').length);
+  }
+  return {quality:engine.inspect().moneyFlow.collectors.quality,maxLeft,maxRight,renderMode:engine.inspect().moneyFlow.renderMode};
+ },{flowUrl});
+ expect(low.quality).toBe('low');
+ expect(low.maxLeft).toBeLessThanOrEqual(1);expect(low.maxRight).toBeLessThanOrEqual(1);
+ expect(low.renderMode).toBe('sprites');
  expect(errors).toEqual([]);
 });
 

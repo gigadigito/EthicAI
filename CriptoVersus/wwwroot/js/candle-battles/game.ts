@@ -6,6 +6,8 @@ import { AudioManager } from './audio.js';
 import { DialogueClock, Line, lineDuration } from './dialogue.js';
 import { CandleBattleDialogueEngine } from './dialogue-engine.js';
 import { MoneyFlowController } from './money-flow-visual.js';
+import { buildMoneyFlowAnchors } from './money-flow-collectors.js';
+import type { MoneyFlowAnchors } from './money-flow-collectors.js';
 
 export interface Feed { matchId: number; leftSymbol: string; rightSymbol: string; left: Candle | null; right: Candle | null; rounds: Round[]; status: string; finished: boolean; matchStartTime?: number | null; matchEndTime?: number | null; expectedRounds?: number; serverTime?: number | null; scoreLeft?: number; scoreRight?: number; }
 export interface CaptureTarget { round?: number; phase?: string; }
@@ -132,10 +134,14 @@ export class GameEngine {
                     new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261101a', '/games/candle-battles/assets/candle-finishers.json?v=20261101a');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261101b', '/games/candle-battles/assets/candle-finishers.json?v=20261101b');
+                // The effects atlas carries the money bags themselves, so it is
+                // required whenever visual effects run, with or without collectors.
+                if (owner.options.moneyFlowVisualEffects) {
+                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261101b', '/games/candle-battles/assets/money-flow-effects.json?v=20261101b');
+                }
                 if (owner.options.moneyFlowVisualEffects && owner.options.moneyFlowCollectorsEnabled) {
-                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261101a', '/games/candle-battles/assets/money-flow-collectors.json?v=20261101a');
-                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261101a', '/games/candle-battles/assets/money-flow-effects.json?v=20261101a');
+                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261101b', '/games/candle-battles/assets/money-flow-collectors.json?v=20261101b');
                 }
             }
             create(): void { owner.setup(this); }
@@ -655,16 +661,16 @@ export class GameEngine {
         const enabled = this.mode === 'live' && !this.feed.finished && !this.options.socialCapture;
         this.moneyFlow.setLiveMatch(this.feed.matchId, this.feed.leftSymbol, this.feed.rightSymbol, enabled);
         if (!enabled) return;
-        const fallback = (side: Side, x: number) => {
+        const fallback = (side: Side, x: number): MoneyFlowAnchors => {
             const ground = this.shell ? 374 : 449;
-            return {
-                head: { x, y: ground - 165 }, body: { x, y: ground - 90 },
-                hands: { x: x + (side === 'left' ? 28 : -28), y: ground - 92 },
-                feet: { x, y: ground - 4 }, ground: { x, y: ground + 4 },
-                collectionBounds: side === 'left'
-                    ? { left: 80, right: 560, top: 20, bottom: 460 }
-                    : { left: 720, right: 1200, top: 20, bottom: 460 },
-            };
+            return buildMoneyFlowAnchors({
+                side,
+                centreX: x,
+                groundY: ground,
+                fighterScale: this.shell ? 1.55 : .8,
+                laneLeft: side === 'left' ? 80 : 720,
+                laneRight: side === 'left' ? 560 : 1200,
+            });
         };
         const suppressPhases: Phase[] = ['DESTROYING', 'VICTORY', 'BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE'];
         const allowCollectors = !this.finaleSequence.running && !suppressPhases.includes(this.state.phase);

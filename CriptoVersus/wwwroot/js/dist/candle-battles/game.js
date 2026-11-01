@@ -1,10 +1,11 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261101a';
-import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261101a';
-import { CandleRenderer } from './renderer.js?v=20261101a';
-import { AudioManager } from './audio.js?v=20261101a';
-import { DialogueClock, lineDuration } from './dialogue.js?v=20261101a';
-import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261101a';
-import { MoneyFlowController } from './money-flow-visual.js?v=20261101a';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261101b';
+import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261101b';
+import { CandleRenderer } from './renderer.js?v=20261101b';
+import { AudioManager } from './audio.js?v=20261101b';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261101b';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261101b';
+import { MoneyFlowController } from './money-flow-visual.js?v=20261101b';
+import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261101b';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -104,10 +105,14 @@ export class GameEngine {
                     owner.readyReject(new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261101a', '/games/candle-battles/assets/candle-finishers.json?v=20261101a');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261101b', '/games/candle-battles/assets/candle-finishers.json?v=20261101b');
+                // The effects atlas carries the money bags themselves, so it is
+                // required whenever visual effects run, with or without collectors.
+                if (owner.options.moneyFlowVisualEffects) {
+                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261101b', '/games/candle-battles/assets/money-flow-effects.json?v=20261101b');
+                }
                 if (owner.options.moneyFlowVisualEffects && owner.options.moneyFlowCollectorsEnabled) {
-                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261101a', '/games/candle-battles/assets/money-flow-collectors.json?v=20261101a');
-                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261101a', '/games/candle-battles/assets/money-flow-effects.json?v=20261101a');
+                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261101b', '/games/candle-battles/assets/money-flow-collectors.json?v=20261101b');
                 }
             }
             create() { owner.setup(this); }
@@ -891,14 +896,14 @@ export class GameEngine {
             return;
         const fallback = (side, x) => {
             const ground = this.shell ? 374 : 449;
-            return {
-                head: { x, y: ground - 165 }, body: { x, y: ground - 90 },
-                hands: { x: x + (side === 'left' ? 28 : -28), y: ground - 92 },
-                feet: { x, y: ground - 4 }, ground: { x, y: ground + 4 },
-                collectionBounds: side === 'left'
-                    ? { left: 80, right: 560, top: 20, bottom: 460 }
-                    : { left: 720, right: 1200, top: 20, bottom: 460 },
-            };
+            return buildMoneyFlowAnchors({
+                side,
+                centreX: x,
+                groundY: ground,
+                fighterScale: this.shell ? 1.55 : .8,
+                laneLeft: side === 'left' ? 80 : 720,
+                laneRight: side === 'left' ? 560 : 1200,
+            });
         };
         const suppressPhases = ['DESTROYING', 'VICTORY', 'BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE'];
         const allowCollectors = !this.finaleSequence.running && !suppressPhases.includes(this.state.phase);

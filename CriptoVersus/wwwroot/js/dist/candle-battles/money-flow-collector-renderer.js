@@ -1,5 +1,6 @@
+import { MONEY_FLOW_EFFECTS_ATLAS } from './money-flow-effects-renderer.js?v=20261101b';
 const COLLECTOR_ATLAS = 'money-flow-collectors';
-const EFFECT_ATLAS = 'money-flow-effects';
+const EFFECT_ATLAS = MONEY_FLOW_EFFECTS_ATLAS;
 const counts = {
     'angel-empty': 3,
     'angel-grab': 4,
@@ -68,8 +69,13 @@ export class CollectorRenderer {
         if (!visual || visual.state === state && visual.sprite.anims.isPlaying)
             return;
         visual.state = state;
-        visual.sprite.clearMask();
-        visual.masked = false;
+        // Underground demon states keep the ground mask across their own
+        // transitions so the sprite is never exposed below the floor line.
+        const underground = state === 'demon-emerge' || state === 'demon-descend' || state === 'demon-disappear';
+        if (!underground) {
+            visual.sprite.clearMask();
+            visual.masked = false;
+        }
         let animation = null;
         if (state === 'demon-tug') {
             visual.sprite.anims.stop();
