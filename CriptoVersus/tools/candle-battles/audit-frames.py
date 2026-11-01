@@ -94,7 +94,7 @@ def digest_index(image: Image.Image, frames: dict) -> dict[str, str]:
 
 def write_frame_audit() -> None:
     payload = {}
-    for atlas_name in ("modular", "candle-finishers"):
+    for atlas_name in ("modular", "candle-finishers", "money-flow-collectors", "money-flow-effects"):
         image, frames = load(atlas_name)
         png = (ASSETS / f"{atlas_name}.png").read_bytes()
         payload[atlas_name] = {
@@ -110,6 +110,8 @@ def write_frame_audit() -> None:
 if __name__ == "__main__":
     print_atlas("modular")
     print_atlas("candle-finishers")
+    print_atlas("money-flow-collectors")
+    print_atlas("money-flow-effects")
     modular_sequence_report()
     finisher_sequence_report()
     write_frame_audit()

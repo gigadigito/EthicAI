@@ -1,10 +1,10 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261030b';
-import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261030b';
-import { CandleRenderer } from './renderer.js?v=20261030b';
-import { AudioManager } from './audio.js?v=20261030b';
-import { DialogueClock, lineDuration } from './dialogue.js?v=20261030b';
-import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261030b';
-import { MoneyFlowController } from './money-flow-visual.js?v=20261030b';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261101a';
+import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261101a';
+import { CandleRenderer } from './renderer.js?v=20261101a';
+import { AudioManager } from './audio.js?v=20261101a';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261101a';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261101a';
+import { MoneyFlowController } from './money-flow-visual.js?v=20261101a';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -97,14 +97,18 @@ export class GameEngine {
                 this.load.on('loaderror', (file) => {
                     // candle-finishers is optional: its absence only selects the
                     // modular.png fallback. Every other asset failure is fatal.
-                    if (String(file?.key) === 'candle-finishers') {
+                    if (['candle-finishers', 'money-flow-collectors', 'money-flow-effects'].includes(String(file?.key))) {
                         console.warn(`Candle Battles: optional finisher atlas unavailable (${String(file.src)}); keeping modular.png fallback.`);
                         return;
                     }
                     owner.readyReject(new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261030b', '/games/candle-battles/assets/candle-finishers.json?v=20261030b');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261101a', '/games/candle-battles/assets/candle-finishers.json?v=20261101a');
+                if (owner.options.moneyFlowVisualEffects && owner.options.moneyFlowCollectorsEnabled) {
+                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261101a', '/games/candle-battles/assets/money-flow-collectors.json?v=20261101a');
+                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261101a', '/games/candle-battles/assets/money-flow-effects.json?v=20261101a');
+                }
             }
             create() { owner.setup(this); }
             update(_time, delta) { owner.update(delta); }
@@ -138,7 +142,7 @@ export class GameEngine {
             }
         };
         document.addEventListener('visibilitychange', this.visibility);
-        this.motionChange = () => { this.reduced = this.motionQuery.matches; this.left?.setReducedMotion(this.reduced); this.right?.setReducedMotion(this.reduced); };
+        this.motionChange = () => { this.reduced = this.motionQuery.matches; this.left?.setReducedMotion(this.reduced); this.right?.setReducedMotion(this.reduced); this.moneyFlow?.setReducedMotion(this.reduced); };
         this.motionQuery.addEventListener('change', this.motionChange);
     }
     text(key, fallback = key) { return this.options.labels[key] ?? fallback; }
@@ -190,7 +194,11 @@ export class GameEngine {
         this.left = new CandleRenderer(scene, 'left', 330, this.shell ? 185 : 260);
         this.right = new CandleRenderer(scene, 'right', 950, this.shell ? 185 : 260);
         if (this.options.moneyFlowVisualEffects && !this.options.socialCapture)
-            this.moneyFlow = new MoneyFlowController(scene);
+            this.moneyFlow = new MoneyFlowController(scene, {
+                collectorsEnabled: this.options.moneyFlowCollectorsEnabled,
+                collectorQuality: this.options.moneyFlowCollectorQuality,
+                reducedMotion: this.reduced,
+            });
         if (this.shell) {
             this.left.root.setDepth(2);
             this.right.root.setDepth(2);
@@ -881,7 +889,20 @@ export class GameEngine {
         this.moneyFlow.setLiveMatch(this.feed.matchId, this.feed.leftSymbol, this.feed.rightSymbol, enabled);
         if (!enabled)
             return;
-        this.moneyFlow.update(delta, this.left?.speechAnchorX ?? 330, this.left?.speechAnchorY ?? (this.shell ? 185 : 260), this.right?.speechAnchorX ?? 950, this.right?.speechAnchorY ?? (this.shell ? 185 : 260));
+        const fallback = (side, x) => {
+            const ground = this.shell ? 374 : 449;
+            return {
+                head: { x, y: ground - 165 }, body: { x, y: ground - 90 },
+                hands: { x: x + (side === 'left' ? 28 : -28), y: ground - 92 },
+                feet: { x, y: ground - 4 }, ground: { x, y: ground + 4 },
+                collectionBounds: side === 'left'
+                    ? { left: 80, right: 560, top: 20, bottom: 460 }
+                    : { left: 720, right: 1200, top: 20, bottom: 460 },
+            };
+        };
+        const suppressPhases = ['DESTROYING', 'VICTORY', 'BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE'];
+        const allowCollectors = !this.finaleSequence.running && !suppressPhases.includes(this.state.phase);
+        this.moneyFlow.update(delta, this.left?.moneyFlowAnchors ?? fallback('left', 330), this.right?.moneyFlowAnchors ?? fallback('right', 950), allowCollectors);
     }
     matchLimit() {
         const start = this.feed?.matchStartTime, end = this.feed?.matchEndTime;

@@ -143,12 +143,95 @@ test('live Money Flow renders bounded positive and negative effects, then clears
   for(let index=0;index<10;index++) engine.update(50);
   return engine.inspect().moneyFlow;
  },flowUrl);
- expect(visual.active).toBe(true);expect(visual.bags).toBeGreaterThan(0);expect(visual.signs).toBeGreaterThan(0);
+ expect(visual.active).toBe(true);expect(visual.renderMode).toBe('procedural');expect(visual.bags).toBeGreaterThan(0);expect(visual.signs).toBeGreaterThan(0);
  expect(visual.left.displayedCandle).toBeGreaterThan(.5);expect(visual.right.displayedCandle).toBeLessThan(.5);
  expect(visual.bags).toBeLessThanOrEqual(12);expect(visual.signs).toBeLessThanOrEqual(12);
  await page.screenshot({path:testInfo.outputPath('money-flow-live.png'),fullPage:true});
  const replay=await page.evaluate(()=>{window.engine.command('replay');window.engine.update(16);return window.engine.inspect().moneyFlow;});
  expect(replay.active).toBe(false);expect(replay.bags).toBe(0);expect(replay.signs).toBe(0);
+ expect(errors).toEqual([]);
+});
+
+test('sprite collectors reserve each bag once, animate both polarities and clear safely on replay',async({page},testInfo)=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(url+'?kind=live&collectors=1&quality=high');
+ await page.waitForFunction(()=>window.engine&&window.ready);
+ const flowUrl=await moneyFlowModuleUrl(page);
+ const observed=await page.evaluate(async(flowUrl)=>{
+  const engine=window.engine;
+  engine.receive({matchId:91,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  const flow=await import(flowUrl);
+  const batch=(symbol,sequence,firstPrice,lastPrice)=>({matchId:91,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:40,totalBaseQuantity:'2',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'1',takerBuyQuote:'200',takerSellQuote:'100',netQuote:'100',firstPrice,lastPrice,highPrice:String(Math.max(+firstPrice,+lastPrice)),lowPrice:String(Math.min(+firstPrice,+lastPrice)),isPartial:false});
+  for(let sequence=1;sequence<=12;sequence++){
+   flow.receiveMoneyFlowBatch(batch('BTCUSDT',sequence,'100',String(100+sequence*.55)));
+   flow.receiveMoneyFlowBatch(batch('ETHUSDT',sequence,'100',String(100-sequence*.55)));
+  }
+  const seen={positive:false,negative:false,reserved:false,collecting:false,carried:false,masked:false,portal:false,angelTop:false,completedPositive:false,completedNegative:false,movedFollow:false,frames:new Set(),maxLeft:0,maxRight:0,ownershipValid:true};
+  let prior=new Map(),pendingMove=null;
+  for(let tick=0;tick<85;tick++){
+   engine.update(75);
+   const moneyFlow=engine.inspect().moneyFlow,cycles=moneyFlow.collectors.cycles,bags=moneyFlow.bagStates;
+   const current=new Map(cycles.map(c=>[c.id,c.polarity]));
+   for(const [id,polarity] of prior)if(!current.has(id))seen[polarity==='positive'?'completedPositive':'completedNegative']=true;
+   prior=current;
+   if(pendingMove){const moved=cycles.find(c=>c.id===pendingMove.id);seen.movedFollow ||= !!moved&&moved.x>pendingMove.before+5;pendingMove=null;}
+   seen.maxLeft=Math.max(seen.maxLeft,cycles.filter(c=>c.side==='left').length);
+   seen.maxRight=Math.max(seen.maxRight,cycles.filter(c=>c.side==='right').length);
+   const cycleBagIds=cycles.map(c=>c.bagId),owners=bags.filter(b=>b.ownerId).map(b=>b.ownerId);
+   if(new Set(cycleBagIds).size!==cycleBagIds.length||new Set(owners).size!==owners.length) seen.ownershipValid=false;
+   for(const cycle of cycles){
+    seen[cycle.polarity]=true;seen.masked ||= cycle.masked;seen.portal ||= cycle.portalVisible;seen.angelTop ||= cycle.polarity==='positive'&&cycle.y<40;
+    if(cycle.frame) seen.frames.add(cycle.frame);
+    const owned=bags.find(b=>b.id===cycle.bagId);
+    if(!owned||owned.ownerId!==cycle.id) seen.ownershipValid=false;
+    if(!seen.movedFollow&&!pendingMove&&cycle.side==='left'&&cycle.state==='angel-approach'){pendingMove={id:cycle.id,before:cycle.x};engine.left.root.x+=90;}
+   }
+   for(const bag of bags){if(bag.state==='RESERVED')seen.reserved=true;if(bag.state==='COLLECTING')seen.collecting=true;if(bag.state==='CARRIED')seen.carried=true;}
+  }
+  return {...seen,frames:[...seen.frames],snapshot:engine.inspect().moneyFlow};
+ },flowUrl);
+ expect(observed.snapshot.renderMode).toBe('sprites');
+ expect(observed.snapshot.collectors.quality).toBe('high');
+ expect(observed.positive).toBe(true);expect(observed.negative).toBe(true);
+ expect(observed.reserved).toBe(true);expect(observed.collecting).toBe(true);expect(observed.carried).toBe(true);
+ expect(observed.portal).toBe(true);expect(observed.masked).toBe(true);
+ expect(observed.angelTop).toBe(true);expect(observed.completedPositive).toBe(true);expect(observed.completedNegative).toBe(true);
+ expect(observed.movedFollow).toBe(true);
+ expect(observed.ownershipValid).toBe(true);
+ expect(observed.maxLeft).toBeLessThanOrEqual(2);expect(observed.maxRight).toBeLessThanOrEqual(2);
+ expect(observed.frames.some(frame=>frame.startsWith('angel-'))).toBe(true);
+ expect(observed.frames.some(frame=>frame.startsWith('demon-'))).toBe(true);
+ await page.screenshot({path:testInfo.outputPath('money-flow-sprite-collectors.png'),fullPage:true});
+ await page.setViewportSize({width:390,height:844});
+ await page.evaluate(()=>window.engine.game.scale.refresh());
+ await expect.poll(()=>page.locator('#arena canvas').evaluate(canvas=>canvas.getBoundingClientRect().width)).toBeLessThanOrEqual(390);
+ await page.screenshot({path:testInfo.outputPath('money-flow-sprite-collectors-mobile.png'),fullPage:true});
+ const replay=await page.evaluate(()=>{window.engine.command('replay');window.engine.update(16);return window.engine.inspect().moneyFlow;});
+ expect(replay.collectors.active).toBe(0);expect(replay.bags).toBe(0);expect(replay.signs).toBe(0);
+ expect(errors).toEqual([]);
+});
+
+test('collector feature gates preserve procedural, demo and social-capture fallbacks',async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.route('**/games/candle-battles/assets/money-flow-collectors.*',route=>route.fulfill({status:404,body:''}));
+ await page.route('**/games/candle-battles/assets/money-flow-effects.*',route=>route.fulfill({status:404,body:''}));
+ await page.goto(url+'?kind=live&collectors=1');await page.waitForFunction(()=>window.engine&&window.ready);
+ const flowUrl=await moneyFlowModuleUrl(page);
+ const fallback=await page.evaluate(async(flowUrl)=>{
+  const engine=window.engine;
+  engine.receive({matchId:92,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  const flow=await import(flowUrl);
+  flow.receiveMoneyFlowBatch({matchId:92,symbol:'BTCUSDT',sequence:1,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:30,totalBaseQuantity:'3',takerBuyBaseQuantity:'2',takerSellBaseQuantity:'1',takerBuyQuote:'220',takerSellQuote:'100',netQuote:'120',firstPrice:'100',lastPrice:'101',highPrice:'101',lowPrice:'100',isPartial:false});
+  for(let index=0;index<12;index++)engine.update(50);
+  return engine.inspect().moneyFlow;
+ },flowUrl);
+ expect(fallback.renderMode).toBe('procedural');expect(fallback.collectors.enabled).toBe(false);expect(fallback.bags).toBeGreaterThan(0);
+ await page.evaluate(()=>window.engine.dispose());expect(await page.locator('canvas').count()).toBe(0);
+ await page.unroute('**/games/candle-battles/assets/money-flow-collectors.*');await page.unroute('**/games/candle-battles/assets/money-flow-effects.*');
+ await page.goto(url+'?kind=game&collectors=1');await page.waitForFunction(()=>window.engine&&window.ready);
+ expect(await page.evaluate(()=>window.engine.inspect().moneyFlow)).toBeNull();
+ await page.goto(url+'?kind=live&collectors=1&social=1');await page.waitForFunction(()=>window.engine&&window.ready);
+ expect(await page.evaluate(()=>window.engine.inspect().moneyFlow)).toBeNull();
  expect(errors).toEqual([]);
 });
 
@@ -998,7 +1081,7 @@ test('social capture never announces a frozen frame before the final pose is com
   expect(state.leftFinal === 'loser' || state.rightFinal === 'loser').toBe(true);
   expect(state.score.left + state.score.right).toBeGreaterThan(0);
 });
-test('host module revision and finisher atlas resolve on the served runtime',async({page,baseURL})=>{
+test('host module revision and optional sprite atlases resolve on the served runtime',async({page,baseURL})=>{
  const host=await readFile(new URL('../../../../Components/Shared/CandleBattlesHost.razor',import.meta.url),'utf8');
  const modulePath=host.match(/import",\s*"(\/js\/dist\/candle-battles\/game\.[^"]+)"/)?.[1];
  expect(modulePath,'CandleBattlesHost must import a versioned game bundle').toBeTruthy();
@@ -1009,13 +1092,16 @@ test('host module revision and finisher atlas resolve on the served runtime',asy
  const bundle=await response.text();
  expect(bundle).toContain('candle-finishers');
  for(const suffix of ['png','json']) expect(bundle,`atlas ${suffix} must use the module revision`).toContain(`candle-finishers.${suffix}?v=${revision}`);
+ for(const atlas of ['money-flow-collectors','money-flow-effects']){
+  for(const suffix of ['png','json']) expect(bundle,`${atlas}.${suffix} must use the module revision`).toContain(`${atlas}.${suffix}?v=${revision}`);
+ }
  const specifiers=[...bundle.matchAll(/from\s+['"](\.\/[^'"]+)['"]/g)].map(match=>match[1]);
  expect(specifiers.length,'bundle must import its runtime siblings').toBeGreaterThan(0);
  for(const specifier of specifiers){
   const resolved=await page.request.get(new URL(specifier,baseURL+modulePath).toString());
   expect(resolved.ok(),`import ${specifier} must resolve`).toBe(true);
  }
- for(const asset of ['candle-finishers.png','candle-finishers.json']){
+ for(const asset of ['candle-finishers.png','candle-finishers.json','money-flow-collectors.png','money-flow-collectors.json','money-flow-effects.png','money-flow-effects.json']){
   const res=await page.request.get(`${baseURL}/games/candle-battles/assets/${asset}`);
   expect(res.ok(),`${asset} must ship in wwwroot`).toBe(true);
  }
@@ -1023,6 +1109,11 @@ test('host module revision and finisher atlas resolve on the served runtime',asy
   const frames=Array.isArray(atlas.frames)?atlas.frames.map(frame=>frame.filename):Object.keys(atlas.frames??{});
   expect(frames).toContain('finisher-left-charge-1');
   expect(frames).toContain('finisher-right-knockout-1');
+  const collectorAtlas=await (await page.request.get(`${baseURL}/games/candle-battles/assets/money-flow-collectors.json`)).json();
+  const collectorFrames=Array.isArray(collectorAtlas.frames)?collectorAtlas.frames.map(frame=>frame.filename):Object.keys(collectorAtlas.frames??{});
+  expect(collectorFrames).toContain('angel-empty-right-1');
+  expect(collectorFrames).toContain('demon-run-left-6');
+  expect(collectorFrames).toContain('demon-tug');
 });
 test('round result beats celebrate and stun with the finisher atlas without claiming the match result',async({page})=>{
  await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');

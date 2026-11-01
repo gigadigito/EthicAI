@@ -1,0 +1,42 @@
+{
+  "financial-effects-composite.png": {
+    "originalName": "Sprite Sheet de Efeitos Financeiros Pixelados-2.png",
+    "sha256": "90ce9176e3259633db335e0cafea9dc75ee19f9d8a46ad0ef40f94e5ea820e89",
+    "runtimeSource": true
+  },
+  "financial-effects-numbered.png": {
+    "originalName": "Sprite Sheet de Efeitos Financeiros Pixel Art-1.png",
+    "sha256": "b2d5115f6e10fb0ead8bdc5f255a4776230ba5374414aa1081a4db275d17bdbf",
+    "runtimeSource": true
+  },
+  "demon-steal-directions.png": {
+    "originalName": "Imagem do ChatGPT 1 de nov. de 2026, 13_52_42-2.png",
+    "sha256": "a5b81c4b0813deeafa8a90c45f921d90bceb8905320148e0a0f56bd4ca9a1796",
+    "runtimeSource": true
+  },
+  "angel-grab-directions.png": {
+    "originalName": "Imagem do ChatGPT 1 de nov. de 2026, 13_52_11-3.png",
+    "sha256": "a5dd946f1f44a1c1668263607e0ba32c08efb4de080bd61204aa0f7a0275fbaa",
+    "runtimeSource": true
+  },
+  "angel-carry-loop.png": {
+    "originalName": "Imagem do ChatGPT 1 de nov. de 2026, 13_52_12-4.png",
+    "sha256": "7cb8b5c620774fa726e0ab07d4eedd0c3c70adc0e3b9f2a23b73dbdbd2b8e8cc",
+    "runtimeSource": true
+  },
+  "demon-tug-tableau.png": {
+    "originalName": "Imagem do ChatGPT 1 de nov. de 2026, 13_52_10-2.png",
+    "sha256": "8cd40e77ed10f2b99a9536b7686e0d7df3600456ba1e8d537fbbf9c630f29a8a",
+    "runtimeSource": true
+  },
+  "demon-run-loop.png": {
+    "originalName": "Imagem do ChatGPT 1 de nov. de 2026, 13_52_10-1.png",
+    "sha256": "20f10be15e7293da79c1138af6ec9aa8c8e16ffb9ae6b6eda4ad8fca8ac610a8",
+    "runtimeSource": true
+  },
+  "money-bag-squash.png": {
+    "originalName": "Faixa de Sprites_ Sacos de Dinheiro Pixelados.png",
+    "sha256": "fa7d1cfc217d64500965e605c84a8dec679d5896ec25594a2fa1019e9080ca3d",
+    "runtimeSource": true
+  }
+}

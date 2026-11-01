@@ -134,7 +134,7 @@ else
         var stage = "module_import";
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261030b.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261101a.js");
             stage = "renderer_initialization";
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
                 new
@@ -148,13 +148,15 @@ else
                     shell = SocialCapture ? true : (bool?)null,
                     autoplay = !ManualTimeline,
                     moneyFlowVisualEffects = IsMoneyFlowVisualEffectsEnabled,
+                    moneyFlowCollectorsEnabled = IsMoneyFlowCollectorsEnabled,
+                    moneyFlowCollectorQuality = MoneyFlowCollectorQuality,
                     localLogos = DataSource.GetLocalLogos(MatchId),
                     captureTarget = CaptureRound is null && CapturePhase is null
                         ? null
                         : new { round = CaptureRound, phase = CapturePhase }
                 });
             if (IsMoneyFlowEnabled && !SocialCapture)
-                _moneyFlowModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/money-flow.20261030b.js");
+                _moneyFlowModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/money-flow.20261101a.js");
             if (_disposed) return;
             _failed = false; _lastFailure = null;
             if (MatchId > 0)
@@ -190,6 +192,20 @@ else
 
     private bool IsMoneyFlowVisualEffectsEnabled
         => IsMoneyFlowEnabled && Config.GetValue("CandleBattles:MoneyFlow:VisualEffectsEnabled", false);
+
+    private bool IsMoneyFlowCollectorsEnabled
+        => IsMoneyFlowVisualEffectsEnabled
+            && Config.GetValue("CandleBattles:MoneyFlow:CollectorsEnabled", false);
+
+    private string MoneyFlowCollectorQuality
+    {
+        get
+        {
+            var configured = Config.GetValue("CandleBattles:MoneyFlow:CollectorQuality", "Medium");
+            var normalized = configured?.ToLowerInvariant();
+            return normalized is "low" or "high" ? normalized : "medium";
+        }
+    }
 
     private void OnDashboardChanged(string? payload) { if (!_disposed) _ = InvokeAsync(RefreshAsync); }
 

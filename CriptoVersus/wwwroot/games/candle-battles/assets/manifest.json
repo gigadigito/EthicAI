@@ -1,6 +1,14 @@
 {
   "atlas": "modular.json",
   "texture": "modular.png",
+  "moneyFlowCollectors": {
+    "atlas": "money-flow-collectors.json",
+    "texture": "money-flow-collectors.png"
+  },
+  "moneyFlowEffects": {
+    "atlas": "money-flow-effects.json",
+    "texture": "money-flow-effects.png"
+  },
   "audio": [
     "audio/music/music_menu_loop_132bpm.wav",
     "audio/music/music_arena_loop_132bpm.wav",

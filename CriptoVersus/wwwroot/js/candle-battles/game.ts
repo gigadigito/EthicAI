@@ -9,7 +9,7 @@ import { MoneyFlowController } from './money-flow-visual.js';
 
 export interface Feed { matchId: number; leftSymbol: string; rightSymbol: string; left: Candle | null; right: Candle | null; rounds: Round[]; status: string; finished: boolean; matchStartTime?: number | null; matchEndTime?: number | null; expectedRounds?: number; serverTime?: number | null; scoreLeft?: number; scoreRight?: number; }
 export interface CaptureTarget { round?: number; phase?: string; }
-export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; socialCapture?: boolean; shell?: boolean; autoplay?: boolean; localLogos?: Record<string,string>; captureTarget?: CaptureTarget; moneyFlowVisualEffects?: boolean; }
+export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; socialCapture?: boolean; shell?: boolean; autoplay?: boolean; localLogos?: Record<string,string>; captureTarget?: CaptureTarget; moneyFlowVisualEffects?: boolean; moneyFlowCollectorsEnabled?: boolean; moneyFlowCollectorQuality?: 'low' | 'medium' | 'high'; }
 const displaySymbol = (symbol: string): string => symbol.replace(/USDT$/i, '');
 export async function create(host: HTMLElement, options: Options): Promise<GameEngine> {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -124,7 +124,7 @@ export class GameEngine {
                 this.load.on('loaderror',(file: PhaserTypes.Loader.File)=>{
                     // candle-finishers is optional: its absence only selects the
                     // modular.png fallback. Every other asset failure is fatal.
-                    if (String(file?.key) === 'candle-finishers') {
+                    if (['candle-finishers', 'money-flow-collectors', 'money-flow-effects'].includes(String(file?.key))) {
                         console.warn(`Candle Battles: optional finisher atlas unavailable (${String(file.src)}); keeping modular.png fallback.`);
                         return;
                     }
@@ -132,7 +132,11 @@ export class GameEngine {
                     new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261030b', '/games/candle-battles/assets/candle-finishers.json?v=20261030b');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261101a', '/games/candle-battles/assets/candle-finishers.json?v=20261101a');
+                if (owner.options.moneyFlowVisualEffects && owner.options.moneyFlowCollectorsEnabled) {
+                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261101a', '/games/candle-battles/assets/money-flow-collectors.json?v=20261101a');
+                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261101a', '/games/candle-battles/assets/money-flow-effects.json?v=20261101a');
+                }
             }
             create(): void { owner.setup(this); }
             update(_time: number, delta: number): void { owner.update(delta); }
@@ -158,7 +162,7 @@ export class GameEngine {
             }
         };
         document.addEventListener('visibilitychange', this.visibility);
-        this.motionChange = () => { this.reduced = this.motionQuery.matches; this.left?.setReducedMotion(this.reduced); this.right?.setReducedMotion(this.reduced); };
+        this.motionChange = () => { this.reduced = this.motionQuery.matches; this.left?.setReducedMotion(this.reduced); this.right?.setReducedMotion(this.reduced); this.moneyFlow?.setReducedMotion(this.reduced); };
         this.motionQuery.addEventListener('change', this.motionChange);
     }
     private text(key:string, fallback = key): string { return this.options.labels[key] ?? fallback; }
@@ -199,7 +203,11 @@ export class GameEngine {
         this.label('percent','50% / 50%',640,772,16,'#f3f5f7',.5);
         this.chart = scene.add.graphics(); this.lineFlash = scene.add.graphics().setDepth(20);
         this.left = new CandleRenderer(scene,'left',330,this.shell?185:260); this.right = new CandleRenderer(scene,'right',950,this.shell?185:260);
-        if (this.options.moneyFlowVisualEffects && !this.options.socialCapture) this.moneyFlow = new MoneyFlowController(scene);
+        if (this.options.moneyFlowVisualEffects && !this.options.socialCapture) this.moneyFlow = new MoneyFlowController(scene, {
+            collectorsEnabled: this.options.moneyFlowCollectorsEnabled,
+            collectorQuality: this.options.moneyFlowCollectorQuality,
+            reducedMotion: this.reduced,
+        });
         if (this.shell) {
             this.left.root.setDepth(2); this.right.root.setDepth(2);
             for (const side of ['left','right'] as const) {
@@ -647,9 +655,23 @@ export class GameEngine {
         const enabled = this.mode === 'live' && !this.feed.finished && !this.options.socialCapture;
         this.moneyFlow.setLiveMatch(this.feed.matchId, this.feed.leftSymbol, this.feed.rightSymbol, enabled);
         if (!enabled) return;
+        const fallback = (side: Side, x: number) => {
+            const ground = this.shell ? 374 : 449;
+            return {
+                head: { x, y: ground - 165 }, body: { x, y: ground - 90 },
+                hands: { x: x + (side === 'left' ? 28 : -28), y: ground - 92 },
+                feet: { x, y: ground - 4 }, ground: { x, y: ground + 4 },
+                collectionBounds: side === 'left'
+                    ? { left: 80, right: 560, top: 20, bottom: 460 }
+                    : { left: 720, right: 1200, top: 20, bottom: 460 },
+            };
+        };
+        const suppressPhases: Phase[] = ['DESTROYING', 'VICTORY', 'BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE'];
+        const allowCollectors = !this.finaleSequence.running && !suppressPhases.includes(this.state.phase);
         this.moneyFlow.update(delta,
-            this.left?.speechAnchorX ?? 330, this.left?.speechAnchorY ?? (this.shell ? 185 : 260),
-            this.right?.speechAnchorX ?? 950, this.right?.speechAnchorY ?? (this.shell ? 185 : 260));
+            this.left?.moneyFlowAnchors ?? fallback('left', 330),
+            this.right?.moneyFlowAnchors ?? fallback('right', 950),
+            allowCollectors);
     }
     private matchLimit(): number {
         const start=this.feed?.matchStartTime, end=this.feed?.matchEndTime;
