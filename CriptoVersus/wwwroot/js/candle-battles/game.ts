@@ -138,10 +138,10 @@ export class GameEngine {
                 // The effects atlas carries the money bags themselves, so it is
                 // required whenever visual effects run, with or without collectors.
                 if (owner.options.moneyFlowVisualEffects) {
-                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261101b', '/games/candle-battles/assets/money-flow-effects.json?v=20261101b');
+                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261102a', '/games/candle-battles/assets/money-flow-effects.json?v=20261102a');
                 }
                 if (owner.options.moneyFlowVisualEffects && owner.options.moneyFlowCollectorsEnabled) {
-                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261101b', '/games/candle-battles/assets/money-flow-collectors.json?v=20261101b');
+                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261102a', '/games/candle-battles/assets/money-flow-collectors.json?v=20261102a');
                 }
             }
             create(): void { owner.setup(this); }

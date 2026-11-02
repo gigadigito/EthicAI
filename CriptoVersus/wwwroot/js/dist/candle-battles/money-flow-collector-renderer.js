@@ -1,4 +1,4 @@
-import { MONEY_FLOW_EFFECTS_ATLAS, INFERNAL_PIT_FRAMES } from './money-flow-effects-renderer.js?v=20261101b';
+import { MONEY_FLOW_EFFECTS_ATLAS, INFERNAL_PIT_FRAMES } from './money-flow-effects-renderer.js?v=20261102a';
 const COLLECTOR_ATLAS = 'money-flow-collectors';
 const EFFECT_ATLAS = MONEY_FLOW_EFFECTS_ATLAS;
 /** `angel-empty` + `right` + 2 -> `angel-empty-right-1`, `angel-empty-right-2`. */
@@ -6,17 +6,14 @@ const run = (name, direction, count) => Array.from({ length: count }, (_, index)
 const SPECS = {
     'angel-empty': d => ({ frames: run('angel-empty', d, 2), frameRate: 10, repeat: -1 }),
     'angel-approach': d => ({ frames: run('angel-approach', d, 2), frameRate: 10, repeat: -1 }),
+    'angel-hover': d => ({ frames: [`angel-approach-${d}-2`], frameRate: 1, repeat: -1 }),
     'angel-grab': d => ({ frames: run('angel-grab', d, 1), frameRate: 9, repeat: 0 }),
     'angel-hold': d => ({ frames: run('angel-hold', d, 1), frameRate: 9, repeat: 0 }),
     'angel-carry': d => ({ frames: run('angel-carry', d, 2), frameRate: 10, repeat: -1 }),
     'angel-fly': d => ({ frames: run('angel-fly', d, 6), frameRate: 12, repeat: -1 }),
     'demon-emerge': d => ({ frames: run('demon-emerge', d, 2), frameRate: 8, repeat: 0 }),
-    'demon-walk': d => ({
-        frames: [`demon-idle-${d}-1`, `demon-approach-${d}-1`],
-        frameRate: 6, repeat: -1,
-    }),
-    'demon-idle': d => ({ frames: [`demon-idle-${d}-1`], frameRate: 8, repeat: 0 }),
-    'demon-approach': d => ({ frames: [`demon-approach-${d}-1`], frameRate: 8, repeat: 0 }),
+    'demon-idle': d => ({ frames: [`demon-idle-${d}-1`], frameRate: 1, repeat: -1 }),
+    'demon-approach': d => ({ frames: [`demon-approach-${d}-1`], frameRate: 1, repeat: -1 }),
     'demon-grab': d => ({ frames: run('demon-grab', d, 1), frameRate: 8, repeat: 0 }),
     'demon-carry': d => ({ frames: run('demon-carry', d, 2), frameRate: 8, repeat: -1 }),
     'demon-run': d => ({ frames: run('demon-run', d, 6), frameRate: 12, repeat: -1 }),
@@ -27,8 +24,8 @@ const STATE_ANIMATION = {
     'angel-fly-empty': 'angel-empty',
     'angel-approach': 'angel-approach',
     'angel-descend': 'angel-approach',
-    'angel-hover': 'angel-approach',
-    'angel-reach': 'angel-grab',
+    'angel-hover': 'angel-hover',
+    'angel-reach': 'angel-approach',
     'angel-grab': 'angel-grab',
     'angel-hold': 'angel-hold',
     'angel-carry': 'angel-fly',
@@ -36,8 +33,8 @@ const STATE_ANIMATION = {
     'angel-depart': 'angel-fly',
     'demon-emerge': 'demon-emerge',
     'demon-idle': 'demon-idle',
-    'demon-approach': 'demon-walk',
-    'demon-stop': 'demon-walk',
+    'demon-approach': 'demon-idle',
+    'demon-stop': 'demon-idle',
     'demon-reach': 'demon-approach',
     'demon-grab': 'demon-grab',
     'demon-carry': 'demon-carry',
@@ -46,6 +43,18 @@ const STATE_ANIMATION = {
     'demon-disappear': 'demon-descend',
     'demon-tug': null,
 };
+/** Returns the authored atlas sequence associated with a choreography state. */
+export function collectorAnimationForState(state) {
+    return STATE_ANIMATION[state];
+}
+/** Exposed for regression tests that validate atlas sequencing without Phaser. */
+export function collectorAnimationFrames(animation, direction) {
+    return SPECS[animation]?.(direction).frames ?? [];
+}
+/** Completed one-shots remain held until choreography or facing changes. */
+export function collectorAnimationChanged(previousState, previousDirection, nextState, nextDirection) {
+    return previousState !== nextState || previousDirection !== nextDirection;
+}
 export function collectorAtlasesAvailable(scene) {
     return scene.textures.exists(COLLECTOR_ATLAS) && scene.textures.exists(EFFECT_ATLAS);
 }
@@ -107,8 +116,11 @@ export class CollectorRenderer {
         const maskShape = this.scene.add.graphics().setVisible(false);
         const mask = maskShape.createGeometryMask();
         const state = polarity === 'positive' ? 'angel-fly-empty' : 'demon-emerge';
-        this.visuals.set(id, { id, side, polarity, direction, state, sprite, portal, portalLip, maskShape, mask, masked: false });
-        this.setState(id, state);
+        const visual = { id, side, polarity, direction, state, sprite, portal, portalLip, maskShape, mask, masked: false };
+        this.visuals.set(id, visual);
+        // The state is assigned at creation, so start it once explicitly and
+        // let later equal-state ticks remain no-ops.
+        this.applyAnimation(visual);
     }
     /**
      * Face the sprite along its real travel direction.  Called every tick with
@@ -126,7 +138,7 @@ export class CollectorRenderer {
         const visual = this.visuals.get(id);
         if (!visual)
             return;
-        const changed = visual.state !== state || !visual.sprite.anims.isPlaying;
+        const changed = collectorAnimationChanged(visual.state, visual.direction, state, visual.direction);
         visual.state = state;
         // Underground demon states keep the ground mask across their own
         // transitions so the sprite is never exposed below the floor line.
@@ -145,7 +157,7 @@ export class CollectorRenderer {
             visual.sprite.setTexture(COLLECTOR_ATLAS, 'demon-tug-1').setScale(.52);
             return;
         }
-        const key = STATE_ANIMATION[state];
+        const key = collectorAnimationForState(state);
         visual.sprite.setScale(visual.polarity === 'positive' ? .58 : .62);
         if (!key)
             return;

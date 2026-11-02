@@ -237,9 +237,9 @@
   },
   "money-flow-collectors": {
     "frames": {
-      "angel-approach-left-1": "42e129a9a0605936",
+      "angel-approach-left-1": "f4089b1821373a25",
       "angel-approach-left-2": "9dc173422e9f6f44",
-      "angel-approach-right-1": "71e38165ea3829b8",
+      "angel-approach-right-1": "b0cd32e352cc100b",
       "angel-approach-right-2": "10937c7f689bce32",
       "angel-carry-left-1": "620cabe819308a73",
       "angel-carry-left-2": "0a55a696911fa2dc",
@@ -247,8 +247,8 @@
       "angel-carry-right-2": "cf14da76eda17c60",
       "angel-empty-left-1": "3b2e69af5abb2672",
       "angel-empty-left-2": "0b33f796f5fd615d",
-      "angel-empty-right-1": "523b0e39838772c9",
-      "angel-empty-right-2": "484a4605c4559d8c",
+      "angel-empty-right-1": "d4f7ec27b3177480",
+      "angel-empty-right-2": "7b5e21adc4115483",
       "angel-fly-left-1": "83f5d5a4e0486389",
       "angel-fly-left-2": "69eae0a4eb048d8c",
       "angel-fly-left-3": "58c3e7a9a0c3eee6",
@@ -261,9 +261,9 @@
       "angel-fly-right-4": "7d19a24baa3ac086",
       "angel-fly-right-5": "c9b95f0175859f35",
       "angel-fly-right-6": "edb769be5a21e27b",
-      "angel-grab-left-1": "e66417c2371eec4f",
-      "angel-grab-right-1": "ee19cd6039d378de",
-      "angel-hold-left-1": "071701063378f553",
+      "angel-grab-left-1": "2380fe88d64406ef",
+      "angel-grab-right-1": "21d365930479d977",
+      "angel-hold-left-1": "9c4995704ee2964f",
       "angel-hold-right-1": "4ef454bce8caca0a",
       "demon-approach-left-1": "228eb8ba70c27321",
       "demon-approach-right-1": "04b6c280146ca159",
@@ -295,7 +295,7 @@
       "demon-run-right-6": "7c05ae53e76becff",
       "demon-tug-1": "f6fc0dc590c412c5"
     },
-    "pngSha256": "07cb1fe2204ab27d887ccd850054939d1afbffe51657e5d8efc184113cbc80fb",
+    "pngSha256": "bdf81c521bbd17601a3754d3cff29448e9c52d3561ac41aafdf3389505ffde6a",
     "size": {
       "h": 1104,
       "w": 2048

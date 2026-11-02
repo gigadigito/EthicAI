@@ -282,8 +282,11 @@ def normalize_sequence(
         # shares one anchor and the subject cannot drift or rescale.
         in_x = round((image.width - 1) * pivot[0])
         in_y = round((image.height - 1) * pivot[1])
-        to_x = round((width - 1) * pivot[0])
-        to_y = round((height - 1) * pivot[1])
+        # Keep a transparent safety border around every frame. Ground pivots
+        # previously put feet on the final canvas pixel, leaving no room for
+        # anti-aliased feet, flames or wing tips at scaled render sizes.
+        to_x = margin + round((width - 1 - margin * 2) * pivot[0])
+        to_y = margin + round((height - 1 - margin * 2) * pivot[1])
 
         canvas_img = Image.new("RGBA", canvas)
         canvas_img.alpha_composite(image, (to_x - in_x, to_y - in_y))
@@ -295,8 +298,8 @@ def normalize_sequence(
         padded = Image.new("RGBA", (canvas[0] + 2, canvas[1] + 2))
         padded.alpha_composite(canvas_img, (1, 1))
         edge = content_bbox(padded)
-        if edge and (edge[0] <= 0 or edge[1] <= 0 or edge[2] > canvas[0] or edge[3] > canvas[1]):
-            CHECK.warn(f"{label}-{index + 1}: art touches the canvas edge (possible crop)")
+        if edge and (edge[0] <= 1 or edge[1] <= 1 or edge[2] >= canvas[0] or edge[3] >= canvas[1]):
+            CHECK.error(f"{label}-{index + 1}: art touches the canvas edge (possible crop)")
     return out
 
 
@@ -454,26 +457,18 @@ for direction, source_row in (("right", 0), ("left", 1)):
 # Aerial phase ranges: the winged bag must never show a ground impact.
 # --------------------------------------------------------------------------
 def detect_aerial_frames() -> dict:
-    """Frames whose art is free of a wide bottom plate are the aerial phase."""
+    """Return the reviewed plate-free prefix of the falling-bag board.
+
+    The first seven source poses are aerial; the remaining five introduce the
+    landing plate.  This is authored sequencing, not a geometric inference:
+    padding added to protect artwork must never change which story beat is
+    selected at runtime.
+    """
     names = animations["bag-fall"]
-    aerial: list[str] = []
-    for name in names:
-        image = items[name]
-        w, h = image.size
-        strip = image.crop((0, h - 18, w, h))
-        box = content_bbox(strip)
-        if box is None:
-            aerial.append(name)
-            continue
-        span = (box[2] - box[0] + 1) / w
-        # A landing plate spans most of the canvas width; a bag body does not.
-        if span < .72:
-            aerial.append(name)
-    if not aerial:
-        aerial = names[:1]
+    aerial = names[:7]
     return {
         "flying": aerial,
-        "landing": [n for n in names if n not in aerial],
+        "landing": names[7:],
     }
 
 
@@ -523,6 +518,11 @@ def validate_outputs(outputs: dict) -> None:
             crop = image.crop((rect["x"], rect["y"], rect["x"] + rect["w"], rect["y"] + rect["h"]))
             if content_bbox(crop) is None:
                 CHECK.error(f"{atlas_name}:{name} is an empty frame")
+            if atlas_name == "money-flow-collectors":
+                alpha = alpha_array(crop)
+                if (alpha[0, :] > ALPHA_FLOOR).any() or (alpha[-1, :] > ALPHA_FLOOR).any() \
+                        or (alpha[:, 0] > ALPHA_FLOOR).any() or (alpha[:, -1] > ALPHA_FLOOR).any():
+                    CHECK.error(f"{atlas_name}:{name} touches the frame edge (possible crop)")
             # Real transparency: the frame must not be a solid rectangle.
             alpha = alpha_array(crop)
             if (alpha > ALPHA_FLOOR).mean() > .985:

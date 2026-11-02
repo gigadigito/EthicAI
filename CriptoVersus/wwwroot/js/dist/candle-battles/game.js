@@ -1,11 +1,11 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261101b';
-import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261101b';
-import { CandleRenderer } from './renderer.js?v=20261101b';
-import { AudioManager } from './audio.js?v=20261101b';
-import { DialogueClock, lineDuration } from './dialogue.js?v=20261101b';
-import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261101b';
-import { MoneyFlowController } from './money-flow-visual.js?v=20261101b';
-import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261101b';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261102a';
+import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261102a';
+import { CandleRenderer } from './renderer.js?v=20261102a';
+import { AudioManager } from './audio.js?v=20261102a';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261102a';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261102a';
+import { MoneyFlowController } from './money-flow-visual.js?v=20261102a';
+import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261102a';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -109,10 +109,10 @@ export class GameEngine {
                 // The effects atlas carries the money bags themselves, so it is
                 // required whenever visual effects run, with or without collectors.
                 if (owner.options.moneyFlowVisualEffects) {
-                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261101b', '/games/candle-battles/assets/money-flow-effects.json?v=20261101b');
+                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261102a', '/games/candle-battles/assets/money-flow-effects.json?v=20261102a');
                 }
                 if (owner.options.moneyFlowVisualEffects && owner.options.moneyFlowCollectorsEnabled) {
-                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261101b', '/games/candle-battles/assets/money-flow-collectors.json?v=20261101b');
+                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261102a', '/games/candle-battles/assets/money-flow-collectors.json?v=20261102a');
                 }
             }
             create() { owner.setup(this); }
