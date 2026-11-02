@@ -1,0 +1,599 @@
+{
+  "effectsBoard": "financial-effects-composite.png",
+  "sequences": {
+    "bag-fall": {
+      "frames": [
+        "bag-fall-1",
+        "bag-fall-2",
+        "bag-fall-3",
+        "bag-fall-4",
+        "bag-fall-5",
+        "bag-fall-6",
+        "bag-fall-7",
+        "bag-fall-8",
+        "bag-fall-9",
+        "bag-fall-10",
+        "bag-fall-11",
+        "bag-fall-12"
+      ],
+      "canvas": {
+        "w": 112,
+        "h": 152
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 12,
+      "tag": "aerial",
+      "phases": {
+        "flying": [
+          "bag-fall-1",
+          "bag-fall-2",
+          "bag-fall-3",
+          "bag-fall-4",
+          "bag-fall-5",
+          "bag-fall-6",
+          "bag-fall-7"
+        ],
+        "landing": [
+          "bag-fall-8",
+          "bag-fall-9",
+          "bag-fall-10",
+          "bag-fall-11",
+          "bag-fall-12"
+        ]
+      }
+    },
+    "positive-coins": {
+      "frames": [
+        "positive-coins-1",
+        "positive-coins-2",
+        "positive-coins-3",
+        "positive-coins-4",
+        "positive-coins-5",
+        "positive-coins-6",
+        "positive-coins-7",
+        "positive-coins-8"
+      ],
+      "canvas": {
+        "w": 112,
+        "h": 132
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 8
+    },
+    "negative-arrows": {
+      "frames": [
+        "negative-arrows-1",
+        "negative-arrows-2",
+        "negative-arrows-3",
+        "negative-arrows-4",
+        "negative-arrows-5",
+        "negative-arrows-6",
+        "negative-arrows-7",
+        "negative-arrows-8"
+      ],
+      "canvas": {
+        "w": 112,
+        "h": 132
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 8
+    },
+    "infernal-pit": {
+      "frames": [
+        "infernal-pit-1",
+        "infernal-pit-2",
+        "infernal-pit-3",
+        "infernal-pit-4",
+        "infernal-pit-5",
+        "infernal-pit-6",
+        "infernal-pit-7",
+        "infernal-pit-8",
+        "infernal-pit-9",
+        "infernal-pit-10"
+      ],
+      "canvas": {
+        "w": 152,
+        "h": 112
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 10,
+      "tag": "ground"
+    },
+    "bag-into-pit": {
+      "frames": [
+        "bag-into-pit-1",
+        "bag-into-pit-2",
+        "bag-into-pit-3",
+        "bag-into-pit-4",
+        "bag-into-pit-5",
+        "bag-into-pit-6",
+        "bag-into-pit-7",
+        "bag-into-pit-8",
+        "bag-into-pit-9",
+        "bag-into-pit-10"
+      ],
+      "canvas": {
+        "w": 128,
+        "h": 128
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 10,
+      "tag": "absorbed"
+    },
+    "bag-burn": {
+      "frames": [
+        "bag-burn-1",
+        "bag-burn-2",
+        "bag-burn-3",
+        "bag-burn-4",
+        "bag-burn-5",
+        "bag-burn-6",
+        "bag-burn-7",
+        "bag-burn-8"
+      ],
+      "canvas": {
+        "w": 128,
+        "h": 128
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 8,
+      "tag": "terminal"
+    },
+    "bag-squash": {
+      "frames": [
+        "bag-squash-1",
+        "bag-squash-2",
+        "bag-squash-3",
+        "bag-squash-4"
+      ],
+      "canvas": {
+        "w": 128,
+        "h": 128
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 4,
+      "tag": "landing"
+    },
+    "demon-emerge-right": {
+      "frames": [
+        "demon-emerge-right-1",
+        "demon-emerge-right-2"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 2
+    },
+    "demon-idle-right": {
+      "frames": [
+        "demon-idle-right-1"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 1
+    },
+    "demon-approach-right": {
+      "frames": [
+        "demon-approach-right-1"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 1
+    },
+    "demon-grab-right": {
+      "frames": [
+        "demon-grab-right-1"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 1
+    },
+    "demon-carry-right": {
+      "frames": [
+        "demon-carry-right-1",
+        "demon-carry-right-2"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 2
+    },
+    "demon-descend-right": {
+      "frames": [
+        "demon-descend-right-1"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 1
+    },
+    "demon-emerge-left": {
+      "frames": [
+        "demon-emerge-left-1",
+        "demon-emerge-left-2"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 2
+    },
+    "demon-idle-left": {
+      "frames": [
+        "demon-idle-left-1"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 1
+    },
+    "demon-approach-left": {
+      "frames": [
+        "demon-approach-left-1"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 1
+    },
+    "demon-grab-left": {
+      "frames": [
+        "demon-grab-left-1"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 1
+    },
+    "demon-carry-left": {
+      "frames": [
+        "demon-carry-left-1",
+        "demon-carry-left-2"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 2
+    },
+    "demon-descend-left": {
+      "frames": [
+        "demon-descend-left-1"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 1
+    },
+    "demon-run-right": {
+      "frames": [
+        "demon-run-right-1",
+        "demon-run-right-2",
+        "demon-run-right-3",
+        "demon-run-right-4",
+        "demon-run-right-5",
+        "demon-run-right-6"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 6,
+      "tag": "carrying"
+    },
+    "demon-run-left": {
+      "frames": [
+        "demon-run-left-1",
+        "demon-run-left-2",
+        "demon-run-left-3",
+        "demon-run-left-4",
+        "demon-run-left-5",
+        "demon-run-left-6"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 6,
+      "tag": "carrying"
+    },
+    "demon-tug": {
+      "frames": [
+        "demon-tug-1"
+      ],
+      "canvas": {
+        "w": 320,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 1.0
+      },
+      "count": 1
+    },
+    "angel-empty-right": {
+      "frames": [
+        "angel-empty-right-1",
+        "angel-empty-right-2"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "count": 2
+    },
+    "angel-approach-right": {
+      "frames": [
+        "angel-approach-right-1",
+        "angel-approach-right-2"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "count": 2
+    },
+    "angel-grab-right": {
+      "frames": [
+        "angel-grab-right-1"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "count": 1
+    },
+    "angel-hold-right": {
+      "frames": [
+        "angel-hold-right-1"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "count": 1
+    },
+    "angel-carry-right": {
+      "frames": [
+        "angel-carry-right-1",
+        "angel-carry-right-2"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "count": 2
+    },
+    "angel-empty-left": {
+      "frames": [
+        "angel-empty-left-1",
+        "angel-empty-left-2"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "count": 2
+    },
+    "angel-approach-left": {
+      "frames": [
+        "angel-approach-left-1",
+        "angel-approach-left-2"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "count": 2
+    },
+    "angel-grab-left": {
+      "frames": [
+        "angel-grab-left-1"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "count": 1
+    },
+    "angel-hold-left": {
+      "frames": [
+        "angel-hold-left-1"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "count": 1
+    },
+    "angel-carry-left": {
+      "frames": [
+        "angel-carry-left-1",
+        "angel-carry-left-2"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "count": 2
+    },
+    "angel-fly-right": {
+      "frames": [
+        "angel-fly-right-1",
+        "angel-fly-right-2",
+        "angel-fly-right-3",
+        "angel-fly-right-4",
+        "angel-fly-right-5",
+        "angel-fly-right-6"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "count": 6,
+      "tag": "carrying"
+    },
+    "angel-fly-left": {
+      "frames": [
+        "angel-fly-left-1",
+        "angel-fly-left-2",
+        "angel-fly-left-3",
+        "angel-fly-left-4",
+        "angel-fly-left-5",
+        "angel-fly-left-6"
+      ],
+      "canvas": {
+        "w": 176,
+        "h": 176
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "count": 6,
+      "tag": "carrying"
+    }
+  },
+  "extraction": {
+    "bag-fall": "minima (11 gaps / 12 frames)",
+    "positive-coins": "minima (1 gaps / 8 frames)",
+    "negative-arrows": "minima (0 gaps / 8 frames)",
+    "infernal-pit": "minima (9 gaps / 10 frames)",
+    "bag-into-pit": "minima (9 gaps / 10 frames)",
+    "bag-burn": "minima (13 gaps / 8 frames)"
+  }
+}

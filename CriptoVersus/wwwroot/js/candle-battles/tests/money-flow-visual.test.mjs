@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { decideMoneyFlow, MoneyFlowVisualState, ReusablePool, planBagSpawn } from '../../dist/candle-battles/money-flow-visual.js';
-import { bagFrameForPhase, accentFrameFor } from '../../dist/candle-battles/money-flow-effects-renderer.js';
+import {
+  bagFrameForPhase, accentFrameFor,
+  BAG_FALL_FRAMES, BAG_FLYING_FRAMES, BAG_SQUASH_FRAMES, BAG_BURN_FRAMES,
+  BAG_INTO_PIT_FRAMES, POSITIVE_COINS_FRAMES, NEGATIVE_ARROWS_FRAMES,
+} from '../../dist/candle-battles/money-flow-effects-renderer.js';
 import { buildMoneyFlowAnchors } from '../../dist/candle-battles/money-flow-collectors.js';
 
 const batch = (overrides = {}) => ({
@@ -80,16 +86,73 @@ test('fixed pools reuse released particles and never exceed their capacity', () 
 });
 
 test('bag frames follow the real atlas order for every visual phase', () => {
-  assert.equal(bagFrameForPhase('falling', 0), 'bag-fall-1');
-  assert.equal(bagFrameForPhase('falling', .5), 'bag-fall-7');
-  assert.equal(bagFrameForPhase('falling', 1), 'bag-fall-12');
+  // Aerial phases never reach the landing plate: the fall is capped at the
+  // flying prefix so a mid-air bag can never show a ground impact.
+  assert.equal(bagFrameForPhase('flying', 0), 'bag-fall-1');
+  assert.equal(bagFrameForPhase('flying', 1), `bag-fall-${BAG_FLYING_FRAMES}`);
+  assert.equal(bagFrameForPhase('descending', .5), 'bag-fall-4');
+  assert.equal(bagFrameForPhase('floating'), `bag-fall-${BAG_FLYING_FRAMES}`);
+  // Ground impact belongs to a real landing only.
   assert.equal(bagFrameForPhase('landing', 0), 'bag-squash-1');
   assert.equal(bagFrameForPhase('landing', .6), 'bag-squash-3');
-  assert.equal(bagFrameForPhase('landing', 1), 'bag-squash-4');
-  assert.equal(bagFrameForPhase('resting'), 'bag-burn-1');
-  assert.equal(bagFrameForPhase('carried'), 'bag-burn-1');
+  assert.equal(bagFrameForPhase('landing', 1), `bag-squash-${BAG_SQUASH_FRAMES}`);
+  // A resting or carried bag is a plain bag, never a burn frame.
+  assert.equal(bagFrameForPhase('resting'), 'bag-fall-1');
+  assert.equal(bagFrameForPhase('carried'), 'bag-fall-1');
+  assert.equal(bagFrameForPhase('absorbed', 0), 'bag-into-pit-1');
+  assert.equal(bagFrameForPhase('absorbed', 1), `bag-into-pit-${BAG_INTO_PIT_FRAMES}`);
   assert.equal(bagFrameForPhase('burning', 0), 'bag-burn-1');
-  assert.equal(bagFrameForPhase('burning', 1), 'bag-burn-12');
+  assert.equal(bagFrameForPhase('burning', 1), `bag-burn-${BAG_BURN_FRAMES}`);
+});
+
+test('no aerial bag frame carries the ground-impact plate', () => {
+  const catalog = JSON.parse(readFileSync(fileURLToPath(
+    new URL('../../../../tools/candle-battles/money-flow-catalog.json', import.meta.url)), 'utf-8'));
+  const phases = catalog.sequences['bag-fall'].phases;
+  // Every frame the aerial phase can reach is declared plate-free by the asset
+  // audit, and the landing-only frames are exactly the complement.
+  assert.equal(phases.flying.length, BAG_FLYING_FRAMES);
+  assert.equal(phases.flying.length + phases.landing.length, BAG_FALL_FRAMES);
+  for (const name of phases.landing) {
+    assert.ok(!phases.flying.includes(name), `${name} must not be reachable mid-air`);
+  }
+});
+
+test('runtime frame counts stay in sync with the generated atlas catalog', () => {
+  const catalog = JSON.parse(readFileSync(fileURLToPath(
+    new URL('../../../../tools/candle-battles/money-flow-catalog.json', import.meta.url)), 'utf-8'));
+  const sequences = catalog.sequences;
+  assert.equal(sequences['bag-fall'].count, BAG_FALL_FRAMES);
+  assert.equal(sequences['bag-squash'].count, BAG_SQUASH_FRAMES);
+  assert.equal(sequences['bag-burn'].count, BAG_BURN_FRAMES);
+  assert.equal(sequences['bag-into-pit'].count, BAG_INTO_PIT_FRAMES);
+  assert.equal(sequences['positive-coins'].count, POSITIVE_COINS_FRAMES);
+  assert.equal(sequences['negative-arrows'].count, NEGATIVE_ARROWS_FRAMES);
+});
+
+test('negative arrow frames carry readable minus signs in varied positions', () => {
+  // The sign must be visually separate from the arrows and must move between
+  // frames: a static sign in one corner reads as part of the arrow glyph.
+  const catalog = JSON.parse(readFileSync(fileURLToPath(
+    new URL('../../../../tools/candle-battles/money-flow-catalog.json', import.meta.url)), 'utf-8'));
+  const frames = catalog.sequences['negative-arrows'].frames;
+  assert.equal(frames.length, 8);
+  assert.equal(new Set(frames).size, 8, 'the eight negative frames must be distinct');
+});
+
+test('the aerial bag sequence is never built from identical frames', () => {
+  const catalog = JSON.parse(readFileSync(fileURLToPath(
+    new URL('../../../../tools/candle-battles/money-flow-catalog.json', import.meta.url)), 'utf-8'));
+  const audit = JSON.parse(readFileSync(fileURLToPath(
+    new URL('../../../../tools/candle-battles/frame-audit.json', import.meta.url)), 'utf-8'));
+  const digests = audit['money-flow-effects'].frames;
+  const seen = new Map();
+  for (const name of catalog.sequences['bag-fall'].frames) {
+    const digest = digests[name];
+    assert.ok(digest, `${name} missing from the frame audit`);
+    assert.ok(!seen.has(digest), `${name} duplicates ${seen.get(digest)}`);
+    seen.set(digest, name);
+  }
 });
 
 test('accent frames expose the coin and arrow sequences from the atlas', () => {

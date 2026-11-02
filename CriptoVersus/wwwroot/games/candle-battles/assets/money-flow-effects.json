@@ -1,809 +1,769 @@
 {
   "frames": {
-    "bag-squash-1": {
+    "bag-fall-1": {
       "frame": {
         "x": 4,
         "y": 4,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
-      }
-    },
-    "bag-squash-2": {
-      "frame": {
-        "x": 140,
-        "y": 4,
-        "w": 128,
-        "h": 128
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 128,
-        "h": 128
-      },
-      "sourceSize": {
-        "w": 128,
-        "h": 128
-      }
-    },
-    "bag-squash-3": {
-      "frame": {
-        "x": 276,
-        "y": 4,
-        "w": 128,
-        "h": 128
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 128,
-        "h": 128
-      },
-      "sourceSize": {
-        "w": 128,
-        "h": 128
-      }
-    },
-    "bag-squash-4": {
-      "frame": {
-        "x": 412,
-        "y": 4,
-        "w": 128,
-        "h": 128
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 128,
-        "h": 128
-      },
-      "sourceSize": {
-        "w": 128,
-        "h": 128
-      }
-    },
-    "bag-fall-1": {
-      "frame": {
-        "x": 548,
-        "y": 4,
-        "w": 128,
-        "h": 128
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 128,
-        "h": 128
-      },
-      "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       }
     },
     "bag-fall-2": {
       "frame": {
-        "x": 684,
+        "x": 124,
         "y": 4,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       }
     },
     "bag-fall-3": {
       "frame": {
-        "x": 820,
+        "x": 244,
         "y": 4,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       }
     },
     "bag-fall-4": {
       "frame": {
-        "x": 956,
+        "x": 364,
         "y": 4,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       }
     },
     "bag-fall-5": {
       "frame": {
-        "x": 1092,
+        "x": 484,
         "y": 4,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       }
     },
     "bag-fall-6": {
       "frame": {
-        "x": 1228,
+        "x": 604,
         "y": 4,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       }
     },
     "bag-fall-7": {
       "frame": {
-        "x": 1364,
+        "x": 724,
         "y": 4,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       }
     },
     "bag-fall-8": {
       "frame": {
-        "x": 1500,
+        "x": 844,
         "y": 4,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       }
     },
     "bag-fall-9": {
       "frame": {
-        "x": 1636,
+        "x": 964,
         "y": 4,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       }
     },
     "bag-fall-10": {
       "frame": {
-        "x": 1772,
+        "x": 1084,
         "y": 4,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       }
     },
     "bag-fall-11": {
       "frame": {
-        "x": 1908,
+        "x": 1204,
         "y": 4,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       }
     },
     "bag-fall-12": {
       "frame": {
-        "x": 4,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 1324,
+        "y": 4,
+        "w": 112,
+        "h": 152
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 152
       }
     },
     "positive-coins-1": {
       "frame": {
-        "x": 140,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 1444,
+        "y": 4,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "positive-coins-2": {
       "frame": {
-        "x": 276,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 1564,
+        "y": 4,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "positive-coins-3": {
       "frame": {
-        "x": 412,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 1684,
+        "y": 4,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "positive-coins-4": {
       "frame": {
-        "x": 548,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 1804,
+        "y": 4,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "positive-coins-5": {
       "frame": {
-        "x": 684,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 1924,
+        "y": 4,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "positive-coins-6": {
       "frame": {
-        "x": 820,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 4,
+        "y": 164,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "positive-coins-7": {
       "frame": {
-        "x": 956,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 124,
+        "y": 164,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "positive-coins-8": {
       "frame": {
-        "x": 1092,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 244,
+        "y": 164,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "negative-arrows-1": {
       "frame": {
-        "x": 1228,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 364,
+        "y": 164,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "negative-arrows-2": {
       "frame": {
-        "x": 1364,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 484,
+        "y": 164,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "negative-arrows-3": {
       "frame": {
-        "x": 1500,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 604,
+        "y": 164,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "negative-arrows-4": {
       "frame": {
-        "x": 1636,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 724,
+        "y": 164,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "negative-arrows-5": {
       "frame": {
-        "x": 1772,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 844,
+        "y": 164,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "negative-arrows-6": {
       "frame": {
-        "x": 1908,
-        "y": 140,
-        "w": 128,
-        "h": 128
+        "x": 964,
+        "y": 164,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "negative-arrows-7": {
       "frame": {
-        "x": 4,
-        "y": 276,
-        "w": 128,
-        "h": 128
+        "x": 1084,
+        "y": 164,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "negative-arrows-8": {
       "frame": {
-        "x": 140,
-        "y": 276,
-        "w": 128,
-        "h": 128
+        "x": 1204,
+        "y": 164,
+        "w": 112,
+        "h": 132
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 112,
+        "h": 132
       }
     },
     "infernal-pit-1": {
       "frame": {
-        "x": 276,
-        "y": 276,
-        "w": 128,
-        "h": 128
+        "x": 1324,
+        "y": 164,
+        "w": 152,
+        "h": 112
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       }
     },
     "infernal-pit-2": {
       "frame": {
-        "x": 412,
-        "y": 276,
-        "w": 128,
-        "h": 128
+        "x": 1484,
+        "y": 164,
+        "w": 152,
+        "h": 112
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       }
     },
     "infernal-pit-3": {
       "frame": {
-        "x": 548,
-        "y": 276,
-        "w": 128,
-        "h": 128
+        "x": 1644,
+        "y": 164,
+        "w": 152,
+        "h": 112
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       }
     },
     "infernal-pit-4": {
       "frame": {
-        "x": 684,
-        "y": 276,
-        "w": 128,
-        "h": 128
+        "x": 1804,
+        "y": 164,
+        "w": 152,
+        "h": 112
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       }
     },
     "infernal-pit-5": {
       "frame": {
-        "x": 820,
-        "y": 276,
-        "w": 128,
-        "h": 128
+        "x": 4,
+        "y": 304,
+        "w": 152,
+        "h": 112
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       }
     },
     "infernal-pit-6": {
       "frame": {
-        "x": 956,
-        "y": 276,
-        "w": 128,
-        "h": 128
+        "x": 164,
+        "y": 304,
+        "w": 152,
+        "h": 112
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       }
     },
     "infernal-pit-7": {
       "frame": {
-        "x": 1092,
-        "y": 276,
-        "w": 128,
-        "h": 128
+        "x": 324,
+        "y": 304,
+        "w": 152,
+        "h": 112
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       }
     },
     "infernal-pit-8": {
       "frame": {
-        "x": 1228,
-        "y": 276,
-        "w": 128,
-        "h": 128
+        "x": 484,
+        "y": 304,
+        "w": 152,
+        "h": 112
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       },
       "sourceSize": {
-        "w": 128,
-        "h": 128
+        "w": 152,
+        "h": 112
       }
     },
     "infernal-pit-9": {
       "frame": {
-        "x": 1364,
-        "y": 276,
+        "x": 644,
+        "y": 304,
+        "w": 152,
+        "h": 112
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 152,
+        "h": 112
+      },
+      "sourceSize": {
+        "w": 152,
+        "h": 112
+      }
+    },
+    "infernal-pit-10": {
+      "frame": {
+        "x": 804,
+        "y": 304,
+        "w": 152,
+        "h": 112
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 152,
+        "h": 112
+      },
+      "sourceSize": {
+        "w": 152,
+        "h": 112
+      }
+    },
+    "bag-into-pit-1": {
+      "frame": {
+        "x": 964,
+        "y": 304,
         "w": 128,
         "h": 128
       },
@@ -820,10 +780,170 @@
         "h": 128
       }
     },
-    "infernal-pit-10": {
+    "bag-into-pit-2": {
       "frame": {
-        "x": 1500,
-        "y": 276,
+        "x": 1100,
+        "y": 304,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "bag-into-pit-3": {
+      "frame": {
+        "x": 1236,
+        "y": 304,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "bag-into-pit-4": {
+      "frame": {
+        "x": 1372,
+        "y": 304,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "bag-into-pit-5": {
+      "frame": {
+        "x": 1508,
+        "y": 304,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "bag-into-pit-6": {
+      "frame": {
+        "x": 1644,
+        "y": 304,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "bag-into-pit-7": {
+      "frame": {
+        "x": 1780,
+        "y": 304,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "bag-into-pit-8": {
+      "frame": {
+        "x": 1916,
+        "y": 304,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "bag-into-pit-9": {
+      "frame": {
+        "x": 4,
+        "y": 440,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "bag-into-pit-10": {
+      "frame": {
+        "x": 140,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -842,8 +962,8 @@
     },
     "bag-burn-1": {
       "frame": {
-        "x": 1636,
-        "y": 276,
+        "x": 276,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -862,8 +982,8 @@
     },
     "bag-burn-2": {
       "frame": {
-        "x": 1772,
-        "y": 276,
+        "x": 412,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -882,8 +1002,8 @@
     },
     "bag-burn-3": {
       "frame": {
-        "x": 1908,
-        "y": 276,
+        "x": 548,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -902,8 +1022,8 @@
     },
     "bag-burn-4": {
       "frame": {
-        "x": 4,
-        "y": 412,
+        "x": 684,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -922,8 +1042,8 @@
     },
     "bag-burn-5": {
       "frame": {
-        "x": 140,
-        "y": 412,
+        "x": 820,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -942,8 +1062,8 @@
     },
     "bag-burn-6": {
       "frame": {
-        "x": 276,
-        "y": 412,
+        "x": 956,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -962,8 +1082,8 @@
     },
     "bag-burn-7": {
       "frame": {
-        "x": 412,
-        "y": 412,
+        "x": 1092,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -982,8 +1102,8 @@
     },
     "bag-burn-8": {
       "frame": {
-        "x": 548,
-        "y": 412,
+        "x": 1228,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -1000,10 +1120,10 @@
         "h": 128
       }
     },
-    "bag-burn-9": {
+    "bag-squash-1": {
       "frame": {
-        "x": 684,
-        "y": 412,
+        "x": 1364,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -1020,10 +1140,10 @@
         "h": 128
       }
     },
-    "bag-burn-10": {
+    "bag-squash-2": {
       "frame": {
-        "x": 820,
-        "y": 412,
+        "x": 1500,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -1040,10 +1160,10 @@
         "h": 128
       }
     },
-    "bag-burn-11": {
+    "bag-squash-3": {
       "frame": {
-        "x": 956,
-        "y": 412,
+        "x": 1636,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -1060,10 +1180,10 @@
         "h": 128
       }
     },
-    "bag-burn-12": {
+    "bag-squash-4": {
       "frame": {
-        "x": 1092,
-        "y": 412,
+        "x": 1772,
+        "y": 440,
         "w": 128,
         "h": 128
       },
@@ -1085,16 +1205,10 @@
     "image": "money-flow-effects.png",
     "size": {
       "w": 2048,
-      "h": 544
+      "h": 572
     },
     "scale": "1",
     "animations": {
-      "bag-squash": [
-        "bag-squash-1",
-        "bag-squash-2",
-        "bag-squash-3",
-        "bag-squash-4"
-      ],
       "bag-fall": [
         "bag-fall-1",
         "bag-fall-2",
@@ -1141,6 +1255,18 @@
         "infernal-pit-9",
         "infernal-pit-10"
       ],
+      "bag-into-pit": [
+        "bag-into-pit-1",
+        "bag-into-pit-2",
+        "bag-into-pit-3",
+        "bag-into-pit-4",
+        "bag-into-pit-5",
+        "bag-into-pit-6",
+        "bag-into-pit-7",
+        "bag-into-pit-8",
+        "bag-into-pit-9",
+        "bag-into-pit-10"
+      ],
       "bag-burn": [
         "bag-burn-1",
         "bag-burn-2",
@@ -1149,11 +1275,13 @@
         "bag-burn-5",
         "bag-burn-6",
         "bag-burn-7",
-        "bag-burn-8",
-        "bag-burn-9",
-        "bag-burn-10",
-        "bag-burn-11",
-        "bag-burn-12"
+        "bag-burn-8"
+      ],
+      "bag-squash": [
+        "bag-squash-1",
+        "bag-squash-2",
+        "bag-squash-3",
+        "bag-squash-4"
       ]
     }
   }

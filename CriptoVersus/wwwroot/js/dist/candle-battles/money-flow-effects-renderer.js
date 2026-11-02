@@ -2,7 +2,22 @@
 export const MONEY_FLOW_EFFECTS_ATLAS = 'money-flow-effects';
 /** Runtime value of Phaser.Textures.FilterMode.NEAREST: the atlas is pixel art. */
 const NEAREST_FILTER = 1;
+/**
+ * Frame counts owned by `tools/candle-battles/money-flow-catalog.json`.
+ * `BAG_FLYING_FRAMES` is the aerial prefix of `bag-fall`; the remaining frames
+ * hold the ground-plate and are only reachable through `landing`.
+ * A unit test asserts these stay in sync with the catalog.
+ */
+export const BAG_FALL_FRAMES = 12;
+export const BAG_FLYING_FRAMES = 7;
+export const BAG_SQUASH_FRAMES = 4;
+export const BAG_BURN_FRAMES = 8;
+export const BAG_INTO_PIT_FRAMES = 10;
+export const POSITIVE_COINS_FRAMES = 8;
+export const NEGATIVE_ARROWS_FRAMES = 8;
+export const INFERNAL_PIT_FRAMES = 10;
 export const BAG_LANDING_MS = 240;
+export const BAG_ABSORB_MS = 900;
 export const TERMINAL_BURN_MS = 750;
 export const TERMINAL_SPARKLE_MS = 600;
 export const ACCENT_LOOP_MS = 700;
@@ -20,15 +35,29 @@ const step = (count, progress) => Math.max(1, Math.min(count, 1 + Math.floor(cla
 /** Deterministic frame selection: phase progress maps onto the atlas order. */
 export function bagFrameForPhase(phase, progress = 0) {
     switch (phase) {
-        case 'falling': return `bag-fall-${step(12, progress)}`;
-        case 'landing': return `bag-squash-${step(4, progress)}`;
-        case 'resting': return 'bag-burn-1';
-        case 'carried': return 'bag-burn-1';
-        case 'burning': return `bag-burn-${step(12, progress)}`;
+        // Aerial: only the plate-free prefix may be shown.
+        case 'flying':
+        case 'descending':
+            return `bag-fall-${step(BAG_FLYING_FRAMES, progress)}`;
+        case 'floating':
+            return `bag-fall-${BAG_FLYING_FRAMES}`;
+        // Ground impact belongs exclusively to a real landing.
+        case 'landing':
+            return `bag-squash-${step(BAG_SQUASH_FRAMES, progress)}`;
+        // A resting or carried bag is a plain bag; never a burn frame.
+        case 'resting':
+        case 'carried':
+            return 'bag-fall-1';
+        case 'absorbed':
+            return `bag-into-pit-${step(BAG_INTO_PIT_FRAMES, progress)}`;
+        case 'burning':
+            return `bag-burn-${step(BAG_BURN_FRAMES, progress)}`;
     }
 }
 export function accentFrameFor(positive, progress = 0) {
-    return positive ? `positive-coins-${step(8, progress)}` : `negative-arrows-${step(8, progress)}`;
+    return positive
+        ? `positive-coins-${step(POSITIVE_COINS_FRAMES, progress)}`
+        : `negative-arrows-${step(NEGATIVE_ARROWS_FRAMES, progress)}`;
 }
 const MAX_TERMINAL_FX = 6;
 /**
@@ -63,11 +92,22 @@ export class MoneyFlowTerminalFx {
         item.active = true;
         item.kind = kind;
         item.age = 0;
-        item.duration = kind === 'burn' ? TERMINAL_BURN_MS : TERMINAL_SPARKLE_MS;
+        item.duration = kind === 'burn' ? TERMINAL_BURN_MS
+            : kind === 'absorb' ? BAG_ABSORB_MS : TERMINAL_SPARKLE_MS;
         item.scale = scale;
-        item.sprite.setTexture(MONEY_FLOW_EFFECTS_ATLAS, kind === 'burn' ? 'bag-burn-1' : 'positive-coins-1')
+        item.sprite.setTexture(MONEY_FLOW_EFFECTS_ATLAS, this.firstFrame(kind))
             .setPosition(x, y).setScale(scale).setAlpha(1).setVisible(true);
         return true;
+    }
+    firstFrame(kind) {
+        return kind === 'absorb' ? 'bag-into-pit-1' : kind === 'burn' ? 'bag-burn-1' : 'positive-coins-1';
+    }
+    frameFor(kind, progress) {
+        if (this.reducedMotion)
+            return this.firstFrame(kind);
+        if (kind === 'absorb')
+            return bagFrameForPhase('absorbed', progress);
+        return kind === 'burn' ? bagFrameForPhase('burning', progress) : accentFrameFor(true, progress);
     }
     update(deltaMs) {
         const delta = Math.max(0, Math.min(100, deltaMs));
@@ -76,13 +116,12 @@ export class MoneyFlowTerminalFx {
                 continue;
             item.age += delta;
             const progress = clamp01(item.age / item.duration);
-            const frame = this.reducedMotion
-                ? (item.kind === 'burn' ? 'bag-burn-1' : 'positive-coins-1')
-                : item.kind === 'burn' ? bagFrameForPhase('burning', progress) : accentFrameFor(true, progress);
             const fade = item.kind === 'burn'
                 ? (progress > .82 ? 1 - (progress - .82) / .18 : 1)
-                : 1 - progress * progress;
-            item.sprite.setFrame(frame)
+                : item.kind === 'absorb'
+                    ? (progress > .88 ? 1 - (progress - .88) / .12 : 1)
+                    : 1 - progress * progress;
+            item.sprite.setFrame(this.frameFor(item.kind, progress))
                 .setAlpha(Math.max(0, fade))
                 .setScale(item.scale * (item.kind === 'sparkle' ? 1 + progress * .25 : 1));
             if (item.age >= item.duration) {

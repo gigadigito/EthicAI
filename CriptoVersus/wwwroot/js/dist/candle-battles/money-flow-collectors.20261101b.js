@@ -45,26 +45,24 @@ export function buildMoneyFlowAnchors(input) {
         region,
     };
 }
+/**
+ * Chosen side of the fighter for a money bag.
+ *
+ * The candle's body and face are the protected central zone.  Bags descend and
+ * settle laterally so they never cover the character, while still converging on
+ * the hands when they are absorbed.
+ */
+export function pickLateralX(region, side, seed) {
+    const centre = region.centerX;
+    const half = region.fighterWidth * .55;
+    // Two lateral lanes outside the protected core, biased away from the
+    // arena centre so bags never pile up on the fighter.
+    const outer = side === 'left' ? region.left + 18 : region.right - 18;
+    const inner = side === 'left' ? centre - half : centre + half;
+    const t = ((seed % 100) / 100) * .75 + .25;
+    return clamp(inner + (outer - inner) * t, region.left, region.right);
+}
 const SIDES = ['left', 'right'];
-const POSITIVE_STAGES = [
-    { state: 'angel-fly-empty', duration: 350 },
-    { state: 'angel-descend', duration: 500 },
-    { state: 'angel-approach', duration: 450 },
-    { state: 'angel-grab', duration: 350 },
-    { state: 'angel-carry', duration: 250 },
-    { state: 'angel-ascend', duration: 650 },
-    { state: 'angel-depart', duration: 300 },
-];
-const NEGATIVE_STAGES = [
-    { state: 'demon-emerge', duration: 550 },
-    { state: 'demon-idle', duration: 150 },
-    { state: 'demon-approach', duration: 650 },
-    { state: 'demon-grab', duration: 350 },
-    { state: 'demon-carry', duration: 200 },
-    { state: 'demon-run', duration: 650 },
-    { state: 'demon-descend', duration: 650 },
-    { state: 'demon-disappear', duration: 200 },
-];
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const smooth = (value) => {
     const t = clamp(value, 0, 1);
@@ -77,6 +75,76 @@ const jitterOffset = (id) => {
         hash = (hash * 31 + id.charCodeAt(index)) | 0;
     return (Math.abs(hash) % 61) - 30;
 };
+/**
+ * Distance at which a collector is close enough to touch the bag.  The bag is
+ * only marked carried inside this radius, so a capture can never happen while
+ * the collector is still travelling.
+ */
+const GRAB_RADIUS = 34;
+const REACH_MS = 170;
+const SETTLE_MS = 220;
+const MAX_CYCLE_MS = 9000;
+/**
+ * Facing follows the real displacement, never the arena side the collector was
+ * spawned on.  This is what makes a demon look at the bag on the way out and at
+ * the portal on the way back, in both halves of the arena.
+ */
+export function travelDirection(targetX, currentX, fallback) {
+    if (targetX < currentX - 1)
+        return 'left';
+    if (targetX > currentX + 1)
+        return 'right';
+    return fallback;
+}
+/**
+ * Pure choreography rule: which state comes next, or null to keep going.
+ *
+ * Movement states end on a *spatial* predicate, so a collector always walks the
+ * real distance before it may reach, grab or return.  Only the short hand
+ * beats (reach/settle) are timed, because they describe a gesture rather than
+ * a traversal.
+ */
+export function nextCollectorState(input) {
+    const { distance, stateAge, groundY, y, positive, special } = input;
+    const near = distance <= GRAB_RADIUS;
+    if (positive) {
+        switch (input.state) {
+            case 'angel-fly-empty': return distance <= 26 ? 'angel-approach' : null;
+            case 'angel-approach': return distance <= 26 ? 'angel-descend' : null;
+            case 'angel-descend': return distance <= 22 ? 'angel-hover' : null;
+            case 'angel-hover': return stateAge >= SETTLE_MS ? 'angel-reach' : null;
+            case 'angel-reach': return stateAge >= REACH_MS ? 'angel-grab' : null;
+            // The bag becomes carried exactly when the hand meets it.
+            case 'angel-grab': return near || stateAge >= REACH_MS ? 'angel-hold' : null;
+            case 'angel-hold': return stateAge >= SETTLE_MS ? 'angel-carry' : null;
+            case 'angel-carry': return stateAge >= 180 ? 'angel-ascend' : null;
+            case 'angel-ascend': return y <= 40 ? 'angel-depart' : null;
+            case 'angel-depart': return null;
+            default: return null;
+        }
+    }
+    switch (input.state) {
+        case 'demon-emerge': return y <= groundY + 3 ? 'demon-idle' : null;
+        case 'demon-idle': return stateAge >= SETTLE_MS ? 'demon-approach' : null;
+        // Close enough to reach: stop, then extend the hands.
+        case 'demon-approach': return distance <= 54 ? 'demon-stop' : null;
+        case 'demon-stop': return distance <= GRAB_RADIUS ? 'demon-reach' : null;
+        case 'demon-reach': return stateAge >= REACH_MS ? 'demon-grab' : null;
+        case 'demon-grab': return near || stateAge >= REACH_MS ? 'demon-carry' : null;
+        case 'demon-carry': return stateAge >= SETTLE_MS ? (special ? 'demon-tug' : 'demon-return') : null;
+        case 'demon-tug': return stateAge >= 600 ? 'demon-return' : null;
+        case 'demon-return': return distance <= 30 ? 'demon-descend' : null;
+        case 'demon-descend': return y >= groundY + 110 ? 'demon-disappear' : null;
+        case 'demon-disappear': return null;
+        default: return null;
+    }
+}
+/** True when the collector has finished and its bag may be released. */
+export function isCollectorTerminal(input) {
+    return input.positive
+        ? input.state === 'angel-depart' && input.y <= -60
+        : input.state === 'demon-disappear' && input.stateAge > 320;
+}
 export function normalizeCollectorQuality(value) {
     const normalized = value?.toLowerCase();
     return normalized === 'low' || normalized === 'high' ? normalized : 'medium';
@@ -135,6 +203,8 @@ export class CollectorController {
             polarity: cycle.positive ? 'positive' : 'negative',
             bagId: cycle.bagId,
             age: cycle.age,
+            state: cycle.state,
+            grabbed: cycle.grabbed,
             special: cycle.special,
             ...this.renderer?.inspect(cycle.id),
         }));
@@ -182,13 +252,10 @@ export class CollectorController {
         const anchors = frame.anchors[side];
         const special = !selection.positive && this.quality === 'high' && !this.reducedMotion
             && negativeEnergy >= .72 && candidates.filter(bag => !bag.positive).length >= 3;
-        const stages = (selection.positive ? POSITIVE_STAGES : NEGATIVE_STAGES).map(stage => ({ ...stage }));
-        if (special)
-            stages.splice(5, 0, { state: 'demon-tug', duration: 600 });
         const region = anchors.region;
-        // Angels enter from their own side of the bag (matching their capture
-        // path); the demon portal sits on the far side of the bag from the
-        // fighter so the demon never walks under the character.
+        // The demon portal sits on the far side of the bag from the fighter, so
+        // the demon never walks under the candle; the angel enters from its own
+        // side and therefore never sweeps across the character's face.
         const outward = selection.x <= region.centerX ? -1 : 1;
         const angelSide = side === 'left' ? -1 : 1;
         const jitter = ((this.sequence * 37) % 61) - 30;
@@ -197,122 +264,154 @@ export class CollectorController {
         if (Math.abs(portalX - region.centerX) < minFighterGap)
             portalX = clamp(region.centerX + outward * minFighterGap, region.left, region.right);
         const cycle = {
-            id, side, positive: selection.positive, bagId: selection.id, stages,
-            stageIndex: 0, stageAge: 0, age: 0,
+            id, side, positive: selection.positive, bagId: selection.id,
+            state: selection.positive ? 'angel-fly-empty' : 'demon-emerge',
+            stateAge: 0, age: 0,
             x: selection.positive
                 ? clamp(selection.x + angelSide * (110 + jitter), anchors.collectionBounds.left, anchors.collectionBounds.right)
                 : portalX,
             y: selection.positive ? Math.max(-40, anchors.collectionBounds.top - 100) : anchors.ground.y + 90,
             portalX, portalY: anchors.ground.y, special,
+            speed: selection.positive ? 250 : 210,
+            grabbed: false,
         };
         this.cycles.set(id, cycle);
         this.renderer?.create(id, side, selection.positive ? 'positive' : 'negative', cycle.x, cycle.y);
-        this.enterStage(cycle, cycle.stages[0].state);
+        this.enterState(cycle);
         // Establish the first frame's portal, mask and offset before any update
         // tick: an emerging demon is clipped by the ground mask from frame one.
-        this.position(cycle, cycle.stages[0].state, 0, selection, anchors);
+        this.position(cycle, selection, anchors);
         this.cooldown[side] = this.quality === 'high' ? 900 : 1300;
     }
     updateCycle(cycle, delta, anchors) {
         const bag = this.bags.bagById(cycle.bagId);
-        if (!bag || !bag.active || bag.ownerId !== cycle.id || cycle.age > 4500) {
+        if (!bag || !bag.active || bag.ownerId !== cycle.id || cycle.age > MAX_CYCLE_MS) {
             this.cancel(cycle);
             return;
         }
         cycle.age += delta;
-        cycle.stageAge += delta;
-        const stage = cycle.stages[cycle.stageIndex];
-        const progress = smooth(cycle.stageAge / stage.duration);
-        this.position(cycle, stage.state, progress, bag, anchors);
-        if (cycle.stageAge < stage.duration)
-            return;
-        cycle.stageIndex++;
-        cycle.stageAge = 0;
-        if (cycle.stageIndex >= cycle.stages.length) {
+        cycle.stateAge += delta;
+        this.advanceMotion(cycle, delta, bag, anchors);
+        this.position(cycle, bag, anchors);
+        const groundY = anchors.ground.y;
+        const stepInput = {
+            state: cycle.state,
+            positive: cycle.positive,
+            stateAge: cycle.stateAge,
+            distance: Math.hypot(this.targetFor(cycle, bag, anchors).x - cycle.x, this.targetFor(cycle, bag, anchors).y - cycle.y),
+            x: cycle.x, y: cycle.y,
+            portalX: cycle.portalX,
+            groundY,
+            special: cycle.special,
+        };
+        const next = nextCollectorState(stepInput);
+        if (next) {
+            cycle.state = next;
+            cycle.stateAge = 0;
+            this.enterState(cycle);
+        }
+        if (isCollectorTerminal({ ...stepInput, state: cycle.state, stateAge: cycle.stateAge })) {
             this.bags.completeCollection(cycle.bagId, cycle.id);
             this.renderer?.remove(cycle.id);
             this.cycles.delete(cycle.id);
-            return;
         }
-        this.enterStage(cycle, cycle.stages[cycle.stageIndex].state);
     }
-    enterStage(cycle, state) {
-        this.renderer?.setState(cycle.id, state);
-        if (state === 'angel-approach' || state === 'demon-approach')
+    /** Movement is real displacement at a constant speed: a long trip takes longer. */
+    advanceMotion(cycle, delta, bag, anchors) {
+        const seconds = delta / 1000;
+        const state = cycle.state;
+        const target = this.targetFor(cycle, bag, anchors);
+        const dx = target.x - cycle.x;
+        const dy = target.y - cycle.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance <= .5)
+            return;
+        // Decelerate over the last stretch so the collector visibly stops at
+        // the bag instead of snapping into the grab pose at full speed.
+        const slowRadius = state === 'demon-approach' || state === 'angel-approach' || state === 'angel-descend'
+            ? Math.max(46, distance * .34) : 0;
+        const factor = slowRadius > 0 && distance < slowRadius ? smooth(distance / slowRadius) * .85 + .15 : 1;
+        const step = Math.min(distance, cycle.speed * factor * seconds);
+        cycle.x += dx / distance * step;
+        cycle.y += dy / distance * step;
+    }
+    targetFor(cycle, bag, anchors) {
+        const groundY = anchors.ground.y;
+        switch (cycle.state) {
+            case 'demon-emerge':
+                return { x: cycle.portalX, y: groundY };
+            case 'demon-idle':
+            case 'demon-approach':
+            case 'demon-stop':
+            case 'demon-reach':
+                return { x: bag.x, y: groundY };
+            case 'demon-grab':
+            case 'demon-carry':
+                return { x: bag.x, y: groundY };
+            case 'demon-return':
+                return { x: cycle.portalX, y: groundY };
+            case 'demon-descend':
+                return { x: cycle.portalX, y: groundY + 115 };
+            case 'demon-disappear':
+                return { x: cycle.portalX, y: groundY + 150 };
+            case 'demon-tug':
+                return { x: bag.x, y: groundY + 8 };
+            case 'angel-fly-empty':
+                return {
+                    x: bag.x + (cycle.side === 'left' ? -1 : 1) * (70 + Math.abs(jitterOffset(cycle.id)) * .4),
+                    y: Math.max(35, bag.y - 140),
+                };
+            case 'angel-approach':
+                return { x: bag.x + (cycle.side === 'left' ? -1 : 1) * 48, y: bag.y - 70 };
+            case 'angel-descend':
+                return { x: bag.x + (cycle.side === 'left' ? -1 : 1) * 24, y: bag.y - 34 };
+            case 'angel-hover':
+            case 'angel-reach':
+            case 'angel-grab':
+                return { x: bag.x, y: bag.y + 6 };
+            case 'angel-hold':
+            case 'angel-carry':
+                return { x: bag.x - (cycle.side === 'left' ? -1 : 1) * 18, y: bag.y - 62 };
+            case 'angel-ascend':
+                return {
+                    x: clamp(cycle.x + (cycle.side === 'left' ? -1 : 1) * 48, anchors.collectionBounds.left, anchors.collectionBounds.right),
+                    y: 28,
+                };
+            case 'angel-depart':
+                return { x: cycle.x + (cycle.side === 'left' ? -1 : 1) * 35, y: -90 };
+            default:
+                return { x: cycle.x, y: cycle.y };
+        }
+    }
+    enterState(cycle) {
+        this.renderer?.setState(cycle.id, cycle.state);
+        // Collection only begins once the collector is committed to the bag;
+        // the bag becomes carried exclusively at the grab, on contact.
+        if (cycle.state === 'demon-stop' || cycle.state === 'angel-hover')
             this.bags.beginCollection(cycle.bagId, cycle.id);
-        if (state === 'angel-grab' || state === 'demon-grab')
-            this.bags.markCarried(cycle.bagId, cycle.id);
+        if (cycle.state === 'demon-grab' || cycle.state === 'angel-grab') {
+            const bag = this.bags.bagById(cycle.bagId);
+            const onContact = bag ? Math.hypot(bag.x - cycle.x, bag.y - cycle.y) <= GRAB_RADIUS * 1.6 : false;
+            if (onContact) {
+                this.bags.markCarried(cycle.bagId, cycle.id);
+                cycle.grabbed = true;
+            }
+        }
     }
-    position(cycle, state, progress, bag, anchors) {
-        let targetX = cycle.x;
-        let targetY = cycle.y;
-        // Angels always approach and leave on their own side of the bag, so the
-        // capture path never sweeps across the fighter; lateral bags are reached
-        // through bag-relative anchors.
-        const angelSide = cycle.side === 'left' ? -1 : 1;
+    position(cycle, bag, anchors) {
+        // Facing follows the real displacement, both outward and on return.
+        const target = this.targetFor(cycle, bag, anchors);
+        const direction = travelDirection(target.x, cycle.x, cycle.portalX < cycle.x ? 'left' : 'right');
+        const groundY = anchors.ground.y;
         if (cycle.positive) {
-            if (state === 'angel-fly-empty') {
-                targetX = bag.x + angelSide * (70 + Math.abs(jitterOffset(cycle.id)) * .4);
-                targetY = Math.max(35, bag.y - 140);
-            }
-            else if (state === 'angel-descend') {
-                targetX = bag.x + angelSide * 48;
-                targetY = bag.y - 70;
-            }
-            else if (state === 'angel-approach' || state === 'angel-grab') {
-                targetX = bag.x;
-                targetY = bag.y + 12;
-            }
-            else if (state === 'angel-carry') {
-                targetX = bag.x - angelSide * 18;
-                targetY = bag.y - 65;
-            }
-            else if (state === 'angel-ascend') {
-                targetX = clamp(cycle.x + angelSide * 48, anchors.collectionBounds.left, anchors.collectionBounds.right);
-                targetY = 28;
-            }
-            else if (state === 'angel-depart') {
-                targetX = cycle.x + angelSide * 35;
-                targetY = -90;
-            }
             this.renderer?.setPortal(cycle.id, cycle.portalX, cycle.portalY, false);
         }
         else {
-            const groundY = anchors.ground.y;
-            if (state === 'demon-emerge') {
-                targetX = cycle.portalX;
-                targetY = groundY;
-            }
-            else if (state === 'demon-idle') {
-                targetX = cycle.portalX;
-                targetY = groundY;
-            }
-            else if (state === 'demon-approach' || state === 'demon-grab') {
-                targetX = bag.x;
-                targetY = groundY;
-            }
-            else if (state === 'demon-tug') {
-                targetX = bag.x;
-                targetY = groundY + 8;
-            }
-            else if (state === 'demon-carry' || state === 'demon-run') {
-                targetX = cycle.portalX;
-                targetY = groundY;
-            }
-            else if (state === 'demon-descend' || state === 'demon-disappear') {
-                targetX = cycle.portalX;
-                targetY = groundY + (state === 'demon-descend' ? 115 : 145);
-            }
-            const closing = state === 'demon-disappear' ? 1 - progress : 1;
-            // The ground mask hides everything below the floor line: the demon
-            // is revealed while emerging and hidden again while sinking away.
-            const masked = state === 'demon-emerge' || state === 'demon-descend' || state === 'demon-disappear';
+            const closing = cycle.state === 'demon-disappear' ? 1 - cycle.stateAge / 320 : 1;
+            const masked = cycle.state === 'demon-emerge' || cycle.state === 'demon-descend' || cycle.state === 'demon-disappear';
             this.renderer?.setPortal(cycle.id, cycle.portalX, groundY, true, masked, closing);
         }
-        const follow = state.endsWith('grab') ? .42 : .18 + progress * .32;
-        cycle.x += (targetX - cycle.x) * follow;
-        cycle.y += (targetY - cycle.y) * follow;
-        this.renderer?.setPosition(cycle.id, cycle.x, cycle.y);
+        this.renderer?.setPosition(cycle.id, cycle.x, cycle.y, direction);
         // A carried bag keeps its coordinates on the collector so the terminal
         // effect (demon portal burn) lands where the bag actually is.
         if (bag.state === 'CARRIED')

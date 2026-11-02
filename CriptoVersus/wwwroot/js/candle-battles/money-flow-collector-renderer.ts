@@ -1,35 +1,89 @@
 import type PhaserTypes from 'phaser';
 import type { Side } from './model.js';
-import { MONEY_FLOW_EFFECTS_ATLAS } from './money-flow-effects-renderer.js';
+import { MONEY_FLOW_EFFECTS_ATLAS, INFERNAL_PIT_FRAMES } from './money-flow-effects-renderer.js';
 
 export type CollectorPolarity = 'positive' | 'negative';
-export type CollectorAnimationState =
-    | 'angel-fly-empty' | 'angel-approach' | 'angel-descend' | 'angel-grab'
-    | 'angel-carry' | 'angel-ascend' | 'angel-depart'
-    | 'demon-emerge' | 'demon-idle' | 'demon-approach' | 'demon-grab'
-    | 'demon-carry' | 'demon-run' | 'demon-descend' | 'demon-disappear' | 'demon-tug';
 
-type Direction = 'left' | 'right';
+/**
+ * Choreography states.  Demons and angels share the same contract: the sprite
+ * only shows a carrying pose once the bag has actually been touched, and the
+ * facing direction is derived from real displacement, never from the side of
+ * the arena the collector was spawned on.
+ */
+export type CollectorAnimationState =
+    | 'angel-fly-empty' | 'angel-approach' | 'angel-descend' | 'angel-hover'
+    | 'angel-reach' | 'angel-grab' | 'angel-hold'
+    | 'angel-carry' | 'angel-ascend' | 'angel-depart'
+    | 'demon-emerge' | 'demon-idle' | 'demon-approach' | 'demon-stop'
+    | 'demon-reach' | 'demon-grab' | 'demon-carry'
+    | 'demon-return' | 'demon-descend' | 'demon-disappear' | 'demon-tug';
+
+export type Direction = 'left' | 'right';
 
 const COLLECTOR_ATLAS = 'money-flow-collectors';
 const EFFECT_ATLAS = MONEY_FLOW_EFFECTS_ATLAS;
 
-const counts: Record<string, number> = {
-    'angel-empty': 3,
-    'angel-grab': 4,
-    'angel-carry': 6,
-    'demon-emerge': 3,
-    'demon-approach': 3,
-    'demon-grab': 3,
-    'demon-descend': 3,
-    'demon-run': 6,
+/**
+ * Animation table.  Each entry lists its atlas frame names explicitly, so a
+ * rename in the asset catalog cannot silently produce a frame that does not
+ * exist.  `demon-walk` is a walk loop assembled from two *distinct* atlas
+ * frames (idle + reach) so the empty approach can animate without inventing art
+ * and without duplicating a frame in the atlas.
+ */
+interface AnimationSpec {
+    frames: string[];
+    frameRate: number;
+    repeat: number;
+}
+
+/** `angel-empty` + `right` + 2 -> `angel-empty-right-1`, `angel-empty-right-2`. */
+const run = (name: string, direction: Direction, count: number): string[] =>
+    Array.from({ length: count }, (_, index) => `${name}-${direction}-${index + 1}`);
+
+const SPECS: Record<string, (d: Direction) => AnimationSpec> = {
+    'angel-empty': d => ({ frames: run('angel-empty', d, 2), frameRate: 10, repeat: -1 }),
+    'angel-approach': d => ({ frames: run('angel-approach', d, 2), frameRate: 10, repeat: -1 }),
+    'angel-grab': d => ({ frames: run('angel-grab', d, 1), frameRate: 9, repeat: 0 }),
+    'angel-hold': d => ({ frames: run('angel-hold', d, 1), frameRate: 9, repeat: 0 }),
+    'angel-carry': d => ({ frames: run('angel-carry', d, 2), frameRate: 10, repeat: -1 }),
+    'angel-fly': d => ({ frames: run('angel-fly', d, 6), frameRate: 12, repeat: -1 }),
+    'demon-emerge': d => ({ frames: run('demon-emerge', d, 2), frameRate: 8, repeat: 0 }),
+    'demon-walk': d => ({
+        frames: [`demon-idle-${d}-1`, `demon-approach-${d}-1`],
+        frameRate: 6, repeat: -1,
+    }),
+    'demon-idle': d => ({ frames: [`demon-idle-${d}-1`], frameRate: 8, repeat: 0 }),
+    'demon-approach': d => ({ frames: [`demon-approach-${d}-1`], frameRate: 8, repeat: 0 }),
+    'demon-grab': d => ({ frames: run('demon-grab', d, 1), frameRate: 8, repeat: 0 }),
+    'demon-carry': d => ({ frames: run('demon-carry', d, 2), frameRate: 8, repeat: -1 }),
+    'demon-run': d => ({ frames: run('demon-run', d, 6), frameRate: 12, repeat: -1 }),
+    'demon-descend': d => ({ frames: run('demon-descend', d, 1), frameRate: 8, repeat: 0 }),
 };
 
-const animationKey = (name: string, direction?: Direction): string =>
-    `money-flow-${name}${direction ? `-${direction}` : ''}`;
-
-const frameNames = (name: string, direction: Direction, count: number): string[] =>
-    Array.from({ length: count }, (_, index) => `${name}-${direction}-${index + 1}`);
+/** State -> animation key.  Empty-hand and carrying walks are strictly distinct. */
+const STATE_ANIMATION: Record<CollectorAnimationState, string | null> = {
+    'angel-fly-empty': 'angel-empty',
+    'angel-approach': 'angel-approach',
+    'angel-descend': 'angel-approach',
+    'angel-hover': 'angel-approach',
+    'angel-reach': 'angel-grab',
+    'angel-grab': 'angel-grab',
+    'angel-hold': 'angel-hold',
+    'angel-carry': 'angel-fly',
+    'angel-ascend': 'angel-fly',
+    'angel-depart': 'angel-fly',
+    'demon-emerge': 'demon-emerge',
+    'demon-idle': 'demon-idle',
+    'demon-approach': 'demon-walk',
+    'demon-stop': 'demon-walk',
+    'demon-reach': 'demon-approach',
+    'demon-grab': 'demon-grab',
+    'demon-carry': 'demon-carry',
+    'demon-return': 'demon-run',
+    'demon-descend': 'demon-descend',
+    'demon-disappear': 'demon-descend',
+    'demon-tug': null,
+};
 
 export function collectorAtlasesAvailable(scene: PhaserTypes.Scene): boolean {
     return scene.textures.exists(COLLECTOR_ATLAS) && scene.textures.exists(EFFECT_ATLAS);
@@ -37,23 +91,35 @@ export function collectorAtlasesAvailable(scene: PhaserTypes.Scene): boolean {
 
 export function registerCollectorAnimations(scene: PhaserTypes.Scene): void {
     if (!collectorAtlasesAvailable(scene)) return;
+    // A frame that does not exist would register an animation that silently
+    // renders nothing, so the table is checked against the loaded atlas first.
+    const missing: string[] = [];
     for (const direction of ['left', 'right'] as const) {
-        for (const [name, count] of Object.entries(counts)) {
-            const key = animationKey(name, direction);
+        for (const [name, make] of Object.entries(SPECS)) {
+            const key = `money-flow-${name}-${direction}`;
+            const spec = make(direction);
+            for (const frame of spec.frames) {
+                if (!scene.textures.get(COLLECTOR_ATLAS).has(frame)) missing.push(frame);
+            }
             if (scene.anims.exists(key)) continue;
             scene.anims.create({
                 key,
-                frames: frameNames(name, direction, count).map(frame => ({ key: COLLECTOR_ATLAS, frame })),
-                frameRate: name.includes('grab') ? 9 : name.includes('run') ? 11 : 8,
-                repeat: name.includes('empty') || name.includes('carry') || name.includes('run') || name.includes('approach') ? -1 : 0,
+                frames: spec.frames.map(frame => ({ key: COLLECTOR_ATLAS, frame })),
+                frameRate: spec.frameRate,
+                repeat: spec.repeat,
             });
         }
     }
-    const pitKey = animationKey('infernal-pit');
+    if (missing.length) {
+        throw new Error(`Money Flow collector atlas is missing frames: ${[...new Set(missing)].join(', ')}`);
+    }
+    const pitKey = 'money-flow-infernal-pit';
     if (!scene.anims.exists(pitKey)) {
         scene.anims.create({
             key: pitKey,
-            frames: Array.from({ length: 10 }, (_, index) => ({ key: EFFECT_ATLAS, frame: `infernal-pit-${index + 1}` })),
+            frames: Array.from({ length: INFERNAL_PIT_FRAMES }, (_, index) => (
+                { key: EFFECT_ATLAS, frame: `infernal-pit-${index + 1}` }
+            )),
             frameRate: 10,
             repeat: -1,
         });
@@ -62,6 +128,7 @@ export function registerCollectorAnimations(scene: PhaserTypes.Scene): void {
 
 export interface CollectorVisualSnapshot {
     state: CollectorAnimationState;
+    direction: Direction;
     frame: string;
     x: number;
     y: number;
@@ -94,6 +161,8 @@ export class CollectorRenderer {
     }
 
     create(id: string, side: Side, polarity: CollectorPolarity, x: number, y: number): void {
+        // The opening facing is only a first guess; setPosition() re-derives it
+        // from the real displacement on every tick.
         const direction: Direction = side === 'left' ? 'right' : 'left';
         const firstFrame = polarity === 'positive' ? `angel-empty-${direction}-1` : `demon-emerge-${direction}-1`;
         const sprite = this.scene.add.sprite(x, y, COLLECTOR_ATLAS, firstFrame)
@@ -108,9 +177,22 @@ export class CollectorRenderer {
         this.setState(id, state);
     }
 
+    /**
+     * Face the sprite along its real travel direction.  Called every tick with
+     * the displacement actually applied, so the collector looks where it goes
+     * both on the way out and on the way back.
+     */
+    setDirection(id: string, direction: Direction): void {
+        const visual = this.visuals.get(id);
+        if (!visual || visual.direction === direction) return;
+        visual.direction = direction;
+        this.applyAnimation(visual);
+    }
+
     setState(id: string, state: CollectorAnimationState): void {
         const visual = this.visuals.get(id);
-        if (!visual || visual.state === state && visual.sprite.anims.isPlaying) return;
+        if (!visual) return;
+        const changed = visual.state !== state || !visual.sprite.anims.isPlaying;
         visual.state = state;
         // Underground demon states keep the ground mask across their own
         // transitions so the sprite is never exposed below the floor line.
@@ -119,30 +201,28 @@ export class CollectorRenderer {
             visual.sprite.clearMask();
             visual.masked = false;
         }
-        let animation: string | null = null;
+        if (changed) this.applyAnimation(visual);
+    }
+
+    private applyAnimation(visual: Visual): void {
+        const state = visual.state;
         if (state === 'demon-tug') {
             visual.sprite.anims.stop();
-            visual.sprite.setTexture(COLLECTOR_ATLAS, 'demon-tug').setScale(.52);
-        } else if (state.startsWith('angel-')) {
-            const action = state === 'angel-grab' ? 'angel-grab'
-                : state === 'angel-carry' || state === 'angel-ascend' || state === 'angel-depart' ? 'angel-carry'
-                    : 'angel-empty';
-            animation = animationKey(action, visual.direction);
-            visual.sprite.setScale(.58);
-        } else {
-            const action = state === 'demon-grab' ? 'demon-grab'
-                : state === 'demon-carry' || state === 'demon-run' ? 'demon-run'
-                    : state === 'demon-descend' || state === 'demon-disappear' ? 'demon-descend'
-                        : state === 'demon-emerge' ? 'demon-emerge' : 'demon-approach';
-            animation = animationKey(action, visual.direction);
-            visual.sprite.setScale(.62);
+            visual.sprite.setTexture(COLLECTOR_ATLAS, 'demon-tug-1').setScale(.52);
+            return;
         }
-        if (animation) visual.sprite.anims.play(animation, true);
+        const key = STATE_ANIMATION[state];
+        visual.sprite.setScale(visual.polarity === 'positive' ? .58 : .62);
+        if (!key) return;
+        visual.sprite.anims.play(`money-flow-${key}-${visual.direction}`, true);
         if (this.reducedMotion) visual.sprite.anims.pause();
     }
 
-    setPosition(id: string, x: number, y: number): void {
-        this.visuals.get(id)?.sprite.setPosition(x, y);
+    setPosition(id: string, x: number, y: number, direction?: Direction): void {
+        const visual = this.visuals.get(id);
+        if (!visual) return;
+        if (direction) this.setDirection(id, direction);
+        visual.sprite.setPosition(x, y);
     }
 
     setPortal(id: string, x: number, groundY: number, visible: boolean, descending = false, openProgress = 1): void {
@@ -155,11 +235,14 @@ export class CollectorRenderer {
         if (visible) {
             visual.portalLip.lineStyle(5, 0x26070a, .95).strokeEllipse(x, groundY + 7, 94 * openness, 24 * openness);
             visual.portalLip.lineStyle(2, 0xff4b1f, .65).strokeEllipse(x, groundY + 5, 82 * openness, 18 * openness);
-            if (!visual.portal.anims.isPlaying) visual.portal.anims.play(animationKey('infernal-pit'));
+            if (!visual.portal.anims.isPlaying) visual.portal.anims.play('money-flow-infernal-pit');
             if (this.reducedMotion) visual.portal.anims.pause();
         } else visual.portal.anims.stop();
         if (descending) {
-            visual.maskShape.clear().fillStyle(0xffffff).fillRect(0, 0, 1280, groundY + 8);
+            // The mask ends exactly on the floor line, so the pit's front lip
+            // occludes the demon progressively as it sinks below the surface.
+            const width = this.scene.scale?.width ?? 1280;
+            visual.maskShape.clear().fillStyle(0xffffff).fillRect(0, 0, width, groundY + 8);
             visual.sprite.setMask(visual.mask).setDepth(4.8);
             visual.masked = true;
         }
@@ -178,6 +261,7 @@ export class CollectorRenderer {
         if (!visual) return null;
         return {
             state: visual.state,
+            direction: visual.direction,
             frame: String((visual.sprite.frame as { name?: string })?.name ?? ''),
             x: visual.sprite.x,
             y: visual.sprite.y,

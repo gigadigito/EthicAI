@@ -9,10 +9,12 @@ import {
     CollectorQuality,
     MoneyFlowAnchors,
     MoneyFlowBagHost,
+    MoneyFlowRegion,
     normalizeCollectorQuality,
 } from './money-flow-collectors.js';
 import {
     ACCENT_LOOP_MS,
+    BAG_ABSORB_MS,
     BAG_LANDING_MS,
     BagVisualPhase,
     MONEY_FLOW_EFFECTS_ATLAS,
@@ -192,9 +194,28 @@ export interface BagSpawnPlan {
 }
 
 /**
- * Deterministic emission across the dynamic region. Triangular horizontal
- * sampling keeps bags near the fighter while still filling the full region,
- * so no side ever collapses into a single falling column.
+ * Protected central zone of a fighter: the candle body and face must stay
+ * readable. Bags spawn and settle on the lateral lanes instead of dropping on
+ * top of the character, then positive bags converge on the hands to be
+ * absorbed.
+ */
+function protectedHalf(region: MoneyFlowRegion): number {
+    return region.fighterWidth * .55;
+}
+
+/** Lateral lane at `t` (0 = nearest the fighter, 1 = outer edge), away from centre. */
+function lateralX(region: MoneyFlowRegion, towardLeft: boolean, t: number): number {
+    const half = protectedHalf(region);
+    const outer = towardLeft ? region.left : region.right;
+    const inner = towardLeft ? region.centerX - half : region.centerX + half;
+    const clamped = Math.max(.18, Math.min(1, t));
+    return Math.max(region.left, Math.min(region.right, inner + (outer - inner) * clamped));
+}
+
+/**
+ * Deterministic emission across the dynamic region. Bags are routed down the
+ * lateral lanes so the candle's body and face are never covered, while still
+ * filling the full region so no side collapses into a single falling column.
  */
 export function planBagSpawn(
     positive: boolean,
@@ -207,8 +228,9 @@ export function planBagSpawn(
     const offset = (triangle - .5) * 2;
     const sway = (rand(4) - .5) * (positive ? 14 : 8);
     if (positive) {
-        const x = region.centerX
-            + (offset < 0 ? offset * (region.centerX - region.left) : offset * (region.right - region.centerX));
+        // Descend beside the fighter, then converge on the hands to be
+        // absorbed: the bag is never left sitting on the face.
+        const x = lateralX(region, offset < 0, Math.abs(offset));
         const y = region.top + rand(2) * Math.max(8, anchors.body.y - region.top) * .6;
         const targetX = Math.max(region.left, Math.min(region.right,
             anchors.hands.x + (rand(3) - .5) * region.fighterWidth * 1.25));
@@ -216,9 +238,11 @@ export function planBagSpawn(
         const distance = Math.abs(targetY - y);
         return { x, y, targetX, targetY, sway, fallDuration: Math.max(850, Math.min(1450, 700 + distance * 1.6)) };
     }
-    const x = Math.max(region.left, Math.min(region.right, region.centerX + offset * region.fighterWidth * .55));
+    // Negative bags settle on the floor beside the fighter's feet.
+    const x = lateralX(region, offset < 0, Math.abs(offset) * .8 + .2);
     const y = anchors.body.y - 30 + rand(2) * 50;
-    const targetX = Math.max(region.left, Math.min(region.right, x + (rand(3) - .5) * (region.right - region.left) * .7));
+    const drift = (rand(3) - .5) * (region.right - region.left) * .45;
+    const targetX = Math.max(region.left, Math.min(region.right, x + drift));
     return { x, y, targetX, targetY: region.floorY, sway, fallDuration: 850 };
 }
 
@@ -267,7 +291,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
             id: 0, active: false, view: this.createBagView(), side: 'left', positive: true,
             state: 'REMOVED', age: 0, availableAge: 0, lifetime: 0, x: 0, y: 0,
             startX: 0, startY: 0, targetX: 0, targetY: 0, phase: 0,
-            fallDuration: 1000, visualPhase: 'falling', phaseAge: 0, restY: 0, groundY: 0,
+            fallDuration: 1000, visualPhase: 'flying', phaseAge: 0, restY: 0, groundY: 0,
             baseScale: 1, viewScale: 1, viewAlpha: 1
         }));
         this.signs = new ReusablePool(MAX_SIGNS_PER_SIDE * 2, () => ({
@@ -433,7 +457,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         bag.id = ++this.particleSequence;
         bag.side = side; bag.positive = positive; bag.age = 0; bag.availableAge = 0; bag.ownerId = undefined;
         bag.state = 'FLOWING';
-        bag.visualPhase = 'falling'; bag.phaseAge = 0;
+        bag.visualPhase = 'flying'; bag.phaseAge = 0;
         bag.fallDuration = plan.fallDuration;
         bag.lifetime = plan.fallDuration + (positive ? 250 : 1450);
         bag.x = plan.x; bag.y = plan.y;
@@ -444,7 +468,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         bag.phase = plan.sway;
         bag.baseScale = clamp(anchors.region.fighterHeight / 290, .55, 1) * (.92 + energy * .16);
         if (this.spriteMode) {
-            (bag.view as PhaserTypes.GameObjects.Sprite).setFrame(bagFrameForPhase('falling', 0));
+            (bag.view as PhaserTypes.GameObjects.Sprite).setFrame(bagFrameForPhase('flying', 0));
         } else {
             this.drawBag(bag.view as PhaserTypes.GameObjects.Graphics, positive);
         }
@@ -513,6 +537,12 @@ export class MoneyFlowController implements MoneyFlowBagHost {
                 bag.targetY = anchors[bag.side].hands.y + 34;
                 bag.x = bag.startX + (bag.targetX - bag.startX) * eased + Math.sin(bag.phase + t * Math.PI * 3) * 7 * (1 - t);
                 bag.y = bag.startY + (bag.targetY - bag.startY) * eased;
+                if (t >= 1 && bag.visualPhase === 'flying') {
+                    // The descent is over but the bag is not claimed yet: hold
+                    // the last aerial frame instead of touching the ground set.
+                    bag.visualPhase = 'floating';
+                    bag.phaseAge = 0;
+                }
                 if (t >= 1 && this.collectors.available) this.makeAvailable(bag, 3500);
                 else {
                     bag.viewScale = bag.baseScale * (1 - t * .18);
@@ -572,8 +602,10 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         bag.viewAlpha = alpha;
         bag.view.setPosition(bag.x, bag.y).setScale(scale).setAlpha(alpha).setVisible(alpha > .01);
         if (!this.spriteMode) return;
-        const progress = bag.visualPhase === 'falling' ? clamp(bag.age / bag.fallDuration)
-            : bag.visualPhase === 'landing' ? clamp(bag.phaseAge / BAG_LANDING_MS) : 0;
+        const progress = bag.visualPhase === 'flying' || bag.visualPhase === 'descending'
+            ? clamp(bag.age / bag.fallDuration)
+            : bag.visualPhase === 'landing' ? clamp(bag.phaseAge / BAG_LANDING_MS)
+                : bag.visualPhase === 'absorbed' ? clamp(bag.phaseAge / BAG_ABSORB_MS) : 0;
         (bag.view as PhaserTypes.GameObjects.Sprite).setFrame(
             bagFrameForPhase(bag.visualPhase, this.reducedMotion ? 0 : progress));
     }
@@ -652,7 +684,10 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         bag.state = 'AVAILABLE';
         bag.availableAge = 0;
         bag.lifetime = bag.age + windowMs;
-        bag.visualPhase = 'landing';
+        // Only a bag that actually reached the floor plays the impact.  A
+        // positive bag stays airborne and is absorbed by the candle, so it
+        // floats on the last aerial frame and never shows a landing plate.
+        bag.visualPhase = bag.positive ? 'floating' : 'landing';
         bag.phaseAge = 0;
         bag.restY = bag.y;
         bag.viewScale = bag.baseScale;
@@ -714,7 +749,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         this.collectors.reset();
         this.terminalFx.clear();
         this.bags.forEach(bag => {
-            bag.state = 'REMOVED'; bag.ownerId = undefined; bag.visualPhase = 'falling';
+            bag.state = 'REMOVED'; bag.ownerId = undefined; bag.visualPhase = 'flying';
             bag.view.setVisible(false);
         });
         this.bags.releaseAll();

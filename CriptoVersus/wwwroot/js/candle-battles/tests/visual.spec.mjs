@@ -352,8 +352,8 @@ test('money flow bag sprites drive real atlas frames across the expanded region'
      seen.frames.add(bag.frame);
      if(/^bag-fall-/.test(bag.frame))seen.falling=true;
      if(/^bag-squash-/.test(bag.frame))seen.landing=true;
-     if(bag.frame==='bag-burn-1')seen.resting=true;
-     if(bag.state==='AVAILABLE'&&/^bag-burn-([2-9]|1[0-2])$/.test(bag.frame))seen.burnDuringAvailable=true;
+     if(bag.frame==='bag-fall-1')seen.resting=true;
+     if(bag.state==='AVAILABLE'&&/^bag-burn-/.test(bag.frame))seen.burnDuringAvailable=true;
      if(bag.state!=='CARRIED'){
       const spread=seen.spread[bag.side];
       spread[0]=Math.min(spread[0],bag.x);spread[1]=Math.max(spread[1],bag.x);
@@ -386,7 +386,7 @@ test('money flow bag sprites drive real atlas frames across the expanded region'
  expect(snapshot.renderMode).toBe('sprites');
  expect(merged.falling,'fall bags use bag-fall frames').toBe(true);
  expect(merged.landing,'landing bags use bag-squash frames').toBe(true);
- expect(merged.resting,'resting bags hold the golden bag-burn-1 frame').toBe(true);
+ expect(merged.resting,'resting bags hold the plain bag-fall-1 frame').toBe(true);
  expect(merged.frames.has('procedural')).toBe(false);
  expect([...merged.signFrames].some(frame=>frame.startsWith('positive-coins-')),'positive accents use the coin sequence').toBe(true);
  expect([...merged.signFrames].some(frame=>frame.startsWith('negative-arrows-')),'negative accents use the arrow sequence').toBe(true);
@@ -426,14 +426,14 @@ test('negative bags stay available after landing and burn only at the end',async
    for(const cycle of cycles){if(cycle.polarity==='negative'&&cycle.portalVisible)seen.portal=true;}
    seen.maxTerminalFx=Math.max(seen.maxTerminalFx,state.terminalFx);
    for(const bag of state.bagStates){
-    if(bag.state==='AVAILABLE'&&bag.frame==='bag-burn-1'&&bag.polarity==='negative')seen.availableRest=true;
+    if(bag.state==='AVAILABLE'&&bag.frame==='bag-fall-1'&&bag.polarity==='negative')seen.availableRest=true;
     if(bag.state==='CARRIED')seen.carried=true;
-    if(/^bag-burn-([2-9]|1[0-2])$/.test(bag.frame))seen.prematureBurn=true;
+    if(/^bag-burn-/.test(bag.frame))seen.prematureBurn=true;
    }
   }
   return seen;
  },{flowUrl});
- expect(run.availableRest,'negative bags rest as golden bags after landing').toBe(true);
+ expect(run.availableRest,'negative bags rest as plain bags after landing').toBe(true);
  expect(run.carried,'a demon picks the bag up').toBe(true);
  expect(run.portal,'the infernal portal opens').toBe(true);
  expect(run.completedNegative,'the demon handoff completes').toBe(true);
@@ -507,7 +507,7 @@ test('reduced motion freezes effect frames and quality presets bound collectors'
    flow.receiveMoneyFlowBatch(batch('BTCUSDT',tick,String(100+tick*.4)));
    engine.update(60);
    const state=engine.inspect().moneyFlow;
-   for(const bag of state.bagStates)if(bag.visualPhase==='falling')frames.push(bag.frame);
+   for(const bag of state.bagStates)if(bag.visualPhase==='flying')frames.push(bag.frame);
    for(const sign of state.signStates)frames.push(sign.frame);
   }
   return {reducedMotion:engine.inspect().moneyFlow.reducedMotion,frames};
@@ -1323,7 +1323,7 @@ test('host module revision and optional sprite atlases resolve on the served run
   const collectorFrames=Array.isArray(collectorAtlas.frames)?collectorAtlas.frames.map(frame=>frame.filename):Object.keys(collectorAtlas.frames??{});
   expect(collectorFrames).toContain('angel-empty-right-1');
   expect(collectorFrames).toContain('demon-run-left-6');
-  expect(collectorFrames).toContain('demon-tug');
+  expect(collectorFrames).toContain('demon-tug-1');
 });
 test('round result beats celebrate and stun with the finisher atlas without claiming the match result',async({page})=>{
  await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');
