@@ -40,6 +40,62 @@ export interface MoneyFlowVisualSnapshot {
     referencePrice?: number;
 }
 
+export interface MoneyFlowCounters {
+    positive: number;
+    negative: number;
+}
+
+export type MoneyFlowCountersBySide = Record<Side, MoneyFlowCounters>;
+
+/**
+ * Stable visual-event identity. A counter is independent from pooled sprites,
+ * so a performance cap can never make an accepted market batch disappear from
+ * the panel.
+ */
+export function moneyFlowEventKey(side: Side, batch: MoneyFlowBatch): string {
+    return `${batch.matchId}:${side}:${batch.symbol.toUpperCase()}:${batch.sequence}`;
+}
+
+/** Pure per-match counter ledger; it never changes prices, strength or score. */
+export class MoneyFlowEventCounter {
+    private readonly seen = new Set<string>();
+    private readonly values: MoneyFlowCountersBySide = {
+        left: { positive: 0, negative: 0 },
+        right: { positive: 0, negative: 0 },
+    };
+
+    accept(side: Side, batch: MoneyFlowBatch, direction: MoneyFlowDirection): boolean {
+        if (direction === 'neutral') return false;
+        const key = moneyFlowEventKey(side, batch);
+        if (this.seen.has(key)) return false;
+        this.seen.add(key);
+        this.values[side][direction]++;
+        return true;
+    }
+
+    snapshot(): MoneyFlowCountersBySide {
+        return {
+            left: { ...this.values.left },
+            right: { ...this.values.right },
+        };
+    }
+
+    reset(): void {
+        this.seen.clear();
+        this.values.left.positive = this.values.left.negative = 0;
+        this.values.right.positive = this.values.right.negative = 0;
+    }
+}
+
+/** Resolves every arena side that owns an incoming symbol without cross-talk. */
+export function moneyFlowSidesForBatch(batch: MoneyFlowBatch, symbols: Record<Side, string>): Side[] {
+    const symbol = batch.symbol.toUpperCase();
+    const sides: Side[] = [];
+    if (symbol === symbols.left) sides.push('left');
+    if (symbol === symbols.right) sides.push('right');
+    return sides;
+}
+
 const clamp = (value: number, min = 0, max = 1): number => Math.max(min, Math.min(max, value));
 const finite = (value: string): number => {
     const parsed = Number(value);
@@ -272,6 +328,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
     private matchId?: number;
     private symbols: Record<Side, string> = { left: '', right: '' };
     private readonly lastSequence = new Map<string, number>();
+    private readonly counter = new MoneyFlowEventCounter();
     private enabled = false;
     private particleSequence = 0;
 
@@ -323,10 +380,13 @@ export class MoneyFlowController implements MoneyFlowBagHost {
     }
 
     setLiveMatch(matchId: number, leftSymbol: string, rightSymbol: string, enabled: boolean): void {
-        const changed = this.matchId !== matchId || this.symbols.left !== leftSymbol || this.symbols.right !== rightSymbol;
+        const normalizedSymbols = { left: leftSymbol.toUpperCase(), right: rightSymbol.toUpperCase() };
+        const changed = this.matchId !== matchId
+            || this.symbols.left !== normalizedSymbols.left
+            || this.symbols.right !== normalizedSymbols.right;
         const enabledChanged = this.enabled !== enabled;
         this.matchId = matchId;
-        this.symbols = { left: leftSymbol.toUpperCase(), right: rightSymbol.toUpperCase() };
+        this.symbols = normalizedSymbols;
         this.enabled = enabled;
         if (changed) this.reset();
         if (!enabled && enabledChanged) this.clearParticles();
@@ -361,14 +421,16 @@ export class MoneyFlowController implements MoneyFlowBagHost {
             // never duplicated here. Money Flow only adds discrete absorption
             // lighting around the fighter plus the money-bag stream.
             this.drawGlow(fx, anchorX, anchorY);
-            const positiveDominant = fx.state.positive >= fx.state.negative;
-            if (positiveDominant && fx.state.positive > .055 && fx.positiveCooldown === 0) {
+            // Positive and negative energy are independent real batch streams.
+            // Selecting only the dominant value made a valid stream disappear
+            // whenever the other polarity decayed more slowly.
+            if (fx.state.positive > .055 && fx.positiveCooldown === 0) {
                 const bag = this.spawnBag(side, true, anchors[side], fx.state.positive);
                 this.spawnSign(side, true, bag, anchors[side]);
                 // Higher energy emits more often, within the hard object limits.
                 fx.positiveCooldown = 240 + (1 - fx.state.positive) * 260;
             }
-            if (!positiveDominant && fx.state.negative > .055 && fx.negativeCooldown === 0) {
+            if (fx.state.negative > .055 && fx.negativeCooldown === 0) {
                 const bag = this.spawnBag(side, false, anchors[side], fx.state.negative);
                 this.spawnSign(side, false, bag, anchors[side]);
                 fx.negativeCooldown = 260 + (1 - fx.state.negative) * 270;
@@ -398,6 +460,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
             renderMode: this.spriteMode ? 'sprites' : 'procedural',
             reducedMotion: this.reducedMotion,
             terminalFx: this.terminalFx.activeCount,
+            counters: this.counter.snapshot(),
             bagStates: this.inspectBags(),
             signStates: this.inspectSigns(),
             collectors: this.collectors.inspect(),
@@ -410,6 +473,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
     reset(): void {
         this.collectors.reset();
         this.lastSequence.clear();
+        this.counter.reset();
         this.particleSequence = 0;
         this.clearParticles();
         for (const side of SIDES) this.effects[side].state.reset();
@@ -430,17 +494,13 @@ export class MoneyFlowController implements MoneyFlowBagHost {
 
     private consumeBufferedBatches(): void {
         if (!this.matchId) return;
-        const left = this.symbols.left, right = this.symbols.right;
         for (const batch of getMoneyFlowBuffer(this.matchId)) {
-            const symbol = batch.symbol.toUpperCase();
-            const sides: Side[] = [];
-            if (symbol === left) sides.push('left');
-            if (symbol === right) sides.push('right');
-            for (const side of sides) {
-                const key = `${side}:${batch.symbol}`;
+            for (const side of moneyFlowSidesForBatch(batch, this.symbols)) {
+                const key = `${side}:${batch.symbol.toUpperCase()}`;
                 if ((this.lastSequence.get(key) ?? 0) >= batch.sequence) continue;
                 this.lastSequence.set(key, batch.sequence);
-                this.effects[side].state.ingest(batch);
+                const decision = this.effects[side].state.ingest(batch);
+                this.counter.accept(side, batch, decision.direction);
             }
         }
     }

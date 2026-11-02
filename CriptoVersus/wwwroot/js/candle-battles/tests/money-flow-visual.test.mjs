@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { decideMoneyFlow, MoneyFlowVisualState, ReusablePool, planBagSpawn } from '../../dist/candle-battles/money-flow-visual.js';
+import {
+  decideMoneyFlow, MoneyFlowEventCounter, MoneyFlowVisualState, ReusablePool,
+  moneyFlowEventKey, moneyFlowSidesForBatch, planBagSpawn,
+} from '../../dist/candle-battles/money-flow-visual.js';
 import {
   bagFrameForPhase, accentFrameFor,
   BAG_FALL_FRAMES, BAG_FLYING_FRAMES, BAG_SQUASH_FRAMES, BAG_BURN_FRAMES,
@@ -69,6 +72,41 @@ test('visual accumulator is bounded, smoothed, and responds in both directions',
   const lowered = state.snapshot();
   assert.ok(lowered.accumulator >= -1 && lowered.accumulator < 0);
   assert.ok(lowered.displayedCandle >= .16 && lowered.displayedCandle < raised.displayedCandle);
+});
+
+test('accepted batches remain bilateral and increment exactly one visual counter per side', () => {
+  const counters = new MoneyFlowEventCounter();
+  const symbols = { left: 'BTCUSDT', right: 'ETHUSDT' };
+  const positiveLeft = batch({ symbol: 'BTCUSDT', sequence: 11, lastPrice: '100.6' });
+  const negativeRight = batch({ symbol: 'ETHUSDT', sequence: 11, lastPrice: '99.4' });
+  assert.deepEqual(moneyFlowSidesForBatch(positiveLeft, symbols), ['left']);
+  assert.deepEqual(moneyFlowSidesForBatch(negativeRight, symbols), ['right']);
+  assert.equal(counters.accept('left', positiveLeft, 'positive'), true);
+  assert.equal(counters.accept('left', positiveLeft, 'positive'), false, 'duplicate receipt is ignored');
+  assert.equal(counters.accept('right', negativeRight, 'negative'), true);
+  assert.equal(counters.accept('right', negativeRight, 'neutral'), false, 'neutral batches do not create a flow count');
+  assert.deepEqual(counters.snapshot(), {
+    left: { positive: 1, negative: 0 },
+    right: { positive: 0, negative: 1 },
+  });
+  assert.equal(moneyFlowEventKey('left', positiveLeft), '12:left:BTCUSDT:11');
+});
+
+test('same-symbol matches keep one deterministic visual event identity per candle', () => {
+  const counters = new MoneyFlowEventCounter();
+  const shared = batch({ symbol: 'BTCUSDT', sequence: 8, lastPrice: '100.6' });
+  assert.deepEqual(moneyFlowSidesForBatch(shared, { left: 'BTCUSDT', right: 'BTCUSDT' }), ['left', 'right']);
+  assert.equal(counters.accept('left', shared, 'positive'), true);
+  assert.equal(counters.accept('right', shared, 'positive'), true);
+  assert.deepEqual(counters.snapshot(), {
+    left: { positive: 1, negative: 0 },
+    right: { positive: 1, negative: 0 },
+  });
+  counters.reset();
+  assert.deepEqual(counters.snapshot(), {
+    left: { positive: 0, negative: 0 },
+    right: { positive: 0, negative: 0 },
+  }, 'only a new-match reset clears the presentation ledger');
 });
 
 test('fixed pools reuse released particles and never exceed their capacity', () => {

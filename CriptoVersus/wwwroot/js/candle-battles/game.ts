@@ -97,6 +97,13 @@ export class GameEngine {
     private readonly dialogueEngine = new CandleBattleDialogueEngine();
     private readonly bubble: HTMLElement | null;
     private moneyFlow?: MoneyFlowController;
+    private readonly flowPanels = new Map<Side, {
+        background: PhaserTypes.GameObjects.Graphics;
+        positive: PhaserTypes.GameObjects.Text;
+        negative: PhaserTypes.GameObjects.Text;
+        lastPositive: number;
+        lastNegative: number;
+    }>();
     private conversation?: Line[];
     private currentLine?: Line;
     private finale?: Line[];
@@ -214,6 +221,7 @@ export class GameEngine {
             collectorQuality: this.options.moneyFlowCollectorQuality,
             reducedMotion: this.reduced,
         });
+        this.createMoneyFlowPanels();
         if (this.shell) {
             this.left.root.setDepth(2); this.right.root.setDepth(2);
             for (const side of ['left','right'] as const) {
@@ -246,6 +254,47 @@ export class GameEngine {
     }
     private label(id:string,text:string,x:number,y:number,size=18,color='#f3f5f7',origin=0): void {
         this.hud.set(id,this.scene!.add.text(x,y,text,{fontFamily:'system-ui, sans-serif',fontSize:size+'px',color,fontStyle:'bold'}).setOrigin(origin,0));
+    }
+
+    /** Compact presentation-only counters; their source of truth stays in MoneyFlowController. */
+    private createMoneyFlowPanels(): void {
+        if (!this.scene || !this.moneyFlow || this.options.socialCapture) return;
+        const y = this.shell ? 12 : 188;
+        const height = this.shell ? 26 : 34;
+        const width = this.shell ? 112 : 134;
+        for (const side of ['left', 'right'] as const) {
+            const left = side === 'left' ? 34 : 1280 - 34 - width;
+            const color = side === 'left' ? 0xb8ff00 : 0x31d3d0;
+            const background = this.scene.add.graphics().setDepth(22);
+            background.fillStyle(0x07131f, .82).fillRoundedRect(left, y, width, height, 7)
+                .lineStyle(1, color, .72).strokeRoundedRect(left, y, width, height, 7);
+            const positive = this.scene.add.text(left + 10, y + height / 2, '↑ 0', {
+                fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '12px' : '15px', fontStyle: 'bold', color: '#b9ff69',
+            }).setOrigin(0, .5).setDepth(23);
+            const negative = this.scene.add.text(left + width - 10, y + height / 2, '↓ 0', {
+                fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '12px' : '15px', fontStyle: 'bold', color: '#ff7777',
+            }).setOrigin(1, .5).setDepth(23);
+            this.flowPanels.set(side, { background, positive, negative, lastPositive: -1, lastNegative: -1 });
+        }
+    }
+
+    private updateMoneyFlowPanels(): void {
+        if (!this.moneyFlow || !this.flowPanels.size) return;
+        const counters = this.moneyFlow.inspect() as { counters?: Record<Side, { positive: number; negative: number }> };
+        if (!counters.counters) return;
+        for (const side of ['left', 'right'] as const) {
+            const panel = this.flowPanels.get(side);
+            const value = counters.counters[side];
+            if (!panel || !value) continue;
+            if (panel.lastPositive !== value.positive) {
+                panel.lastPositive = value.positive;
+                panel.positive.setText(`↑ ${value.positive}`);
+            }
+            if (panel.lastNegative !== value.negative) {
+                panel.lastNegative = value.negative;
+                panel.negative.setText(`↓ ${value.negative}`);
+            }
+        }
     }
     private drawStadium(): void {
         const g=this.scenery!;
@@ -660,7 +709,7 @@ export class GameEngine {
         if (!this.moneyFlow || !this.feed) return;
         const enabled = this.mode === 'live' && !this.feed.finished && !this.options.socialCapture;
         this.moneyFlow.setLiveMatch(this.feed.matchId, this.feed.leftSymbol, this.feed.rightSymbol, enabled);
-        if (!enabled) return;
+        if (!enabled) { this.updateMoneyFlowPanels(); return; }
         const fallback = (side: Side, x: number): MoneyFlowAnchors => {
             const ground = this.shell ? 374 : 449;
             return buildMoneyFlowAnchors({
@@ -678,6 +727,7 @@ export class GameEngine {
             this.left?.moneyFlowAnchors ?? fallback('left', 330),
             this.right?.moneyFlowAnchors ?? fallback('right', 950),
             allowCollectors);
+        this.updateMoneyFlowPanels();
     }
     private matchLimit(): number {
         const start=this.feed?.matchStartTime, end=this.feed?.matchEndTime;

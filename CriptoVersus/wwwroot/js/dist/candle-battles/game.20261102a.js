@@ -70,6 +70,7 @@ export class GameEngine {
         this.roundImpact = { left: undefined, right: undefined };
         this.dialogue = new DialogueClock();
         this.dialogueEngine = new CandleBattleDialogueEngine();
+        this.flowPanels = new Map();
         this.finaleElapsed = 0;
         /** Closing cinematic. Presentation-only: never touches score, candles or rounds. */
         this.finaleSequence = new FinaleStateMachine();
@@ -204,6 +205,7 @@ export class GameEngine {
                 collectorQuality: this.options.moneyFlowCollectorQuality,
                 reducedMotion: this.reduced,
             });
+        this.createMoneyFlowPanels();
         if (this.shell) {
             this.left.root.setDepth(2);
             this.right.root.setDepth(2);
@@ -249,6 +251,49 @@ export class GameEngine {
     }
     label(id, text, x, y, size = 18, color = '#f3f5f7', origin = 0) {
         this.hud.set(id, this.scene.add.text(x, y, text, { fontFamily: 'system-ui, sans-serif', fontSize: size + 'px', color, fontStyle: 'bold' }).setOrigin(origin, 0));
+    }
+    /** Compact presentation-only counters; their source of truth stays in MoneyFlowController. */
+    createMoneyFlowPanels() {
+        if (!this.scene || !this.moneyFlow || this.options.socialCapture)
+            return;
+        const y = this.shell ? 12 : 188;
+        const height = this.shell ? 26 : 34;
+        const width = this.shell ? 112 : 134;
+        for (const side of ['left', 'right']) {
+            const left = side === 'left' ? 34 : 1280 - 34 - width;
+            const color = side === 'left' ? 0xb8ff00 : 0x31d3d0;
+            const background = this.scene.add.graphics().setDepth(22);
+            background.fillStyle(0x07131f, .82).fillRoundedRect(left, y, width, height, 7)
+                .lineStyle(1, color, .72).strokeRoundedRect(left, y, width, height, 7);
+            const positive = this.scene.add.text(left + 10, y + height / 2, '↑ 0', {
+                fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '12px' : '15px', fontStyle: 'bold', color: '#b9ff69',
+            }).setOrigin(0, .5).setDepth(23);
+            const negative = this.scene.add.text(left + width - 10, y + height / 2, '↓ 0', {
+                fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '12px' : '15px', fontStyle: 'bold', color: '#ff7777',
+            }).setOrigin(1, .5).setDepth(23);
+            this.flowPanels.set(side, { background, positive, negative, lastPositive: -1, lastNegative: -1 });
+        }
+    }
+    updateMoneyFlowPanels() {
+        if (!this.moneyFlow || !this.flowPanels.size)
+            return;
+        const counters = this.moneyFlow.inspect();
+        if (!counters.counters)
+            return;
+        for (const side of ['left', 'right']) {
+            const panel = this.flowPanels.get(side);
+            const value = counters.counters[side];
+            if (!panel || !value)
+                continue;
+            if (panel.lastPositive !== value.positive) {
+                panel.lastPositive = value.positive;
+                panel.positive.setText(`↑ ${value.positive}`);
+            }
+            if (panel.lastNegative !== value.negative) {
+                panel.lastNegative = value.negative;
+                panel.negative.setText(`↓ ${value.negative}`);
+            }
+        }
     }
     drawStadium() {
         const g = this.scenery;
@@ -892,8 +937,10 @@ export class GameEngine {
             return;
         const enabled = this.mode === 'live' && !this.feed.finished && !this.options.socialCapture;
         this.moneyFlow.setLiveMatch(this.feed.matchId, this.feed.leftSymbol, this.feed.rightSymbol, enabled);
-        if (!enabled)
+        if (!enabled) {
+            this.updateMoneyFlowPanels();
             return;
+        }
         const fallback = (side, x) => {
             const ground = this.shell ? 374 : 449;
             return buildMoneyFlowAnchors({
@@ -908,6 +955,7 @@ export class GameEngine {
         const suppressPhases = ['DESTROYING', 'VICTORY', 'BLOCK_FALLING', 'BLOCK_LOCKING', 'ROUND_COMPLETE'];
         const allowCollectors = !this.finaleSequence.running && !suppressPhases.includes(this.state.phase);
         this.moneyFlow.update(delta, this.left?.moneyFlowAnchors ?? fallback('left', 330), this.right?.moneyFlowAnchors ?? fallback('right', 950), allowCollectors);
+        this.updateMoneyFlowPanels();
     }
     matchLimit() {
         const start = this.feed?.matchStartTime, end = this.feed?.matchEndTime;

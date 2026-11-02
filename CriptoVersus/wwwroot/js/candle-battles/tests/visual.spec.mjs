@@ -144,11 +144,13 @@ test('live Money Flow renders bounded positive and negative effects, then clears
   return engine.inspect().moneyFlow;
  },flowUrl);
  expect(visual.active).toBe(true);expect(visual.renderMode).toBe('sprites');expect(visual.collectors.enabled).toBe(false);expect(visual.bags).toBeGreaterThan(0);expect(visual.signs).toBeGreaterThan(0);
+ expect(visual.counters).toEqual({left:{positive:1,negative:0},right:{positive:0,negative:1}});
  expect(visual.left.displayedCandle).toBeGreaterThan(.5);expect(visual.right.displayedCandle).toBeLessThan(.5);
  expect(visual.bags).toBeLessThanOrEqual(12);expect(visual.signs).toBeLessThanOrEqual(12);
  await page.screenshot({path:testInfo.outputPath('money-flow-live.png'),fullPage:true});
  const replay=await page.evaluate(()=>{window.engine.command('replay');window.engine.update(16);return window.engine.inspect().moneyFlow;});
  expect(replay.active).toBe(false);expect(replay.bags).toBe(0);expect(replay.signs).toBe(0);
+ expect(replay.counters).toEqual(visual.counters);
  expect(errors).toEqual([]);
 });
 
