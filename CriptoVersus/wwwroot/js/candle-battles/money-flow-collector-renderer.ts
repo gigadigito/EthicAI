@@ -60,8 +60,8 @@ const SPECS: Record<string, (d: Direction) => AnimationSpec> = {
 /** State -> animation key.  Empty-hand and carrying walks are strictly distinct. */
 const STATE_ANIMATION: Record<CollectorAnimationState, string | null> = {
     'angel-fly-empty': 'angel-empty',
-    'angel-approach': 'angel-approach',
-    'angel-descend': 'angel-approach',
+    'angel-approach': 'angel-empty',
+    'angel-descend': 'angel-empty',
     'angel-hover': 'angel-hover',
     'angel-reach': 'angel-approach',
     'angel-grab': 'angel-grab',
