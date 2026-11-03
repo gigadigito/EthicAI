@@ -29,6 +29,14 @@ export function roundClosedAt(round, authoritativeNowMs) {
     return validRound(round) && Number.isFinite(authoritativeNowMs)
         && authoritativeNowMs >= round.left.closeTime;
 }
+/**
+ * Once the following exchange candle is already open, an old confirmed result
+ * remains authoritative history but must not start a delayed visual battle.
+ */
+export function roundSupersededAt(round, authoritativeNowMs) {
+    return validRound(round) && Number.isFinite(authoritativeNowMs)
+        && authoritativeNowMs >= round.left.closeTime + PERIOD;
+}
 export const TEAM = { left: 0xc1f20f, right: 0x185957 };
 export const OUTLINE = { up: 0x54ff72, down: 0xff354f, neutral: 0xc3cddd };
 export function validCandle(c) {

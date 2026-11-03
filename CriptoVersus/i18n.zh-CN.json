@@ -2976,6 +2976,8 @@
     "change5m": "5分钟涨跌",
     "marketVolume": "\u6210\u4EA4\u91CF",
     "currentBattle": "当前对战",
-    "status": "状态"
+    "status": "状态",
+    "buy": "买入",
+    "sell": "卖出"
   }
 }

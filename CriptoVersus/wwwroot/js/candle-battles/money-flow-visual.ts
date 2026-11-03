@@ -41,9 +41,11 @@ export interface MoneyFlowVisualSnapshot {
 }
 
 export interface MoneyFlowCounters {
-    positive: number;
-    negative: number;
+    buy: number;
+    sell: number;
 }
+
+export type MoneyFlowCounterPolarity = keyof MoneyFlowCounters;
 
 export type MoneyFlowCountersBySide = Record<Side, MoneyFlowCounters>;
 
@@ -55,8 +57,8 @@ export interface MoneyFlowRoundWindow {
 }
 
 const emptyCounters = (): MoneyFlowCountersBySide => ({
-    left: { positive: 0, negative: 0 },
-    right: { positive: 0, negative: 0 },
+    left: { buy: 0, sell: 0 },
+    right: { buy: 0, sell: 0 },
 });
 
 const eventTimeMs = (batch: MoneyFlowBatch): number => Date.parse(batch.eventTimeUtc);
@@ -72,8 +74,8 @@ export function moneyFlowBatchBelongsToRound(batch: MoneyFlowBatch, round: Money
  * so a performance cap can never make an accepted market batch disappear from
  * the panel.
  */
-export function moneyFlowEventKey(roundId: string, side: Side, direction: Exclude<MoneyFlowDirection, 'neutral'>, batch: MoneyFlowBatch): string {
-    return `${batch.matchId}:${roundId}:${side}:${direction}:${batch.symbol.toUpperCase()}:${batch.sequence}`;
+export function moneyFlowEventKey(roundId: string, side: Side, polarity: MoneyFlowCounterPolarity, batch: MoneyFlowBatch): string {
+    return `${batch.matchId}:${roundId}:${side}:${polarity}:${batch.symbol.toUpperCase()}:${batch.sequence}`;
 }
 
 /** Pure presentation ledger, isolated by round, side and polarity. */
@@ -90,14 +92,13 @@ export class MoneyFlowEventCounter {
         return true;
     }
 
-    accept(roundId: string, side: Side, batch: MoneyFlowBatch, direction: MoneyFlowDirection): boolean {
-        if (direction === 'neutral') return false;
+    accept(roundId: string, side: Side, batch: MoneyFlowBatch, polarity: MoneyFlowCounterPolarity): boolean {
         this.setRound(roundId);
         const seen = this.seenByRound.get(roundId)!;
-        const key = moneyFlowEventKey(roundId, side, direction, batch);
+        const key = moneyFlowEventKey(roundId, side, polarity, batch);
         if (seen.has(key)) return false;
         seen.add(key);
-        this.valuesByRound.get(roundId)![side][direction]++;
+        this.valuesByRound.get(roundId)![side][polarity]++;
         return true;
     }
 
@@ -120,6 +121,36 @@ export function moneyFlowSidesForBatch(batch: MoneyFlowBatch, symbols: Record<Si
     if (symbol === symbols.left) sides.push('left');
     if (symbol === symbols.right) sides.push('right');
     return sides;
+}
+
+/**
+ * A taker field is only measured data when it is present and numeric. Missing
+ * or unparseable values are "unavailable", never a measured zero flow: the two
+ * cases are classified apart so absence can never fabricate or suppress a
+ * real flow event silently.
+ */
+export type MoneyFlowTakerFieldState = 'flow' | 'zero' | 'unavailable';
+
+export function moneyFlowTakerFieldState(batch: MoneyFlowBatch, polarity: MoneyFlowCounterPolarity): MoneyFlowTakerFieldState {
+    const raw = polarity === 'buy' ? batch.takerBuyQuote : batch.takerSellQuote;
+    if (raw == null || (typeof raw === 'string' && raw.trim() === '')) return 'unavailable';
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return 'unavailable';
+    return parsed > 0 ? 'flow' : 'zero';
+}
+
+/**
+ * The top counters reflect actual taker-flow fields, not the separate
+ * positive/negative price-motion effect used by the arena particles. A batch
+ * may legitimately contribute to both counters because it aggregates trades.
+ * Only present, positive taker flow creates a count; unavailable data and
+ * measured zero flow both create none, each for its own documented reason.
+ */
+export function moneyFlowCounterPolarities(batch: MoneyFlowBatch): MoneyFlowCounterPolarity[] {
+    const polarities: MoneyFlowCounterPolarity[] = [];
+    if (moneyFlowTakerFieldState(batch, 'buy') === 'flow') polarities.push('buy');
+    if (moneyFlowTakerFieldState(batch, 'sell') === 'flow') polarities.push('sell');
+    return polarities;
 }
 
 const clamp = (value: number, min = 0, max = 1): number => Math.max(min, Math.min(max, value));
@@ -547,7 +578,8 @@ export class MoneyFlowController implements MoneyFlowBagHost {
                 this.lastSequence.set(key, batch.sequence);
                 if (!moneyFlowBatchBelongsToRound(batch, this.round)) continue;
                 const decision = this.effects[side].state.ingest(batch);
-                this.counter.accept(this.round.id, side, batch, decision.direction);
+                for (const polarity of moneyFlowCounterPolarities(batch))
+                    this.counter.accept(this.round.id, side, batch, polarity);
             }
         }
     }

@@ -2974,6 +2974,8 @@
     "change5m": "5分変動",
     "marketVolume": "\u51FA\u6765\u9AD8",
     "currentBattle": "現在の対戦",
-    "status": "状態"
+    "status": "状態",
+    "buy": "購入",
+    "sell": "売却"
   }
 }

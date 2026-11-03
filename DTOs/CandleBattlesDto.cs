@@ -6,7 +6,8 @@ public sealed record CandleBattlesCandleDto(
 
 public sealed record CandleBattlesRoundDto(
     string Id, int MatchId, CandleBattlesCandleDto Left, CandleBattlesCandleDto Right,
-    string Winner, string RuleVersion, decimal LeftStrength, decimal RightStrength);
+    string Winner, string RuleVersion, decimal LeftStrength, decimal RightStrength,
+    long? ConfirmedAtTime = null);
 
 public sealed record CandleBattlesFeedDto(
     int MatchId, string LeftSymbol, string RightSymbol, int ScoreLeft, int ScoreRight,

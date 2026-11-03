@@ -16,7 +16,8 @@ public static class CandleBattlesRoundProjection
         return new CandleBattlesRoundDto(
             $"{round.MatchId}:5m:{new DateTimeOffset(round.OpenTimeUtc).ToUnixTimeMilliseconds()}",
             round.MatchId, left, right, EffectiveWinner(round, left, right),
-            CandleBattlesResolver.Version, round.LeftStrength, round.RightStrength);
+            CandleBattlesResolver.Version, round.LeftStrength, round.RightStrength,
+            new DateTimeOffset(DateTime.SpecifyKind(round.ConfirmedAtUtc, DateTimeKind.Utc)).ToUnixTimeMilliseconds());
     }
 
     public static string EffectiveWinner(CandleBattlesRound round)

@@ -104,7 +104,7 @@ else
     private string? _lastFailure;
     private string _status = string.Empty;
     private string _renderedCulture = string.Empty;
-    private static readonly string[] LabelKeys = ["arcade", "forming", "waiting", "finished", "matchTime", "nextBattle", "round", "fight", "wins", "matchFinished", "finalScore", "incomplete", "recent", "lines", "page", "territory", "draw", "strength", "nextStrength", "crushing", "combo", "domination", "comeback", "candleClose", "awaitingClose", "viewAll", "information", "candleState", "status", "champion", "watchReplay", "volume", "change5m", "currentBattle"];
+    private static readonly string[] LabelKeys = ["arcade", "forming", "waiting", "finished", "matchTime", "nextBattle", "round", "fight", "wins", "matchFinished", "finalScore", "incomplete", "recent", "lines", "page", "territory", "draw", "strength", "nextStrength", "crushing", "combo", "domination", "comeback", "candleClose", "awaitingClose", "viewAll", "information", "candleState", "status", "champion", "watchReplay", "volume", "change5m", "currentBattle", "buy", "sell"];
     private string T(string key) => L.T($"candleBattles.{key}", Culture);
 
     private RenderFragment AssetPanel(string side) => @<section class="candle-battles__asset candle-battles__asset--@side">
@@ -134,7 +134,7 @@ else
         var stage = "module_import";
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261102a.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/game.20261103a.js");
             stage = "renderer_initialization";
             _engine ??= await _module.InvokeAsync<IJSObjectReference>("create", _canvas,
                 new
@@ -150,13 +150,14 @@ else
                     moneyFlowVisualEffects = IsMoneyFlowVisualEffectsEnabled,
                     moneyFlowCollectorsEnabled = IsMoneyFlowCollectorsEnabled,
                     moneyFlowCollectorQuality = MoneyFlowCollectorQuality,
+                    diagnostics = Config.GetValue("CandleBattles:Diagnostics:Enabled", false),
                     localLogos = DataSource.GetLocalLogos(MatchId),
                     captureTarget = CaptureRound is null && CapturePhase is null
                         ? null
                         : new { round = CaptureRound, phase = CapturePhase }
                 });
             if (IsMoneyFlowEnabled && !SocialCapture)
-                _moneyFlowModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/money-flow.20261102a.js");
+                _moneyFlowModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/candle-battles/money-flow.20261103a.js");
             if (_disposed) return;
             _failed = false; _lastFailure = null;
             if (MatchId > 0)

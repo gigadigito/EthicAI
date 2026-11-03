@@ -1,9 +1,9 @@
-import { getMoneyFlowBuffer, inspectMoneyFlowBuffer } from './money-flow.js?v=20261102a';
-import { CollectorController, normalizeCollectorQuality, } from './money-flow-collectors.js?v=20261102a';
-import { ACCENT_LOOP_MS, BAG_ABSORB_MS, BAG_LANDING_MS, MONEY_FLOW_EFFECTS_ATLAS, MoneyFlowTerminalFx, accentFrameFor, bagFrameForPhase, moneyFlowEffectsAvailable, prepareMoneyFlowEffectsTextures, } from './money-flow-effects-renderer.js?v=20261102a';
+import { getMoneyFlowBuffer, inspectMoneyFlowBuffer } from './money-flow.js?v=20261103a';
+import { CollectorController, normalizeCollectorQuality, } from './money-flow-collectors.js?v=20261103a';
+import { ACCENT_LOOP_MS, BAG_ABSORB_MS, BAG_LANDING_MS, MONEY_FLOW_EFFECTS_ATLAS, MoneyFlowTerminalFx, accentFrameFor, bagFrameForPhase, moneyFlowEffectsAvailable, prepareMoneyFlowEffectsTextures, } from './money-flow-effects-renderer.js?v=20261103a';
 const emptyCounters = () => ({
-    left: { positive: 0, negative: 0 },
-    right: { positive: 0, negative: 0 },
+    left: { buy: 0, sell: 0 },
+    right: { buy: 0, sell: 0 },
 });
 const eventTimeMs = (batch) => Date.parse(batch.eventTimeUtc);
 /** The event timestamp, not SignalR arrival time, owns the visual round. */
@@ -16,8 +16,8 @@ export function moneyFlowBatchBelongsToRound(batch, round) {
  * so a performance cap can never make an accepted market batch disappear from
  * the panel.
  */
-export function moneyFlowEventKey(roundId, side, direction, batch) {
-    return `${batch.matchId}:${roundId}:${side}:${direction}:${batch.symbol.toUpperCase()}:${batch.sequence}`;
+export function moneyFlowEventKey(roundId, side, polarity, batch) {
+    return `${batch.matchId}:${roundId}:${side}:${polarity}:${batch.symbol.toUpperCase()}:${batch.sequence}`;
 }
 /** Pure presentation ledger, isolated by round, side and polarity. */
 export class MoneyFlowEventCounter {
@@ -35,16 +35,14 @@ export class MoneyFlowEventCounter {
             this.seenByRound.set(roundId, new Set());
         return true;
     }
-    accept(roundId, side, batch, direction) {
-        if (direction === 'neutral')
-            return false;
+    accept(roundId, side, batch, polarity) {
         this.setRound(roundId);
         const seen = this.seenByRound.get(roundId);
-        const key = moneyFlowEventKey(roundId, side, direction, batch);
+        const key = moneyFlowEventKey(roundId, side, polarity, batch);
         if (seen.has(key))
             return false;
         seen.add(key);
-        this.valuesByRound.get(roundId)[side][direction]++;
+        this.valuesByRound.get(roundId)[side][polarity]++;
         return true;
     }
     snapshot() {
@@ -66,6 +64,30 @@ export function moneyFlowSidesForBatch(batch, symbols) {
     if (symbol === symbols.right)
         sides.push('right');
     return sides;
+}
+export function moneyFlowTakerFieldState(batch, polarity) {
+    const raw = polarity === 'buy' ? batch.takerBuyQuote : batch.takerSellQuote;
+    if (raw == null || (typeof raw === 'string' && raw.trim() === ''))
+        return 'unavailable';
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed))
+        return 'unavailable';
+    return parsed > 0 ? 'flow' : 'zero';
+}
+/**
+ * The top counters reflect actual taker-flow fields, not the separate
+ * positive/negative price-motion effect used by the arena particles. A batch
+ * may legitimately contribute to both counters because it aggregates trades.
+ * Only present, positive taker flow creates a count; unavailable data and
+ * measured zero flow both create none, each for its own documented reason.
+ */
+export function moneyFlowCounterPolarities(batch) {
+    const polarities = [];
+    if (moneyFlowTakerFieldState(batch, 'buy') === 'flow')
+        polarities.push('buy');
+    if (moneyFlowTakerFieldState(batch, 'sell') === 'flow')
+        polarities.push('sell');
+    return polarities;
 }
 const clamp = (value, min = 0, max = 1) => Math.max(min, Math.min(max, value));
 const finite = (value) => {
@@ -433,7 +455,8 @@ export class MoneyFlowController {
                 if (!moneyFlowBatchBelongsToRound(batch, this.round))
                     continue;
                 const decision = this.effects[side].state.ingest(batch);
-                this.counter.accept(this.round.id, side, batch, decision.direction);
+                for (const polarity of moneyFlowCounterPolarities(batch))
+                    this.counter.accept(this.round.id, side, batch, polarity);
             }
         }
     }

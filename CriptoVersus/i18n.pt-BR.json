@@ -2975,6 +2975,8 @@
     "change5m": "VARIA\u00C7\u00C3O 5M",
     "marketVolume": "VOLUME",
     "currentBattle": "Embate atual",
-    "status": "Status"
+    "status": "Status",
+    "buy": "Compra",
+    "sell": "Venda"
   }
 }

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, FinaleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase, resolveFinalePose, resolveRoundResultPose, matchWindow, roundInMatch, roundClosedAt, clockParts, nextCandleCountdown, MATCH_DURATION, PERIOD, FINALE_PHASES, FINALE_DURATIONS, FINALE_TOTAL_MS } from '../../dist/candle-battles/model.js';
+import { demoRound, project, interpolate, sharedRange, MarketHeartbeat, BattleClock, TerritoryManager, BattleStateMachine, FinaleStateMachine, validCandle, candleDirection, candleChangePercent, combatAdvantage, combatFrame, fighterAnimationForPhase, resolveFinalePose, resolveRoundResultPose, matchWindow, roundInMatch, roundClosedAt, roundSupersededAt, clockParts, nextCandleCountdown, MATCH_DURATION, PERIOD, FINALE_PHASES, FINALE_DURATIONS, FINALE_TOTAL_MS } from '../../dist/candle-battles/model.js';
 import { registerFighterAnimations, registerFinisherAnimations, finisherFrameName, finisherAnimationKey, FINISHER_FRAME_COUNTS, FINISHER_CAPTURE_FRAMES, OVERLAY_FRAMES, OVERLAY_ANCHORS, OVERLAY_SCALES, OVERLAY_KINDS } from '../../dist/candle-battles/renderer.js';
 import { DialogueClock, dialogueLines, finalLines } from '../../dist/candle-battles/dialogue.js';
 
@@ -18,6 +18,12 @@ test('official resolution cannot start before the candle close', () => {
     const round = demoRound(0);
     assert.equal(roundClosedAt(round, round.left.closeTime - 1), false);
     assert.equal(roundClosedAt(round, round.left.closeTime), true);
+});
+
+test('a delayed resolution is settled as history when its successor UTC candle is open', () => {
+    const round = demoRound(0);
+    assert.equal(roundSupersededAt(round, round.left.closeTime + PERIOD - 1), false);
+    assert.equal(roundSupersededAt(round, round.left.closeTime + PERIOD), true);
 });
 
 test('comic dialogue keeps localization, sides and a repeatable sequence', () => {

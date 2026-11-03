@@ -1,4 +1,4 @@
-import { MONEY_FLOW_EFFECTS_ATLAS, INFERNAL_PIT_FRAMES } from './money-flow-effects-renderer.js?v=20261102a';
+import { MONEY_FLOW_EFFECTS_ATLAS, INFERNAL_PIT_FRAMES } from './money-flow-effects-renderer.js?v=20261103a';
 const COLLECTOR_ATLAS = 'money-flow-collectors';
 const EFFECT_ATLAS = MONEY_FLOW_EFFECTS_ATLAS;
 /** `angel-empty` + `right` + 2 -> `angel-empty-right-1`, `angel-empty-right-2`. */
@@ -22,8 +22,8 @@ const SPECS = {
 /** State -> animation key.  Empty-hand and carrying walks are strictly distinct. */
 const STATE_ANIMATION = {
     'angel-fly-empty': 'angel-empty',
-    'angel-approach': 'angel-approach',
-    'angel-descend': 'angel-approach',
+    'angel-approach': 'angel-empty',
+    'angel-descend': 'angel-empty',
     'angel-hover': 'angel-hover',
     'angel-reach': 'angel-approach',
     'angel-grab': 'angel-grab',

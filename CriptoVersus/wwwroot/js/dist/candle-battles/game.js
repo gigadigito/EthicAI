@@ -1,11 +1,11 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, roundClosedAt, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261102a';
-import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261102a';
-import { CandleRenderer } from './renderer.js?v=20261102a';
-import { AudioManager } from './audio.js?v=20261102a';
-import { DialogueClock, lineDuration } from './dialogue.js?v=20261102a';
-import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261102a';
-import { MoneyFlowController } from './money-flow-visual.js?v=20261102a';
-import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261102a';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, roundClosedAt, roundSupersededAt, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261103a';
+import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261103a';
+import { CandleRenderer } from './renderer.js?v=20261103a';
+import { AudioManager } from './audio.js?v=20261103a';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261103a';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261103a';
+import { MoneyFlowController } from './money-flow-visual.js?v=20261103a';
+import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261103a';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -71,6 +71,7 @@ export class GameEngine {
         this.dialogue = new DialogueClock();
         this.dialogueEngine = new CandleBattleDialogueEngine();
         this.flowPanels = new Map();
+        this.resolutionReceivedAt = new Map();
         this.finaleElapsed = 0;
         /** Closing cinematic. Presentation-only: never touches score, candles or rounds. */
         this.finaleSequence = new FinaleStateMachine();
@@ -106,14 +107,14 @@ export class GameEngine {
                     owner.readyReject(new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261101b', '/games/candle-battles/assets/candle-finishers.json?v=20261101b');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261103a', '/games/candle-battles/assets/candle-finishers.json?v=20261103a');
                 // The effects atlas carries the money bags themselves, so it is
                 // required whenever visual effects run, with or without collectors.
                 if (owner.options.moneyFlowVisualEffects) {
-                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261102a', '/games/candle-battles/assets/money-flow-effects.json?v=20261102a');
+                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261103a', '/games/candle-battles/assets/money-flow-effects.json?v=20261103a');
                 }
                 if (owner.options.moneyFlowVisualEffects && owner.options.moneyFlowCollectorsEnabled) {
-                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261102a', '/games/candle-battles/assets/money-flow-collectors.json?v=20261102a');
+                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261103a', '/games/candle-battles/assets/money-flow-collectors.json?v=20261103a');
                 }
             }
             create() { owner.setup(this); }
@@ -257,21 +258,22 @@ export class GameEngine {
         if (!this.scene || !this.moneyFlow || this.options.socialCapture)
             return;
         const y = this.shell ? 12 : 188;
-        const height = this.shell ? 26 : 34;
-        const width = this.shell ? 112 : 134;
+        const height = this.shell ? 32 : 42;
+        const width = this.shell ? 208 : 258;
         for (const side of ['left', 'right']) {
             const left = side === 'left' ? 34 : 1280 - 34 - width;
             const color = side === 'left' ? 0xb8ff00 : 0x31d3d0;
             const background = this.scene.add.graphics().setDepth(22);
             background.fillStyle(0x07131f, .82).fillRoundedRect(left, y, width, height, 7)
                 .lineStyle(1, color, .72).strokeRoundedRect(left, y, width, height, 7);
-            const positive = this.scene.add.text(left + 10, y + height / 2, '↑ 0', {
-                fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '12px' : '15px', fontStyle: 'bold', color: '#b9ff69',
-            }).setOrigin(0, .5).setDepth(23);
-            const negative = this.scene.add.text(left + width - 10, y + height / 2, '↓ 0', {
-                fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '12px' : '15px', fontStyle: 'bold', color: '#ff7777',
-            }).setOrigin(1, .5).setDepth(23);
-            this.flowPanels.set(side, { background, positive, negative, lastPositive: -1, lastNegative: -1 });
+            const labelStyle = { fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '9px' : '11px', fontStyle: 'bold' };
+            const valueStyle = { fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '17px' : '22px', fontStyle: 'bold' };
+            const labelY = y + height / 2;
+            const buyLabel = this.scene.add.text(left + 9, labelY, `↑ ${this.text('buy', 'BUY')}`, { ...labelStyle, color: '#b9ff69' }).setOrigin(0, .5).setDepth(23);
+            const buyValue = this.scene.add.text(left + width * .47, labelY, '0', { ...valueStyle, color: '#d9ffaf' }).setOrigin(1, .5).setDepth(23);
+            const sellLabel = this.scene.add.text(left + width * .52, labelY, `↓ ${this.text('sell', 'SELL')}`, { ...labelStyle, color: '#ff8585' }).setOrigin(0, .5).setDepth(23);
+            const sellValue = this.scene.add.text(left + width - 9, labelY, '0', { ...valueStyle, color: '#ffd0d0' }).setOrigin(1, .5).setDepth(23);
+            this.flowPanels.set(side, { background, buyLabel, buyValue, sellLabel, sellValue, lastBuy: -1, lastSell: -1 });
         }
     }
     updateMoneyFlowPanels() {
@@ -285,13 +287,19 @@ export class GameEngine {
             const value = counters.counters[side];
             if (!panel || !value)
                 continue;
-            if (panel.lastPositive !== value.positive) {
-                panel.lastPositive = value.positive;
-                panel.positive.setText(`↑ ${value.positive}`);
+            const buyLabelText = `↑ ${this.text('buy', 'BUY')}`;
+            const sellLabelText = `↓ ${this.text('sell', 'SELL')}`;
+            if (panel.buyLabel.text !== buyLabelText)
+                panel.buyLabel.setText(buyLabelText);
+            if (panel.sellLabel.text !== sellLabelText)
+                panel.sellLabel.setText(sellLabelText);
+            if (panel.lastBuy !== value.buy) {
+                panel.lastBuy = value.buy;
+                panel.buyValue.setText(String(value.buy));
             }
-            if (panel.lastNegative !== value.negative) {
-                panel.lastNegative = value.negative;
-                panel.negative.setText(`↓ ${value.negative}`);
+            if (panel.lastSell !== value.sell) {
+                panel.lastSell = value.sell;
+                panel.sellValue.setText(String(value.sell));
             }
         }
     }
@@ -373,7 +381,17 @@ export class GameEngine {
             && (feed.matchStartTime == null || roundInMatch(r, feed.matchStartTime, feed.matchEndTime)));
         this.history.push(...fresh);
         this.history.sort((a, b) => a.left.openTime - b.left.openTime);
-        if (!this.autoplayInitialized && feed.matchStartTime != null) {
+        for (const round of fresh) {
+            const receivedAtUtc = Date.now();
+            this.resolutionReceivedAt.set(round.id, receivedAtUtc);
+            this.traceRound('resolution_received', round, {
+                resolutionReceivedAtUtc: receivedAtUtc,
+                candleConfirmedAtUtc: round.confirmedAtTime ?? null,
+                resolutionCreatedAtUtc: round.confirmedAtTime ?? null,
+                confirmationToReceiveMs: round.confirmedAtTime == null ? null : receivedAtUtc - round.confirmedAtTime,
+            });
+        }
+        if (!this.options.socialCapture && !this.autoplayInitialized && feed.matchStartTime != null) {
             this.autoplayInitialized = true;
             // A user joining a live match adopts persisted state directly.
             // Replaying previously resolved rounds would duplicate results and
@@ -385,12 +403,18 @@ export class GameEngine {
             this.hud.get('mode')?.setText(this.mode.toUpperCase() + ' · 5M');
         }
         if (this.mode === 'live') {
-            if (this.pendingReconcile)
+            // Social capture owns its state through mountCapturePoster below:
+            // a generic reconcile would settle the finale before the poster
+            // frame resets presentation and then block finish() forever.
+            if (this.options.socialCapture)
+                this.pendingReconcile = false;
+            else if (this.pendingReconcile)
                 this.reconcile();
             else
                 for (const round of fresh)
                     this.clock.enqueue(round);
-            this.hud.get('status')?.setText(this.text(feed.finished ? 'finished' : feed.status === 'live' ? 'forming' : 'waiting'));
+            if (!this.options.socialCapture && !this.terminal)
+                this.hud.get('status')?.setText(this.text(feed.finished ? 'finished' : feed.status === 'live' ? 'forming' : 'waiting'));
         }
         else if (this.mode === 'replay')
             this.hud.get('status')?.setText(this.text('forming'));
@@ -843,10 +867,18 @@ export class GameEngine {
             }
             if (this.mode !== 'live' || roundClosedAt(this.clock.peek(), this.liveNow())) {
                 const next = this.clock.next();
-                if (next)
-                    this.begin(next);
+                if (next) {
+                    // A delayed backend confirmation belongs to its closed
+                    // candle, but must never replace the active next window.
+                    if (this.mode === 'live' && roundSupersededAt(next, this.liveNow()))
+                        this.settleLateRound(next);
+                    else
+                        this.begin(next);
+                }
             }
         }
+        if (this.active && this.mode === 'live' && roundSupersededAt(this.active, this.liveNow()))
+            this.settleLateRound(this.active);
         if (this.active)
             this.state.advance(battleDt, p => this.enter(p));
         const p = this.state.progress;
@@ -926,7 +958,13 @@ export class GameEngine {
             return;
         const enabled = this.mode === 'live' && !this.feed.finished && !this.options.socialCapture;
         this.moneyFlow.setLiveMatch(this.feed.matchId, this.feed.leftSymbol, this.feed.rightSymbol, enabled);
-        this.moneyFlow.setLiveRound(enabled ? this.liveRoundWindow() : undefined);
+        const round = enabled ? this.liveRoundWindow() : undefined;
+        this.moneyFlow.setLiveRound(round);
+        if (round?.id !== this.lastOfficialRoundId) {
+            this.lastOfficialRoundId = round?.id;
+            if (round)
+                this.traceRoundWindow('round_transition', round);
+        }
         if (!enabled) {
             this.updateMoneyFlowPanels();
             return;
@@ -1100,6 +1138,10 @@ export class GameEngine {
         this.active = r;
         this.combatElapsed = 0;
         this.focusRound = this.completedRounds;
+        this.traceRound('animation_started', r, {
+            resolutionReceivedAtUtc: this.resolutionReceivedAt.get(r.id) ?? null,
+            animationStartedAtUtc: Date.now(),
+        });
         const range = sharedRange([r.left, r.right]);
         this.hud.get('status')?.setText(`${this.text('round', 'ROUND')} ${this.completedRounds + 1} — ${this.text('fight', 'FIGHT!')}`);
         this.left?.setCandle(r.left, range, true);
@@ -1116,6 +1158,40 @@ export class GameEngine {
         this.state.start();
         this.enter('SPAWNING');
         this.updateDashboard(true);
+    }
+    /**
+     * A confirmed result may arrive after the following five-minute window has
+     * started. Preserve the official score/history, but do not let a stale
+     * finisher cover the new forming candle.
+     */
+    settleLateRound(r) {
+        if (this.active?.id === r.id)
+            this.active = undefined;
+        this.state.reset();
+        this.combatElapsed = 0;
+        // A block caught mid-fall must not keep animating over the new candle.
+        this.tile?.destroy();
+        this.tile = undefined;
+        this.dropTarget = undefined;
+        const oldLines = this.territory.lines;
+        const tile = this.territory.apply(r);
+        this.noteRoundEvent(r);
+        this.completedRounds++;
+        if (tile && this.territory.lines > oldLines)
+            this.flash = 1;
+        this.left?.resetPresentation();
+        this.right?.resetPresentation();
+        this.left?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+        this.right?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+        this.hud.get('status')?.setText(this.text('forming'));
+        this.updateMarket();
+        this.drawTerritory();
+        this.updateDashboard(true);
+        this.traceRound('late_resolution_settled', r, {
+            resolutionReceivedAtUtc: this.resolutionReceivedAt.get(r.id) ?? null,
+            roundTransitionAtUtc: Date.now(),
+            skippedStaleAnimation: true,
+        });
     }
     /**
      * Records a real match event from the territory and the authoritative
@@ -1215,6 +1291,7 @@ export class GameEngine {
         if (phase === 'APPROACHING')
             this.audio.play('dash');
         if (phase === 'COLLISION') {
+            this.traceRound('impact_started', r, { impactStartedAtUtc: Date.now() });
             this.audio.play('punch_impact');
             this.burst(640, 400, r.winner === 'right' ? 'right' : 'left');
             if (!this.reduced)
@@ -1225,6 +1302,7 @@ export class GameEngine {
             this.burst(r.winner === 'left' ? 720 : 560, 400, r.winner === 'left' ? 'right' : 'left');
         }
         if (phase === 'VICTORY') {
+            this.traceRound('winner_displayed', r, { winnerDisplayedAtUtc: Date.now() });
             this.hud.get('result')?.setText(r.winner === 'draw' ? this.text('draw') : (displaySymbol(r[r.winner].symbol) + ' +1'));
             this.hud.get('status')?.setText(`${this.text('round', 'ROUND')} ${this.completedRounds + 1} — ${r.winner === 'draw' ? this.text('draw') : displaySymbol(r[r.winner].symbol) + ' ' + this.text('wins', 'WINS')}`);
             this.audio.play(r.winner === 'draw' ? 'draw' : 'score_point');
@@ -1278,8 +1356,54 @@ export class GameEngine {
             this.left?.setPose(phase, true);
             this.right?.setPose(phase, true);
             this.updateMarket();
+            this.traceRound('round_transition', r, { roundTransitionAtUtc: Date.now() });
             this.updateDashboard(true);
         }
+    }
+    traceRoundWindow(event, round) {
+        if (!this.options.diagnostics || !this.feed)
+            return;
+        const now = this.liveNow();
+        console.info('[CandleBattle]', event, {
+            matchId: this.feed.matchId,
+            roundId: round.id,
+            roundStartUtc: new Date(round.startMs).toISOString(),
+            roundEndUtc: new Date(round.endMs).toISOString(),
+            serverNowUtc: new Date(now).toISOString(),
+            remainingMs: Math.max(0, round.endMs - now),
+            candleConfirmedAtUtc: null,
+            resolutionCreatedAtUtc: null,
+            resolutionReceivedAtUtc: null,
+            animationStartedAtUtc: null,
+            impactStartedAtUtc: null,
+            winnerDisplayedAtUtc: null,
+            roundTransitionAtUtc: new Date().toISOString(),
+        });
+    }
+    traceRound(event, round, timings = {}) {
+        if (!this.options.diagnostics)
+            return;
+        const now = this.liveNow();
+        const start = round.left.openTime, end = round.left.closeTime;
+        console.info('[CandleBattle]', event, {
+            matchId: round.matchId,
+            roundId: round.id,
+            roundStartUtc: new Date(start).toISOString(),
+            roundEndUtc: new Date(end).toISOString(),
+            serverNowUtc: new Date(now).toISOString(),
+            remainingMs: Math.max(0, end - now),
+            candleConfirmedAtUtc: this.utcIso(round.confirmedAtTime),
+            resolutionCreatedAtUtc: this.utcIso(round.confirmedAtTime),
+            resolutionReceivedAtUtc: this.utcIso(this.resolutionReceivedAt.get(round.id)),
+            animationStartedAtUtc: null,
+            impactStartedAtUtc: null,
+            winnerDisplayedAtUtc: null,
+            roundTransitionAtUtc: null,
+            ...Object.fromEntries(Object.entries(timings).map(([key, value]) => [key, key.endsWith('AtUtc') ? this.utcIso(value) : value])),
+        });
+    }
+    utcIso(value) {
+        return typeof value === 'number' && Number.isFinite(value) ? new Date(value).toISOString() : null;
     }
     localLogoUrl(symbol) {
         const local = this.options.localLogos?.[symbol.trim().toUpperCase()]

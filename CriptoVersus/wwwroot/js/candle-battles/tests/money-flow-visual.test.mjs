@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   decideMoneyFlow, MoneyFlowEventCounter, MoneyFlowVisualState, ReusablePool,
-  moneyFlowBatchBelongsToRound, moneyFlowEventKey, moneyFlowSidesForBatch, planBagSpawn,
+  moneyFlowBatchBelongsToRound, moneyFlowCounterPolarities, moneyFlowEventKey, moneyFlowSidesForBatch,
+  moneyFlowTakerFieldState, planBagSpawn,
 } from '../../dist/candle-battles/money-flow-visual.js';
 import {
   bagFrameForPhase, accentFrameFor,
@@ -74,7 +75,7 @@ test('visual accumulator is bounded, smoothed, and responds in both directions',
   assert.ok(lowered.displayedCandle >= .16 && lowered.displayedCandle < raised.displayedCandle);
 });
 
-test('accepted batches remain bilateral and increment exactly one visual counter per side', () => {
+test('accepted batches remain bilateral and increment actual buy and sell counters per side', () => {
   const counters = new MoneyFlowEventCounter();
   const symbols = { left: 'BTCUSDT', right: 'ETHUSDT' };
   const positiveLeft = batch({ symbol: 'BTCUSDT', sequence: 11, lastPrice: '100.6' });
@@ -82,15 +83,15 @@ test('accepted batches remain bilateral and increment exactly one visual counter
   assert.deepEqual(moneyFlowSidesForBatch(positiveLeft, symbols), ['left']);
   assert.deepEqual(moneyFlowSidesForBatch(negativeRight, symbols), ['right']);
   const round = '12:5m:1767225600000';
-  assert.equal(counters.accept(round, 'left', positiveLeft, 'positive'), true);
-  assert.equal(counters.accept(round, 'left', positiveLeft, 'positive'), false, 'duplicate receipt is ignored');
-  assert.equal(counters.accept(round, 'right', negativeRight, 'negative'), true);
-  assert.equal(counters.accept(round, 'right', negativeRight, 'neutral'), false, 'neutral batches do not create a flow count');
+  assert.deepEqual(moneyFlowCounterPolarities(positiveLeft), ['buy', 'sell']);
+  assert.equal(counters.accept(round, 'left', positiveLeft, 'buy'), true);
+  assert.equal(counters.accept(round, 'left', positiveLeft, 'buy'), false, 'duplicate receipt is ignored');
+  assert.equal(counters.accept(round, 'right', negativeRight, 'sell'), true);
   assert.deepEqual(counters.snapshot(), {
-    left: { positive: 1, negative: 0 },
-    right: { positive: 0, negative: 1 },
+    left: { buy: 1, sell: 0 },
+    right: { buy: 0, sell: 1 },
   });
-  assert.equal(moneyFlowEventKey(round, 'left', 'positive', positiveLeft), '12:12:5m:1767225600000:left:positive:BTCUSDT:11');
+  assert.equal(moneyFlowEventKey(round, 'left', 'buy', positiveLeft), '12:12:5m:1767225600000:left:buy:BTCUSDT:11');
 });
 
 test('same-symbol matches keep one deterministic visual event identity per candle', () => {
@@ -98,22 +99,44 @@ test('same-symbol matches keep one deterministic visual event identity per candl
   const shared = batch({ symbol: 'BTCUSDT', sequence: 8, lastPrice: '100.6' });
   assert.deepEqual(moneyFlowSidesForBatch(shared, { left: 'BTCUSDT', right: 'BTCUSDT' }), ['left', 'right']);
   const round = '12:5m:1767225600000';
-  assert.equal(counters.accept(round, 'left', shared, 'positive'), true);
-  assert.equal(counters.accept(round, 'right', shared, 'positive'), true);
+  assert.equal(counters.accept(round, 'left', shared, 'buy'), true);
+  assert.equal(counters.accept(round, 'right', shared, 'buy'), true);
   assert.deepEqual(counters.snapshot(), {
-    left: { positive: 1, negative: 0 },
-    right: { positive: 1, negative: 0 },
+    left: { buy: 1, sell: 0 },
+    right: { buy: 1, sell: 0 },
   });
   counters.setRound('12:5m:1767225900000');
   assert.deepEqual(counters.snapshot(), {
-    left: { positive: 0, negative: 0 },
-    right: { positive: 0, negative: 0 },
+    left: { buy: 0, sell: 0 },
+    right: { buy: 0, sell: 0 },
   }, 'a new round starts with independent presentation counters');
   counters.setRound(round);
   assert.deepEqual(counters.snapshot(), {
-    left: { positive: 1, negative: 0 },
-    right: { positive: 1, negative: 0 },
+    left: { buy: 1, sell: 0 },
+    right: { buy: 1, sell: 0 },
   }, 'replay can restore the counters owned by its historical round');
+});
+
+test('buy and sell labels never reuse the price-movement classification', () => {
+  const risingWithSellerFlow = batch({ lastPrice: '100.5', takerBuyQuote: '0', takerSellQuote: '120' });
+  assert.equal(decideMoneyFlow(risingWithSellerFlow).direction, 'positive');
+  assert.deepEqual(moneyFlowCounterPolarities(risingWithSellerFlow), ['sell']);
+});
+
+test('unavailable taker data is never classified as a measured zero flow', () => {
+  const missingBuy = batch({ takerBuyQuote: undefined, takerSellQuote: '0' });
+  assert.equal(moneyFlowTakerFieldState(missingBuy, 'buy'), 'unavailable');
+  assert.equal(moneyFlowTakerFieldState(missingBuy, 'sell'), 'zero');
+  assert.deepEqual(moneyFlowCounterPolarities(missingBuy), []);
+  const unparseableSell = batch({ takerBuyQuote: '120', takerSellQuote: 'n/a' });
+  assert.equal(moneyFlowTakerFieldState(unparseableSell, 'sell'), 'unavailable');
+  assert.deepEqual(moneyFlowCounterPolarities(unparseableSell), ['buy']);
+  const measuredNull = batch({ takerBuyQuote: '0', takerSellQuote: '0' });
+  assert.equal(moneyFlowTakerFieldState(measuredNull, 'buy'), 'zero');
+  assert.equal(moneyFlowTakerFieldState(measuredNull, 'sell'), 'zero');
+  const counted = batch({ takerBuyQuote: '120', takerSellQuote: '20' });
+  assert.equal(moneyFlowTakerFieldState(counted, 'buy'), 'flow');
+  assert.equal(moneyFlowTakerFieldState(counted, 'sell'), 'flow');
 });
 
 test('a batch belongs only to the official round that contains its event time', () => {

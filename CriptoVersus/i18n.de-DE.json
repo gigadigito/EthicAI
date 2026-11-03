@@ -2974,6 +2974,8 @@
     "change5m": "ÄNDERUNG 5M",
     "marketVolume": "VOLUMEN",
     "currentBattle": "Aktueller Kampf",
-    "status": "Status"
+    "status": "Status",
+    "buy": "Kaufen",
+    "sell": "Verkaufen"
   }
 }

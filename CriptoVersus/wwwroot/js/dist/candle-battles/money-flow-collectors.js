@@ -1,4 +1,4 @@
-import { CollectorRenderer, collectorAtlasesAvailable, } from './money-flow-collector-renderer.js?v=20261102a';
+import { CollectorRenderer, collectorAtlasesAvailable, } from './money-flow-collector-renderer.js?v=20261103a';
 const ARENA_SAFE_LEFT = { left: 180, right: 560 };
 const ARENA_SAFE_RIGHT = { left: 720, right: 1100 };
 /** Bottom of the fixed top HUD panel (24..178) plus one bag body height. */

@@ -133,18 +133,23 @@ test('live Money Flow renders bounded positive and negative effects, then clears
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine&&window.ready);
  const flowUrl=await moneyFlowModuleUrl(page);
- const visual=await page.evaluate(async(flowUrl)=>{
-  const engine=window.engine;
-  engine.receive({matchId:88,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
-  const flow=await import(flowUrl);
-  const batch=(symbol,sequence,firstPrice,lastPrice,isPartial=false)=>({matchId:88,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice,lastPrice,highPrice:lastPrice,lowPrice:firstPrice,isPartial});
+  const visual=await page.evaluate(async(flowUrl)=>{
+   const engine=window.engine;
+   const open=Math.floor(Date.now()/300000)*300000,event=new Date(open+1000).toISOString();
+   engine.receive({matchId:88,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
+   const flow=await import(flowUrl);
+   const batch=(symbol,sequence,firstPrice,lastPrice,isPartial=false)=>({matchId:88,symbol,sequence,windowStartUtc:new Date(open).toISOString(),windowEndUtc:event,eventTimeUtc:event,receivedAtUtc:event,publishedAtUtc:event,tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice,lastPrice,highPrice:lastPrice,lowPrice:firstPrice,isPartial});
   flow.receiveMoneyFlowBatch(batch('BTCUSDT',1,'100','100.4'));
   flow.receiveMoneyFlowBatch(batch('ETHUSDT',1,'100','99.6',true));
   for(let index=0;index<10;index++) engine.update(50);
   return engine.inspect().moneyFlow;
  },flowUrl);
  expect(visual.active).toBe(true);expect(visual.renderMode).toBe('sprites');expect(visual.collectors.enabled).toBe(false);expect(visual.bags).toBeGreaterThan(0);expect(visual.signs).toBeGreaterThan(0);
- expect(visual.counters).toEqual({left:{positive:1,negative:0},right:{positive:0,negative:1}});
+ expect(visual.counters).toEqual({left:{buy:1,sell:1},right:{buy:1,sell:1}});
+ expect(await page.evaluate(()=>{
+  const panels=window.engine.flowPanels;
+  return {left:{buy:panels.get('left').buyLabel.text,sell:panels.get('left').sellLabel.text},right:{buy:panels.get('right').buyLabel.text,sell:panels.get('right').sellLabel.text}};
+ })).toEqual({left:{buy:'↑ BUY',sell:'↓ SELL'},right:{buy:'↑ BUY',sell:'↓ SELL'}});
  expect(visual.left.displayedCandle).toBeGreaterThan(.5);expect(visual.right.displayedCandle).toBeLessThan(.5);
  expect(visual.bags).toBeLessThanOrEqual(12);expect(visual.signs).toBeLessThanOrEqual(12);
  await page.screenshot({path:testInfo.outputPath('money-flow-live.png'),fullPage:true});
@@ -159,11 +164,12 @@ test('sprite collectors reserve each bag once, animate both polarities and clear
  await page.goto(url+'?kind=live&collectors=1&quality=high');
  await page.waitForFunction(()=>window.engine&&window.ready);
  const flowUrl=await moneyFlowModuleUrl(page);
- const observed=await page.evaluate(async(flowUrl)=>{
-  const engine=window.engine;
-  engine.receive({matchId:91,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
-  const flow=await import(flowUrl);
-  const batch=(symbol,sequence,firstPrice,lastPrice)=>({matchId:91,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:40,totalBaseQuantity:'2',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'1',takerBuyQuote:'200',takerSellQuote:'100',netQuote:'100',firstPrice,lastPrice,highPrice:String(Math.max(+firstPrice,+lastPrice)),lowPrice:String(Math.min(+firstPrice,+lastPrice)),isPartial:false});
+  const observed=await page.evaluate(async(flowUrl)=>{
+   const engine=window.engine;
+   const open=Math.floor(Date.now()/300000)*300000,event=new Date(open+1000).toISOString();
+   engine.receive({matchId:91,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
+   const flow=await import(flowUrl);
+   const batch=(symbol,sequence,firstPrice,lastPrice)=>({matchId:91,symbol,sequence,windowStartUtc:new Date(open).toISOString(),windowEndUtc:event,eventTimeUtc:event,receivedAtUtc:event,publishedAtUtc:event,tradeCount:40,totalBaseQuantity:'2',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'1',takerBuyQuote:'200',takerSellQuote:'100',netQuote:'100',firstPrice,lastPrice,highPrice:String(Math.max(+firstPrice,+lastPrice)),lowPrice:String(Math.min(+firstPrice,+lastPrice)),isPartial:false});
   for(let sequence=1;sequence<=12;sequence++){
    flow.receiveMoneyFlowBatch(batch('BTCUSDT',sequence,'100',String(100+sequence*.55)));
    flow.receiveMoneyFlowBatch(batch('ETHUSDT',sequence,'100',String(100-sequence*.55)));
@@ -219,11 +225,12 @@ test('collector feature gates preserve procedural, demo and social-capture fallb
  await page.route('**/games/candle-battles/assets/money-flow-effects.*',route=>route.fulfill({status:404,body:''}));
  await page.goto(url+'?kind=live&collectors=1');await page.waitForFunction(()=>window.engine&&window.ready);
  const flowUrl=await moneyFlowModuleUrl(page);
- const fallback=await page.evaluate(async(flowUrl)=>{
-  const engine=window.engine;
-  engine.receive({matchId:92,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
-  const flow=await import(flowUrl);
-  flow.receiveMoneyFlowBatch({matchId:92,symbol:'BTCUSDT',sequence:1,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:30,totalBaseQuantity:'3',takerBuyBaseQuantity:'2',takerSellBaseQuantity:'1',takerBuyQuote:'220',takerSellQuote:'100',netQuote:'120',firstPrice:'100',lastPrice:'101',highPrice:'101',lowPrice:'100',isPartial:false});
+  const fallback=await page.evaluate(async(flowUrl)=>{
+   const engine=window.engine;
+   const open=Math.floor(Date.now()/300000)*300000,event=new Date(open+1000).toISOString();
+   engine.receive({matchId:92,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
+   const flow=await import(flowUrl);
+   flow.receiveMoneyFlowBatch({matchId:92,symbol:'BTCUSDT',sequence:1,windowStartUtc:new Date(open).toISOString(),windowEndUtc:event,eventTimeUtc:event,receivedAtUtc:event,publishedAtUtc:event,tradeCount:30,totalBaseQuantity:'3',takerBuyBaseQuantity:'2',takerSellBaseQuantity:'1',takerBuyQuote:'220',takerSellQuote:'100',netQuote:'120',firstPrice:'100',lastPrice:'101',highPrice:'101',lowPrice:'100',isPartial:false});
   for(let index=0;index<12;index++)engine.update(50);
   return engine.inspect().moneyFlow;
  },flowUrl);
@@ -241,16 +248,18 @@ test('money flow mock scenarios stay per-symbol, bounded and isolated across rep
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine&&window.ready);
  const flowUrl=await moneyFlowModuleUrl(page);
- const rising=await page.evaluate(async(flowUrl)=>{
-  const engine=window.engine;
-  const {demoRound}=await import('/js/dist/candle-battles/model.js');
-  const round=demoRound(0);
-  // Real OHLC candles feed the original overhead indicator while Money Flow
-  // runs its own effects: the screenshot must show both without duplication.
-  engine.receive({matchId:88,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:round.left,right:round.right,rounds:[round],status:'live',finished:false},true);
-  const flow=await import(flowUrl);
-  window.__flow=flow;
-  window.__batch=(matchId,symbol,sequence,firstPrice,lastPrice,isPartial=false)=>({matchId,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice,lastPrice,highPrice:lastPrice,lowPrice:firstPrice,isPartial});
+  const rising=await page.evaluate(async(flowUrl)=>{
+   const engine=window.engine;
+   const {demoRound}=await import('/js/dist/candle-battles/model.js');
+   const round=demoRound(0);
+   const open=Math.floor(Date.now()/300000)*300000,event=new Date(open+1000).toISOString();
+   window.__flowOpen=open;
+   // Real OHLC candles feed the original overhead indicator while Money Flow
+   // runs its own effects: the screenshot must show both without duplication.
+   engine.receive({matchId:88,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:round.left,right:round.right,rounds:[round],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
+   const flow=await import(flowUrl);
+   window.__flow=flow;
+   window.__batch=(matchId,symbol,sequence,firstPrice,lastPrice,isPartial=false)=>({matchId,symbol,sequence,windowStartUtc:new Date(window.__flowOpen).toISOString(),windowEndUtc:event,eventTimeUtc:event,receivedAtUtc:event,publishedAtUtc:event,tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice,lastPrice,highPrice:lastPrice,lowPrice:firstPrice,isPartial});
   // 1. sustained rise on the left symbol only
   let price=100;
   for(let sequence=1;sequence<=8;sequence++){ price=Number((price*1.004).toFixed(4)); flow.receiveMoneyFlowBatch(window.__batch(88,'BTCUSDT',sequence,'100',String(price))); engine.update(120); }
@@ -306,12 +315,12 @@ test('money flow mock scenarios stay per-symbol, bounded and isolated across rep
  expect(replay.active).toBe(false);expect(replay.bags).toBe(0);expect(replay.signs).toBe(0);
 
  // 8. switching matches resets the visual state for the new pair
- const switched=await page.evaluate(async()=>{
-  const engine=window.engine;
-  const {demoRound}=await import('/js/dist/candle-battles/model.js');
-  const round=demoRound(1);
-  engine.command('start');
-  engine.receive({matchId:89,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:round.left,right:round.right,rounds:[round],status:'live',finished:false},true);
+  const switched=await page.evaluate(async()=>{
+   const engine=window.engine;
+   const {demoRound}=await import('/js/dist/candle-battles/model.js');
+   const round=demoRound(1),open=window.__flowOpen;
+   engine.command('start');
+   engine.receive({matchId:89,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:round.left,right:round.right,rounds:[round],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
   window.__flow.receiveMoneyFlowBatch(window.__batch(89,'BTCUSDT',1,'100','100.4'));
   engine.update(50);
   return engine.inspect().moneyFlow;
@@ -336,12 +345,13 @@ test('money flow bag sprites drive real atlas frames across the expanded region'
  const flowUrl=await moneyFlowModuleUrl(page);
  await page.evaluate(async({flowUrl})=>{
   const engine=window.engine;
-  engine.receive({matchId:93,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  const open=Math.floor(Date.now()/300000)*300000,event=new Date(open+1000).toISOString();
+   engine.receive({matchId:93,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
   window.__flow=await import(flowUrl);
   window.__seq=0;
   window.__drive=(direction)=>{
    const flow=window.__flow;
-   const batch=(symbol,sequence,firstPrice,lastPrice)=>({matchId:93,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:28,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice,lastPrice,highPrice:lastPrice,lowPrice:firstPrice,isPartial:false});
+   const batch=(symbol,sequence,firstPrice,lastPrice)=>({matchId:93,symbol,sequence,windowStartUtc:new Date(open).toISOString(),windowEndUtc:event,eventTimeUtc:event,receivedAtUtc:event,publishedAtUtc:event,tradeCount:28,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice,lastPrice,highPrice:lastPrice,lowPrice:firstPrice,isPartial:false});
    const sequence=++window.__seq;
    const leftMove=direction==='inverted'?-1:1;
    flow.receiveMoneyFlowBatch(batch('BTCUSDT',sequence,'100',String(100+leftMove*.55)));
@@ -412,9 +422,10 @@ test('negative bags stay available after landing and burn only at the end',async
  const flowUrl=await moneyFlowModuleUrl(page);
  const run=await page.evaluate(async({flowUrl})=>{
   const engine=window.engine;
-  engine.receive({matchId:94,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  const open=Math.floor(Date.now()/300000)*300000,event=new Date(open+1000).toISOString();
+   engine.receive({matchId:94,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
   const flow=await import(flowUrl);
-  const batch=(symbol,sequence,firstPrice,lastPrice)=>({matchId:94,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:30,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'110',takerSellQuote:'30',netQuote:'80',firstPrice,lastPrice,highPrice:firstPrice,lowPrice:lastPrice,isPartial:false});
+  const batch=(symbol,sequence,firstPrice,lastPrice)=>({matchId:94,symbol,sequence,windowStartUtc:new Date(open).toISOString(),windowEndUtc:event,eventTimeUtc:event,receivedAtUtc:event,publishedAtUtc:event,tradeCount:30,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'110',takerSellQuote:'30',netQuote:'80',firstPrice,lastPrice,highPrice:firstPrice,lowPrice:lastPrice,isPartial:false});
   const seen={availableRest:false,carried:false,portal:false,maxTerminalFx:0,prematureBurn:false,completedNegative:false};
   let prior=new Map();
   for(let tick=1;tick<=170;tick++){
@@ -453,9 +464,10 @@ test('angels and demons reach lateral bags inside the safe arena',async({page},t
  const flowUrl=await moneyFlowModuleUrl(page);
  const run=await page.evaluate(async({flowUrl})=>{
   const engine=window.engine;
-  engine.receive({matchId:95,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  const open=Math.floor(Date.now()/300000)*300000,event=new Date(open+1000).toISOString();
+   engine.receive({matchId:95,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
   const flow=await import(flowUrl);
-  const batch=(symbol,sequence,firstPrice,lastPrice)=>({matchId:95,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:32,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice,lastPrice,highPrice:lastPrice,lowPrice:firstPrice,isPartial:false});
+  const batch=(symbol,sequence,firstPrice,lastPrice)=>({matchId:95,symbol,sequence,windowStartUtc:new Date(open).toISOString(),windowEndUtc:event,eventTimeUtc:event,receivedAtUtc:event,publishedAtUtc:event,tradeCount:32,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice,lastPrice,highPrice:lastPrice,lowPrice:firstPrice,isPartial:false});
   const seen={maxGrabGap:0,grabSamples:0,outOfBounds:false,portalSpread:{left:[Infinity,-Infinity],right:[Infinity,-Infinity]},cycleSpread:{left:[Infinity,-Infinity],right:[Infinity,-Infinity]},portalOut:false,angelTop:false,demonBottom:false};
   for(let tick=1;tick<=170;tick++){
    const leftMove=tick%2?1:-1;
@@ -501,9 +513,10 @@ test('reduced motion freezes effect frames and quality presets bound collectors'
  const flowUrl=await moneyFlowModuleUrl(page);
  const reduced=await page.evaluate(async({flowUrl})=>{
   const engine=window.engine;
-  engine.receive({matchId:96,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  const open=Math.floor(Date.now()/300000)*300000,event=new Date(open+1000).toISOString();
+   engine.receive({matchId:96,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
   const flow=await import(flowUrl);
-  const batch=(symbol,sequence,lastPrice)=>({matchId:96,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice:'100',lastPrice,highPrice:lastPrice,lowPrice:'100',isPartial:false});
+  const batch=(symbol,sequence,lastPrice)=>({matchId:96,symbol,sequence,windowStartUtc:new Date(open).toISOString(),windowEndUtc:event,eventTimeUtc:event,receivedAtUtc:event,publishedAtUtc:event,tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice:'100',lastPrice,highPrice:lastPrice,lowPrice:'100',isPartial:false});
   const frames=[];
   for(let tick=1;tick<=40;tick++){
    flow.receiveMoneyFlowBatch(batch('BTCUSDT',tick,String(100+tick*.4)));
@@ -520,9 +533,10 @@ test('reduced motion freezes effect frames and quality presets bound collectors'
  await page.goto(url+'?kind=live&collectors=1&quality=low');await page.waitForFunction(()=>window.engine&&window.ready);
  const low=await page.evaluate(async({flowUrl})=>{
   const engine=window.engine;
-  engine.receive({matchId:97,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false},true);
+  const open=Math.floor(Date.now()/300000)*300000,event=new Date(open+1000).toISOString();
+   engine.receive({matchId:97,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
   const flow=await import(flowUrl);
-  const batch=(symbol,sequence,lastPrice)=>({matchId:97,symbol,sequence,windowStartUtc:'2026-01-01T00:00:00Z',windowEndUtc:'2026-01-01T00:00:01Z',eventTimeUtc:'2026-01-01T00:00:01Z',receivedAtUtc:'2026-01-01T00:00:01Z',publishedAtUtc:'2026-01-01T00:00:01Z',tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice:'100',lastPrice,highPrice:lastPrice,lowPrice:'100',isPartial:false});
+  const batch=(symbol,sequence,lastPrice)=>({matchId:97,symbol,sequence,windowStartUtc:new Date(open).toISOString(),windowEndUtc:event,eventTimeUtc:event,receivedAtUtc:event,publishedAtUtc:event,tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice:'100',lastPrice,highPrice:lastPrice,lowPrice:'100',isPartial:false});
   let maxLeft=0,maxRight=0;
   for(let tick=1;tick<=120;tick++){
    flow.receiveMoneyFlowBatch(batch('BTCUSDT',tick,String(100+tick*.4)));
@@ -579,8 +593,8 @@ test('LIVE reconciles immutable history and heartbeat never creates points',asyn
   matchStartTime:window.fixtureRound(0).left.openTime,expectedRounds:18,serverTime:window.fixtureRound(3).left.closeTime};
  window.engine.receive(window.feed,true);window.engine.receive(window.feed,false);
  });
- expect(await page.evaluate(()=>({mode:window.engine.mode,catchUp:window.engine.catchUpReplay,speed:window.engine.speed})))
-  .toEqual({mode:'replay',catchUp:true,speed:5});
+ expect(await page.evaluate(()=>({mode:window.engine.mode,catchUp:window.engine.catchUpReplay,speed:window.engine.speed,completed:window.engine.completedRounds})))
+  .toEqual({mode:'live',catchUp:false,speed:1,completed:3});
  await page.evaluate(()=>{for(let i=0;i<200&&window.engine.mode!=='live';i++)window.engine.update(100);});
  expect(await page.evaluate(()=>window.engine.mode)).toBe('live');
  expect((await page.evaluate(()=>window.engine.snapshot())).score).toEqual({left:2,right:1});
@@ -613,27 +627,32 @@ test('ongoing partial history autoplays a tied score without a final celebration
  expect(partial).toEqual({mode:'live',terminal:false,score:{left:7,right:7},finished:undefined,leftFinal:'none',rightFinal:'none',canvas:1});
 });
 
-test('historical match autoplays, observes pause and 2x, then freezes after eighteen rounds',async({page})=>{
+test('historical match adopts eighteen confirmed rounds and freezes, while replay gates each candle close',async({page})=>{
  test.setTimeout(30000);
  await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine);
- const initial=await page.evaluate(async()=>{
-  const {demoRound,PERIOD,MATCH_DURATION}=await import('/js/dist/candle-battles/model.js');
+ const adopted=await page.evaluate(async()=>{
+  const {demoRound,MATCH_DURATION}=await import('/js/dist/candle-battles/model.js');
   const rounds=Array.from({length:18},(_,i)=>({...demoRound(i),matchId:91,id:`91:5m:${demoRound(i).left.openTime}`}));
   window.expectedScore={left:rounds.filter(r=>r.winner==='left').length,right:rounds.filter(r=>r.winner==='right').length};
   window.engine.receive({matchId:91,leftSymbol:'BTC',rightSymbol:'ETH',left:null,right:null,rounds,status:'finished',finished:true,
    matchStartTime:rounds[0].left.openTime,matchEndTime:rounds[0].left.openTime+MATCH_DURATION,expectedRounds:18},true);
+  const state={mode:window.engine.mode,terminal:window.engine.terminal,score:window.engine.snapshot().score,
+   tiles:window.engine.snapshot().tiles.length,status:window.engine.hud.get('status').text,
+   leftFinal:window.engine.left.finalVisualState,rightFinal:window.engine.right.finalVisualState,
+   matchClock:window.engine.hud.get('matchTime').text};
   window.engine.command('pause');const paused=window.engine.replayElapsed;window.engine.update(1000);
   const held=window.engine.replayElapsed===paused;
-  window.engine.command('pause');window.engine.update(100);
-  const firstStarted=!!window.engine.active,firstTime=window.engine.replayElapsed===PERIOD;
-  window.engine.command('speed',10);
-  return {mode:window.engine.mode,catchUp:window.engine.catchUpReplay,held,firstStarted,firstTime};
+  window.engine.command('pause');
+  return {...state,held};
  });
- expect(initial).toEqual({mode:'replay',catchUp:true,held:true,firstStarted:true,firstTime:true});
- await expect.poll(()=>page.evaluate(()=>window.engine.terminal),{timeout:15000}).toBe(true);
- const final=await page.evaluate(()=>({score:window.engine.snapshot().score,elapsed:window.engine.replayElapsed,status:window.engine.hud.get('status').text}));
- expect(final.score).toEqual(await page.evaluate(()=>window.expectedScore));
- expect(final.elapsed).toBe(90*60*1000);expect(final.status).toContain('MATCH FINISHED');
+ expect(adopted.mode).toBe('live');expect(adopted.terminal).toBe(true);expect(adopted.held).toBe(true);
+ expect(adopted.score).toEqual(await page.evaluate(()=>window.expectedScore));
+ expect(adopted.tiles).toBe(adopted.score.left+adopted.score.right);
+ expect(adopted.status).toContain('MATCH FINISHED');
+ expect(adopted.matchClock).toContain('90:00');
+ const decisive=await page.evaluate(()=>window.expectedScore.left!==window.expectedScore.right);
+ if(decisive){expect(adopted.leftFinal==='winner'||adopted.rightFinal==='winner').toBe(true);
+  expect(adopted.leftFinal==='loser'||adopted.rightFinal==='loser').toBe(true);}
  const manual=await page.evaluate(()=>{
   window.engine.command('replay');window.engine.command('speed',2);window.engine.update(100);
   const beforeClose=!!window.engine.active;
@@ -657,6 +676,94 @@ test('LIVE restarts the five-minute clock without awarding a point while confirm
  expect(state.mode).toBe('live');expect(state.score).toEqual({left:0,right:0});expect(state.next).toMatch(/04:5[89]/);
 });
 
+test('mock LIVE follows three consecutive official UTC round transitions without stale animations',async({page})=>{
+ test.setTimeout(60000);
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine&&window.ready);
+ const flowUrl=await moneyFlowModuleUrl(page);
+ await page.evaluate(async(flowUrl)=>{
+  const engine=window.engine;
+  const {demoRound}=await import('/js/dist/candle-battles/model.js');
+  const flow=await import(flowUrl);
+  const matchId=501,PERIOD=300000;
+  const rounds=[0,1,2,3].map(i=>{const r=demoRound(i);return {...r,matchId,id:`${matchId}:5m:${r.left.openTime}`,winner:i%2?'right':'left'};});
+  window.__flow=flow;window.__rounds=rounds;window.__period=PERIOD;
+  window.__feed={matchId,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false,
+   matchStartTime:rounds[0].left.openTime,expectedRounds:18,serverTime:rounds[0].left.openTime+145000};
+  window.__send=(serverTime,delivered)=>{window.__feed.serverTime=serverTime;window.__feed.rounds=delivered;engine.receive(window.__feed,false);};
+  window.__batch=(symbol,sequence,eventMs)=>({matchId,symbol,sequence,windowStartUtc:new Date(eventMs).toISOString(),
+   windowEndUtc:new Date(eventMs+1000).toISOString(),eventTimeUtc:new Date(eventMs).toISOString(),
+   receivedAtUtc:new Date(eventMs).toISOString(),publishedAtUtc:new Date(eventMs).toISOString(),
+   tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',
+   netQuote:'100',firstPrice:'100',lastPrice:'100.4',highPrice:'100.4',lowPrice:'100',isPartial:false});
+  window.__expectedScore=count=>rounds.slice(0,count).reduce((score,r)=>{score[r.winner]++;return score;},{left:0,right:0});
+  engine.receive(window.__feed,true);
+ },flowUrl);
+ for(let i=0;i<3;i++){
+  const openTime=Date.UTC(2026,0,1)+i*300000,roundId=`501:5m:${openTime}`;
+  const mid=await page.evaluate((i)=>{
+   const engine=window.engine,rounds=window.__rounds;
+   // The confirmed round is delivered before its candle closes: it must never
+   // start early, and its taker flow must count inside the official window.
+   window.__send(rounds[i].left.openTime+145000,rounds.slice(0,i+1));
+   window.__flow.receiveMoneyFlowBatch(window.__batch('BTCUSDT',100+i*2,rounds[i].left.openTime+60000));
+   window.__flow.receiveMoneyFlowBatch(window.__batch('ETHUSDT',101+i*2,rounds[i].left.openTime+60000));
+   engine.update(100);
+   const panels=engine.flowPanels;
+   return {next:engine.hud.get('nextBattle').text,active:engine.active?.id??null,completed:engine.completedRounds,
+    score:engine.snapshot().score,counters:engine.inspect().moneyFlow.counters,roundId:engine.inspect().moneyFlow.roundId,
+    values:{leftBuy:panels.get('left').buyValue.text,leftSell:panels.get('left').sellValue.text,
+     rightBuy:panels.get('right').buyValue.text,rightSell:panels.get('right').sellValue.text},
+    labels:[panels.get('left').buyLabel.text,panels.get('left').sellLabel.text]};
+  },i);
+  expect(mid.next).toMatch(/02:3[2345]/);
+  expect(mid.active).toBeNull();
+  expect(mid.completed).toBe(i);
+  expect(mid.score).toEqual(await page.evaluate(count=>window.__expectedScore(count),i));
+  expect(mid.roundId).toBe(roundId);
+  expect(mid.counters).toEqual({left:{buy:1,sell:1},right:{buy:1,sell:1}});
+  expect(mid.values).toEqual({leftBuy:'1',leftSell:'1',rightBuy:'1',rightSell:'1'});
+  expect(mid.labels).toEqual(['↑ BUY','↓ SELL']);
+
+  const closed=await page.evaluate((i)=>{
+   const engine=window.engine,rounds=window.__rounds;
+   window.__send(rounds[i].left.closeTime+2000,rounds.slice(0,i+1));
+   engine.update(100);
+   return {active:engine.active?.id??null,phase:engine.inspect().phase,completed:engine.completedRounds,
+    score:engine.snapshot().score,counters:engine.inspect().moneyFlow.counters,next:engine.hud.get('nextBattle').text,
+    tile:engine.tile??null,dropTarget:engine.dropTarget??null};
+  },i);
+  expect(closed.next).toMatch(/04:5/);
+  expect(closed.active).toBe(roundId);
+  expect(closed.phase).toBe('SPAWNING');
+  expect(closed.completed).toBe(i);
+  expect(closed.score).toEqual(await page.evaluate(count=>window.__expectedScore(count),i));
+  expect(closed.counters).toEqual({left:{buy:0,sell:0},right:{buy:0,sell:0}});
+  expect({tile:closed.tile,dropTarget:closed.dropTarget}).toEqual({tile:null,dropTarget:null});
+
+  await expect.poll(async()=>page.evaluate(()=>({completed:window.engine.completedRounds,active:!!window.engine.active,
+   tiles:window.engine.snapshot().tiles.length})),{timeout:15000})
+   .toEqual({completed:i+1,active:false,tiles:i+1});
+  expect(await page.evaluate(()=>window.engine.snapshot().score)).toEqual(await page.evaluate(count=>window.__expectedScore(count),i+1));
+ }
+ const stale=await page.evaluate(()=>{
+  const engine=window.engine,rounds=window.__rounds;
+  // The fourth resolution reaches the client only once its successor UTC
+  // candle has been open for a while: it is history, not a live finisher.
+  window.__send(rounds[3].left.openTime+2*window.__period+10000,rounds.slice(0,4));
+  engine.update(100);
+  return {active:engine.active?.id??null,completed:engine.completedRounds,phase:engine.inspect().phase,
+   score:engine.snapshot().score,tile:engine.tile??null,dropTarget:engine.dropTarget??null,status:engine.hud.get('status').text};
+ });
+ expect(stale.active).toBeNull();
+ expect(stale.completed).toBe(4);
+ expect(stale.phase).toBe('WAITING_MARKET');
+ expect(stale.score).toEqual({left:2,right:2});
+ expect(stale.status).toContain('FORMING');
+ expect({tile:stale.tile,dropTarget:stale.dropTarget}).toEqual({tile:null,dropTarget:null});
+ expect(errors).toEqual([]);
+});
+
 test('a server-finished partial market window displays its confirmed final score and resets the finale for replay',async({page})=>{
   await page.goto('/js/candle-battles/tests/shell.html');await page.waitForFunction(()=>window.engine&&window.ready);
  const final=await page.evaluate(async()=>{
@@ -668,6 +775,7 @@ test('a server-finished partial market window displays its confirmed final score
    matchStartTime:rounds[0].left.openTime,matchEndTime:rounds[0].left.openTime+18*PERIOD,expectedRounds:18},true);
   window.engine.command('speed',10);
   for(let i=0;i<500&&!window.engine.terminal;i++) window.engine.update(100);
+  window.engine.finaleElapsed=0;window.engine.currentLine=window.engine.finale?.[0];
   return {terminal:window.engine.terminal,result:window.engine.hud.get('result').text,status:window.engine.hud.get('status').text,
    round:window.engine.hud.get('round').text,score:window.engine.snapshot().score,leftName:window.engine.hud.get('leftName').text,
    rightName:window.engine.hud.get('rightName').text,leftFinal:window.engine.left.finalVisualState,rightFinal:window.engine.right.finalVisualState,
@@ -683,8 +791,9 @@ test('a server-finished partial market window displays its confirmed final score
  expect(final.canvas).toBe(1);expect(final.fighters).toEqual([true,true]);
  await expect.poll(()=>page.evaluate(()=>document.querySelector('#candle-battle-social-card').dataset.socialReady)).toBe('true');
  expect(await page.evaluate(()=>document.querySelector('#candle-battle-social-card').dataset.replayReady)).toBe('true');
- const dialogue=await page.evaluate(()=>{const e=window.engine;e.command('pause');const line=e.currentLine;e.update(1000);const held=e.currentLine===line;
-  e.command('pause');for(let i=0;i<3;i++)e.update(100);return {held,reply:e.currentLine};});
+  const dialogue=await page.evaluate(()=>{const e=window.engine;e.finaleElapsed=0;e.currentLine=e.finale?.[0];
+   e.command('pause');const line=e.currentLine;e.update(1000);const held=e.currentLine===line;
+   e.finaleElapsed=2900;e.command('pause');for(let i=0;i<3;i++)e.update(100);return {held,reply:e.currentLine};});
  expect(dialogue.held).toBe(true);expect(dialogue.reply.side).not.toBe(final.finalLine.side);
  const replay=await page.evaluate(()=>{const e=window.engine;e.command('replay');
   const fighter=(side)=>{const f=e[side],sprite=f.root.list[2];return {state:f.finalVisualState,animation:sprite.anims.currentAnim?.key,alpha:sprite.alpha,rotation:sprite.rotation,x:f.root.x};};
