@@ -2977,6 +2977,8 @@
     "currentBattle": "Current battle",
     "status": "Status",
     "buy": "Buy",
-    "sell": "Sell"
+    "sell": "Sell",
+    "buyPressure": "Buy Pressure",
+    "sellPressure": "Sell Pressure"
   }
 }

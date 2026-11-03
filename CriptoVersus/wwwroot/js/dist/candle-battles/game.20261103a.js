@@ -4,7 +4,7 @@ import { CandleRenderer } from './renderer.20261103a.js';
 import { AudioManager } from './audio.20261103a.js';
 import { DialogueClock, lineDuration } from './dialogue.20261103a.js';
 import { CandleBattleDialogueEngine } from './dialogue-engine.20261103a.js';
-import { MoneyFlowController } from './money-flow-visual.20261103a.js';
+import { MoneyFlowController, formatMoneyFlowAmount } from './money-flow-visual.20261103a.js';
 import { buildMoneyFlowAnchors } from './money-flow-collectors.20261103a.js';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
@@ -258,7 +258,7 @@ export class GameEngine {
         if (!this.scene || !this.moneyFlow || this.options.socialCapture)
             return;
         const y = this.shell ? 12 : 188;
-        const height = this.shell ? 32 : 42;
+        const height = this.shell ? 44 : 66;
         const width = this.shell ? 208 : 258;
         for (const side of ['left', 'right']) {
             const left = side === 'left' ? 34 : 1280 - 34 - width;
@@ -268,11 +268,11 @@ export class GameEngine {
                 .lineStyle(1, color, .72).strokeRoundedRect(left, y, width, height, 7);
             const labelStyle = { fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '9px' : '11px', fontStyle: 'bold' };
             const valueStyle = { fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '17px' : '22px', fontStyle: 'bold' };
-            const labelY = y + height / 2;
-            const buyLabel = this.scene.add.text(left + 9, labelY, `↑ ${this.text('buy', 'BUY')}`, { ...labelStyle, color: '#b9ff69' }).setOrigin(0, .5).setDepth(23);
-            const buyValue = this.scene.add.text(left + width * .47, labelY, '0', { ...valueStyle, color: '#d9ffaf' }).setOrigin(1, .5).setDepth(23);
-            const sellLabel = this.scene.add.text(left + width * .52, labelY, `↓ ${this.text('sell', 'SELL')}`, { ...labelStyle, color: '#ff8585' }).setOrigin(0, .5).setDepth(23);
-            const sellValue = this.scene.add.text(left + width - 9, labelY, '0', { ...valueStyle, color: '#ffd0d0' }).setOrigin(1, .5).setDepth(23);
+            const rowHeight = height / 2;
+            const buyLabel = this.scene.add.text(left + 9, y + rowHeight * .5, `↑ ${this.text('buyPressure', 'BUY PRESSURE')}`, { ...labelStyle, color: '#b9ff69' }).setOrigin(0, .5).setDepth(23);
+            const buyValue = this.scene.add.text(left + width - 9, y + rowHeight * .5, '0', { ...valueStyle, color: '#d9ffaf' }).setOrigin(1, .5).setDepth(23);
+            const sellLabel = this.scene.add.text(left + 9, y + rowHeight * 1.5, `↓ ${this.text('sellPressure', 'SELL PRESSURE')}`, { ...labelStyle, color: '#ff8585' }).setOrigin(0, .5).setDepth(23);
+            const sellValue = this.scene.add.text(left + width - 9, y + rowHeight * 1.5, '0', { ...valueStyle, color: '#ffd0d0' }).setOrigin(1, .5).setDepth(23);
             this.flowPanels.set(side, { background, buyLabel, buyValue, sellLabel, sellValue, lastBuy: -1, lastSell: -1 });
         }
     }
@@ -287,19 +287,21 @@ export class GameEngine {
             const value = counters.counters[side];
             if (!panel || !value)
                 continue;
-            const buyLabelText = `↑ ${this.text('buy', 'BUY')}`;
-            const sellLabelText = `↓ ${this.text('sell', 'SELL')}`;
+            const buyLabelText = `↑ ${this.text('buyPressure', 'BUY PRESSURE')}`;
+            const sellLabelText = `↓ ${this.text('sellPressure', 'SELL PRESSURE')}`;
             if (panel.buyLabel.text !== buyLabelText)
                 panel.buyLabel.setText(buyLabelText);
             if (panel.sellLabel.text !== sellLabelText)
                 panel.sellLabel.setText(sellLabelText);
             if (panel.lastBuy !== value.buy) {
                 panel.lastBuy = value.buy;
-                panel.buyValue.setText(String(value.buy));
+                const symbol = side === 'left' ? this.feed?.leftSymbol : this.feed?.rightSymbol;
+                panel.buyValue.setText(`${value.partial ? '~' : ''}${formatMoneyFlowAmount(value.buy, symbol ?? '')}`);
             }
             if (panel.lastSell !== value.sell) {
                 panel.lastSell = value.sell;
-                panel.sellValue.setText(String(value.sell));
+                const symbol = side === 'left' ? this.feed?.leftSymbol : this.feed?.rightSymbol;
+                panel.sellValue.setText(`${value.partial ? '~' : ''}${formatMoneyFlowAmount(value.sell, symbol ?? '')}`);
             }
         }
     }

@@ -2976,6 +2976,8 @@
     "currentBattle": "Combate actual",
     "status": "Estado",
     "buy": "Compra",
-    "sell": "Venta"
+    "sell": "Venta",
+    "buyPressure": "Presión Compradora",
+    "sellPressure": "Presión Vendedora"
   }
 }

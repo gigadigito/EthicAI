@@ -13,13 +13,11 @@ import {
     normalizeCollectorQuality,
 } from './money-flow-collectors.js';
 import {
-    ACCENT_LOOP_MS,
     BAG_ABSORB_MS,
     BAG_LANDING_MS,
     BagVisualPhase,
     MONEY_FLOW_EFFECTS_ATLAS,
     MoneyFlowTerminalFx,
-    accentFrameFor,
     bagFrameForPhase,
     moneyFlowEffectsAvailable,
     prepareMoneyFlowEffectsTextures,
@@ -30,6 +28,10 @@ export type MoneyFlowDirection = 'positive' | 'negative' | 'neutral';
 export interface MoneyFlowVisualDecision {
     direction: MoneyFlowDirection;
     intensity: number;
+    buyVolume: number;
+    sellVolume: number;
+    buyIntensity: number;
+    sellIntensity: number;
 }
 
 export interface MoneyFlowVisualSnapshot {
@@ -43,9 +45,10 @@ export interface MoneyFlowVisualSnapshot {
 export interface MoneyFlowCounters {
     buy: number;
     sell: number;
+    partial: boolean;
 }
 
-export type MoneyFlowCounterPolarity = keyof MoneyFlowCounters;
+export type MoneyFlowCounterPolarity = 'buy' | 'sell';
 
 export type MoneyFlowCountersBySide = Record<Side, MoneyFlowCounters>;
 
@@ -57,8 +60,8 @@ export interface MoneyFlowRoundWindow {
 }
 
 const emptyCounters = (): MoneyFlowCountersBySide => ({
-    left: { buy: 0, sell: 0 },
-    right: { buy: 0, sell: 0 },
+    left: { buy: 0, sell: 0, partial: false },
+    right: { buy: 0, sell: 0, partial: false },
 });
 
 const eventTimeMs = (batch: MoneyFlowBatch): number => Date.parse(batch.eventTimeUtc);
@@ -92,13 +95,16 @@ export class MoneyFlowEventCounter {
         return true;
     }
 
-    accept(roundId: string, side: Side, batch: MoneyFlowBatch, polarity: MoneyFlowCounterPolarity): boolean {
+    accept(roundId: string, side: Side, batch: MoneyFlowBatch, polarity: MoneyFlowCounterPolarity, amount = 1): boolean {
         this.setRound(roundId);
         const seen = this.seenByRound.get(roundId)!;
         const key = moneyFlowEventKey(roundId, side, polarity, batch);
         if (seen.has(key)) return false;
         seen.add(key);
-        this.valuesByRound.get(roundId)![side][polarity]++;
+        const value = Number(amount);
+        if (!Number.isFinite(value) || value <= 0) return false;
+        this.valuesByRound.get(roundId)![side][polarity] += value;
+        if (batch.isPartial) this.valuesByRound.get(roundId)![side].partial = true;
         return true;
     }
 
@@ -154,33 +160,87 @@ export function moneyFlowCounterPolarities(batch: MoneyFlowBatch): MoneyFlowCoun
 }
 
 const clamp = (value: number, min = 0, max = 1): number => Math.max(min, Math.min(max, value));
-const finite = (value: string): number => {
+const finite = (value: string | number | undefined): number => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
 };
 
-/** Price movement is authoritative for the visual direction; quote flow only weights its strength. */
-export function decideMoneyFlow(batch: MoneyFlowBatch, previousPrice?: number): MoneyFlowVisualDecision {
-    const first = finite(batch.firstPrice);
-    const last = finite(batch.lastPrice);
-    if (first <= 0 || last <= 0) return { direction: 'neutral', intensity: 0 };
-    // A 250ms window may contain only one trade, in which case first === last.
-    // Compare it to the preceding valid observation rather than discarding it.
-    const baseline = previousPrice != null && previousPrice > 0 ? previousPrice : first;
-    if (last === baseline) return { direction: 'neutral', intensity: 0 };
+/** Quote flow alone determines visual polarity; OHLC is deliberately ignored. */
+export function decideMoneyFlow(batch: MoneyFlowBatch): MoneyFlowVisualDecision {
+    const buyVolume = Math.max(0, finite(batch.takerBuyQuote));
+    const sellVolume = Math.max(0, finite(batch.takerSellQuote));
+    const total = buyVolume + sellVolume;
+    const buyIntensity = total > 0 ? clamp(.2 + .8 * buyVolume / total) : 0;
+    const sellIntensity = total > 0 ? clamp(.2 + .8 * sellVolume / total) : 0;
+    const intensity = Math.max(buyIntensity, sellIntensity) * (batch.isPartial ? .7 : 1);
+    return {
+        direction: buyVolume === 0 && sellVolume === 0 ? 'neutral' : buyVolume >= sellVolume ? 'positive' : 'negative',
+        intensity,
+        buyVolume,
+        sellVolume,
+        buyIntensity: buyIntensity * (batch.isPartial ? .7 : 1),
+        sellIntensity: sellIntensity * (batch.isPartial ? .7 : 1),
+    };
+}
 
-    const relativeMove = Math.abs(last - baseline) / Math.max(Math.abs(baseline), Number.EPSILON);
-    // Sub-precision jitter is not market movement: keep the flow neutral
-    // instead of flickering signs over float noise.
-    if (relativeMove < 1e-9) return { direction: 'neutral', intensity: 0 };
-    const buy = Math.abs(finite(batch.takerBuyQuote));
-    const sell = Math.abs(finite(batch.takerSellQuote));
-    const net = Math.abs(finite(batch.netQuote));
-    const flowBalance = net / Math.max(buy + sell, 1);
-    const tradeSignal = Math.min(1, Math.log10(Math.max(1, batch.tradeCount)) / 3);
-    const intensity = clamp((.18 + clamp(relativeMove / .004) * .57 + clamp(flowBalance) * .17 + tradeSignal * .08)
-        * (batch.isPartial ? .55 : 1));
-    return { direction: last > baseline ? 'positive' : 'negative', intensity };
+export type MoneyFlowSizeCategory = 'small' | 'medium' | 'large' | 'very-large';
+
+export interface MoneyFlowVolumeSample {
+    amount: number;
+    intensity: number;
+    sizeCategory: MoneyFlowSizeCategory;
+}
+
+/**
+ * Adaptive per-symbol/polarity scale. The label remains the real quote amount;
+ * only the sprite scale uses the exponentially smoothed local baseline.
+ */
+export class MoneyFlowVolumeNormalizer {
+    private readonly baselineByKey = new Map<string, number>();
+
+    private intensityFor(key: string, amount: number, partial: boolean): number {
+        const previous = this.baselineByKey.get(key) ?? amount;
+        const ratio = amount / Math.max(previous, Number.EPSILON);
+        const relative = clamp(.5 + Math.log2(Math.max(ratio, .0625)) * .22, .12, 1);
+        return relative * (partial ? .7 : 1);
+    }
+
+    observe(symbol: string, polarity: MoneyFlowCounterPolarity, rawAmount: string | number | undefined, partial = false): MoneyFlowVolumeSample {
+        const amount = Math.max(0, finite(rawAmount));
+        if (amount <= 0) return { amount: 0, intensity: 0, sizeCategory: 'small' };
+        const key = `${symbol.toUpperCase()}:${polarity}`;
+        const intensity = this.intensityFor(key, amount, partial);
+        const previous = this.baselineByKey.get(key) ?? amount;
+        this.baselineByKey.set(key, previous * .88 + amount * .12);
+        const sizeCategory: MoneyFlowSizeCategory = intensity < .35 ? 'small'
+            : intensity < .58 ? 'medium'
+                : intensity < .8 ? 'large' : 'very-large';
+        return { amount, intensity, sizeCategory };
+    }
+
+    scaleFor(symbol: string, polarity: MoneyFlowCounterPolarity, amount: number): MoneyFlowVolumeSample {
+        const safeAmount = Math.max(0, amount);
+        if (safeAmount <= 0) return { amount: 0, intensity: 0, sizeCategory: 'small' };
+        const intensity = this.intensityFor(`${symbol.toUpperCase()}:${polarity}`, safeAmount, false);
+        const sizeCategory: MoneyFlowSizeCategory = intensity < .35 ? 'small'
+            : intensity < .58 ? 'medium'
+                : intensity < .8 ? 'large' : 'very-large';
+        return { amount: safeAmount, intensity, sizeCategory };
+    }
+
+    reset(): void { this.baselineByKey.clear(); }
+}
+
+export function formatMoneyFlowAmount(amount: number, symbol: string): string {
+    const value = Math.max(0, Number(amount) || 0);
+    const suffix = value >= 1_000_000_000 ? 'B' : value >= 1_000_000 ? 'M' : value >= 1_000 ? 'K' : '';
+    const scaled = suffix === 'B' ? value / 1_000_000_000 : suffix === 'M' ? value / 1_000_000 : suffix === 'K' ? value / 1_000 : value;
+    const decimals = suffix ? scaled < 10 ? 1 : 0 : scaled < 100 ? 0 : 0;
+    const numberText = scaled.toFixed(decimals).replace(/\.0$/, '');
+    const upper = symbol.toUpperCase();
+    const quotes = ['USDT', 'USDC', 'FDUSD', 'BUSD', 'TUSD', 'BTC', 'ETH', 'BNB', 'EUR', 'TRY', 'BRL'];
+    const quote = quotes.find(candidate => upper.endsWith(candidate));
+    return `${numberText}${suffix}${quote ? ` ${quote}` : ''}`;
 }
 
 /** Framework-free smoothing state so the visual rules are testable without a Phaser canvas. */
@@ -189,21 +249,18 @@ export class MoneyFlowVisualState {
     private negativeEnergy = 0;
     private accumulator = 0;
     private displayedCandle = .5;
-    private lastObservedPrice?: number;
+    private pendingBuy = 0;
+    private pendingSell = 0;
 
-    ingest(batch: MoneyFlowBatch): MoneyFlowVisualDecision {
-        const last = finite(batch.lastPrice);
-        const decision = decideMoneyFlow(batch, this.lastObservedPrice);
-        // Establish a baseline from the first valid observation without
-        // inventing movement; subsequent one-trade batches use this reference.
-        if (last > 0) this.lastObservedPrice = last;
-        if (decision.direction === 'positive') {
-            this.positiveEnergy = clamp(this.positiveEnergy + decision.intensity);
-            this.accumulator = clamp(this.accumulator + decision.intensity * .38, -1, 1);
-        } else if (decision.direction === 'negative') {
-            this.negativeEnergy = clamp(this.negativeEnergy + decision.intensity);
-            this.accumulator = clamp(this.accumulator - decision.intensity * .38, -1, 1);
-        }
+    ingest(batch: MoneyFlowBatch, buyIntensity?: number, sellIntensity?: number): MoneyFlowVisualDecision {
+        const decision = decideMoneyFlow(batch);
+        const buy = buyIntensity ?? decision.buyIntensity;
+        const sell = sellIntensity ?? decision.sellIntensity;
+        this.pendingBuy += decision.buyVolume;
+        this.pendingSell += decision.sellVolume;
+        this.positiveEnergy = clamp(this.positiveEnergy + buy);
+        this.negativeEnergy = clamp(this.negativeEnergy + sell);
+        this.accumulator = clamp(this.accumulator + (buy - sell) * .38, -1, 1);
         return decision;
     }
 
@@ -222,7 +279,14 @@ export class MoneyFlowVisualState {
     get negative(): number { return this.negativeEnergy; }
     get displayed(): number { return this.displayedCandle; }
     get accumulatorValue(): number { return this.accumulator; }
-    get referencePrice(): number | undefined { return this.lastObservedPrice; }
+    get pendingPositiveVolume(): number { return this.pendingBuy; }
+    get pendingNegativeVolume(): number { return this.pendingSell; }
+    takePending(polarity: MoneyFlowCounterPolarity): number {
+        const value = polarity === 'buy' ? this.pendingBuy : this.pendingSell;
+        if (polarity === 'buy') this.pendingBuy = 0;
+        else this.pendingSell = 0;
+        return value;
+    }
 
     snapshot(): MoneyFlowVisualSnapshot {
         return {
@@ -230,7 +294,7 @@ export class MoneyFlowVisualState {
             negativeEnergy: this.negativeEnergy,
             accumulator: this.accumulator,
             displayedCandle: this.displayedCandle,
-            referencePrice: this.lastObservedPrice
+            referencePrice: undefined
         };
     }
 
@@ -239,7 +303,8 @@ export class MoneyFlowVisualState {
         this.negativeEnergy = 0;
         this.accumulator = 0;
         this.displayedCandle = .5;
-        this.lastObservedPrice = undefined;
+        this.pendingBuy = 0;
+        this.pendingSell = 0;
     }
 }
 
@@ -261,7 +326,7 @@ export class ReusablePool<T extends { active: boolean }> {
 }
 
 type BagView = PhaserTypes.GameObjects.Sprite | PhaserTypes.GameObjects.Graphics;
-type SignView = PhaserTypes.GameObjects.Sprite | PhaserTypes.GameObjects.Text;
+type SignView = PhaserTypes.GameObjects.Text;
 
 interface BagParticle extends CollectibleMoneyBag {
     view: BagView;
@@ -279,6 +344,10 @@ interface BagParticle extends CollectibleMoneyBag {
     baseScale: number;
     viewScale: number;
     viewAlpha: number;
+    amount: number;
+    currency: string;
+    intensity: number;
+    sizeCategory: MoneyFlowSizeCategory;
 }
 interface SignParticle {
     active: boolean;
@@ -294,6 +363,7 @@ interface SignParticle {
     followBagId?: number;
     offsetX: number;
     offsetY: number;
+    text: string;
 }
 interface SideFx { state: MoneyFlowVisualState; glow: PhaserTypes.GameObjects.Graphics; positiveCooldown: number; negativeCooldown: number; }
 
@@ -381,6 +451,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
     private readonly collectorsConfigured: boolean;
     private readonly spriteMode: boolean;
     private readonly terminalFx: MoneyFlowTerminalFx;
+    private readonly volumeNormalizer = new MoneyFlowVolumeNormalizer();
     private reducedMotion: boolean;
     private matchId?: number;
     private symbols: Record<Side, string> = { left: '', right: '' };
@@ -407,11 +478,11 @@ export class MoneyFlowController implements MoneyFlowBagHost {
             state: 'REMOVED', age: 0, availableAge: 0, lifetime: 0, x: 0, y: 0,
             startX: 0, startY: 0, targetX: 0, targetY: 0, phase: 0,
             fallDuration: 1000, visualPhase: 'flying', phaseAge: 0, restY: 0, groundY: 0,
-            baseScale: 1, viewScale: 1, viewAlpha: 1
+            baseScale: 1, viewScale: 1, viewAlpha: 1, amount: 0, currency: '', intensity: 0, sizeCategory: 'small'
         }));
         this.signs = new ReusablePool(MAX_SIGNS_PER_SIDE * 2, () => ({
             active: false, view: this.createSignView(), positive: true, side: 'left',
-            age: 0, lifetime: 0, x: 0, y: 0, vx: 0, vy: 0, offsetX: 0, offsetY: 0
+            age: 0, lifetime: 0, x: 0, y: 0, vx: 0, vy: 0, offsetX: 0, offsetY: 0, text: ''
         }));
         this.collectors = new CollectorController(scene, this, {
             enabled: this.collectorsConfigured,
@@ -428,13 +499,10 @@ export class MoneyFlowController implements MoneyFlowBagHost {
     }
 
     private createSignView(): SignView {
-        return this.spriteMode
-            ? this.scene.add.sprite(0, 0, MONEY_FLOW_EFFECTS_ATLAS, 'positive-coins-1')
-                .setOrigin(.5, .5).setDepth(13).setVisible(false)
-            : this.scene.add.text(0, 0, '+', {
-                fontFamily: 'monospace', fontSize: '28px', fontStyle: 'bold', color: '#b8ff64',
-                stroke: '#071317', strokeThickness: 4
-            }).setOrigin(.5).setDepth(13).setVisible(false);
+        return this.scene.add.text(0, 0, '', {
+            fontFamily: 'monospace', fontSize: '14px', fontStyle: 'bold', color: '#b8ff64',
+            stroke: '#071317', strokeThickness: 4
+        }).setOrigin(.5).setDepth(13).setVisible(false);
     }
 
     setLiveMatch(matchId: number, leftSymbol: string, rightSymbol: string, enabled: boolean): void {
@@ -499,15 +567,21 @@ export class MoneyFlowController implements MoneyFlowBagHost {
             // Positive and negative energy are independent real batch streams.
             // Selecting only the dominant value made a valid stream disappear
             // whenever the other polarity decayed more slowly.
-            if (fx.state.positive > .055 && fx.positiveCooldown === 0) {
-                const bag = this.spawnBag(side, true, anchors[side], fx.state.positive);
-                this.spawnSign(side, true, bag, anchors[side]);
+            if (fx.state.pendingPositiveVolume > 0 && fx.positiveCooldown === 0) {
+                const amount = fx.state.pendingPositiveVolume;
+                const intensity = this.volumeNormalizer.scaleFor(this.symbols[side], 'buy', amount).intensity;
+                const bag = this.spawnBag(side, true, anchors[side], amount, intensity);
+                if (bag) fx.state.takePending('buy');
+                if (bag) this.spawnSign(side, true, bag, anchors[side]);
                 // Higher energy emits more often, within the hard object limits.
                 fx.positiveCooldown = 240 + (1 - fx.state.positive) * 260;
             }
-            if (fx.state.negative > .055 && fx.negativeCooldown === 0) {
-                const bag = this.spawnBag(side, false, anchors[side], fx.state.negative);
-                this.spawnSign(side, false, bag, anchors[side]);
+            if (fx.state.pendingNegativeVolume > 0 && fx.negativeCooldown === 0) {
+                const amount = fx.state.pendingNegativeVolume;
+                const intensity = this.volumeNormalizer.scaleFor(this.symbols[side], 'sell', amount).intensity;
+                const bag = this.spawnBag(side, false, anchors[side], amount, intensity);
+                if (bag) fx.state.takePending('sell');
+                if (bag) this.spawnSign(side, false, bag, anchors[side]);
                 fx.negativeCooldown = 260 + (1 - fx.state.negative) * 270;
             }
         }
@@ -552,6 +626,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         this.counter.reset();
         this.round = undefined;
         this.particleSequence = 0;
+        this.volumeNormalizer.reset();
         this.clearParticles();
         for (const side of SIDES) this.effects[side].state.reset();
     }
@@ -572,19 +647,31 @@ export class MoneyFlowController implements MoneyFlowBagHost {
     private consumeBufferedBatches(): void {
         if (!this.matchId || !this.round) return;
         for (const batch of getMoneyFlowBuffer(this.matchId)) {
-            for (const side of moneyFlowSidesForBatch(batch, this.symbols)) {
+            const sides = moneyFlowSidesForBatch(batch, this.symbols);
+            if (sides.length === 0) continue;
+            const acceptedSides: Side[] = [];
+            for (const side of sides) {
                 const key = `${side}:${batch.symbol.toUpperCase()}`;
                 if ((this.lastSequence.get(key) ?? 0) >= batch.sequence) continue;
                 this.lastSequence.set(key, batch.sequence);
                 if (!moneyFlowBatchBelongsToRound(batch, this.round)) continue;
-                const decision = this.effects[side].state.ingest(batch);
-                for (const polarity of moneyFlowCounterPolarities(batch))
-                    this.counter.accept(this.round.id, side, batch, polarity);
+                acceptedSides.push(side);
+            }
+            if (acceptedSides.length === 0) continue;
+            const decision = decideMoneyFlow(batch);
+            const buy = this.volumeNormalizer.observe(batch.symbol, 'buy', batch.takerBuyQuote, batch.isPartial);
+            const sell = this.volumeNormalizer.observe(batch.symbol, 'sell', batch.takerSellQuote, batch.isPartial);
+            for (const side of acceptedSides) {
+                // Relative normalization controls parcel size only. Directional
+                // pressure must retain the batch's absolute buy/sell balance.
+                this.effects[side].state.ingest(batch, decision.buyIntensity, decision.sellIntensity);
+                if (buy.amount > 0) this.counter.accept(this.round.id, side, batch, 'buy', buy.amount);
+                if (sell.amount > 0) this.counter.accept(this.round.id, side, batch, 'sell', sell.amount);
             }
         }
     }
 
-    private spawnBag(side: Side, positive: boolean, anchors: MoneyFlowAnchors, energy: number): BagParticle | undefined {
+    private spawnBag(side: Side, positive: boolean, anchors: MoneyFlowAnchors, amount: number, intensity: number): BagParticle | undefined {
         let activeForSide = 0;
         this.bags.forEach(item => { if (item.active && item.side === side) activeForSide++; });
         if (activeForSide >= MAX_BAGS_PER_SIDE) return undefined;
@@ -595,6 +682,10 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         ]);
         bag.id = ++this.particleSequence;
         bag.side = side; bag.positive = positive; bag.age = 0; bag.availableAge = 0; bag.ownerId = undefined;
+        bag.amount = amount;
+        bag.currency = this.symbols[side];
+        bag.intensity = intensity;
+        bag.sizeCategory = intensity < .35 ? 'small' : intensity < .58 ? 'medium' : intensity < .8 ? 'large' : 'very-large';
         bag.state = 'FLOWING';
         bag.visualPhase = 'flying'; bag.phaseAge = 0;
         bag.fallDuration = plan.fallDuration;
@@ -605,7 +696,8 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         bag.restY = plan.targetY;
         bag.groundY = anchors.ground.y;
         bag.phase = plan.sway;
-        bag.baseScale = clamp(anchors.region.fighterHeight / 290, .55, 1) * (.92 + energy * .16);
+        const sizeScale = bag.sizeCategory === 'small' ? .8 : bag.sizeCategory === 'medium' ? 1 : bag.sizeCategory === 'large' ? 1.2 : 1.4;
+        bag.baseScale = clamp(anchors.region.fighterHeight / 290, .55, 1) * sizeScale;
         if (this.spriteMode) {
             (bag.view as PhaserTypes.GameObjects.Sprite).setFrame(bagFrameForPhase('flying', 0));
         } else {
@@ -623,22 +715,16 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         if (!sign) return;
         const randomA = this.random(side), randomB = this.random(side);
         sign.side = side; sign.positive = positive; sign.age = 0; sign.lifetime = 1100;
-        sign.offsetX = (randomA - .5) * 88 + (positive ? 34 : -34);
-        sign.offsetY = -10 - randomB * 30;
+        sign.offsetX = (positive ? 42 : -42) + (randomA - .5) * 12;
+        sign.offsetY = -12 - randomB * 8;
         sign.followBagId = bag?.id;
+        sign.text = bag ? formatMoneyFlowAmount(bag.amount, bag.currency) : '';
         sign.x = bag ? bag.x + sign.offsetX : anchors.body.x + (randomA - .5) * 120;
         sign.y = bag ? bag.y + sign.offsetY : positive ? anchors.head.y + 40 : anchors.body.y + 30;
         sign.vx = (randomB - .5) * 18;
         sign.vy = positive ? -30 : 24;
-        if (this.spriteMode) {
-            (sign.view as PhaserTypes.GameObjects.Sprite)
-                .setTexture(MONEY_FLOW_EFFECTS_ATLAS, accentFrameFor(positive, 0))
-                .setScale(.38).setAlpha(.95).setPosition(sign.x, sign.y).setVisible(true);
-        } else {
-            (sign.view as PhaserTypes.GameObjects.Text).setText(positive ? '+' : '\u2212')
-                .setColor(positive ? '#b9ff69' : '#ff7777')
-                .setPosition(sign.x, sign.y).setAlpha(.95).setVisible(true);
-        }
+        sign.view.setText(sign.text).setColor(positive ? '#d9ff84' : '#ff9b65')
+            .setPosition(sign.x, sign.y).setAlpha(.95).setVisible(Boolean(sign.text));
     }
 
     private updateBags(deltaMs: number, anchors: Record<Side, MoneyFlowAnchors>): void {
@@ -715,7 +801,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
             if (!sign.active) return;
             sign.age += deltaMs;
             const bag = sign.followBagId != null ? this.mutableBag(sign.followBagId) : undefined;
-            if (bag && bag.state !== 'CARRIED' && bag.state !== 'REMOVED') {
+            if (bag && bag.state !== 'REMOVED') {
                 sign.x = bag.x + sign.offsetX;
                 sign.y = bag.y + sign.offsetY + Math.sin(sign.age / 300) * 4;
             } else {
@@ -727,11 +813,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
             sign.x = Math.max(region.left, Math.min(region.right, sign.x));
             sign.y = Math.max(region.top - 44, Math.min(region.floorY + 40, sign.y));
             sign.view.setPosition(sign.x, sign.y).setAlpha(Math.max(0, 1 - sign.age / sign.lifetime));
-            if (this.spriteMode) {
-                (sign.view as PhaserTypes.GameObjects.Sprite).setFrame(this.reducedMotion
-                    ? accentFrameFor(sign.positive, 0)
-                    : accentFrameFor(sign.positive, (sign.age % ACCENT_LOOP_MS) / ACCENT_LOOP_MS));
-            }
+            sign.view.setScale(1);
             if (sign.age >= sign.lifetime) { sign.view.setVisible(false); this.signs.release(sign); }
         });
     }
@@ -869,9 +951,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
             if (!sign.active) return;
             result.push({
                 polarity: sign.positive ? 'positive' : 'negative',
-                frame: this.spriteMode
-                    ? String((sign.view as PhaserTypes.GameObjects.Sprite).frame?.name ?? '')
-                    : sign.positive ? '+' : '\u2212',
+                frame: sign.text,
                 x: sign.x, y: sign.y,
             });
         });

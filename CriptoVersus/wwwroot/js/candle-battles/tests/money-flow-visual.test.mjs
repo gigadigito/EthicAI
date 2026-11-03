@@ -3,9 +3,9 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
-  decideMoneyFlow, MoneyFlowEventCounter, MoneyFlowVisualState, ReusablePool,
+  decideMoneyFlow, MoneyFlowEventCounter, MoneyFlowVisualState, MoneyFlowVolumeNormalizer, ReusablePool,
   moneyFlowBatchBelongsToRound, moneyFlowCounterPolarities, moneyFlowEventKey, moneyFlowSidesForBatch,
-  moneyFlowTakerFieldState, planBagSpawn,
+  moneyFlowTakerFieldState, formatMoneyFlowAmount, planBagSpawn,
 } from '../../dist/candle-battles/money-flow-visual.js';
 import {
   bagFrameForPhase, accentFrameFor,
@@ -22,27 +22,34 @@ const batch = (overrides = {}) => ({
   ...overrides
 });
 
-test('price movement decides visual direction independently of net quote', () => {
-  assert.equal(decideMoneyFlow(batch({ lastPrice: '100.4', netQuote: '-500' })).direction, 'positive');
-  assert.equal(decideMoneyFlow(batch({ lastPrice: '99.6', netQuote: '500' })).direction, 'negative');
-  assert.deepEqual(decideMoneyFlow(batch({ lastPrice: '100' })), { direction: 'neutral', intensity: 0 });
+test('taker quote flow decides visual direction independently of OHLC and net quote', () => {
+  assert.equal(decideMoneyFlow(batch({ lastPrice: '100.4', takerBuyQuote: '220', takerSellQuote: '100', netQuote: '-500' })).direction, 'positive');
+  assert.equal(decideMoneyFlow(batch({ lastPrice: '99.6', takerBuyQuote: '100', takerSellQuote: '220', netQuote: '500' })).direction, 'negative');
+  assert.equal(decideMoneyFlow(batch({ firstPrice: '0', lastPrice: '0', takerBuyQuote: '0', takerSellQuote: '0' })).direction, 'neutral');
 });
 
-test('sub-precision jitter keeps the flow neutral instead of flickering', () => {
-  assert.deepEqual(decideMoneyFlow(batch({ lastPrice: '100.00000000000001' }), 100), { direction: 'neutral', intensity: 0 });
-  assert.equal(decideMoneyFlow(batch({ lastPrice: '100.001' }), 100).direction, 'positive');
+test('stable prices still produce visual flow when real taker volume exists', () => {
+  const decision = decideMoneyFlow(batch({ firstPrice: '100', lastPrice: '100', takerBuyQuote: '220', takerSellQuote: '100' }));
+  assert.equal(decision.direction, 'positive');
+  assert.equal(decision.buyVolume, 220);
+  assert.equal(decision.sellVolume, 100);
 });
 
-test('tiny real moves stay weaker than large ones', () => {
-  const tiny = decideMoneyFlow(batch({ lastPrice: '100.002' }), 100).intensity;
-  const large = decideMoneyFlow(batch({ lastPrice: '104' }), 100).intensity;
-  assert.ok(tiny > 0);
-  assert.ok(tiny < large);
+test('relative volume normalization gives larger parcels stronger visual intensity', () => {
+  const normalizer = new MoneyFlowVolumeNormalizer();
+  normalizer.observe('BTCUSDT', 'buy', '100');
+  const small = normalizer.observe('BTCUSDT', 'buy', '60');
+  const large = normalizer.observe('BTCUSDT', 'buy', '1000');
+  assert.ok(small.intensity < large.intensity);
+  assert.equal(large.sizeCategory, 'very-large');
 });
 
-test('invalid prices never produce a direction', () => {
-  assert.deepEqual(decideMoneyFlow(batch({ firstPrice: '0', lastPrice: '100' })), { direction: 'neutral', intensity: 0 });
-  assert.deepEqual(decideMoneyFlow(batch({ firstPrice: '100', lastPrice: 'NaN' })), { direction: 'neutral', intensity: 0 });
+test('zero volume never produces a financial bag', () => {
+  const decision = decideMoneyFlow(batch({ takerBuyQuote: '0', takerSellQuote: '0', firstPrice: 'NaN', lastPrice: 'NaN' }));
+  assert.equal(decision.direction, 'neutral');
+  assert.equal(decision.intensity, 0);
+  assert.equal(decision.buyVolume, 0);
+  assert.equal(decision.sellVolume, 0);
 });
 
 test('partial batches are intentionally conservative', () => {
@@ -52,13 +59,12 @@ test('partial batches are intentionally conservative', () => {
   assert.ok(partial < full);
 });
 
-test('single-price batches use the preceding valid price without inventing an initial move', () => {
+test('single-price batches use taker quote flow without inventing price movement', () => {
   const state = new MoneyFlowVisualState();
-  assert.deepEqual(state.ingest(batch({ firstPrice: '100', lastPrice: '100' })), { direction: 'neutral', intensity: 0 });
-  assert.equal(state.referencePrice, 100);
-  assert.equal(state.ingest(batch({ sequence: 2, firstPrice: '100.3', lastPrice: '100.3' })).direction, 'positive');
-  assert.equal(state.ingest(batch({ sequence: 3, firstPrice: '99.8', lastPrice: '99.8' })).direction, 'negative');
-  assert.equal(state.ingest(batch({ sequence: 4, firstPrice: '99.8', lastPrice: '99.8' })).direction, 'neutral');
+  assert.equal(state.ingest(batch({ firstPrice: '100', lastPrice: '100', takerBuyQuote: '0', takerSellQuote: '0' })).direction, 'neutral');
+  assert.equal(state.ingest(batch({ sequence: 2, firstPrice: '100.3', lastPrice: '100.3', takerBuyQuote: '100', takerSellQuote: '0' })).direction, 'positive');
+  assert.equal(state.ingest(batch({ sequence: 3, firstPrice: '99.8', lastPrice: '99.8', takerBuyQuote: '0', takerSellQuote: '120' })).direction, 'negative');
+  assert.equal(state.ingest(batch({ sequence: 4, firstPrice: '99.8', lastPrice: '99.8', takerBuyQuote: '0', takerSellQuote: '0' })).direction, 'neutral');
 });
 
 test('visual accumulator is bounded, smoothed, and responds in both directions', () => {
@@ -68,7 +74,7 @@ test('visual accumulator is bounded, smoothed, and responds in both directions',
   const raised = state.snapshot();
   assert.ok(raised.accumulator <= 1 && raised.accumulator > 0);
   assert.ok(raised.displayedCandle > .5 && raised.displayedCandle <= .84);
-  for (let index = 0; index < 12; index++) state.ingest(batch({ sequence: index + 20, lastPrice: '99.2' }));
+  for (let index = 0; index < 12; index++) state.ingest(batch({ sequence: index + 20, lastPrice: '99.2', takerBuyQuote: '20', takerSellQuote: '200' }));
   state.advance(320);
   const lowered = state.snapshot();
   assert.ok(lowered.accumulator >= -1 && lowered.accumulator < 0);
@@ -84,12 +90,12 @@ test('accepted batches remain bilateral and increment actual buy and sell counte
   assert.deepEqual(moneyFlowSidesForBatch(negativeRight, symbols), ['right']);
   const round = '12:5m:1767225600000';
   assert.deepEqual(moneyFlowCounterPolarities(positiveLeft), ['buy', 'sell']);
-  assert.equal(counters.accept(round, 'left', positiveLeft, 'buy'), true);
-  assert.equal(counters.accept(round, 'left', positiveLeft, 'buy'), false, 'duplicate receipt is ignored');
-  assert.equal(counters.accept(round, 'right', negativeRight, 'sell'), true);
+  assert.equal(counters.accept(round, 'left', positiveLeft, 'buy', 220), true);
+  assert.equal(counters.accept(round, 'left', positiveLeft, 'buy', 220), false, 'duplicate receipt is ignored');
+  assert.equal(counters.accept(round, 'right', negativeRight, 'sell', 100), true);
   assert.deepEqual(counters.snapshot(), {
-    left: { buy: 1, sell: 0 },
-    right: { buy: 0, sell: 1 },
+    left: { buy: 220, sell: 0, partial: false },
+    right: { buy: 0, sell: 100, partial: false },
   });
   assert.equal(moneyFlowEventKey(round, 'left', 'buy', positiveLeft), '12:12:5m:1767225600000:left:buy:BTCUSDT:11');
 });
@@ -99,28 +105,34 @@ test('same-symbol matches keep one deterministic visual event identity per candl
   const shared = batch({ symbol: 'BTCUSDT', sequence: 8, lastPrice: '100.6' });
   assert.deepEqual(moneyFlowSidesForBatch(shared, { left: 'BTCUSDT', right: 'BTCUSDT' }), ['left', 'right']);
   const round = '12:5m:1767225600000';
-  assert.equal(counters.accept(round, 'left', shared, 'buy'), true);
-  assert.equal(counters.accept(round, 'right', shared, 'buy'), true);
+  assert.equal(counters.accept(round, 'left', shared, 'buy', 220), true);
+  assert.equal(counters.accept(round, 'right', shared, 'buy', 220), true);
   assert.deepEqual(counters.snapshot(), {
-    left: { buy: 1, sell: 0 },
-    right: { buy: 1, sell: 0 },
+    left: { buy: 220, sell: 0, partial: false },
+    right: { buy: 220, sell: 0, partial: false },
   });
   counters.setRound('12:5m:1767225900000');
   assert.deepEqual(counters.snapshot(), {
-    left: { buy: 0, sell: 0 },
-    right: { buy: 0, sell: 0 },
+    left: { buy: 0, sell: 0, partial: false },
+    right: { buy: 0, sell: 0, partial: false },
   }, 'a new round starts with independent presentation counters');
   counters.setRound(round);
   assert.deepEqual(counters.snapshot(), {
-    left: { buy: 1, sell: 0 },
-    right: { buy: 1, sell: 0 },
+    left: { buy: 220, sell: 0, partial: false },
+    right: { buy: 220, sell: 0, partial: false },
   }, 'replay can restore the counters owned by its historical round');
 });
 
-test('buy and sell labels never reuse the price-movement classification', () => {
+test('buy and sell labels remain independent from net quote and price movement', () => {
   const risingWithSellerFlow = batch({ lastPrice: '100.5', takerBuyQuote: '0', takerSellQuote: '120' });
-  assert.equal(decideMoneyFlow(risingWithSellerFlow).direction, 'positive');
+  assert.equal(decideMoneyFlow(risingWithSellerFlow).direction, 'negative');
   assert.deepEqual(moneyFlowCounterPolarities(risingWithSellerFlow), ['sell']);
+});
+
+test('financial labels use compact values and preserve the quote asset', () => {
+  assert.equal(formatMoneyFlowAmount(850, 'BTCUSDT'), '850 USDT');
+  assert.equal(formatMoneyFlowAmount(1250, 'ETHUSDC'), '1.3K USDC');
+  assert.equal(formatMoneyFlowAmount(1_200_000, 'ETHBTC'), '1.2M BTC');
 });
 
 test('unavailable taker data is never classified as a measured zero flow', () => {

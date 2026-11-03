@@ -2978,6 +2978,8 @@
     "currentBattle": "当前对战",
     "status": "状态",
     "buy": "买入",
-    "sell": "卖出"
+    "sell": "卖出",
+    "buyPressure": "买方压力",
+    "sellPressure": "卖方压力"
   }
 }

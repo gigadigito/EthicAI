@@ -2976,6 +2976,8 @@
     "currentBattle": "現在の対戦",
     "status": "状態",
     "buy": "購入",
-    "sell": "売却"
+    "sell": "売却",
+    "buyPressure": "買い圧力",
+    "sellPressure": "売り圧力"
   }
 }

@@ -20,6 +20,11 @@ export interface CollectibleMoneyBag {
     availableAge: number;
     x: number;
     y: number;
+    /** Quote volume represented by this visual parcel; never a scoring value. */
+    amount?: number;
+    currency?: string;
+    intensity?: number;
+    sizeCategory?: 'small' | 'medium' | 'large' | 'very-large';
     ownerId?: string;
 }
 
@@ -361,10 +366,17 @@ export class CollectorController {
 
         const positiveEnergy = frame.energy[side].positive;
         const negativeEnergy = frame.energy[side].negative;
-        const preferredPositive = positiveEnergy >= negativeEnergy;
-        const compatible = sideCycles.length ? candidates.filter(bag => bag.positive === sideCycles[0].positive) : candidates;
-        const preferred = compatible.filter(bag => bag.positive === preferredPositive);
-        const selection = (preferred.length ? preferred : compatible)
+        const activePositive = sideCycles.filter(cycle => cycle.positive).length;
+        const activeNegative = sideCycles.length - activePositive;
+        let preferredPositive = positiveEnergy >= negativeEnergy;
+        // Do not let a persistent buy stream starve sell bags (or vice versa)
+        // while the opposite polarity is waiting on the same side. A side can
+        // host both collectors; their bag ownership still remains exclusive.
+        if (candidates.some(bag => bag.positive) && candidates.some(bag => !bag.positive)
+            && activePositive !== activeNegative)
+            preferredPositive = activePositive < activeNegative;
+        const preferred = candidates.filter(bag => bag.positive === preferredPositive);
+        const selection = (preferred.length ? preferred : candidates)
             .sort((a, b) => b.availableAge - a.availableAge || a.id - b.id)[0];
         if (!selection) return;
 

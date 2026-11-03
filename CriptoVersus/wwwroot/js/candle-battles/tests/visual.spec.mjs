@@ -145,12 +145,12 @@ test('live Money Flow renders bounded positive and negative effects, then clears
   return engine.inspect().moneyFlow;
  },flowUrl);
  expect(visual.active).toBe(true);expect(visual.renderMode).toBe('sprites');expect(visual.collectors.enabled).toBe(false);expect(visual.bags).toBeGreaterThan(0);expect(visual.signs).toBeGreaterThan(0);
- expect(visual.counters).toEqual({left:{buy:1,sell:1},right:{buy:1,sell:1}});
+ expect(visual.counters).toEqual({left:{buy:120,sell:20,partial:false},right:{buy:120,sell:20,partial:true}});
  expect(await page.evaluate(()=>{
   const panels=window.engine.flowPanels;
   return {left:{buy:panels.get('left').buyLabel.text,sell:panels.get('left').sellLabel.text},right:{buy:panels.get('right').buyLabel.text,sell:panels.get('right').sellLabel.text}};
- })).toEqual({left:{buy:'↑ BUY',sell:'↓ SELL'},right:{buy:'↑ BUY',sell:'↓ SELL'}});
- expect(visual.left.displayedCandle).toBeGreaterThan(.5);expect(visual.right.displayedCandle).toBeLessThan(.5);
+ })).toEqual({left:{buy:'↑ BUY PRESSURE',sell:'↓ SELL PRESSURE'},right:{buy:'↑ BUY PRESSURE',sell:'↓ SELL PRESSURE'}});
+ expect(visual.left.displayedCandle).toBeGreaterThan(.5);expect(visual.right.displayedCandle).toBeGreaterThan(.5);
  expect(visual.bags).toBeLessThanOrEqual(12);expect(visual.signs).toBeLessThanOrEqual(12);
  await page.screenshot({path:testInfo.outputPath('money-flow-live.png'),fullPage:true});
  const replay=await page.evaluate(()=>{window.engine.command('replay');window.engine.update(16);return window.engine.inspect().moneyFlow;});
@@ -198,6 +198,7 @@ test('sprite collectors reserve each bag once, animate both polarities and clear
   }
   return {...seen,frames:[...seen.frames],snapshot:engine.inspect().moneyFlow};
  },flowUrl);
+
  expect(observed.snapshot.renderMode).toBe('sprites');
  expect(observed.snapshot.collectors.quality).toBe('high');
  expect(observed.positive).toBe(true);expect(observed.negative).toBe(true);
@@ -251,8 +252,9 @@ test('money flow mock scenarios stay per-symbol, bounded and isolated across rep
   const rising=await page.evaluate(async(flowUrl)=>{
    const engine=window.engine;
    const {demoRound}=await import('/js/dist/candle-battles/model.js');
-   const round=demoRound(0);
    const open=Math.floor(Date.now()/300000)*300000,event=new Date(open+1000).toISOString();
+    const sourceRound=demoRound(0);
+    const round={...sourceRound,left:{...sourceRound.left,openTime:open,closeTime:open+300000,updatedAt:open+300000},right:{...sourceRound.right,openTime:open,closeTime:open+300000,updatedAt:open+300000},id:`88:5m:${open}`};
    window.__flowOpen=open;
    // Real OHLC candles feed the original overhead indicator while Money Flow
    // runs its own effects: the screenshot must show both without duplication.
@@ -276,7 +278,7 @@ test('money flow mock scenarios stay per-symbol, bounded and isolated across rep
   for(let sequence=1;sequence<=8;sequence++){ price=Number((price*.996).toFixed(4)); window.__flow.receiveMoneyFlowBatch(window.__batch(88,'ETHUSDT',sequence,'100',String(price))); engine.update(120); }
   return engine.inspect().moneyFlow;
  });
- expect(falling.right.negativeEnergy).toBeGreaterThan(0);expect(falling.right.displayedCandle).toBeLessThan(.5);
+ expect(falling.right.negativeEnergy).toBeGreaterThan(0);expect(falling.right.displayedCandle).toBeGreaterThan(.5);
  expect(falling.left.displayedCandle).toBeGreaterThan(.5);
  expect(falling.bags).toBeLessThanOrEqual(12);expect(falling.signs).toBeLessThanOrEqual(12);
  await page.screenshot({path:testInfo.outputPath('money-flow-negative.png'),fullPage:true});
@@ -373,7 +375,7 @@ test('money flow bag sprites drive real atlas frames across the expanded region'
       if(!inRegion||bag.y<235||bag.y>475)seen.outOfBounds=true;
      }
     }
-    for(const sign of state.signStates)seen.signFrames.add(sign.frame);
+    for(const sign of state.signStates)seen.signFrames.add(`${sign.polarity}:${sign.frame}`);
    }
    return {falling:seen.falling,landing:seen.landing,resting:seen.resting,outOfBounds:seen.outOfBounds,
     burnDuringAvailable:seen.burnDuringAvailable,spread:seen.spread,
@@ -400,8 +402,8 @@ test('money flow bag sprites drive real atlas frames across the expanded region'
  expect(merged.landing,'landing bags use bag-squash frames').toBe(true);
  expect(merged.resting,'resting bags hold the plain bag-fall-1 frame').toBe(true);
  expect(merged.frames.has('procedural')).toBe(false);
- expect([...merged.signFrames].some(frame=>frame.startsWith('positive-coins-')),'positive accents use the coin sequence').toBe(true);
- expect([...merged.signFrames].some(frame=>frame.startsWith('negative-arrows-')),'negative accents use the arrow sequence').toBe(true);
+  expect([...merged.signFrames].some(frame=>frame.startsWith('positive:')&&/\sUSDT$/.test(frame)),'positive labels use the quote currency').toBe(true);
+  expect([...merged.signFrames].some(frame=>frame.startsWith('negative:')&&/\sUSDT$/.test(frame)),'negative labels use the quote currency').toBe(true);
  expect(merged.spread.left[1]-merged.spread.left[0],'left side bags spread across the region').toBeGreaterThan(150);
  expect(merged.spread.right[1]-merged.spread.right[0],'right side bags spread across the region').toBeGreaterThan(150);
  expect(merged.outOfBounds,'every visible bag stays in its safe half').toBe(false);
@@ -517,19 +519,20 @@ test('reduced motion freezes effect frames and quality presets bound collectors'
    engine.receive({matchId:96,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
   const flow=await import(flowUrl);
   const batch=(symbol,sequence,lastPrice)=>({matchId:96,symbol,sequence,windowStartUtc:new Date(open).toISOString(),windowEndUtc:event,eventTimeUtc:event,receivedAtUtc:event,publishedAtUtc:event,tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'20',netQuote:'100',firstPrice:'100',lastPrice,highPrice:lastPrice,lowPrice:'100',isPartial:false});
-  const frames=[];
+   const bagFrames=[];const signFrames=[];
   for(let tick=1;tick<=40;tick++){
    flow.receiveMoneyFlowBatch(batch('BTCUSDT',tick,String(100+tick*.4)));
    engine.update(60);
    const state=engine.inspect().moneyFlow;
-   for(const bag of state.bagStates)if(bag.visualPhase==='flying')frames.push(bag.frame);
-   for(const sign of state.signStates)frames.push(sign.frame);
+    for(const bag of state.bagStates)if(bag.visualPhase==='flying')bagFrames.push(bag.frame);
+    for(const sign of state.signStates)signFrames.push(sign.frame);
   }
-  return {reducedMotion:engine.inspect().moneyFlow.reducedMotion,frames};
+   return {reducedMotion:engine.inspect().moneyFlow.reducedMotion,bagFrames,signFrames};
  },{flowUrl});
  expect(reduced.reducedMotion).toBe(true);
- expect(reduced.frames.length).toBeGreaterThan(0);
- expect(new Set(reduced.frames).size,'reduced motion holds first frames').toBeLessThanOrEqual(2);
+  expect(reduced.bagFrames.length).toBeGreaterThan(0);
+  expect(reduced.signFrames.length).toBeGreaterThan(0);
+  expect(new Set(reduced.bagFrames).size,'reduced motion holds first bag frames').toBeLessThanOrEqual(2);
  await page.goto(url+'?kind=live&collectors=1&quality=low');await page.waitForFunction(()=>window.engine&&window.ready);
  const low=await page.evaluate(async({flowUrl})=>{
   const engine=window.engine;
@@ -721,9 +724,10 @@ test('mock LIVE follows three consecutive official UTC round transitions without
   expect(mid.completed).toBe(i);
   expect(mid.score).toEqual(await page.evaluate(count=>window.__expectedScore(count),i));
   expect(mid.roundId).toBe(roundId);
-  expect(mid.counters).toEqual({left:{buy:1,sell:1},right:{buy:1,sell:1}});
-  expect(mid.values).toEqual({leftBuy:'1',leftSell:'1',rightBuy:'1',rightSell:'1'});
-  expect(mid.labels).toEqual(['↑ BUY','↓ SELL']);
+   expect(mid.counters).toMatchObject({left:{buy:120,sell:20},right:{buy:120,sell:20}});
+   expect(mid.values.leftBuy).toMatch(/^~?120 USDT$/);expect(mid.values.leftSell).toMatch(/^~?20 USDT$/);
+   expect(mid.values.rightBuy).toMatch(/^~?120 USDT$/);expect(mid.values.rightSell).toMatch(/^~?20 USDT$/);
+  expect(mid.labels).toEqual(['↑ BUY PRESSURE','↓ SELL PRESSURE']);
 
   const closed=await page.evaluate((i)=>{
    const engine=window.engine,rounds=window.__rounds;
@@ -738,7 +742,7 @@ test('mock LIVE follows three consecutive official UTC round transitions without
   expect(closed.phase).toBe('SPAWNING');
   expect(closed.completed).toBe(i);
   expect(closed.score).toEqual(await page.evaluate(count=>window.__expectedScore(count),i));
-  expect(closed.counters).toEqual({left:{buy:0,sell:0},right:{buy:0,sell:0}});
+   expect(closed.counters).toEqual({left:{buy:0,sell:0,partial:false},right:{buy:0,sell:0,partial:false}});
   expect({tile:closed.tile,dropTarget:closed.dropTarget}).toEqual({tile:null,dropTarget:null});
 
   await expect.poll(async()=>page.evaluate(()=>({completed:window.engine.completedRounds,active:!!window.engine.active,
