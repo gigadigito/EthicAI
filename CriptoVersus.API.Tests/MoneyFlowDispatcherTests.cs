@@ -74,6 +74,10 @@ public sealed class MoneyFlowDispatcherTests
         Assert.Equal(global::CriptoVersus.API.Hubs.DashboardHub.MoneyFlowEventName, delivered.Method);
         Assert.IsType<MoneyFlowClientBatchDto>(delivered.Payload);
         Assert.Equal(101, ((MoneyFlowClientBatchDto)delivered.Payload!).MatchId);
+        var replay = dispatcher.GetReplay(101);
+        Assert.Single(replay);
+        Assert.Equal(1, replay[0].Sequence);
+        Assert.Equal(101, replay[0].MatchId);
     }
 
     private sealed class TestDbContextFactory(DbContextOptions<EthicAIDbContext> options) : IDbContextFactory<EthicAIDbContext>

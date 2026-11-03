@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   decideMoneyFlow, MoneyFlowEventCounter, MoneyFlowVisualState, ReusablePool,
-  moneyFlowEventKey, moneyFlowSidesForBatch, planBagSpawn,
+  moneyFlowBatchBelongsToRound, moneyFlowEventKey, moneyFlowSidesForBatch, planBagSpawn,
 } from '../../dist/candle-battles/money-flow-visual.js';
 import {
   bagFrameForPhase, accentFrameFor,
@@ -81,32 +81,49 @@ test('accepted batches remain bilateral and increment exactly one visual counter
   const negativeRight = batch({ symbol: 'ETHUSDT', sequence: 11, lastPrice: '99.4' });
   assert.deepEqual(moneyFlowSidesForBatch(positiveLeft, symbols), ['left']);
   assert.deepEqual(moneyFlowSidesForBatch(negativeRight, symbols), ['right']);
-  assert.equal(counters.accept('left', positiveLeft, 'positive'), true);
-  assert.equal(counters.accept('left', positiveLeft, 'positive'), false, 'duplicate receipt is ignored');
-  assert.equal(counters.accept('right', negativeRight, 'negative'), true);
-  assert.equal(counters.accept('right', negativeRight, 'neutral'), false, 'neutral batches do not create a flow count');
+  const round = '12:5m:1767225600000';
+  assert.equal(counters.accept(round, 'left', positiveLeft, 'positive'), true);
+  assert.equal(counters.accept(round, 'left', positiveLeft, 'positive'), false, 'duplicate receipt is ignored');
+  assert.equal(counters.accept(round, 'right', negativeRight, 'negative'), true);
+  assert.equal(counters.accept(round, 'right', negativeRight, 'neutral'), false, 'neutral batches do not create a flow count');
   assert.deepEqual(counters.snapshot(), {
     left: { positive: 1, negative: 0 },
     right: { positive: 0, negative: 1 },
   });
-  assert.equal(moneyFlowEventKey('left', positiveLeft), '12:left:BTCUSDT:11');
+  assert.equal(moneyFlowEventKey(round, 'left', 'positive', positiveLeft), '12:12:5m:1767225600000:left:positive:BTCUSDT:11');
 });
 
 test('same-symbol matches keep one deterministic visual event identity per candle', () => {
   const counters = new MoneyFlowEventCounter();
   const shared = batch({ symbol: 'BTCUSDT', sequence: 8, lastPrice: '100.6' });
   assert.deepEqual(moneyFlowSidesForBatch(shared, { left: 'BTCUSDT', right: 'BTCUSDT' }), ['left', 'right']);
-  assert.equal(counters.accept('left', shared, 'positive'), true);
-  assert.equal(counters.accept('right', shared, 'positive'), true);
+  const round = '12:5m:1767225600000';
+  assert.equal(counters.accept(round, 'left', shared, 'positive'), true);
+  assert.equal(counters.accept(round, 'right', shared, 'positive'), true);
   assert.deepEqual(counters.snapshot(), {
     left: { positive: 1, negative: 0 },
     right: { positive: 1, negative: 0 },
   });
-  counters.reset();
+  counters.setRound('12:5m:1767225900000');
   assert.deepEqual(counters.snapshot(), {
     left: { positive: 0, negative: 0 },
     right: { positive: 0, negative: 0 },
-  }, 'only a new-match reset clears the presentation ledger');
+  }, 'a new round starts with independent presentation counters');
+  counters.setRound(round);
+  assert.deepEqual(counters.snapshot(), {
+    left: { positive: 1, negative: 0 },
+    right: { positive: 1, negative: 0 },
+  }, 'replay can restore the counters owned by its historical round');
+});
+
+test('a batch belongs only to the official round that contains its event time', () => {
+  const first = { id: '12:5m:1767225600000', startMs: Date.parse('2026-01-01T00:00:00Z'), endMs: Date.parse('2026-01-01T00:05:00Z') };
+  const second = { id: '12:5m:1767225900000', startMs: first.endMs, endMs: first.endMs + 300_000 };
+  const delayedFirst = batch({ eventTimeUtc: '2026-01-01T00:04:59.999Z' });
+  const currentSecond = batch({ sequence: 2, eventTimeUtc: '2026-01-01T00:05:00.000Z' });
+  assert.equal(moneyFlowBatchBelongsToRound(delayedFirst, first), true);
+  assert.equal(moneyFlowBatchBelongsToRound(delayedFirst, second), false, 'a delayed SignalR delivery cannot enter the next round');
+  assert.equal(moneyFlowBatchBelongsToRound(currentSecond, second), true);
 });
 
 test('fixed pools reuse released particles and never exceed their capacity', () => {

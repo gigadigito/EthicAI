@@ -44,6 +44,16 @@ export function nextCandleCountdown(nowMs: number, matchStartMs: number, duratio
     const nextClose = (Math.floor(nowMs / PERIOD) + 1) * PERIOD;
     return Math.min(PERIOD, Math.max(0, nextClose - nowMs));
 }
+
+/**
+ * A persisted round is eligible for presentation-only resolution only after
+ * its exchange interval closes on the authoritative clock. Confirmation may
+ * arrive later; that delay is never converted into a guessed winner.
+ */
+export function roundClosedAt(round: Round, authoritativeNowMs: number): boolean {
+    return validRound(round) && Number.isFinite(authoritativeNowMs)
+        && authoritativeNowMs >= round.left.closeTime;
+}
 export const TEAM = { left: 0xc1f20f, right: 0x185957 };
 export const OUTLINE = { up: 0x54ff72, down: 0xff354f, neutral: 0xc3cddd };
 export function validCandle(c: Candle): boolean {

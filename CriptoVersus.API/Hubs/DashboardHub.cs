@@ -11,13 +11,15 @@ public sealed class DashboardHub : Hub
     public static readonly ConcurrentDictionary<string, DateTimeOffset> Connections = new();
 
     private readonly MoneyFlowMatchRegistry _matchRegistry;
+    private readonly MoneyFlowDispatcher _moneyFlowDispatcher;
     private readonly MoneyFlowMetrics _metrics;
     private readonly ILogger<DashboardHub> _log;
     private const string MoneyFlowMatchesKey = "moneyflow.matches";
 
-    public DashboardHub(MoneyFlowMatchRegistry matchRegistry, MoneyFlowMetrics metrics, ILogger<DashboardHub> log)
+    public DashboardHub(MoneyFlowMatchRegistry matchRegistry, MoneyFlowDispatcher moneyFlowDispatcher, MoneyFlowMetrics metrics, ILogger<DashboardHub> log)
     {
         _matchRegistry = matchRegistry;
+        _moneyFlowDispatcher = moneyFlowDispatcher;
         _metrics = metrics;
         _log = log;
     }
@@ -37,6 +39,8 @@ public sealed class DashboardHub : Hub
             throw new HubException("The requested Candle Battle is not active.");
         }
         await Groups.AddToGroupAsync(Context.ConnectionId, MoneyFlowGroup(matchId), ct);
+        foreach (var batch in _moneyFlowDispatcher.GetReplay(matchId))
+            await Clients.Caller.SendAsync(MoneyFlowEventName, batch, ct);
         var matches = GetConnectionMatches();
         if (matches.Add(matchId)) _metrics.ActiveSubscriptions.Add(1);
         _log.LogInformation("Money-flow join accepted: match {MatchId} connection {ConnectionId}", matchId, Context.ConnectionId);

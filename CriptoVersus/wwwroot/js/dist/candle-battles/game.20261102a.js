@@ -1,4 +1,4 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.20261102a.js';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, roundClosedAt, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.20261102a.js';
 import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.20261102a.js';
 import { CandleRenderer } from './renderer.20261102a.js';
 import { AudioManager } from './audio.20261102a.js';
@@ -375,23 +375,12 @@ export class GameEngine {
         this.history.sort((a, b) => a.left.openTime - b.left.openTime);
         if (!this.autoplayInitialized && feed.matchStartTime != null) {
             this.autoplayInitialized = true;
-            if (this.history.length) {
-                this.catchUpReplay = this.options.autoplay !== false;
-                this.replayHistory = this.history.map(r => ({ ...r, left: { ...r.left }, right: { ...r.right } }));
-                this.mode = 'replay';
-                this.setSpeed(this.options.autoplay === false ? 1 : 5);
-                this.restart();
-                if (this.options.autoplay === false) {
-                    this.started = false;
-                    this.paused = true;
-                    this.host.dataset.paused = 'true';
-                }
-            }
-            else {
-                this.mode = 'live';
-                this.started = true;
-                this.reconcile();
-            }
+            // A user joining a live match adopts persisted state directly.
+            // Replaying previously resolved rounds would duplicate results and
+            // break the boundary of the candle currently forming.
+            this.mode = 'live';
+            this.started = true;
+            this.reconcile();
             this.host.dataset.mode = this.mode;
             this.hud.get('mode')?.setText(this.mode.toUpperCase() + ' · 5M');
         }
@@ -852,7 +841,7 @@ export class GameEngine {
                     this.replayIndex++;
                 }
             }
-            if (this.mode !== 'live' || (this.clock.peek()?.left.closeTime ?? Infinity) <= this.liveNow()) {
+            if (this.mode !== 'live' || roundClosedAt(this.clock.peek(), this.liveNow())) {
                 const next = this.clock.next();
                 if (next)
                     this.begin(next);
@@ -937,6 +926,7 @@ export class GameEngine {
             return;
         const enabled = this.mode === 'live' && !this.feed.finished && !this.options.socialCapture;
         this.moneyFlow.setLiveMatch(this.feed.matchId, this.feed.leftSymbol, this.feed.rightSymbol, enabled);
+        this.moneyFlow.setLiveRound(enabled ? this.liveRoundWindow() : undefined);
         if (!enabled) {
             this.updateMoneyFlowPanels();
             return;
@@ -962,6 +952,21 @@ export class GameEngine {
         return this.feed?.finished && start != null && end != null ? Math.max(0, Math.min(MATCH_DURATION, end - start)) : MATCH_DURATION;
     }
     liveNow() { return this.serverAnchorMs == null ? Date.now() : this.serverAnchorMs + performance.now() - this.serverReceivedAt; }
+    /** The one official UTC window which owns the visible money-flow ledger. */
+    liveRoundWindow() {
+        const start = this.feed?.matchStartTime;
+        if (start == null)
+            return undefined;
+        const firstOpen = Math.floor(start / PERIOD) * PERIOD;
+        const scheduledEnd = firstOpen + MATCH_DURATION;
+        const matchEnd = this.feed?.matchEndTime == null ? scheduledEnd : Math.min(scheduledEnd, this.feed.matchEndTime);
+        const now = this.liveNow();
+        if (now < firstOpen || now >= matchEnd)
+            return undefined;
+        const open = Math.max(firstOpen, Math.floor(now / PERIOD) * PERIOD);
+        const close = Math.min(open + PERIOD, matchEnd);
+        return { id: `${this.feed.matchId}:5m:${open}`, startMs: open, endMs: close };
+    }
     candleRemaining() {
         if (this.mode === 'demo')
             return Math.max(0, PERIOD - this.demoElapsed / (this.state.durationMs + 500) * PERIOD);

@@ -1,43 +1,60 @@
 import { getMoneyFlowBuffer, inspectMoneyFlowBuffer } from './money-flow.js?v=20261102a';
 import { CollectorController, normalizeCollectorQuality, } from './money-flow-collectors.js?v=20261102a';
 import { ACCENT_LOOP_MS, BAG_ABSORB_MS, BAG_LANDING_MS, MONEY_FLOW_EFFECTS_ATLAS, MoneyFlowTerminalFx, accentFrameFor, bagFrameForPhase, moneyFlowEffectsAvailable, prepareMoneyFlowEffectsTextures, } from './money-flow-effects-renderer.js?v=20261102a';
+const emptyCounters = () => ({
+    left: { positive: 0, negative: 0 },
+    right: { positive: 0, negative: 0 },
+});
+const eventTimeMs = (batch) => Date.parse(batch.eventTimeUtc);
+/** The event timestamp, not SignalR arrival time, owns the visual round. */
+export function moneyFlowBatchBelongsToRound(batch, round) {
+    const eventTime = eventTimeMs(batch);
+    return Number.isFinite(eventTime) && eventTime >= round.startMs && eventTime < round.endMs;
+}
 /**
  * Stable visual-event identity. A counter is independent from pooled sprites,
  * so a performance cap can never make an accepted market batch disappear from
  * the panel.
  */
-export function moneyFlowEventKey(side, batch) {
-    return `${batch.matchId}:${side}:${batch.symbol.toUpperCase()}:${batch.sequence}`;
+export function moneyFlowEventKey(roundId, side, direction, batch) {
+    return `${batch.matchId}:${roundId}:${side}:${direction}:${batch.symbol.toUpperCase()}:${batch.sequence}`;
 }
-/** Pure per-match counter ledger; it never changes prices, strength or score. */
+/** Pure presentation ledger, isolated by round, side and polarity. */
 export class MoneyFlowEventCounter {
     constructor() {
-        this.seen = new Set();
-        this.values = {
-            left: { positive: 0, negative: 0 },
-            right: { positive: 0, negative: 0 },
-        };
+        this.seenByRound = new Map();
+        this.valuesByRound = new Map();
     }
-    accept(side, batch, direction) {
+    setRound(roundId) {
+        if (this.activeRoundId === roundId)
+            return false;
+        this.activeRoundId = roundId;
+        if (!this.valuesByRound.has(roundId))
+            this.valuesByRound.set(roundId, emptyCounters());
+        if (!this.seenByRound.has(roundId))
+            this.seenByRound.set(roundId, new Set());
+        return true;
+    }
+    accept(roundId, side, batch, direction) {
         if (direction === 'neutral')
             return false;
-        const key = moneyFlowEventKey(side, batch);
-        if (this.seen.has(key))
+        this.setRound(roundId);
+        const seen = this.seenByRound.get(roundId);
+        const key = moneyFlowEventKey(roundId, side, direction, batch);
+        if (seen.has(key))
             return false;
-        this.seen.add(key);
-        this.values[side][direction]++;
+        seen.add(key);
+        this.valuesByRound.get(roundId)[side][direction]++;
         return true;
     }
     snapshot() {
-        return {
-            left: { ...this.values.left },
-            right: { ...this.values.right },
-        };
+        const values = this.activeRoundId == null ? undefined : this.valuesByRound.get(this.activeRoundId);
+        return values == null ? emptyCounters() : { left: { ...values.left }, right: { ...values.right } };
     }
     reset() {
-        this.seen.clear();
-        this.values.left.positive = this.values.left.negative = 0;
-        this.values.right.positive = this.values.right.negative = 0;
+        this.activeRoundId = undefined;
+        this.seenByRound.clear();
+        this.valuesByRound.clear();
     }
 }
 /** Resolves every arena side that owns an incoming symbol without cross-talk. */
@@ -277,12 +294,34 @@ export class MoneyFlowController {
         this.matchId = matchId;
         this.symbols = normalizedSymbols;
         this.enabled = enabled;
-        if (changed)
+        if (changed) {
+            this.round = undefined;
             this.reset();
+        }
         if (!enabled && enabledChanged)
             this.clearParticles();
         this.collectors.setEnabled(enabled && this.collectorsConfigured);
-        if (enabled)
+        if (enabled && this.round)
+            this.consumeBufferedBatches();
+    }
+    /**
+     * Called from the engine's server-anchored clock. This is a round identity
+     * transition, never a local 300-second reset timer.
+     */
+    setLiveRound(round) {
+        if (round && (!Number.isFinite(round.startMs) || !Number.isFinite(round.endMs) || round.endMs <= round.startMs))
+            return;
+        const changed = this.round?.id !== round?.id;
+        this.round = round;
+        if (!round || !changed)
+            return;
+        this.counter.setRound(round.id);
+        // Reset only transient presentation. Match-scoped sequence dedupe is
+        // retained, so a reconnect cannot replay an older batch.
+        this.clearParticles();
+        for (const side of SIDES)
+            this.effects[side].state.reset();
+        if (this.enabled)
             this.consumeBufferedBatches();
     }
     setEnabled(enabled) {
@@ -343,6 +382,7 @@ export class MoneyFlowController {
         return {
             active: this.enabled,
             matchId: this.matchId ?? null,
+            roundId: this.round?.id ?? null,
             bags: this.bags.activeCount,
             signs: this.signs.activeCount,
             bagPoolSize: this.bags.size,
@@ -363,6 +403,7 @@ export class MoneyFlowController {
         this.collectors.reset();
         this.lastSequence.clear();
         this.counter.reset();
+        this.round = undefined;
         this.particleSequence = 0;
         this.clearParticles();
         for (const side of SIDES)
@@ -381,7 +422,7 @@ export class MoneyFlowController {
         return { state: new MoneyFlowVisualState(), glow: this.scene.add.graphics().setDepth(3).setVisible(false), positiveCooldown: 0, negativeCooldown: 0 };
     }
     consumeBufferedBatches() {
-        if (!this.matchId)
+        if (!this.matchId || !this.round)
             return;
         for (const batch of getMoneyFlowBuffer(this.matchId)) {
             for (const side of moneyFlowSidesForBatch(batch, this.symbols)) {
@@ -389,8 +430,10 @@ export class MoneyFlowController {
                 if ((this.lastSequence.get(key) ?? 0) >= batch.sequence)
                     continue;
                 this.lastSequence.set(key, batch.sequence);
+                if (!moneyFlowBatchBelongsToRound(batch, this.round))
+                    continue;
                 const decision = this.effects[side].state.ingest(batch);
-                this.counter.accept(side, batch, decision.direction);
+                this.counter.accept(this.round.id, side, batch, decision.direction);
             }
         }
     }

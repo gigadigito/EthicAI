@@ -8,10 +8,15 @@ namespace CriptoVersus.API.Services;
 
 public sealed class MoneyFlowDispatcher : BackgroundService
 {
+    // At the 250 ms aggregation cadence, this covers a full five-minute
+    // two-symbol round with headroom while keeping a busy match bounded.
+    private const int MaxReplayBatchesPerMatch = 5_000;
     private sealed record Envelope(string SourceId, MoneyFlowBatchDto Batch);
+    private sealed record ReplayEnvelope(DateTimeOffset PublishedAtUtc, MoneyFlowClientBatchDto Batch);
 
     private readonly object _gate = new();
     private readonly Queue<Envelope> _queue = new();
+    private readonly Dictionary<int, Queue<ReplayEnvelope>> _replayByMatch = new();
     private readonly SemaphoreSlim _signal = new(0);
     private readonly Dictionary<(string Source, string Symbol), long> _highestSequence = new();
     private readonly IHubContext<DashboardHub> _hub;
@@ -78,6 +83,29 @@ public sealed class MoneyFlowDispatcher : BackgroundService
         return Task.FromResult(new MoneyFlowTransportAccepted(accepted, duplicates, dropped));
     }
 
+    /// <summary>
+    /// Returns the bounded, in-memory SignalR catch-up for one active match.
+    /// The browser still assigns every batch to its exchange-time round, so an
+    /// older replay batch cannot affect the counters of the currently forming
+    /// candle.
+    /// </summary>
+    public IReadOnlyList<MoneyFlowClientBatchDto> GetReplay(int matchId)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var cutoff = now.AddMinutes(-_options.Value.ReplayWindowMinutes);
+        lock (_gate)
+        {
+            if (!_replayByMatch.TryGetValue(matchId, out var replay)) return Array.Empty<MoneyFlowClientBatchDto>();
+            TrimReplay(replay, cutoff);
+            if (replay.Count == 0)
+            {
+                _replayByMatch.Remove(matchId);
+                return Array.Empty<MoneyFlowClientBatchDto>();
+            }
+            return replay.Select(x => x.Batch).ToArray();
+        }
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (!_options.Value.Enabled || !_options.Value.TransportEnabled) return;
@@ -108,6 +136,7 @@ public sealed class MoneyFlowDispatcher : BackgroundService
         foreach (var matchId in matches)
         {
             var clientBatch = ToClientBatch(matchId, envelope.Batch);
+            StoreReplay(matchId, clientBatch, now);
             await _hub.Clients.Group(DashboardHub.MoneyFlowGroup(matchId))
                 .SendAsync(DashboardHub.MoneyFlowEventName, clientBatch, ct);
             _metrics.Published.Add(1);
@@ -139,6 +168,24 @@ public sealed class MoneyFlowDispatcher : BackgroundService
             LowPrice = Format(batch.LowPrice),
             IsPartial = batch.IsPartial
         };
+
+    private void StoreReplay(int matchId, MoneyFlowClientBatchDto batch, DateTimeOffset now)
+    {
+        var cutoff = now.AddMinutes(-_options.Value.ReplayWindowMinutes);
+        lock (_gate)
+        {
+            if (!_replayByMatch.TryGetValue(matchId, out var replay))
+                _replayByMatch[matchId] = replay = new Queue<ReplayEnvelope>();
+            TrimReplay(replay, cutoff);
+            replay.Enqueue(new ReplayEnvelope(now, batch));
+            while (replay.Count > MaxReplayBatchesPerMatch) replay.Dequeue();
+        }
+    }
+
+    private static void TrimReplay(Queue<ReplayEnvelope> replay, DateTimeOffset cutoff)
+    {
+        while (replay.Count > 0 && replay.Peek().PublishedAtUtc < cutoff) replay.Dequeue();
+    }
 
     private static string Format(decimal value) => value.ToString("G29", CultureInfo.InvariantCulture);
 }
