@@ -1,6 +1,6 @@
-import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate, resolveRoundResultPose, ROUND_RESULT_RETURN_MS } from './model.js?v=20261104a';
-import { frameAt, transformAt } from './combat-animations.js?v=20261104a';
-import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261104a';
+import { TEAM, OUTLINE, candleDirection, fighterAnimationForPhase, project, interpolate, resolveRoundResultPose, ROUND_RESULT_RETURN_MS } from './model.js?v=20261104b';
+import { frameAt, transformAt } from './combat-animations.js?v=20261104b';
+import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261104b';
 const CANDLE_LIFT = 60;
 const ACTION_FRAME_COUNTS = {
     // Hold the damage pose while its alpha fades; cycling the source montage

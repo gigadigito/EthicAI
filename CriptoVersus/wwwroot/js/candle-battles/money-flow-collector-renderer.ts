@@ -23,6 +23,37 @@ export type Direction = 'left' | 'right';
 const COLLECTOR_ATLAS = 'money-flow-collectors';
 const EFFECT_ATLAS = MONEY_FLOW_EFFECTS_ATLAS;
 
+export interface CollectorCarriedBagBounds {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+}
+
+/**
+ * Authored source-pixel bounds of the money bag inside collector frames.
+ * Collector frames contain a large character cell, so the full sprite bounds
+ * are not a valid anchor for a financial label. These rectangles follow the
+ * actual bag artwork in the shipped atlas, including the GRAB handoff frames.
+ */
+const CARRIED_BAG_SOURCE_BOUNDS: Record<string, CollectorCarriedBagBounds> = {
+    'demon-grab-right-1': { left: 92, top: 76, right: 154, bottom: 156 },
+    'demon-carry-right-1': { left: 99, top: 60, right: 147, bottom: 119 },
+    'demon-carry-right-2': { left: 89, top: 78, right: 137, bottom: 127 },
+    'demon-grab-left-1': { left: 28, top: 78, right: 84, bottom: 157 },
+    'demon-carry-left-1': { left: 31, top: 60, right: 83, bottom: 116 },
+    'demon-carry-left-2': { left: 41, top: 78, right: 87, bottom: 132 },
+    'angel-grab-right-1': { left: 93, top: 126, right: 129, bottom: 170 },
+    'angel-carry-right-1': { left: 96, top: 116, right: 130, bottom: 158 },
+    'angel-carry-right-2': { left: 95, top: 107, right: 130, bottom: 149 },
+    'angel-grab-left-1': { left: 39, top: 119, right: 88, bottom: 170 },
+    'angel-carry-left-1': { left: 43, top: 111, right: 90, bottom: 156 },
+    'angel-carry-left-2': { left: 32, top: 98, right: 82, bottom: 145 },
+    // Special tug uses one wide frame shared by both demons; the bag is the
+    // central prop between them rather than either character's full bounds.
+    'demon-tug-1': { left: 132, top: 70, right: 188, bottom: 162 },
+};
+
 /**
  * Animation table.  Each entry lists its atlas frame names explicitly, so a
  * rename in the asset catalog cannot silently produce a frame that does not
@@ -243,6 +274,27 @@ export class CollectorRenderer {
         if (!visual) return;
         if (direction) this.setDirection(id, direction);
         visual.sprite.setPosition(x, y);
+    }
+
+    carriedBagBounds(id: string): CollectorCarriedBagBounds | null {
+        const visual = this.visuals.get(id);
+        if (!visual) return null;
+        const frameName = String((visual.sprite.frame as { name?: string })?.name ?? '');
+        const source = CARRIED_BAG_SOURCE_BOUNDS[frameName];
+        if (!source) return null;
+        const spriteBounds = visual.sprite.getBounds();
+        const frame = visual.sprite.frame as { width?: number; cutWidth?: number };
+        const sourceWidth = Math.max(1, Number(frame.width ?? frame.cutWidth ?? 176));
+        const scaleX = spriteBounds.width / sourceWidth;
+        const sourceHeight = Math.max(1, Number((visual.sprite.frame as { height?: number; cutHeight?: number }).height
+            ?? (visual.sprite.frame as { cutHeight?: number }).cutHeight ?? 176));
+        const scaleY = spriteBounds.height / sourceHeight;
+        return {
+            left: spriteBounds.x + source.left * scaleX,
+            top: spriteBounds.y + source.top * scaleY,
+            right: spriteBounds.x + source.right * scaleX,
+            bottom: spriteBounds.y + source.bottom * scaleY,
+        };
     }
 
     setPortal(id: string, x: number, groundY: number, visible: boolean, descending = false, openProgress = 1): void {

@@ -147,6 +147,9 @@ public sealed class RouteLocalizationService
     public string BuildCandleBattlesPath(string? culture, int id, string slug)
         => $"{BuildTvPath(culture)}/candle/{id}/{NormalizeRouteSegment(slug)}";
 
+    public string BuildArenaPressurePath(string? culture, int id, string slug)
+        => $"{BuildTvPath(culture)}/pressure/{id}/{NormalizeRouteSegment(slug)}";
+
     public string BuildCandleBattlesDemoPath(string? culture)
         => $"/{NormalizeCulture(culture)}/games/candle-battles/demo";
 
@@ -344,6 +347,10 @@ public sealed class RouteLocalizationService
         if (segments.Length == 5 && segments[1].Equals("tv", StringComparison.OrdinalIgnoreCase)
             && segments[2].Equals("candle", StringComparison.OrdinalIgnoreCase) && int.TryParse(segments[3], out var arcadeId))
             return BuildCandleBattlesPath(normalizedTarget, arcadeId, segments[4]) + querySuffix;
+
+        if (segments.Length == 5 && segments[1].Equals("tv", StringComparison.OrdinalIgnoreCase)
+            && segments[2].Equals("pressure", StringComparison.OrdinalIgnoreCase) && int.TryParse(segments[3], out var pressureId))
+            return BuildArenaPressurePath(normalizedTarget, pressureId, segments[4]) + querySuffix;
 
         if (segments.Length >= 4
             && segments[1].Equals("candle", StringComparison.OrdinalIgnoreCase)

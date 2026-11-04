@@ -50,3 +50,21 @@ public sealed class MarketFlowState
     public double MomentumAcceleration { get; set; }
     public double TerritorialAdvance { get; set; }
 }
+
+/// <summary>
+/// Identity, score and possession inputs resolved from a match state. Shared by the TV
+/// field state and the Arena Pressure source so possession never diverges between them.
+/// </summary>
+public sealed record TvPossessionInputs(
+    string TeamA,
+    string TeamB,
+    int ScoreA,
+    int ScoreB,
+    decimal? VariationA,
+    decimal? VariationB,
+    string Leader,
+    string MomentumOwner,
+    int Competitiveness,
+    int EffectiveHotScore,
+    int PossessionA,
+    int PossessionB);

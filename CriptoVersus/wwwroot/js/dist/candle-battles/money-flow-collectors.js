@@ -1,4 +1,4 @@
-import { CollectorRenderer, collectorAtlasesAvailable, } from './money-flow-collector-renderer.js?v=20261104a';
+import { CollectorRenderer, collectorAtlasesAvailable, } from './money-flow-collector-renderer.js?v=20261104b';
 const ARENA_SAFE_LEFT = { left: 180, right: 560 };
 const ARENA_SAFE_RIGHT = { left: 720, right: 1100 };
 /** Bottom of the fixed top HUD panel (24..178) plus one bag body height. */
@@ -404,7 +404,7 @@ export class CollectorController {
                     // The state transition happens after the regular position
                     // tick. Re-anchor immediately so the bag and its label do
                     // not spend one frame at the pre-GRAB coordinates.
-                    this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y, true);
+                    this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y, true, this.renderer?.carriedBagBounds(cycle.id));
                     cycle.grabbed = true;
                 }
             }
@@ -431,7 +431,7 @@ export class CollectorController {
             // demon's underground descent that representation is clipped by
             // the same ground mask, so its financial label must be hidden too.
             const visible = cycle.positive || (cycle.state !== 'demon-descend' && cycle.state !== 'demon-disappear');
-            this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y, visible);
+            this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y, visible, this.renderer?.carriedBagBounds(cycle.id));
         }
     }
     cancel(cycle) {

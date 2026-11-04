@@ -219,6 +219,7 @@ export class GameEngine {
                 collectorsEnabled: this.options.moneyFlowCollectorsEnabled,
                 collectorQuality: this.options.moneyFlowCollectorQuality,
                 reducedMotion: this.reduced,
+                diagnostics: this.options.diagnostics,
             });
         this.createMoneyFlowPanels();
         if (this.shell) {

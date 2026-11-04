@@ -14,7 +14,7 @@ export interface Feed { matchId: number; leftSymbol: string; rightSymbol: string
 export interface CaptureTarget { round?: number; phase?: string; }
 export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; finaleFreezeTimeoutMs?: number; socialCapture?: boolean; shell?: boolean; autoplay?: boolean; localLogos?: Record<string,string>; captureTarget?: CaptureTarget; moneyFlowVisualEffects?: boolean; moneyFlowCollectorsEnabled?: boolean; moneyFlowCollectorQuality?: 'low' | 'medium' | 'high'; diagnostics?: boolean; }
 type RoundFreezeStatus = 'none' | 'pending' | 'finale' | 'resuming';
-const CANDLE_BATTLE_RUNTIME_REVISION = '20261104a';
+const CANDLE_BATTLE_RUNTIME_REVISION = '20261104b';
 const CANDLE_FREEZE_DIAGNOSTIC_VERSION = 'diagnostic-v1';
 const displaySymbol = (symbol: string): string => symbol.replace(/USDT$/i, '');
 export async function create(host: HTMLElement, options: Options): Promise<GameEngine> {
@@ -166,14 +166,14 @@ export class GameEngine {
                     new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261104a', '/games/candle-battles/assets/candle-finishers.json?v=20261104a');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261104b', '/games/candle-battles/assets/candle-finishers.json?v=20261104b');
                 // The effects atlas carries the money bags themselves, so it is
                 // required whenever visual effects run, with or without collectors.
                 if (owner.options.moneyFlowVisualEffects) {
-                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261104a', '/games/candle-battles/assets/money-flow-effects.json?v=20261104a');
+                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261104b', '/games/candle-battles/assets/money-flow-effects.json?v=20261104b');
                 }
                 if (owner.options.moneyFlowVisualEffects && owner.options.moneyFlowCollectorsEnabled) {
-                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261104a', '/games/candle-battles/assets/money-flow-collectors.json?v=20261104a');
+                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261104b', '/games/candle-battles/assets/money-flow-collectors.json?v=20261104b');
                 }
             }
             create(): void { owner.setup(this); }
@@ -245,6 +245,7 @@ export class GameEngine {
             collectorsEnabled: this.options.moneyFlowCollectorsEnabled,
             collectorQuality: this.options.moneyFlowCollectorQuality,
             reducedMotion: this.reduced,
+            diagnostics: this.options.diagnostics,
         });
         this.createMoneyFlowPanels();
         if (this.shell) {

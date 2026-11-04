@@ -1,0 +1,316 @@
+@page "/{Culture}/tv/pressure/{MatchId:int}/{Slug}"
+@page "/tv/pressure/{MatchId:int}/{Slug}"
+@rendermode InteractiveServer
+@using CriptoVersus.Components.Shared
+@using CriptoVersus.Web.Services
+@using DTOs
+@inject CriptoVersusApiClient Api
+@inject HotMatchService HotMatches
+@inject AppCultureService AppCulture
+@inject RouteLocalizationService RouteLocalization
+@inject MatchSlugHelper MatchSlugHelper
+@inject NavigationManager Nav
+@inject IConfiguration Config
+@inject LocalizationService L
+@inject ILogger<ArenaPressureGamePage> Logger
+@implements IDisposable
+
+<PageTitle>@PageTitle</PageTitle>
+<HeadContent>
+    <meta name="description" content="@MetaDescription" />
+    <meta name="keywords" content="@MetaKeywords" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <meta property="og:title" content="@PageTitle" />
+    <meta property="og:description" content="@MetaDescription" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="@SocialImageUrl" />
+    <meta property="og:image:alt" content="@PageTitle" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(_culture)" />
+    <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(_culture)" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@PageTitle" />
+    <meta name="twitter:description" content="@MetaDescription" />
+    <meta name="twitter:image" content="@SocialImageUrl" />
+    <meta name="twitter:image:alt" content="@PageTitle" />
+</HeadContent>
+<LocalizedSeoAlternates />
+
+<main class="arena-pressure-page">
+    @if (_match is not null && _loadState == ArenaPressurePageLoadState.Loaded)
+    {
+        <ArenaPressureGameHost @key="MatchId"
+                               MatchId="MatchId"
+                               Culture="@_culture"
+                               Match="@_match"
+                               HotMatch="@_hotMatch" />
+    }
+    else
+    {
+        <section class="arena-pressure-page__state" role="@(_loadState == ArenaPressurePageLoadState.Loading ? "status" : "dialog")"
+                 aria-live="polite" aria-busy="@(_loadState == ArenaPressurePageLoadState.Loading)">
+            <div class="arena-pressure-page__card">
+                <div class="arena-pressure-page__eyebrow">@T("title")</div>
+                @if (_loadState == ArenaPressurePageLoadState.Loading)
+                {
+                    <div class="arena-pressure-page__spinner" aria-hidden="true"></div>
+                }
+                <h1>@StateTitle</h1>
+                <p>@StateBody</p>
+                <div class="arena-pressure-page__actions">
+                    @if (_loadState == ArenaPressurePageLoadState.Error)
+                    {
+                        <button type="button" @onclick="RetryAsync">@T("retry")</button>
+                    }
+                    <a href="@RouteLocalization.BuildTvPath(_culture)">@T("backToTv")</a>
+                    <a href="@RouteLocalization.BuildHomePath(_culture)">@T("backHome")</a>
+                </div>
+            </div>
+        </section>
+    }
+</main>
+
+@code {
+    [Parameter] public string? Culture { get; set; }
+    [Parameter] public int MatchId { get; set; }
+    [Parameter] public string? Slug { get; set; }
+
+    private string _culture = AppCultureService.DefaultRouteCulture;
+    private MatchDto? _match;
+    private TvHotMatchDto? _hotMatch;
+    private string _activeRouteKey = string.Empty;
+    private bool _isDisposed;
+    private ArenaPressurePageLoadState _loadState = ArenaPressurePageLoadState.Loading;
+
+    private string T(string key) => L.T($"arenaPressure.{key}", _culture);
+
+    private string StateTitle => _loadState switch
+    {
+        ArenaPressurePageLoadState.NotFound => T("notFound"),
+        ArenaPressurePageLoadState.Error => T("error"),
+        _ => T("loading")
+    };
+
+    private string StateBody => _loadState switch
+    {
+        ArenaPressurePageLoadState.NotFound => T("notFoundBody"),
+        ArenaPressurePageLoadState.Error => T("errorBody"),
+        _ => T("loadingBody")
+    };
+
+    private string ResolvedSlug => !string.IsNullOrWhiteSpace(_match?.TeamA) && !string.IsNullOrWhiteSpace(_match?.TeamB)
+        ? MatchSlugHelper.BuildSlug(_match.TeamA, _match.TeamB)
+        : Slug?.Trim().ToLowerInvariant() ?? "match";
+
+    private string PageTitle => _match is null
+        ? T("title")
+        : L.T("arenaPressure.metaTitle", _culture, _match.TeamA, _match.TeamB);
+
+    private string MetaDescription => _match is null
+        ? T("metaDescription")
+        : L.T("arenaPressure.metaDescriptionForPair", _culture, _match.TeamA, _match.TeamB);
+
+    private string MetaKeywords => _match is null
+        ? $"{SeoDefaults.GlobalKeywords}, arena pressure"
+        : $"{SeoDefaults.GlobalKeywords}, arena pressure, {_match.TeamA} vs {_match.TeamB}";
+
+    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(
+        Config,
+        RouteLocalization.BuildArenaPressurePath(_culture, MatchId, ResolvedSlug));
+
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _culture = !string.IsNullOrWhiteSpace(Culture)
+            ? AppCulture.NormalizeRouteCulture(Culture)
+            : AppCulture.ResolveNavigationCulture(Nav, null);
+
+        var nextRouteKey = $"{_culture}|{MatchId}|{Slug?.Trim().ToLowerInvariant()}";
+        if (string.Equals(_activeRouteKey, nextRouteKey, StringComparison.Ordinal))
+            return;
+
+        _activeRouteKey = nextRouteKey;
+        _match = null;
+        _hotMatch = null;
+        _loadState = ArenaPressurePageLoadState.Loading;
+
+        await LoadMatchAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Blazor reuses this component when navigating between pressure routes:
+        // loading must not live only in OnInitializedAsync or the page would stay
+        // on the loading state until a manual reload.
+        if (_loadState == ArenaPressurePageLoadState.Loading && _match is null)
+            await LoadMatchAsync();
+    }
+
+    private async Task LoadMatchAsync()
+    {
+        if (_isDisposed || MatchId <= 0)
+        {
+            _loadState = ArenaPressurePageLoadState.NotFound;
+            return;
+        }
+
+        try
+        {
+            var match = await Api.GetMatchByIdAsync(MatchId, includeParticipants: false);
+            if (_isDisposed)
+                return;
+
+            if (match is null)
+            {
+                _loadState = ArenaPressurePageLoadState.NotFound;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            var expectedPath = RouteLocalization.BuildArenaPressurePath(
+                _culture,
+                match.MatchId,
+                MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB));
+
+            var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
+
+            if (!PathsEquivalent(currentPath, expectedPath))
+            {
+                Nav.NavigateTo(expectedPath, replace: true);
+                return;
+            }
+
+            _match = match;
+            _hotMatch = await ResolveHotMatchAsync(match);
+            _loadState = ArenaPressurePageLoadState.Loaded;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "Arena Pressure page failed to load match {MatchId}", MatchId);
+            _loadState = ArenaPressurePageLoadState.Error;
+        }
+
+        if (!_isDisposed)
+            await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task<TvHotMatchDto?> ResolveHotMatchAsync(MatchDto match)
+    {
+        if (MatchId <= 0)
+            return null;
+
+        try
+        {
+            var hotMatches = await HotMatches.GetHotMatchesAsync();
+            var current = hotMatches.FirstOrDefault(x => x.MatchId == MatchId);
+            return current is null ? null : HotMatches.ToTvHotMatch(current, _culture, RouteLocalization);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogDebug(ex, "Arena Pressure page could not resolve hot match for {MatchId}", match.MatchId);
+            return null;
+        }
+    }
+
+    private async Task RetryAsync()
+    {
+        _loadState = ArenaPressurePageLoadState.Loading;
+        await LoadMatchAsync();
+    }
+
+    private static bool PathsEquivalent(string left, string right)
+        => SafeUnescape(left).Equals(SafeUnescape(right), StringComparison.OrdinalIgnoreCase);
+
+    private static string SafeUnescape(string value)
+    {
+        try
+        {
+            return Uri.UnescapeDataString(value);
+        }
+        catch
+        {
+            return value;
+        }
+    }
+
+    public void Dispose()
+    {
+        _isDisposed = true;
+    }
+
+    private enum ArenaPressurePageLoadState
+    {
+        Loading,
+        Loaded,
+        NotFound,
+        Error
+    }
+}
+
+<style>
+    .arena-pressure-page {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 1rem 0.75rem 2rem;
+    }
+
+    .arena-pressure-page__state {
+        display: grid;
+        place-items: center;
+        min-height: 50vh;
+    }
+
+    .arena-pressure-page__card {
+        width: min(100%, 34rem);
+        display: grid;
+        gap: 0.75rem;
+        padding: 1.5rem;
+        border: 1px solid rgba(48, 66, 92, 0.85);
+        border-radius: 12px;
+        background: rgba(9, 17, 31, 0.85);
+        text-align: center;
+    }
+
+    .arena-pressure-page__eyebrow {
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        font-size: 0.72rem;
+        color: #ff9100;
+    }
+
+    .arena-pressure-page__spinner {
+        width: 2.25rem;
+        height: 2.25rem;
+        margin: 0 auto;
+        border-radius: 50%;
+        border: 3px solid rgba(120, 150, 190, 0.3);
+        border-top-color: #18d8d2;
+        animation: arena-pressure-spin 0.9s linear infinite;
+    }
+
+    @@keyframes arena-pressure-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .arena-pressure-page__actions {
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .arena-pressure-page__actions a,
+    .arena-pressure-page__actions button {
+        padding: 0.45rem 1.1rem;
+        border-radius: 8px;
+        border: 1px solid rgba(90, 120, 160, 0.6);
+        background: #12233a;
+        color: #e6edf7;
+        text-decoration: none;
+        cursor: pointer;
+        font-size: 0.82rem;
+    }
+</style>

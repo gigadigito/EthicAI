@@ -1,6 +1,6 @@
-import { getMoneyFlowBuffer, inspectMoneyFlowBuffer } from './money-flow.js?v=20261104a';
-import { CollectorController, normalizeCollectorQuality, } from './money-flow-collectors.js?v=20261104a';
-import { BAG_ABSORB_MS, BAG_LANDING_MS, MONEY_FLOW_EFFECTS_ATLAS, MoneyFlowTerminalFx, bagFrameForPhase, moneyFlowEffectsAvailable, prepareMoneyFlowEffectsTextures, } from './money-flow-effects-renderer.js?v=20261104a';
+import { getMoneyFlowBuffer, inspectMoneyFlowBuffer } from './money-flow.js?v=20261104b';
+import { CollectorController, normalizeCollectorQuality, } from './money-flow-collectors.js?v=20261104b';
+import { BAG_ABSORB_MS, BAG_LANDING_MS, MONEY_FLOW_EFFECTS_ATLAS, MoneyFlowTerminalFx, bagFrameForPhase, moneyFlowEffectsAvailable, moneyBagSourceBounds, prepareMoneyFlowEffectsTextures, } from './money-flow-effects-renderer.js?v=20261104b';
 const emptyCounters = () => ({
     left: { buy: 0, sell: 0, partial: false },
     right: { buy: 0, sell: 0, partial: false },
@@ -172,16 +172,22 @@ export function formatMoneyFlowAmount(amount, symbol) {
  * force a fixed offset through the arena edge or back over its own sprite.
  */
 export function calculateFinancialLabelPosition(input) {
-    const bagWidth = Math.max(1, input.bagWidth);
-    const bagHeight = Math.max(1, input.bagHeight);
     const labelWidth = Math.max(1, input.labelWidth);
     const labelHeight = Math.max(1, input.labelHeight);
-    // Keep the label visibly beside the bag, but close enough that the value
-    // reads as part of the same financial particle. The side selection and
-    // region clamping below still protect the bag, fighter and arena edges.
-    const gap = Math.max(4, Math.min(12, bagWidth * .12));
-    const leftCandidate = input.bagX - bagWidth / 2 - gap - labelWidth / 2;
-    const rightCandidate = input.bagX + bagWidth / 2 + gap + labelWidth / 2;
+    const fallbackWidth = Math.max(1, input.bagWidth ?? 1);
+    const fallbackHeight = Math.max(1, input.bagHeight ?? 1);
+    const bagBounds = input.bagBounds ?? {
+        left: (input.bagX ?? 0) - fallbackWidth / 2,
+        top: (input.bagY ?? 0) - fallbackHeight / 2,
+        right: (input.bagX ?? 0) + fallbackWidth / 2,
+        bottom: (input.bagY ?? 0) + fallbackHeight / 2,
+    };
+    // Four rendered arena pixels are the intended visual separation. Because
+    // this is applied between final edges, larger bags do not create a larger
+    // apparent gap and collector sprites do not inherit their full cell width.
+    const gap = 4;
+    const leftCandidate = bagBounds.left - gap - labelWidth / 2;
+    const rightCandidate = bagBounds.right + gap + labelWidth / 2;
     const minX = input.region.left + labelWidth / 2;
     const maxX = input.region.right - labelWidth / 2;
     const canFitLeft = leftCandidate >= minX;
@@ -192,7 +198,7 @@ export function calculateFinancialLabelPosition(input) {
         : canFitRight || !canFitLeft ? 'right' : 'left';
     const candidate = side === 'left' ? leftCandidate : rightCandidate;
     const x = input.clampToRegion === false ? candidate : Math.max(minX, Math.min(maxX, candidate));
-    const unclampedY = input.bagY - bagHeight * .52;
+    const unclampedY = (bagBounds.top + bagBounds.bottom) / 2;
     const y = input.clampToRegion === false
         ? unclampedY
         : Math.max(input.region.top - labelHeight, Math.min(input.region.floorY + labelHeight, unclampedY));
@@ -348,6 +354,7 @@ const SIDES = ['left', 'right'];
 export class MoneyFlowController {
     constructor(scene, options = {}) {
         this.scene = scene;
+        this.diagnosticLabels = new Map();
         this.volumeNormalizer = new MoneyFlowVolumeNormalizer();
         this.symbols = { left: '', right: '' };
         this.lastSequence = new Map();
@@ -356,6 +363,10 @@ export class MoneyFlowController {
         this.particleSequence = 0;
         this.collectorsConfigured = options.collectorsEnabled === true;
         this.reducedMotion = options.reducedMotion === true;
+        this.diagnostics = options.diagnostics === true;
+        this.diagnosticGraphics = this.diagnostics
+            ? this.scene.add.graphics().setDepth(15).setVisible(true)
+            : undefined;
         // Real atlas sprites are the primary rendering path; the procedural
         // drawing below only runs when the optional atlas failed to load.
         this.spriteMode = moneyFlowEffectsAvailable(scene);
@@ -371,7 +382,8 @@ export class MoneyFlowController {
             state: 'REMOVED', age: 0, availableAge: 0, lifetime: 0, x: 0, y: 0,
             startX: 0, startY: 0, targetX: 0, targetY: 0, phase: 0,
             fallDuration: 1000, visualPhase: 'flying', phaseAge: 0, restY: 0, groundY: 0,
-            baseScale: 1, viewScale: 1, viewAlpha: 1, amount: 0, currency: '', intensity: 0, sizeCategory: 'small'
+            baseScale: 1, viewScale: 1, viewAlpha: 1, amount: 0, currency: '', intensity: 0, sizeCategory: 'small',
+            carriedBounds: undefined,
         }));
         this.signs = new ReusablePool(MAX_SIGNS_PER_SIDE * 2, () => ({
             active: false, view: this.createSignView(), bagId: 0, positive: true, side: 'left',
@@ -541,6 +553,10 @@ export class MoneyFlowController {
         this.reset();
         this.collectors.destroy();
         this.terminalFx.destroy();
+        this.diagnosticGraphics?.destroy();
+        for (const label of this.diagnosticLabels.values())
+            label.destroy();
+        this.diagnosticLabels.clear();
         this.bags.forEach(item => item.view.destroy());
         this.signs.forEach(item => item.view.destroy());
         for (const side of SIDES)
@@ -603,6 +619,7 @@ export class MoneyFlowController {
         bag.amount = amount;
         bag.currency = this.symbols[side];
         bag.intensity = intensity;
+        bag.carriedBounds = undefined;
         bag.sizeCategory = intensity < .35 ? 'small' : intensity < .58 ? 'medium' : intensity < .8 ? 'large' : 'very-large';
         bag.state = 'FLOWING';
         bag.visualPhase = 'flying';
@@ -734,14 +751,45 @@ export class MoneyFlowController {
                 this.terminateBag(bag);
         });
     }
+    visualBoundsForBag(bag) {
+        if (bag.state === 'CARRIED' && bag.carriedBounds)
+            return { ...bag.carriedBounds };
+        const renderedBounds = bag.view.getBounds();
+        if (!this.spriteMode) {
+            return {
+                left: renderedBounds.x,
+                top: renderedBounds.y,
+                right: renderedBounds.x + renderedBounds.width,
+                bottom: renderedBounds.y + renderedBounds.height,
+            };
+        }
+        const sprite = bag.view;
+        const frameName = String(sprite.frame?.name ?? '');
+        const source = moneyBagSourceBounds(frameName);
+        if (!source) {
+            return {
+                left: renderedBounds.x,
+                top: renderedBounds.y,
+                right: renderedBounds.x + renderedBounds.width,
+                bottom: renderedBounds.y + renderedBounds.height,
+            };
+        }
+        const frame = sprite.frame;
+        const sourceWidth = Math.max(1, Number(frame.width ?? frame.cutWidth ?? 112));
+        const sourceHeight = Math.max(1, Number(frame.height ?? frame.cutHeight ?? 152));
+        const scaleX = renderedBounds.width / sourceWidth;
+        const scaleY = renderedBounds.height / sourceHeight;
+        return {
+            left: renderedBounds.x + source.left * scaleX,
+            top: renderedBounds.y + source.top * scaleY,
+            right: renderedBounds.x + source.right * scaleX,
+            bottom: renderedBounds.y + source.bottom * scaleY,
+        };
+    }
     positionFinancialLabel(sign, bag, anchors, clampToRegion) {
-        const bagSize = bag.view;
         const labelBounds = sign.view.getBounds();
         const position = calculateFinancialLabelPosition({
-            bagX: bag.x,
-            bagY: bag.y,
-            bagWidth: Number.isFinite(bagSize.displayWidth) && (bagSize.displayWidth ?? 0) > 0 ? bagSize.displayWidth : 32 * bag.viewScale,
-            bagHeight: Number.isFinite(bagSize.displayHeight) && (bagSize.displayHeight ?? 0) > 0 ? bagSize.displayHeight : 38 * bag.viewScale,
+            bagBounds: this.visualBoundsForBag(bag),
             labelWidth: labelBounds.width,
             labelHeight: labelBounds.height,
             region: anchors.region,
@@ -753,6 +801,8 @@ export class MoneyFlowController {
         sign.view.setPosition(sign.x, sign.y);
     }
     updateFinancialLabels(anchors) {
+        this.diagnosticGraphics?.clear();
+        const activeDiagnosticIds = new Set();
         this.signs.forEach(sign => {
             if (!sign.active)
                 return;
@@ -768,7 +818,58 @@ export class MoneyFlowController {
                 && (bag.state === 'CARRIED' || bag.view.visible);
             sign.view.setAlpha(visible ? bag.viewAlpha : 0).setVisible(visible);
             sign.view.setScale(1);
+            if (this.diagnostics) {
+                activeDiagnosticIds.add(sign.bagId);
+                this.updateFinancialDiagnostic(sign, bag);
+            }
         });
+        for (const [bagId, label] of this.diagnosticLabels) {
+            if (activeDiagnosticIds.has(bagId))
+                continue;
+            label.setVisible(false);
+            this.diagnosticLabels.delete(bagId);
+        }
+    }
+    financialLabelGeometry(sign, bag) {
+        const bagBounds = this.visualBoundsForBag(bag);
+        const labelBounds = sign.view.getBounds();
+        const label = {
+            left: labelBounds.x,
+            top: labelBounds.y,
+            right: labelBounds.x + labelBounds.width,
+            bottom: labelBounds.y + labelBounds.height,
+        };
+        const onRight = label.left >= bagBounds.right;
+        const onLeft = label.right <= bagBounds.left;
+        const gapPx = onRight
+            ? label.left - bagBounds.right
+            : onLeft
+                ? bagBounds.left - label.right
+                : -Math.min(label.right - bagBounds.left, bagBounds.right - label.left);
+        return { bag: bagBounds, label, gapPx };
+    }
+    updateFinancialDiagnostic(sign, bag) {
+        const geometry = this.financialLabelGeometry(sign, bag);
+        const graphics = this.diagnosticGraphics;
+        if (graphics) {
+            const bagColor = bag.positive ? 0xb9ff69 : 0xff8585;
+            const onRight = geometry.label.left >= geometry.bag.right;
+            graphics.lineStyle(1, bagColor, .9).strokeRect(geometry.bag.left, geometry.bag.top, geometry.bag.right - geometry.bag.left, geometry.bag.bottom - geometry.bag.top);
+            graphics.lineStyle(1, 0xffffff, .9)
+                .strokeRect(geometry.label.left, geometry.label.top, geometry.label.right - geometry.label.left, geometry.label.bottom - geometry.label.top)
+                .lineBetween(onRight ? geometry.bag.right : geometry.bag.left, (geometry.bag.top + geometry.bag.bottom) / 2, onRight ? geometry.label.left : geometry.label.right, (geometry.label.top + geometry.label.bottom) / 2);
+        }
+        let label = this.diagnosticLabels.get(bag.id);
+        if (!label) {
+            label = this.scene.add.text(0, 0, '', {
+                fontFamily: 'monospace', fontSize: '10px', color: '#ffffff',
+                backgroundColor: '#071317', padding: { left: 3, right: 3, top: 2, bottom: 2 },
+            }).setOrigin(0, 1).setDepth(16);
+            this.diagnosticLabels.set(bag.id, label);
+        }
+        label.setText(`[BAG-LABEL] bagId=${bag.id} state=${bag.state} scale=${bag.viewScale.toFixed(2)} gapPx=${geometry.gapPx.toFixed(1)}`)
+            .setPosition(geometry.bag.left, geometry.bag.top - 4)
+            .setVisible(true);
     }
     applyBagView(bag, scale, alpha) {
         bag.viewScale = scale;
@@ -815,6 +916,7 @@ export class MoneyFlowController {
             return false;
         bag.state = 'CARRIED';
         bag.visualPhase = 'carried';
+        bag.carriedBounds = undefined;
         // The collector sprites already carry the bag in their frames; showing
         // the loose sprite again would duplicate it.
         bag.view.setVisible(false);
@@ -830,12 +932,13 @@ export class MoneyFlowController {
             this.terminalFx.spawn(bag.x, bag.groundY || bag.y, bag.baseScale, 'burn');
         this.removeBag(bag);
     }
-    trackCarried(bagId, collectorId, x, y, visible = true) {
+    trackCarried(bagId, collectorId, x, y, visible = true, visualBounds) {
         const bag = this.mutableBag(bagId);
         if (!bag || bag.state !== 'CARRIED' || bag.ownerId !== collectorId)
             return;
         bag.x = x;
         bag.y = y;
+        bag.carriedBounds = visualBounds ? { ...visualBounds } : undefined;
         if (bag.financialLabel)
             bag.financialLabel.carriedVisible = visible;
     }
@@ -845,6 +948,7 @@ export class MoneyFlowController {
             return;
         bag.state = 'AVAILABLE';
         bag.ownerId = undefined;
+        bag.carriedBounds = undefined;
         bag.view.setVisible(true).setAlpha(1);
         bag.viewAlpha = 1;
     }
@@ -876,6 +980,7 @@ export class MoneyFlowController {
     removeBag(bag) {
         bag.state = 'REMOVED';
         bag.ownerId = undefined;
+        bag.carriedBounds = undefined;
         bag.view.setVisible(false);
         this.releaseFinancialLabel(bag.financialLabel, bag);
         this.bags.release(bag);
@@ -923,6 +1028,7 @@ export class MoneyFlowController {
                 x: sign.x, y: sign.y,
                 visible: sign.view.visible,
                 bagState: bag?.state ?? 'REMOVED',
+                ...(this.diagnostics && bag ? { geometry: this.financialLabelGeometry(sign, bag) } : {}),
             });
         });
         return result;
@@ -939,6 +1045,7 @@ export class MoneyFlowController {
             bag.state = 'REMOVED';
             bag.ownerId = undefined;
             bag.visualPhase = 'flying';
+            bag.carriedBounds = undefined;
             bag.view.setVisible(false);
             this.releaseFinancialLabel(bag.financialLabel, bag);
         });
@@ -947,6 +1054,10 @@ export class MoneyFlowController {
         this.signs.releaseAll();
         for (const side of SIDES)
             this.effects[side].glow.setVisible(false);
+        this.diagnosticGraphics?.clear();
+        for (const label of this.diagnosticLabels.values())
+            label.setVisible(false);
+        this.diagnosticLabels.clear();
     }
     drawBag(graphic, positive) {
         // Pixel-art money sack: gold fabric, tied neck, chunky '$' stamp and a

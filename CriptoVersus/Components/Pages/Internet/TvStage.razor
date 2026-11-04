@@ -4145,21 +4145,7 @@ private string DisplayPressureBody()
     => T("labels.pressureSummary", DisplayVolume(), DisplayRemainingTime());
 
 private (int Left, int Right) GetArenaPressurePair()
-{
-    var fieldState = CurrentFieldState;
-    if (fieldState is null)
-        return (50, 50);
-
-    var left = Math.Clamp(fieldState.PossessionA, 0, 100);
-    var right = Math.Clamp(fieldState.PossessionB, 0, 100);
-    var total = left + right;
-    if (total <= 0)
-        return (50, 50);
-
-    var normalizedLeft = (int)Math.Round((left / (double)total) * 100d, MidpointRounding.AwayFromZero);
-    normalizedLeft = Math.Clamp(normalizedLeft, 0, 100);
-    return (normalizedLeft, 100 - normalizedLeft);
-}
+    => ArenaPressureSource.GetPair(CurrentFieldState);
 
 private int GetArenaPressureLeftPercent()
     => GetArenaPressurePair().Left;

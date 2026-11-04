@@ -404,7 +404,7 @@ export class CollectorController {
                     // The state transition happens after the regular position
                     // tick. Re-anchor immediately so the bag and its label do
                     // not spend one frame at the pre-GRAB coordinates.
-                    this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y, true);
+                    this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y, true, this.renderer?.carriedBagBounds(cycle.id));
                     cycle.grabbed = true;
                 }
             }
@@ -431,7 +431,7 @@ export class CollectorController {
             // demon's underground descent that representation is clipped by
             // the same ground mask, so its financial label must be hidden too.
             const visible = cycle.positive || (cycle.state !== 'demon-descend' && cycle.state !== 'demon-disappear');
-            this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y, visible);
+            this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y, visible, this.renderer?.carriedBagBounds(cycle.id));
         }
     }
     cancel(cycle) {

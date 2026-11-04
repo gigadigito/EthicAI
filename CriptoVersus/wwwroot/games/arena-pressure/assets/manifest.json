@@ -1,0 +1,22 @@
+{
+  "name": "arena-pressure",
+  "version": "1.0.0",
+  "frameSize": {
+    "width": 112,
+    "height": 160
+  },
+  "frames": 8,
+  "wheelSize": {
+    "width": 512,
+    "height": 512,
+    "center": [256, 256],
+    "ringRadius": 128,
+    "ringWidth": 16
+  },
+  "colors": {
+    "left": "#ff9100",
+    "right": "#18d8d2",
+    "background": "#09111f"
+  },
+  "sourceArtNotes": "AI generated source art carried a baked checkerboard; background removal is approximate. Feet are cropped at the 160px frame edge and masked by the floor shadow."
+}

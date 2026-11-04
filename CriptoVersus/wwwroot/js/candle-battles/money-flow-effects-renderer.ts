@@ -40,6 +40,41 @@ export const TERMINAL_BURN_MS = 750;
 export const TERMINAL_SPARKLE_MS = 600;
 export const ACCENT_LOOP_MS = 700;
 
+export interface MoneyBagSourceBounds {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+}
+
+/**
+ * Source-pixel bounds of the bag artwork, excluding the transparent/glow
+ * padding in the atlas frame. The label uses these authored visual edges, not
+ * the wider animation cell, so scaling the effect does not push the value away.
+ */
+const MONEY_BAG_SOURCE_BOUNDS: Record<string, MoneyBagSourceBounds> = {
+    'bag-fall-1': { left: 28, top: 74, right: 84, bottom: 142 },
+    'bag-fall-2': { left: 25, top: 63, right: 85, bottom: 146 },
+    'bag-fall-3': { left: 30, top: 54, right: 86, bottom: 146 },
+    'bag-fall-4': { left: 28, top: 45, right: 86, bottom: 145 },
+    'bag-fall-5': { left: 28, top: 28, right: 84, bottom: 143 },
+    'bag-fall-6': { left: 29, top: 23, right: 87, bottom: 143 },
+    'bag-fall-7': { left: 27, top: 17, right: 86, bottom: 135 },
+    'bag-fall-8': { left: 20, top: 24, right: 94, bottom: 141 },
+    'bag-fall-9': { left: 10, top: 35, right: 96, bottom: 143 },
+    'bag-fall-10': { left: 14, top: 45, right: 102, bottom: 143 },
+    'bag-fall-11': { left: 17, top: 74, right: 105, bottom: 142 },
+    'bag-fall-12': { left: 16, top: 74, right: 104, bottom: 143 },
+    'bag-squash-1': { left: 24, top: 21, right: 105, bottom: 119 },
+    'bag-squash-2': { left: 25, top: 16, right: 105, bottom: 119 },
+    'bag-squash-3': { left: 37, top: 16, right: 120, bottom: 119 },
+    'bag-squash-4': { left: 17, top: 36, right: 113, bottom: 120 },
+};
+
+export function moneyBagSourceBounds(frameName: string): MoneyBagSourceBounds | null {
+    return MONEY_BAG_SOURCE_BOUNDS[frameName] ?? null;
+}
+
 export function moneyFlowEffectsAvailable(scene: PhaserTypes.Scene): boolean {
     return scene.textures.exists(MONEY_FLOW_EFFECTS_ATLAS);
 }

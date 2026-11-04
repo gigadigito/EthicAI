@@ -27,17 +27,18 @@ public sealed class TvFieldPositionService
             return new TvFieldStateDto();
 
         var matchId = hotMatch?.MatchId ?? match?.MatchId ?? 0;
-        var teamA = hotMatch?.LeftSymbol ?? match?.TeamA ?? "-";
-        var teamB = hotMatch?.RightSymbol ?? match?.TeamB ?? "-";
-        var scoreA = hotMatch?.LeftScore ?? match?.ScoreA ?? 0;
-        var scoreB = hotMatch?.RightScore ?? match?.ScoreB ?? 0;
-        var variationA = hotMatch?.LeftChangePercent ?? match?.PctA;
-        var variationB = hotMatch?.RightChangePercent ?? match?.PctB;
-        var leader = ResolveLeader(teamA, teamB, scoreA, scoreB, variationA, variationB, hotMatch?.LeaderSymbol);
-        var competitiveness = CalculateCompetitiveness(scoreA, scoreB, variationA, variationB, hotMatch?.HotScore);
-        var momentumOwner = ResolveMomentumOwner(teamA, teamB, hotMatch?.MomentumLabel, hotMatch?.PressureSymbol, leader);
-        var possessionA = CalculatePossession(scoreA, scoreB, variationA, variationB, teamA, momentumOwner, hotMatch?.HotScore ?? competitiveness, competitiveness);
-        var possessionB = 100 - possessionA;
+        var identity = BuildPossessionInputs(match, hotMatch);
+        var teamA = identity.TeamA;
+        var teamB = identity.TeamB;
+        var scoreA = identity.ScoreA;
+        var scoreB = identity.ScoreB;
+        var variationA = identity.VariationA;
+        var variationB = identity.VariationB;
+        var leader = identity.Leader;
+        var competitiveness = identity.Competitiveness;
+        var momentumOwner = identity.MomentumOwner;
+        var possessionA = identity.PossessionA;
+        var possessionB = identity.PossessionB;
         var pressureA = CalculateTeamPressure(possessionA, variationA, scoreA, scoreB);
         var pressureB = CalculateTeamPressure(possessionB, variationB, scoreB, scoreA);
         var highlight = CalculateHighlightedPlayer(teamA, teamB, scoreA, scoreB, momentumOwner, events);
@@ -97,7 +98,57 @@ public sealed class TvFieldPositionService
         };
     }
 
-    public int CalculatePossession(
+    /// <summary>
+    /// Resolves team identity, score, variation and the derived possession pair for a
+    /// match state. Owned here so the Match Arena pressure gauge and the Arena Pressure
+    /// game always derive possession from the exact same composition and rules.
+    /// </summary>
+    public static TvPossessionInputs BuildPossessionInputs(MatchDto? match, TvHotMatchDto? hotMatch)
+        => BuildPossessionInputs(
+            hotMatch?.LeftSymbol ?? match?.TeamA ?? "-",
+            hotMatch?.RightSymbol ?? match?.TeamB ?? "-",
+            hotMatch?.LeftScore ?? match?.ScoreA ?? 0,
+            hotMatch?.RightScore ?? match?.ScoreB ?? 0,
+            hotMatch?.LeftChangePercent ?? match?.PctA,
+            hotMatch?.RightChangePercent ?? match?.PctB,
+            hotMatch);
+
+    /// <summary>
+    /// Possession composition for one concrete match state. The historical Arena Pressure
+    /// timeline replays real score and variation values through this same overload, so the
+    /// reconstructed points follow the authoritative rules instead of a parallel algorithm.
+    /// </summary>
+    public static TvPossessionInputs BuildPossessionInputs(
+        string teamA,
+        string teamB,
+        int scoreA,
+        int scoreB,
+        decimal? variationA,
+        decimal? variationB,
+        TvHotMatchDto? hotMatch)
+    {
+        var leader = ResolveLeader(teamA, teamB, scoreA, scoreB, variationA, variationB, hotMatch?.LeaderSymbol);
+        var competitiveness = CalculateCompetitiveness(scoreA, scoreB, variationA, variationB, hotMatch?.HotScore);
+        var momentumOwner = ResolveMomentumOwner(teamA, teamB, hotMatch?.MomentumLabel, hotMatch?.PressureSymbol, leader);
+        var effectiveHotScore = hotMatch?.HotScore ?? competitiveness;
+        var possessionA = CalculatePossession(scoreA, scoreB, variationA, variationB, teamA, momentumOwner, effectiveHotScore, competitiveness);
+
+        return new TvPossessionInputs(
+            teamA,
+            teamB,
+            scoreA,
+            scoreB,
+            variationA,
+            variationB,
+            leader,
+            momentumOwner,
+            competitiveness,
+            effectiveHotScore,
+            possessionA,
+            100 - possessionA);
+    }
+
+    public static int CalculatePossession(
         int scoreA,
         int scoreB,
         decimal? variationA,
@@ -117,7 +168,7 @@ public sealed class TvFieldPositionService
         return (int)Math.Round(Math.Clamp(raw, 35d, 65d), MidpointRounding.AwayFromZero);
     }
 
-    public double CalculateTeamPressure(int possession, decimal? variation, int score, int opponentScore)
+    public static double CalculateTeamPressure(int possession, decimal? variation, int score, int opponentScore)
     {
         var pressure = ((possession - 50d) / 15d) + (double)(variation ?? 0m) + ((score - opponentScore) * 0.9d);
         return Math.Clamp(pressure, -4d, 4d);
@@ -447,7 +498,7 @@ public sealed class TvFieldPositionService
         return 2 + (Math.Abs(tick) % 3);
     }
 
-    private static string ResolveLeader(
+    public static string ResolveLeader(
         string teamA,
         string teamB,
         int scoreA,
@@ -465,7 +516,7 @@ public sealed class TvFieldPositionService
         return (variationA ?? 0m) >= (variationB ?? 0m) ? teamA : teamB;
     }
 
-    private static string ResolveMomentumOwner(
+    public static string ResolveMomentumOwner(
         string teamA,
         string teamB,
         string? momentumLabel,
@@ -487,7 +538,7 @@ public sealed class TvFieldPositionService
         return leader;
     }
 
-    private static int CalculateCompetitiveness(
+    public static int CalculateCompetitiveness(
         int scoreA,
         int scoreB,
         decimal? variationA,
@@ -686,8 +737,8 @@ public sealed class TvFieldPositionService
 
     private static double CalculateTerritorialPressure(int possession, double territorialAdvance)
     {
-        // Posse manda no território.
-        // Flow só adiciona intensidade contextual.
+        // Posse manda no territï¿½rio.
+        // Flow sï¿½ adiciona intensidade contextual.
 
         var possessionTerritory =
             Math.Clamp((possession - 50d) / 15d, -1d, 1d);
@@ -700,13 +751,13 @@ public sealed class TvFieldPositionService
           (possessionTerritory * 0.64d)
 + (marketThreat * 0.36d);
 
-        // Sem posse não pode dominar campo inteiro.
+        // Sem posse nï¿½o pode dominar campo inteiro.
         if (possession < 50 && marketThreat > 0)
         {
             territory = Math.Min(territory, 0.34d);
         }
 
-        // Com posse alta, deixa avançar mais.
+        // Com posse alta, deixa avanï¿½ar mais.
         if (possession > 60 && marketThreat > 0)
         {
             territory += marketThreat * 0.12d;

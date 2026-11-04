@@ -173,6 +173,19 @@ test('financial labels use a compact side gap without entering the bag bounds', 
   assert.ok(labelLeft - (330 + 34 / 2) <= 12, 'the label gap stays visually close');
 });
 
+test('financial labels keep a four-pixel edge gap across bag scales and sides', () => {
+  const region = buildMoneyFlowAnchors({ side: 'left', centreX: 330, groundY: 445, laneLeft: 80, laneRight: 560 }).region;
+  for (const [width, height] of [[18, 22], [34, 40], [58, 68], [88, 120]]) {
+    const bounds = { left: 330 - width / 2, top: 360 - height / 2, right: 330 + width / 2, bottom: 360 + height / 2 };
+    const right = calculateFinancialLabelPosition({ bagBounds: bounds, labelWidth: 82, labelHeight: 18, region, preferredSide: 'right' });
+    const rightGap = right.x - 82 / 2 - bounds.right;
+    assert.ok(Math.abs(rightGap - 4) < .001, `right-side gap stays at 4px for ${width}px bag`);
+    const left = calculateFinancialLabelPosition({ bagBounds: bounds, labelWidth: 82, labelHeight: 18, region, preferredSide: 'left' });
+    const leftGap = bounds.left - (left.x + 82 / 2);
+    assert.ok(Math.abs(leftGap - 4) < .001, `left-side gap stays at 4px for ${width}px bag`);
+  }
+});
+
 test('financial labels switch sides at an arena edge and can follow a carried collector', () => {
   const region = buildMoneyFlowAnchors({ side: 'left', centreX: 330, groundY: 445, laneLeft: 80, laneRight: 560 }).region;
   const atEdge = calculateFinancialLabelPosition({

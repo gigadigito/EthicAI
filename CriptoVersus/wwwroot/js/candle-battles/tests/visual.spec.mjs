@@ -469,7 +469,7 @@ test('negative bags stay available after landing and burn only at the end',async
 
 test('financial labels have one bag owner, follow collection and clear with the bag',async({page})=>{
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
- await page.goto(url+'?kind=live&collectors=1&quality=high');await page.waitForFunction(()=>window.engine&&window.ready);
+ await page.goto(url+'?kind=live&collectors=1&quality=high&diagnostics=1');await page.waitForFunction(()=>window.engine&&window.ready);
  const flowUrl=await moneyFlowModuleUrl(page);
  const result=await page.evaluate(async({flowUrl})=>{
   const engine=window.engine;
@@ -477,7 +477,7 @@ test('financial labels have one bag owner, follow collection and clear with the 
   engine.receive({matchId:98,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
   const flow=await import(flowUrl);
   const batch=(symbol,sequence)=>({matchId:98,symbol,sequence,windowStartUtc:new Date(open).toISOString(),windowEndUtc:event,eventTimeUtc:event,receivedAtUtc:event,publishedAtUtc:event,tradeCount:32,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'1',takerBuyQuote:'120',takerSellQuote:'80',netQuote:'40',firstPrice:'100',lastPrice:'100.2',highPrice:'100.3',lowPrice:'99.9',isPartial:false});
-  let orphan=false,duplicate=false,sawCarried=false,sawDemonHidden=false,maxCarryGap=0,maxSignPool=0;
+  let orphan=false,duplicate=false,sawCarried=false,sawDemonHidden=false,maxCarryGap=0,maxSignPool=0,minRenderedGap=Infinity,maxRenderedGap=-Infinity;
   for(let tick=1;tick<=230;tick++){
    flow.receiveMoneyFlowBatch(batch('BTCUSDT',tick));flow.receiveMoneyFlowBatch(batch('ETHUSDT',tick));engine.update(60);
    const state=engine.inspect().moneyFlow,bags=new Map(state.bagStates.map(bag=>[bag.id,bag])),labelsByBag=new Map();
@@ -485,6 +485,7 @@ test('financial labels have one bag owner, follow collection and clear with the 
    for(const label of state.signStates){
     if(!bags.has(label.bagId))orphan=true;
     labelsByBag.set(label.bagId,(labelsByBag.get(label.bagId)??0)+1);
+    if(label.visible&&label.geometry){minRenderedGap=Math.min(minRenderedGap,label.geometry.gapPx);maxRenderedGap=Math.max(maxRenderedGap,label.geometry.gapPx);}
    }
    for(const bag of state.bagStates)if(labelsByBag.get(bag.id)!==1)duplicate=true;
    for(const cycle of state.collectors.cycles){
@@ -496,13 +497,15 @@ test('financial labels have one bag owner, follow collection and clear with the 
   }
   engine.command('replay');engine.update(16);
   const replay=engine.inspect().moneyFlow;
-  return {orphan,duplicate,sawCarried,sawDemonHidden,maxCarryGap,maxSignPool,replayBags:replay.bags,replayLabels:replay.signs};
+  return {orphan,duplicate,sawCarried,sawDemonHidden,maxCarryGap,maxSignPool,minRenderedGap,maxRenderedGap,replayBags:replay.bags,replayLabels:replay.signs};
  },{flowUrl});
  expect(result.orphan,'labels never outlive their bag').toBe(false);
  expect(result.duplicate,'each active bag owns exactly one label').toBe(false);
  expect(result.sawCarried,'a label was observed during collection').toBe(true);
  expect(result.sawDemonHidden,'demon descent clips the carried label').toBe(true);
  expect(result.maxCarryGap,'the label binding uses the collector-updated bag position').toBeLessThanOrEqual(1);
+ expect(result.minRenderedGap,'rendered labels never overlap their bag').toBeGreaterThanOrEqual(3.9);
+ expect(result.maxRenderedGap,'rendered labels stay immediately beside their bag').toBeLessThanOrEqual(4.1);
  expect(result.maxSignPool,'label objects stay within the bag pool bound').toBeLessThanOrEqual(12);
  expect(result.replayBags).toBe(0);expect(result.replayLabels).toBe(0);expect(errors).toEqual([]);
 });
