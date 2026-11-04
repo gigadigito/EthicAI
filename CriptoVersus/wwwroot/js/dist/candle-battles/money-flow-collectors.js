@@ -400,8 +400,13 @@ export class CollectorController {
             const bag = this.bags.bagById(cycle.bagId);
             const onContact = bag ? Math.hypot(bag.x - cycle.x, bag.y - cycle.y) <= GRAB_RADIUS * 1.6 : false;
             if (onContact) {
-                this.bags.markCarried(cycle.bagId, cycle.id);
-                cycle.grabbed = true;
+                if (this.bags.markCarried(cycle.bagId, cycle.id)) {
+                    // The state transition happens after the regular position
+                    // tick. Re-anchor immediately so the bag and its label do
+                    // not spend one frame at the pre-GRAB coordinates.
+                    this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y, true);
+                    cycle.grabbed = true;
+                }
             }
         }
     }
@@ -421,8 +426,13 @@ export class CollectorController {
         this.renderer?.setPosition(cycle.id, cycle.x, cycle.y, direction);
         // A carried bag keeps its coordinates on the collector so the terminal
         // effect (demon portal burn) lands where the bag actually is.
-        if (bag.state === 'CARRIED')
-            this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y);
+        if (bag.state === 'CARRIED') {
+            // The carried bag is represented by the collector atlas. During a
+            // demon's underground descent that representation is clipped by
+            // the same ground mask, so its financial label must be hidden too.
+            const visible = cycle.positive || (cycle.state !== 'demon-descend' && cycle.state !== 'demon-disappear');
+            this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y, visible);
+        }
     }
     cancel(cycle) {
         const bag = this.bags.bagById(cycle.bagId);

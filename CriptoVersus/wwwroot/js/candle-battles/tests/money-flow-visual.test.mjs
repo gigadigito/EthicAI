@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import {
   decideMoneyFlow, MoneyFlowEventCounter, MoneyFlowVisualState, MoneyFlowVolumeNormalizer, ReusablePool,
   moneyFlowBatchBelongsToRound, moneyFlowCounterPolarities, moneyFlowEventKey, moneyFlowSidesForBatch,
-  moneyFlowTakerFieldState, formatMoneyFlowAmount, planBagSpawn,
+  moneyFlowTakerFieldState, formatMoneyFlowAmount, calculateFinancialLabelPosition, planBagSpawn,
 } from '../../dist/candle-battles/money-flow-visual.js';
 import {
   bagFrameForPhase, accentFrameFor,
@@ -133,6 +133,38 @@ test('financial labels use compact values and preserve the quote asset', () => {
   assert.equal(formatMoneyFlowAmount(850, 'BTCUSDT'), '850 USDT');
   assert.equal(formatMoneyFlowAmount(1250, 'ETHUSDC'), '1.3K USDC');
   assert.equal(formatMoneyFlowAmount(1_200_000, 'ETHBTC'), '1.2M BTC');
+});
+
+test('financial labels stay beside the bag and adapt to its visual size', () => {
+  const region = buildMoneyFlowAnchors({ side: 'left', centreX: 330, groundY: 445, laneLeft: 80, laneRight: 560 }).region;
+  const small = calculateFinancialLabelPosition({
+    bagX: 330, bagY: 360, bagWidth: 18, bagHeight: 22, labelWidth: 78, labelHeight: 18,
+    region, preferredSide: 'right',
+  });
+  const veryLarge = calculateFinancialLabelPosition({
+    bagX: 330, bagY: 360, bagWidth: 72, bagHeight: 92, labelWidth: 78, labelHeight: 18,
+    region, preferredSide: 'right',
+  });
+  assert.ok(Math.abs(small.x - 330) > 18, 'small bag label clears the bag body');
+  assert.ok(Math.abs(veryLarge.x - 330) > 45, 'very-large bag label clears its scaled body');
+  assert.ok(small.y >= region.top - 18 && small.y <= region.floorY + 18);
+  assert.ok(veryLarge.y >= region.top - 18 && veryLarge.y <= region.floorY + 18);
+});
+
+test('financial labels switch sides at an arena edge and can follow a carried collector', () => {
+  const region = buildMoneyFlowAnchors({ side: 'left', centreX: 330, groundY: 445, laneLeft: 80, laneRight: 560 }).region;
+  const atEdge = calculateFinancialLabelPosition({
+    bagX: region.left + 4, bagY: 360, bagWidth: 34, bagHeight: 40, labelWidth: 82, labelHeight: 18,
+    region, preferredSide: 'left',
+  });
+  assert.equal(atEdge.side, 'right', 'edge bags use the available side');
+  assert.ok(atEdge.x >= region.left + 41 && atEdge.x <= region.right - 41);
+
+  const carried = calculateFinancialLabelPosition({
+    bagX: -35, bagY: 90, bagWidth: 34, bagHeight: 40, labelWidth: 82, labelHeight: 18,
+    region, preferredSide: 'left', clampToRegion: false,
+  });
+  assert.ok(carried.x < region.left, 'carried labels are not frozen at the arena edge');
 });
 
 test('unavailable taker data is never classified as a measured zero flow', () => {

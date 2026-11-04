@@ -243,6 +243,56 @@ export function formatMoneyFlowAmount(amount: number, symbol: string): string {
     return `${numberText}${suffix}${quote ? ` ${quote}` : ''}`;
 }
 
+export interface FinancialLabelPositionInput {
+    bagX: number;
+    bagY: number;
+    bagWidth: number;
+    bagHeight: number;
+    labelWidth: number;
+    labelHeight: number;
+    region: MoneyFlowRegion;
+    /** Prefer the side away from the fighter, but switch sides near an edge. */
+    preferredSide: 'left' | 'right';
+    /** Carried labels follow the collector outside the resting bag region. */
+    clampToRegion?: boolean;
+}
+
+export interface FinancialLabelPosition {
+    x: number;
+    y: number;
+    side: 'left' | 'right';
+}
+
+/**
+ * Places a label beside the bag's current visual bounds. The fallback side is
+ * chosen from the available region width, so a small or very-large bag cannot
+ * force a fixed offset through the arena edge or back over its own sprite.
+ */
+export function calculateFinancialLabelPosition(input: FinancialLabelPositionInput): FinancialLabelPosition {
+    const bagWidth = Math.max(1, input.bagWidth);
+    const bagHeight = Math.max(1, input.bagHeight);
+    const labelWidth = Math.max(1, input.labelWidth);
+    const labelHeight = Math.max(1, input.labelHeight);
+    const gap = Math.max(8, Math.min(22, bagWidth * .18));
+    const leftCandidate = input.bagX - bagWidth / 2 - gap - labelWidth / 2;
+    const rightCandidate = input.bagX + bagWidth / 2 + gap + labelWidth / 2;
+    const minX = input.region.left + labelWidth / 2;
+    const maxX = input.region.right - labelWidth / 2;
+    const canFitLeft = leftCandidate >= minX;
+    const canFitRight = rightCandidate <= maxX;
+    const preferred = input.preferredSide === 'left' ? 'left' : 'right';
+    const side = preferred === 'left'
+        ? canFitLeft || !canFitRight ? 'left' : 'right'
+        : canFitRight || !canFitLeft ? 'right' : 'left';
+    const candidate = side === 'left' ? leftCandidate : rightCandidate;
+    const x = input.clampToRegion === false ? candidate : Math.max(minX, Math.min(maxX, candidate));
+    const unclampedY = input.bagY - bagHeight * .52;
+    const y = input.clampToRegion === false
+        ? unclampedY
+        : Math.max(input.region.top - labelHeight, Math.min(input.region.floorY + labelHeight, unclampedY));
+    return { x, y, side };
+}
+
 /** Framework-free smoothing state so the visual rules are testable without a Phaser canvas. */
 export class MoneyFlowVisualState {
     private positiveEnergy = 0;
@@ -348,22 +398,18 @@ interface BagParticle extends CollectibleMoneyBag {
     currency: string;
     intensity: number;
     sizeCategory: MoneyFlowSizeCategory;
+    financialLabel?: SignParticle;
 }
 interface SignParticle {
     active: boolean;
     view: SignView;
+    bagId: number;
     positive: boolean;
     side: Side;
-    age: number;
-    lifetime: number;
     x: number;
     y: number;
-    vx: number;
-    vy: number;
-    followBagId?: number;
-    offsetX: number;
-    offsetY: number;
     text: string;
+    carriedVisible: boolean;
 }
 interface SideFx { state: MoneyFlowVisualState; glow: PhaserTypes.GameObjects.Graphics; positiveCooldown: number; negativeCooldown: number; }
 
@@ -481,8 +527,8 @@ export class MoneyFlowController implements MoneyFlowBagHost {
             baseScale: 1, viewScale: 1, viewAlpha: 1, amount: 0, currency: '', intensity: 0, sizeCategory: 'small'
         }));
         this.signs = new ReusablePool(MAX_SIGNS_PER_SIDE * 2, () => ({
-            active: false, view: this.createSignView(), positive: true, side: 'left',
-            age: 0, lifetime: 0, x: 0, y: 0, vx: 0, vy: 0, offsetX: 0, offsetY: 0, text: ''
+            active: false, view: this.createSignView(), bagId: 0, positive: true, side: 'left',
+            x: 0, y: 0, text: '', carriedVisible: false
         }));
         this.collectors = new CollectorController(scene, this, {
             enabled: this.collectorsConfigured,
@@ -572,7 +618,6 @@ export class MoneyFlowController implements MoneyFlowBagHost {
                 const intensity = this.volumeNormalizer.scaleFor(this.symbols[side], 'buy', amount).intensity;
                 const bag = this.spawnBag(side, true, anchors[side], amount, intensity);
                 if (bag) fx.state.takePending('buy');
-                if (bag) this.spawnSign(side, true, bag, anchors[side]);
                 // Higher energy emits more often, within the hard object limits.
                 fx.positiveCooldown = 240 + (1 - fx.state.positive) * 260;
             }
@@ -581,12 +626,10 @@ export class MoneyFlowController implements MoneyFlowBagHost {
                 const intensity = this.volumeNormalizer.scaleFor(this.symbols[side], 'sell', amount).intensity;
                 const bag = this.spawnBag(side, false, anchors[side], amount, intensity);
                 if (bag) fx.state.takePending('sell');
-                if (bag) this.spawnSign(side, false, bag, anchors[side]);
                 fx.negativeCooldown = 260 + (1 - fx.state.negative) * 270;
             }
         }
         this.updateBags(deltaMs, anchors);
-        this.updateSigns(deltaMs, anchors);
         this.terminalFx.update(deltaMs);
         this.collectors.update(deltaMs, {
             allowSpawn: allowCollectors,
@@ -596,6 +639,9 @@ export class MoneyFlowController implements MoneyFlowBagHost {
                 right: { positive: this.effects.right.state.positive, negative: this.effects.right.state.negative },
             },
         });
+        // Collector motion updates carried bag coordinates and underground
+        // clipping before labels are positioned, keeping both in the same tick.
+        this.updateFinancialLabels(anchors);
     }
 
     inspect(): object {
@@ -704,27 +750,31 @@ export class MoneyFlowController implements MoneyFlowBagHost {
             this.drawBag(bag.view as PhaserTypes.GameObjects.Graphics, positive);
         }
         this.applyBagView(bag, bag.baseScale, 1);
+        // A bag is not admitted to the visual pool without its one financial
+        // label. This makes the identity relationship atomic at birth.
+        if (!this.attachFinancialLabel(bag, anchors)) {
+            bag.state = 'REMOVED';
+            bag.view.setVisible(false);
+            this.bags.release(bag);
+            return undefined;
+        }
         return bag;
     }
 
-    private spawnSign(side: Side, positive: boolean, bag: BagParticle | undefined, anchors: MoneyFlowAnchors): void {
-        let activeForSide = 0;
-        this.signs.forEach(item => { if (item.active && item.side === side) activeForSide++; });
-        if (activeForSide >= MAX_SIGNS_PER_SIDE) return;
+    private attachFinancialLabel(bag: BagParticle, anchors: MoneyFlowAnchors): boolean {
+        if (bag.financialLabel?.active) return true;
         const sign = this.signs.acquire();
-        if (!sign) return;
-        const randomA = this.random(side), randomB = this.random(side);
-        sign.side = side; sign.positive = positive; sign.age = 0; sign.lifetime = 1100;
-        sign.offsetX = (positive ? 42 : -42) + (randomA - .5) * 12;
-        sign.offsetY = -12 - randomB * 8;
-        sign.followBagId = bag?.id;
-        sign.text = bag ? formatMoneyFlowAmount(bag.amount, bag.currency) : '';
-        sign.x = bag ? bag.x + sign.offsetX : anchors.body.x + (randomA - .5) * 120;
-        sign.y = bag ? bag.y + sign.offsetY : positive ? anchors.head.y + 40 : anchors.body.y + 30;
-        sign.vx = (randomB - .5) * 18;
-        sign.vy = positive ? -30 : 24;
-        sign.view.setText(sign.text).setColor(positive ? '#d9ff84' : '#ff9b65')
-            .setPosition(sign.x, sign.y).setAlpha(.95).setVisible(Boolean(sign.text));
+        if (!sign) return false;
+        sign.bagId = bag.id;
+        sign.side = bag.side;
+        sign.positive = bag.positive;
+        sign.text = formatMoneyFlowAmount(bag.amount, bag.currency);
+        sign.carriedVisible = true;
+        sign.view.setText(sign.text).setColor(bag.positive ? '#d9ff84' : '#ff9b65');
+        bag.financialLabel = sign;
+        this.positionFinancialLabel(sign, bag, anchors, false);
+        sign.view.setAlpha(1).setVisible(Boolean(sign.text));
+        return true;
     }
 
     private updateBags(deltaMs: number, anchors: Record<Side, MoneyFlowAnchors>): void {
@@ -796,25 +846,40 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         });
     }
 
-    private updateSigns(deltaMs: number, anchors: Record<Side, MoneyFlowAnchors>): void {
+    private positionFinancialLabel(sign: SignParticle, bag: BagParticle, anchors: MoneyFlowAnchors, clampToRegion: boolean): void {
+        const bagSize = bag.view as unknown as { displayWidth?: number; displayHeight?: number };
+        const labelBounds = sign.view.getBounds();
+        const position = calculateFinancialLabelPosition({
+            bagX: bag.x,
+            bagY: bag.y,
+            bagWidth: Number.isFinite(bagSize.displayWidth) && (bagSize.displayWidth ?? 0) > 0 ? bagSize.displayWidth! : 32 * bag.viewScale,
+            bagHeight: Number.isFinite(bagSize.displayHeight) && (bagSize.displayHeight ?? 0) > 0 ? bagSize.displayHeight! : 38 * bag.viewScale,
+            labelWidth: labelBounds.width,
+            labelHeight: labelBounds.height,
+            region: anchors.region,
+            preferredSide: bag.x <= anchors.region.centerX ? 'left' : 'right',
+            clampToRegion,
+        });
+        sign.x = position.x;
+        sign.y = position.y;
+        sign.view.setPosition(sign.x, sign.y);
+    }
+
+    private updateFinancialLabels(anchors: Record<Side, MoneyFlowAnchors>): void {
         this.signs.forEach(sign => {
             if (!sign.active) return;
-            sign.age += deltaMs;
-            const bag = sign.followBagId != null ? this.mutableBag(sign.followBagId) : undefined;
-            if (bag && bag.state !== 'REMOVED') {
-                sign.x = bag.x + sign.offsetX;
-                sign.y = bag.y + sign.offsetY + Math.sin(sign.age / 300) * 4;
-            } else {
-                sign.followBagId = undefined;
-                sign.x += sign.vx * deltaMs / 1000;
-                sign.y += sign.vy * deltaMs / 1000;
+            const bag = this.mutableBag(sign.bagId);
+            if (!bag || bag.state === 'REMOVED' || bag.financialLabel !== sign) {
+                this.releaseFinancialLabel(sign, bag);
+                return;
             }
-            const region = anchors[sign.side].region;
-            sign.x = Math.max(region.left, Math.min(region.right, sign.x));
-            sign.y = Math.max(region.top - 44, Math.min(region.floorY + 40, sign.y));
-            sign.view.setPosition(sign.x, sign.y).setAlpha(Math.max(0, 1 - sign.age / sign.lifetime));
+            this.positionFinancialLabel(sign, bag, anchors[bag.side], bag.state !== 'CARRIED');
+            const visible = sign.text.length > 0
+                && sign.carriedVisible
+                && bag.viewAlpha > .01
+                && (bag.state === 'CARRIED' || bag.view.visible);
+            sign.view.setAlpha(visible ? bag.viewAlpha : 0).setVisible(visible);
             sign.view.setScale(1);
-            if (sign.age >= sign.lifetime) { sign.view.setVisible(false); this.signs.release(sign); }
         });
     }
 
@@ -879,11 +944,12 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         this.removeBag(bag);
     }
 
-    trackCarried(bagId: number, collectorId: string, x: number, y: number): void {
+    trackCarried(bagId: number, collectorId: string, x: number, y: number, visible = true): void {
         const bag = this.mutableBag(bagId);
         if (!bag || bag.state !== 'CARRIED' || bag.ownerId !== collectorId) return;
         bag.x = x;
         bag.y = y;
+        if (bag.financialLabel) bag.financialLabel.carriedVisible = visible;
     }
 
     releaseReservation(bagId: number, collectorId: string): void {
@@ -926,7 +992,21 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         bag.state = 'REMOVED';
         bag.ownerId = undefined;
         bag.view.setVisible(false);
+        this.releaseFinancialLabel(bag.financialLabel, bag);
         this.bags.release(bag);
+    }
+
+    /** Idempotent release for the one label owned by a bag. */
+    private releaseFinancialLabel(sign: SignParticle | undefined, bag?: BagParticle): void {
+        if (!sign?.active) {
+            if (bag && bag.financialLabel === sign) bag.financialLabel = undefined;
+            return;
+        }
+        if (bag && bag.financialLabel === sign) bag.financialLabel = undefined;
+        sign.bagId = 0;
+        sign.carriedVisible = false;
+        sign.view.setVisible(false).setAlpha(0);
+        this.signs.release(sign);
     }
 
     private inspectBags(): object[] {
@@ -949,10 +1029,14 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         const result: object[] = [];
         this.signs.forEach(sign => {
             if (!sign.active) return;
+            const bag = this.mutableBag(sign.bagId);
             result.push({
+                bagId: sign.bagId,
                 polarity: sign.positive ? 'positive' : 'negative',
                 frame: sign.text,
                 x: sign.x, y: sign.y,
+                visible: sign.view.visible,
+                bagState: bag?.state ?? 'REMOVED',
             });
         });
         return result;
@@ -970,9 +1054,10 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         this.bags.forEach(bag => {
             bag.state = 'REMOVED'; bag.ownerId = undefined; bag.visualPhase = 'flying';
             bag.view.setVisible(false);
+            this.releaseFinancialLabel(bag.financialLabel, bag);
         });
         this.bags.releaseAll();
-        this.signs.forEach(sign => { sign.followBagId = undefined; sign.view.setVisible(false); });
+        this.signs.forEach(sign => this.releaseFinancialLabel(sign));
         this.signs.releaseAll();
         for (const side of SIDES) this.effects[side].glow.setVisible(false);
     }

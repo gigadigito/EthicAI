@@ -36,8 +36,8 @@ export interface MoneyFlowBagHost {
     completeCollection(bagId: number, collectorId: string): void;
     releaseReservation(bagId: number, collectorId: string): void;
     bagById(bagId: number): CollectibleMoneyBag | undefined;
-    /** Keeps a carried bag's coordinates on the collector so terminal effects land correctly. */
-    trackCarried?(bagId: number, collectorId: string, x: number, y: number): void;
+    /** Keeps a carried bag's coordinates and visibility on the collector. */
+    trackCarried?(bagId: number, collectorId: string, x: number, y: number, visible?: boolean): void;
 }
 
 export interface MoneyFlowAnchorPoint { x: number; y: number; }
@@ -539,8 +539,13 @@ export class CollectorController {
             const bag = this.bags.bagById(cycle.bagId);
             const onContact = bag ? Math.hypot(bag.x - cycle.x, bag.y - cycle.y) <= GRAB_RADIUS * 1.6 : false;
             if (onContact) {
-                this.bags.markCarried(cycle.bagId, cycle.id);
-                cycle.grabbed = true;
+                if (this.bags.markCarried(cycle.bagId, cycle.id)) {
+                    // The state transition happens after the regular position
+                    // tick. Re-anchor immediately so the bag and its label do
+                    // not spend one frame at the pre-GRAB coordinates.
+                    this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y, true);
+                    cycle.grabbed = true;
+                }
             }
         }
     }
@@ -562,7 +567,13 @@ export class CollectorController {
 
         // A carried bag keeps its coordinates on the collector so the terminal
         // effect (demon portal burn) lands where the bag actually is.
-        if (bag.state === 'CARRIED') this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y);
+        if (bag.state === 'CARRIED') {
+            // The carried bag is represented by the collector atlas. During a
+            // demon's underground descent that representation is clipped by
+            // the same ground mask, so its financial label must be hidden too.
+            const visible = cycle.positive || (cycle.state !== 'demon-descend' && cycle.state !== 'demon-disappear');
+            this.bags.trackCarried?.(cycle.bagId, cycle.id, cycle.x, cycle.y, visible);
+        }
     }
 
     private cancel(cycle: Cycle): void {
