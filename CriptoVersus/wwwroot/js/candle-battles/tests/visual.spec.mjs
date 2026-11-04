@@ -719,6 +719,26 @@ test('LIVE restarts the five-minute clock without awarding a point while confirm
  expect(state.mode).toBe('live');expect(state.score).toEqual({left:0,right:0});expect(state.next).toMatch(/04:5[89]/);
 });
 
+test('LIVE enters neutral close-pending state and starts the collision hit on late confirmation',async({page})=>{
+ await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine&&window.ready);
+ const state=await page.evaluate(async()=>{
+  const engine=window.engine,{demoRound}=await import('/js/dist/candle-battles/model.js');
+  const open=Date.UTC(2026,0,1),close=open+300000,matchId=191;
+  const feed={matchId,leftSymbol:'BTC',rightSymbol:'ETH',left:null,right:null,rounds:[],status:'waiting-confirmation',finished:false,
+   matchStartTime:open,expectedRounds:18,serverTime:close};
+  engine.receive(feed,true);engine.update(0);
+  const pending={phase:engine.inspect().phase,score:engine.snapshot().score,presentation:engine.host.dataset.candleResolution,countdown:engine.hud.get('nextBattle').text};
+  const source=demoRound(0),round={...source,matchId,id:`${matchId}:5m:${open}`};
+  engine.receive({...feed,serverTime:close+500,rounds:[round],status:'live'},false);engine.update(16);
+  const triggered={phase:engine.inspect().phase,active:engine.inspect().activeRoundId,score:engine.snapshot().score,countdown:engine.hud.get('nextBattle').text};
+  engine.receive({...feed,serverTime:close+2000,rounds:[round],status:'live'},false);engine.update(16);
+  return {pending,triggered,duplicate:{active:engine.inspect().activeRoundId,score:engine.snapshot().score}};
+ });
+ expect(state.pending.phase).toBe('WAITING_MARKET');expect(state.pending.score).toEqual({left:0,right:0});expect(state.pending.presentation).toBe('pending');expect(state.pending.countdown).toMatch(/00:00/);
+ expect(state.triggered.phase).toBe('COLLISION');expect(state.triggered.active).toBe('191:5m:946684800000');expect(state.triggered.score).toEqual({left:0,right:0});
+ expect(state.duplicate).toEqual({active:'191:5m:946684800000',score:{left:0,right:0}});
+});
+
 test('mock LIVE follows three consecutive official UTC round transitions without stale animations',async({page})=>{
  test.setTimeout(60000);
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
@@ -779,7 +799,7 @@ test('mock LIVE follows three consecutive official UTC round transitions without
   },i);
   expect(closed.next).toMatch(/04:5/);
   expect(closed.active).toBe(roundId);
-  expect(closed.phase).toBe('SPAWNING');
+   expect(closed.phase).toBe('COLLISION');
   expect(closed.completed).toBe(i);
   expect(closed.score).toEqual(await page.evaluate(count=>window.__expectedScore(count),i));
    expect(closed.counters).toEqual({left:{buy:0,sell:0,partial:false},right:{buy:0,sell:0,partial:false}});

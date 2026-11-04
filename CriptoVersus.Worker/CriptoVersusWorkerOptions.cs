@@ -10,6 +10,7 @@ namespace CriptoVersus.Worker;
 public class CriptoVersusWorkerOptions
 {
     public int IntervalSeconds { get; set; }
+    public int CandleBattlesIntervalSeconds { get; set; } = 5;
     public int TopGainersTake { get; set; }
     public int DesiredActiveMatches { get; set; }
     public int DesiredPendingMatches { get; set; }

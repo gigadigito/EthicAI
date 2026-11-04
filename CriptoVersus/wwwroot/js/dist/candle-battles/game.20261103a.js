@@ -71,6 +71,8 @@ export class GameEngine {
         this.dialogue = new DialogueClock();
         this.dialogueEngine = new CandleBattleDialogueEngine();
         this.flowPanels = new Map();
+        /** Short paint window so a frame that lands just after close still shows 00:00. */
+        this.closeDisplayUntil = 0;
         this.resolutionReceivedAt = new Map();
         this.finaleElapsed = 0;
         /** Closing cinematic. Presentation-only: never touches score, candles or rounds. */
@@ -354,6 +356,8 @@ export class GameEngine {
             this.autoplayInitialized = false;
             this.catchUpReplay = false;
             this.terminal = false;
+            this.lastClosedRoundId = undefined;
+            this.closeDisplayUntil = 0;
             this.resetFinale();
             this.clearDialogue();
         }
@@ -856,6 +860,8 @@ export class GameEngine {
                 this.demoElapsed = 0;
             }
         }
+        if (!this.terminal && (this.started || this.mode === 'live'))
+            this.observeCandleClose();
         if (!this.active && !this.terminal && (this.started || this.mode === 'live')) {
             if (this.mode === 'replay' && this.clock.count === 0 && this.replayIndex < this.replayHistory.length) {
                 const candidate = this.replayHistory[this.replayIndex];
@@ -1017,6 +1023,42 @@ export class GameEngine {
         const limit = this.matchLimit();
         return now >= start + limit ? null : nextCandleCountdown(now, start, limit);
     }
+    /**
+     * Observes the market boundary independently from backend result delivery.
+     * A missing result enters a neutral pending presentation; it never creates
+     * a winner and it never advances score or territory.
+     */
+    observeCandleClose() {
+        if (this.mode !== 'live' || this.terminal || this.feed?.matchStartTime == null)
+            return;
+        const now = this.liveNow();
+        const firstOpen = Math.floor(this.feed.matchStartTime / PERIOD) * PERIOD;
+        const closedOpen = Math.floor(now / PERIOD) * PERIOD - PERIOD;
+        if (closedOpen < firstOpen || now < closedOpen + PERIOD || now >= this.feed.matchStartTime + this.matchLimit())
+            return;
+        const roundId = `${this.feed.matchId}:5m:${closedOpen}`;
+        if (this.lastClosedRoundId === roundId)
+            return;
+        this.lastClosedRoundId = roundId;
+        this.closeDisplayUntil = performance.now() + 100;
+        const round = this.history.find(candidate => candidate.id === roundId);
+        if (round) {
+            this.traceRound('candle_closed', round, {
+                candleClosed: true,
+                resultConfirmed: true,
+                resultWinner: round.winner,
+                closeObservedAtUtc: Date.now(),
+            });
+        }
+        else {
+            this.host.dataset.candleResolution = 'pending';
+            this.traceRoundWindow('candle_closed_pending', {
+                id: roundId,
+                startMs: closedOpen,
+                endMs: closedOpen + PERIOD,
+            });
+        }
+    }
     updateClocks() {
         const start = this.feed?.matchStartTime;
         const elapsed = this.mode === 'demo' ? Math.min(MATCH_DURATION, this.demoIndex * PERIOD + this.demoElapsed / (this.state.durationMs + 500) * PERIOD)
@@ -1024,7 +1066,8 @@ export class GameEngine {
         const capped = Math.min(MATCH_DURATION, elapsed);
         this.hud.get('matchTime')?.setText(this.text('matchTime', 'MATCH TIME') + '  ' + clockParts(capped) + ' / 90:00');
         const remaining = this.candleRemaining();
-        this.hud.get('nextBattle')?.setText(this.terminal ? '' : this.text('nextBattle', '5-MINUTE CANDLES') + '  ' + (remaining == null ? '--:--' : clockParts(Math.ceil(remaining / 1000) * 1000)));
+        const closeFrame = this.mode === 'live' && performance.now() <= this.closeDisplayUntil;
+        this.hud.get('nextBattle')?.setText(this.terminal ? '' : this.text('nextBattle', '5-MINUTE CANDLES') + '  ' + (closeFrame ? '00:00' : remaining == null ? '--:--' : clockParts(Math.ceil(remaining / 1000) * 1000)));
         const configuredRounds = this.feed?.expectedRounds ?? MATCH_ROUNDS;
         const expectedRounds = this.terminal && this.feed?.status === 'finished' ? this.completedRounds : configuredRounds;
         const round = this.terminal ? this.completedRounds : Math.min(configuredRounds, this.completedRounds + 1);
@@ -1134,15 +1177,18 @@ export class GameEngine {
     }
     begin(r) {
         this.clearDialogue();
+        delete this.host.dataset.candleResolution;
         this.roundEvent = 'none';
         this.combatSequencer.left.reset();
         this.combatSequencer.right.reset();
         this.active = r;
         this.combatElapsed = 0;
         this.focusRound = this.completedRounds;
+        const resolvedAtClose = this.mode === 'live' && roundClosedAt(r, this.liveNow());
         this.traceRound('animation_started', r, {
             resolutionReceivedAtUtc: this.resolutionReceivedAt.get(r.id) ?? null,
             animationStartedAtUtc: Date.now(),
+            startedAtOfficialClose: resolvedAtClose,
         });
         const range = sharedRange([r.left, r.right]);
         this.hud.get('status')?.setText(`${this.text('round', 'ROUND')} ${this.completedRounds + 1} — ${this.text('fight', 'FIGHT!')}`);
@@ -1157,8 +1203,16 @@ export class GameEngine {
             this.drawCharts({ left: this.replayHistory.slice(0, this.replayIndex).slice(-30).map(x => x.left.close), right: this.replayHistory.slice(0, this.replayIndex).slice(-30).map(x => x.right.close) });
         }
         this.hud.get('result')?.setText('');
-        this.state.start();
-        this.enter('SPAWNING');
+        if (resolvedAtClose) {
+            // Reuse the existing machine but enter its collision phase now;
+            // no normal attack cooldown or idle animation may delay the hit.
+            this.state.startResolved();
+            this.enter('COLLISION');
+        }
+        else {
+            this.state.start();
+            this.enter('SPAWNING');
+        }
         this.updateDashboard(true);
     }
     /**
@@ -1293,7 +1347,11 @@ export class GameEngine {
         if (phase === 'APPROACHING')
             this.audio.play('dash');
         if (phase === 'COLLISION') {
-            this.traceRound('impact_started', r, { impactStartedAtUtc: Date.now() });
+            this.traceRound('attack_animation_started', r, {
+                attackAnimationStartedAtUtc: Date.now(),
+                firstAttackFrameAtUtc: Date.now(),
+            });
+            this.traceRound('impact_occurred', r, { impactOccurredAtUtc: Date.now() });
             this.audio.play('punch_impact');
             this.burst(640, 400, r.winner === 'right' ? 'right' : 'left');
             if (!this.reduced)
@@ -1372,7 +1430,11 @@ export class GameEngine {
             roundStartUtc: new Date(round.startMs).toISOString(),
             roundEndUtc: new Date(round.endMs).toISOString(),
             serverNowUtc: new Date(now).toISOString(),
+            monotonicNowMs: performance.now(),
             remainingMs: Math.max(0, round.endMs - now),
+            candleClosed: event.includes('closed'),
+            resultConfirmed: false,
+            resultWinner: 'pending',
             candleConfirmedAtUtc: null,
             resolutionCreatedAtUtc: null,
             resolutionReceivedAtUtc: null,
@@ -1380,6 +1442,10 @@ export class GameEngine {
             impactStartedAtUtc: null,
             winnerDisplayedAtUtc: null,
             roundTransitionAtUtc: new Date().toISOString(),
+            finaleScheduled: false,
+            finaleTriggered: false,
+            attackAnimationStarted: false,
+            impactOccurred: false,
         });
     }
     traceRound(event, round, timings = {}) {
@@ -1393,6 +1459,7 @@ export class GameEngine {
             roundStartUtc: new Date(start).toISOString(),
             roundEndUtc: new Date(end).toISOString(),
             serverNowUtc: new Date(now).toISOString(),
+            monotonicNowMs: performance.now(),
             remainingMs: Math.max(0, end - now),
             candleConfirmedAtUtc: this.utcIso(round.confirmedAtTime),
             resolutionCreatedAtUtc: this.utcIso(round.confirmedAtTime),
@@ -1401,7 +1468,14 @@ export class GameEngine {
             impactStartedAtUtc: null,
             winnerDisplayedAtUtc: null,
             roundTransitionAtUtc: null,
-            ...Object.fromEntries(Object.entries(timings).map(([key, value]) => [key, key.endsWith('AtUtc') ? this.utcIso(value) : value])),
+            resultConfirmed: true,
+            resultWinner: round.winner,
+            finaleScheduled: event === 'animation_started',
+            finaleTriggered: event === 'impact_occurred',
+            attackAnimationStarted: event === 'attack_animation_started',
+            impactOccurred: event === 'impact_occurred',
+            ...Object.fromEntries(Object.entries(timings).map(([key, value]) => [key,
+                key.endsWith('AtUtc') ? this.utcIso(typeof value === 'number' ? value : null) : value])),
         });
     }
     utcIso(value) {
@@ -1611,7 +1685,8 @@ export class GameEngine {
             : start == null ? 0 : this.mode === 'replay' ? this.replayElapsed : this.feed?.finished ? this.matchLimit() : Math.max(0, this.liveNow() - start);
         const matchTime = `${clockParts(Math.min(this.matchLimit(), elapsed))} / ${clockParts(this.matchLimit())}`;
         const remaining = this.candleRemaining();
-        const countdown = this.terminal ? '--:--' : remaining == null ? '--:--' : clockParts(Math.ceil(remaining / 1000) * 1000);
+        const closeFrame = this.mode === 'live' && performance.now() <= this.closeDisplayUntil;
+        const countdown = this.terminal ? '--:--' : closeFrame ? '00:00' : remaining == null ? '--:--' : clockParts(Math.ceil(remaining / 1000) * 1000);
         put('countdown', countdown);
         put('countdownCaption', this.terminal ? this.text('finished') : this.text('candleClose'));
         put('countdownNote', this.terminal ? this.text('matchFinished') : this.active ? this.text('fight') : this.text('forming'));

@@ -230,6 +230,7 @@ builder.Services.AddSingleton<IMatchScoringEngine, MatchScoringEngine>();
 
 // Worker
 builder.Services.AddHostedService<Worker>();
+builder.Services.AddHostedService<CandleBattlesWorker>();
 builder.Services.AddHostedService<DataRetentionWorker>();
 builder.Services.AddHostedService<MarketFlowStreamService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<MarketFlowHttpSnapshotSink>());

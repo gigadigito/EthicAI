@@ -29,7 +29,10 @@ public interface ICandleBattleDataSource
 /// <summary>Production source: delegates to the existing CriptoVersus API client without changing any rule or contract.</summary>
 public sealed class RealCandleBattleDataSource(CriptoVersusApiClient api) : ICandleBattleDataSource
 {
-    public TimeSpan? UpdateInterval => TimeSpan.FromSeconds(10);
+    // Result delivery is presentation-critical at the five-minute boundary.
+    // The browser clock remains server anchored, so this only bounds delivery
+    // latency and never becomes a second financial clock.
+    public TimeSpan? UpdateInterval => TimeSpan.FromSeconds(1);
 
     public bool UsesLiveNotifications => true;
 

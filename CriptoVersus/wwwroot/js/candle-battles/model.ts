@@ -43,6 +43,9 @@ export function clockParts(elapsedMs: number): string {
 /** Tracks exchange five-minute boundaries; confirmation controls scoring, not the market clock. */
 export function nextCandleCountdown(nowMs: number, matchStartMs: number, durationMs = MATCH_DURATION): number {
     if (!Number.isFinite(nowMs) || !Number.isFinite(matchStartMs) || !Number.isFinite(durationMs) || durationMs <= 0 || nowMs >= matchStartMs + durationMs) return 0;
+    // Keep the official close instant observable instead of treating it as
+    // the beginning of the next candle.
+    if (nowMs % PERIOD === 0) return 0;
     const nextClose = (Math.floor(nowMs / PERIOD) + 1) * PERIOD;
     return Math.min(PERIOD, Math.max(0, nextClose - nowMs));
 }
@@ -469,6 +472,12 @@ export class BattleStateMachine {
     readonly durationMs: number;
     constructor(durationMs = 3800) { this.durationMs = Number.isFinite(durationMs) ? Math.max(3000, Math.min(5000, durationMs)) : 3800; }
     start(): void { this.index = 0; this.elapsed = 0; this.phase = PHASES[0]; }
+    /** Start the existing combat timeline at the authoritative closing hit. */
+    startResolved(): void {
+        this.index = PHASES.indexOf("COLLISION");
+        this.elapsed = 0;
+        this.phase = "COLLISION";
+    }
     advance(delta: number, enter: (phase: Phase) => void): void {
         if (this.index < 0) return;
         this.elapsed += Math.max(0, delta);

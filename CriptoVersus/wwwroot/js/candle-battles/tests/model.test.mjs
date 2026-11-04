@@ -8,7 +8,7 @@ import { DialogueClock, dialogueLines, finalLines } from '../../dist/candle-batt
 test('five-minute clock joins an existing candle and resets without a confirmed round', () => {
     const start = Date.UTC(2026, 0, 1, 0, 1);
     assert.equal(nextCandleCountdown(start + 85_000, start), 155_000);
-    assert.equal(nextCandleCountdown(start + 240_000, start), 300_000);
+    assert.equal(nextCandleCountdown(start + 240_000, start), 0, 'the exact close is observable as 00:00');
     assert.equal(nextCandleCountdown(start + 241_000, start), 299_000);
     assert.equal(nextCandleCountdown(start + MATCH_DURATION - 1, start), 240_001);
     assert.equal(nextCandleCountdown(start + MATCH_DURATION, start), 0);
@@ -18,6 +18,13 @@ test('official resolution cannot start before the candle close', () => {
     const round = demoRound(0);
     assert.equal(roundClosedAt(round, round.left.closeTime - 1), false);
     assert.equal(roundClosedAt(round, round.left.closeTime), true);
+});
+
+test('resolved battle enters the existing collision phase without a normal attack lead-in', () => {
+    const machine = new BattleStateMachine();
+    machine.startResolved();
+    assert.equal(machine.phase, 'COLLISION');
+    assert.equal(machine.progress, 0);
 });
 
 test('a delayed resolution is settled as history when its successor UTC candle is open', () => {

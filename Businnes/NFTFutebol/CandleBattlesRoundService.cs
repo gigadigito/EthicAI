@@ -102,7 +102,7 @@ public sealed class CandleBattlesRoundService(EthicAIDbContext db, BinanceKlineC
                 db.Add(new CandleBattlesRound { MatchId = id, OpenTimeUtc = openUtc,
                     LeftCandleJson = JsonSerializer.Serialize(left), RightCandleJson = JsonSerializer.Serialize(right),
                     LeftStrength = round.LeftStrength, RightStrength = round.RightStrength,
-                    Winner = round.Winner, RuleVersion = round.RuleVersion, ConfirmedAtUtc = nowUtc });
+                    Winner = round.Winner, RuleVersion = round.RuleVersion, ConfirmedAtUtc = DateTime.UtcNow });
             cursor += 300_000;
         }
         state.NextOpenUtc = DateTimeOffset.FromUnixTimeMilliseconds(cursor).UtcDateTime;

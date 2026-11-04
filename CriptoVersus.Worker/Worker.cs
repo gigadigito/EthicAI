@@ -252,12 +252,6 @@ namespace CriptoVersus.Worker
             await ExecuteStageAsync("materialize-recurring-bets", cycleStartUtc, true, innerCt => MaterializeRecurringPositionBetsAsync(db, positionService, nowUtc, innerCt), ct);
 
             await ExecuteStageAsync("log-pool-status", cycleStartUtc, true, innerCt => LogPoolStatusAsync(db, nowUtc, innerCt), ct);
-            await ExecuteStageAsync("candle-battles-arcade", cycleStartUtc, true, async innerCt =>
-            {
-                using var arcadeScope = _sp.CreateScope();
-                await arcadeScope.ServiceProvider.GetRequiredService<CandleBattlesRoundService>().ProcessAsync(
-                    nowUtc, token => TouchHeartbeatAsync(cycleStartUtc, "running", "candle-battles-arcade", token), innerCt);
-            }, ct);
         }
 
         private async Task<BinanceMarketSnapshot> LoadMarketSnapshotAsync(HttpClient http, CancellationToken ct)

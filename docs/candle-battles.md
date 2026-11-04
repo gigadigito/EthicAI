@@ -12,7 +12,7 @@ Implementação de 14/10/2026. Competição arcade independente: não altera Mat
 
 ## Dados, confirmação e autoridade
 
-O Worker é o único escritor. A etapa candle-battles-arcade é executada depois das etapas existentes, em escopo DbContext próprio. O heartbeat é atualizado entre partidas. A falha do arcade não impede uma liquidação já realizada nas etapas anteriores.
+O Worker é o único escritor. O `CandleBattlesWorker` executa `CandleBattlesRoundService` em escopo DbContext próprio, fora do ciclo geral de 60 segundos, com intervalo configurável de 5 segundos (`CriptoVersusWorker:CandleBattlesIntervalSeconds`). A falha do arcade não impede uma liquidação já realizada nas etapas gerais.
 
 BinanceKlineClient centraliza o transporte público de klines usado também pelas janelas de volume existentes. O comportamento de leitura do volume financeiro permanece separado da validação OHLC do arcade. Não há conexão de mercado no navegador.
 
