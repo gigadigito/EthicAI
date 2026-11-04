@@ -732,11 +732,11 @@ test('LIVE enters neutral close-pending state and starts the collision hit on la
   engine.receive({...feed,serverTime:close+500,rounds:[round],status:'live'},false);engine.update(16);
   const triggered={phase:engine.inspect().phase,active:engine.inspect().activeRoundId,score:engine.snapshot().score,countdown:engine.hud.get('nextBattle').text};
   engine.receive({...feed,serverTime:close+2000,rounds:[round],status:'live'},false);engine.update(16);
-  return {pending,triggered,duplicate:{active:engine.inspect().activeRoundId,score:engine.snapshot().score}};
+  return {pending,triggered,duplicate:{active:engine.inspect().activeRoundId,score:engine.snapshot().score},expectedActive:round.id};
  });
  expect(state.pending.phase).toBe('WAITING_MARKET');expect(state.pending.score).toEqual({left:0,right:0});expect(state.pending.presentation).toBe('pending');expect(state.pending.countdown).toMatch(/00:00/);
- expect(state.triggered.phase).toBe('COLLISION');expect(state.triggered.active).toBe('191:5m:946684800000');expect(state.triggered.score).toEqual({left:0,right:0});
- expect(state.duplicate).toEqual({active:'191:5m:946684800000',score:{left:0,right:0}});
+ expect(state.triggered.phase).toBe('COLLISION');expect(state.triggered.active).toBe(state.expectedActive);expect(state.triggered.score).toEqual({left:0,right:0});
+ expect(state.duplicate).toEqual({active:state.expectedActive,score:{left:0,right:0}});
 });
 
 test('LIVE starts the decisive collision on the first eligible frame for every confirmation delay',async({page})=>{
@@ -767,7 +767,9 @@ test('LIVE starts the decisive collision on the first eligible frame for every c
 });
 
 test('LIVE keeps 00:00 through a ten-second pending result and resumes the current financial candle after the finale',async({page})=>{
- await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine&&window.ready);
+ const freezeEvents=[];
+ page.on('console',message=>{const text=message.text();if(text.includes('[CANDLE-FREEZE]'))freezeEvents.push({capturedAt:new Date().toISOString(),text});});
+ await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');await page.waitForFunction(()=>window.engine&&window.ready);
  const state=await page.evaluate(async()=>{
   const engine=window.engine,{demoRound}=await import('/js/dist/candle-battles/model.js');
   const source=demoRound(0),open=source.left.openTime,close=open+300000,matchId=410;
@@ -779,7 +781,9 @@ test('LIVE keeps 00:00 through a ten-second pending result and resumes the curre
   const delayedPending={...engine.snapshot(),countdown:engine.hud.get('nextBattle').text,active:engine.active?.id??null};
   const round={...source,matchId,id:`${matchId}:5m:${open}`};
   engine.receive({...base,serverTime:close+10000,rounds:[round],status:'live'},false);engine.update(16);
-  const finale={...engine.snapshot(),countdown:engine.hud.get('nextBattle').text,active:engine.active?.id??null};
+  const finale={...engine.snapshot(),countdown:engine.hud.get('nextBattle').text,active:engine.active?.id??null,
+   renderedCountdown:document.querySelector('[data-cb="countdown"]')?.textContent??'',renderedState:document.querySelector('[data-cb="candleState"]')?.textContent??'',
+   leftFrame:engine.left?.frameName??'',rightFrame:engine.right?.frameName??''};
   for(let i=0;i<70&&engine.snapshot().finaleStatus!=='none';i++) engine.update(100);
   const resumed={...engine.snapshot(),countdown:engine.hud.get('nextBattle').text,active:engine.active?.id??null};
   return {pending,delayedPending,finale,resumed};
@@ -791,12 +795,20 @@ test('LIVE keeps 00:00 through a ten-second pending result and resumes the curre
  expect(state.delayedPending.active).toBeNull();
  expect(state.finale.finaleStatus).toBe('finale');
  expect(state.finale.countdown).toMatch(/00:00/);
+ expect(state.finale.renderedCountdown).toMatch(/00:00/);
+ expect(state.finale.renderedState).not.toBe('Candle forming');
  expect(state.finale.active).toContain(':5m:');
+ expect(state.finale.leftFrame).toMatch(/punch|finisher-/);
+ expect(state.finale.rightFrame).toMatch(/punch|finisher-/);
  expect(state.resumed.finaleStatus).toBe('none');
  expect(state.resumed.active).toBeNull();
  expect(state.resumed.displayRemainingMs).toBeGreaterThan(0);
  expect(state.resumed.displayRemainingMs).toBeLessThan(300000);
  expect(state.resumed.score.left+state.resumed.score.right).toBe(1);
+ const timeline=['VERSION=diagnostic-v1','ROUND_CLOSED','RESULT_CONFIRMED','FINALE_STARTED','COLLISION_STARTED','ATTACK_FIRST_FRAME','FINALE_COMPLETED','RESUMING','RESUMED'];
+ const diagnosticText=freezeEvents.map(event=>event.text).join('\n');
+ for(const marker of timeline) expect(diagnosticText,`missing freeze diagnostic ${marker}`).toContain(marker);
+ console.log(`[CANDLE-FREEZE-TEST] ${JSON.stringify(freezeEvents)}`);
 });
 
 test('mock LIVE follows three consecutive official UTC round transitions without stale animations',async({page})=>{

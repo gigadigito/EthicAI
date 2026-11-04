@@ -1,11 +1,13 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, roundClosedAt, roundSupersededAt, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261103a';
-import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261103a';
-import { CandleRenderer } from './renderer.js?v=20261103a';
-import { AudioManager } from './audio.js?v=20261103a';
-import { DialogueClock, lineDuration } from './dialogue.js?v=20261103a';
-import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261103a';
-import { MoneyFlowController, formatMoneyFlowAmount } from './money-flow-visual.js?v=20261103a';
-import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261103a';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, roundClosedAt, roundSupersededAt, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261104a';
+import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261104a';
+import { CandleRenderer } from './renderer.js?v=20261104a';
+import { AudioManager } from './audio.js?v=20261104a';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261104a';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261104a';
+import { MoneyFlowController, formatMoneyFlowAmount } from './money-flow-visual.js?v=20261104a';
+import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261104a';
+const CANDLE_BATTLE_RUNTIME_REVISION = '20261104a';
+const CANDLE_FREEZE_DIAGNOSTIC_VERSION = 'diagnostic-v1';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -86,6 +88,10 @@ export class GameEngine {
         this.finaleRoles = { left: 'draw', right: 'draw' };
         this.finaleIntensity = 1;
         this.mode = options.mode;
+        if (this.mode === 'live') {
+            console.info(`[CANDLE-FREEZE] VERSION=${CANDLE_FREEZE_DIAGNOSTIC_VERSION} runtime=${CANDLE_BATTLE_RUNTIME_REVISION} mode=live`);
+            host.dataset.candleFreezeRuntime = CANDLE_FREEZE_DIAGNOSTIC_VERSION;
+        }
         this.state = new BattleStateMachine(options.battleDurationMs);
         this.bubble = host.querySelector('[data-cb-bubble]');
         this.ready = new Promise((resolve, reject) => { this.readyResolve = resolve; this.readyReject = reject; });
@@ -115,14 +121,14 @@ export class GameEngine {
                     owner.readyReject(new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
                 this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261015d', '/games/candle-battles/assets/modular.json?v=20261015d');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261103a', '/games/candle-battles/assets/candle-finishers.json?v=20261103a');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261104a', '/games/candle-battles/assets/candle-finishers.json?v=20261104a');
                 // The effects atlas carries the money bags themselves, so it is
                 // required whenever visual effects run, with or without collectors.
                 if (owner.options.moneyFlowVisualEffects) {
-                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261103a', '/games/candle-battles/assets/money-flow-effects.json?v=20261103a');
+                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261104a', '/games/candle-battles/assets/money-flow-effects.json?v=20261104a');
                 }
                 if (owner.options.moneyFlowVisualEffects && owner.options.moneyFlowCollectorsEnabled) {
-                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261103a', '/games/candle-battles/assets/money-flow-collectors.json?v=20261103a');
+                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261104a', '/games/candle-battles/assets/money-flow-collectors.json?v=20261104a');
                 }
             }
             create() { owner.setup(this); }
@@ -1071,6 +1077,12 @@ export class GameEngine {
         this.finaleWaitDeadlineUtc = now + Math.max(1000, this.options.finaleFreezeTimeoutMs ?? 20000);
         this.finaleStatus = this.finaleRound ? 'finale' : 'pending';
         this.host.dataset.finaleFreeze = this.finaleStatus;
+        this.freezeDiagnostic('ROUND_CLOSED', {
+            roundId,
+            roundEndUtc: new Date(closedOpen + PERIOD).toISOString(),
+            resultAvailable: !!this.finaleRound,
+            resultConfirmed: !!this.finaleRound,
+        });
         if (!this.active)
             this.state.reset();
         this.left?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
@@ -1118,6 +1130,19 @@ export class GameEngine {
         if (!round)
             return;
         this.finaleRound = round;
+        // The result arrived while the presentation was waiting at 00:00.
+        // Promote the same freeze instance before starting the existing
+        // collision path; startFrozenFinale intentionally rejects unrelated
+        // states so a stale snapshot cannot start an animation.
+        this.finaleStatus = 'finale';
+        this.host.dataset.finaleFreeze = 'finale';
+        this.freezeDiagnostic('RESULT_CONFIRMED', {
+            roundId: round.id,
+            roundEndUtc: new Date(round.left.closeTime).toISOString(),
+            resultAvailable: true,
+            resultConfirmed: true,
+            resultConfirmedAtUtc: this.utcIso(round.confirmedAtTime ?? Date.now()),
+        });
         this.startFrozenFinale(round);
         this.traceRound('result_confirmed_during_freeze', round, {
             freezeStartedAtUtc: this.finaleFreezeStartedAtUtc,
@@ -1134,6 +1159,12 @@ export class GameEngine {
         if (this.active && this.active.id !== round.id)
             this.settleLateRound(this.active);
         this.clock.take(round.id);
+        this.freezeDiagnostic('FINALE_STARTED', {
+            roundId: round.id,
+            roundEndUtc: new Date(round.left.closeTime).toISOString(),
+            resultAvailable: true,
+            resultConfirmed: true,
+        });
         this.begin(round, true);
         this.traceRound('finale_started', round, {
             freezeStartedAtUtc: this.finaleFreezeStartedAtUtc,
@@ -1146,6 +1177,12 @@ export class GameEngine {
                 const roundId = this.finaleRoundId;
                 if (roundId)
                     this.timedOutFinaleRounds.add(roundId);
+                this.freezeDiagnostic('TIMEOUT', {
+                    roundId: roundId ?? null,
+                    roundEndUtc: new Date(this.finaleRoundStartUtc + PERIOD).toISOString(),
+                    resultAvailable: !!this.finaleRound,
+                    resultConfirmed: !!this.finaleRound,
+                });
                 this.traceRoundWindow('freeze_timeout', {
                     id: roundId ?? 'unknown',
                     startMs: this.finaleRoundStartUtc,
@@ -1171,6 +1208,12 @@ export class GameEngine {
         const round = this.finaleRound;
         this.finaleStatus = 'resuming';
         this.host.dataset.finaleFreeze = 'resuming';
+        this.freezeDiagnostic('FINALE_COMPLETED', {
+            roundId: round?.id ?? roundId ?? null,
+            roundEndUtc: round ? new Date(round.left.closeTime).toISOString() : null,
+            resultAvailable: !!round,
+            resultConfirmed: !!round,
+        });
         if (round)
             this.traceRound('finale_completed', round, {
                 freezeStartedAtUtc: this.finaleFreezeStartedAtUtc,
@@ -1187,6 +1230,12 @@ export class GameEngine {
         this.finaleStatus = 'resuming';
         this.host.dataset.finaleFreeze = 'resuming';
         const liveRound = this.liveRoundWindow();
+        this.freezeDiagnostic('RESUMING', {
+            roundId: round?.id ?? this.finaleRoundId ?? null,
+            roundEndUtc: round ? new Date(round.left.closeTime).toISOString() : null,
+            resultAvailable: !!round,
+            resultConfirmed: !!round,
+        });
         this.presentationMarket = undefined;
         this.finaleRound = undefined;
         this.finaleRoundId = undefined;
@@ -1206,6 +1255,15 @@ export class GameEngine {
                 displayRemainingMsAfterResume: liveRound ? Math.max(0, liveRound.endMs - this.liveNow()) : 0,
                 resumeReason: reason,
             });
+        this.freezeDiagnostic('RESUMED', {
+            roundId: round?.id ?? null,
+            roundEndUtc: round ? new Date(round.left.closeTime).toISOString() : null,
+            activeMarketRoundId: liveRound?.id ?? null,
+            presentationRoundId: liveRound?.id ?? null,
+            displayRemainingMs: liveRound ? Math.max(0, liveRound.endMs - this.liveNow()) : 0,
+            resultAvailable: !!round,
+            resultConfirmed: !!round,
+        });
         if (this.feed?.finished && !this.terminal)
             this.finish();
     }
@@ -1497,9 +1555,21 @@ export class GameEngine {
         if (phase === 'APPROACHING')
             this.audio.play('dash');
         if (phase === 'COLLISION') {
+            this.freezeDiagnostic('COLLISION_STARTED', {
+                roundId: r.id,
+                roundEndUtc: new Date(r.left.closeTime).toISOString(),
+                resultAvailable: true,
+                resultConfirmed: true,
+            });
             this.traceRound('attack_animation_started', r, {
                 attackAnimationStartedAtUtc: Date.now(),
                 firstAttackFrameAtUtc: Date.now(),
+            });
+            this.freezeDiagnostic('ATTACK_FIRST_FRAME', {
+                roundId: r.id,
+                roundEndUtc: new Date(r.left.closeTime).toISOString(),
+                resultAvailable: true,
+                resultConfirmed: true,
             });
             this.traceRound('impact_occurred', r, { impactOccurredAtUtc: Date.now() });
             this.audio.play('punch_impact');
@@ -1604,6 +1674,28 @@ export class GameEngine {
             finaleTriggered: false,
             attackAnimationStarted: false,
             impactOccurred: false,
+        });
+    }
+    freezeDiagnostic(event, details = {}) {
+        if (this.mode !== 'live')
+            return;
+        const now = this.liveNow();
+        const round = this.finaleRound;
+        const roundEnd = round?.left.closeTime ?? (this.finaleRoundStartUtc ? this.finaleRoundStartUtc + PERIOD : undefined);
+        console.info('[CANDLE-FREEZE]', event, {
+            matchId: this.feed?.matchId ?? null,
+            roundId: this.finaleRoundId ?? this.active?.id ?? null,
+            roundEndUtc: roundEnd == null ? null : new Date(roundEnd).toISOString(),
+            serverNowUtc: new Date(now).toISOString(),
+            displayRemainingMs: this.isRoundFreezeActive() ? 0 : Math.max(0, this.candleRemaining() ?? 0),
+            activeMarketRoundId: this.active?.id ?? null,
+            presentationRoundId: this.finaleRoundId ?? this.active?.id ?? null,
+            freezeState: this.finaleStatus,
+            currentCombatPhase: this.state.phase,
+            resultAvailable: !!this.finaleRound,
+            resultConfirmed: !!this.finaleRound,
+            monotonicNowMs: performance.now(),
+            ...details,
         });
     }
     traceRound(event, round, timings = {}) {
