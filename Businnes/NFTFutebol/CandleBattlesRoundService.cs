@@ -9,18 +9,19 @@ namespace BLL.NFTFutebol;
 
 public sealed class CandleBattlesRoundService(EthicAIDbContext db, BinanceKlineClient market, ILogger<CandleBattlesRoundService> logger)
 {
-    public async Task ProcessAsync(DateTime nowUtc, Func<CancellationToken, Task> heartbeat, CancellationToken ct)
+    public async Task<int> ProcessAsync(DateTime nowUtc, Func<CancellationToken, Task> heartbeat, CancellationToken ct)
     {
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
         budget.CancelAfter(TimeSpan.FromSeconds(20));
-        try { await ProcessCoreAsync(nowUtc, heartbeat, budget.Token); }
+        try { return await ProcessCoreAsync(nowUtc, heartbeat, budget.Token); }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             logger.LogWarning("Candle Battles cycle budget reached; pending cursors will resume next cycle.");
+            return 0;
         }
     }
 
-    private async Task ProcessCoreAsync(DateTime nowUtc, Func<CancellationToken, Task> heartbeat, CancellationToken ct)
+    private async Task<int> ProcessCoreAsync(DateTime nowUtc, Func<CancellationToken, Task> heartbeat, CancellationToken ct)
     {
         // Enrol current matches only. Existing states retain their backlog across restarts and match completion.
         var recent = nowUtc.AddMinutes(-10);
@@ -36,18 +37,22 @@ public sealed class CandleBattlesRoundService(EthicAIDbContext db, BinanceKlineC
         }
         var ids = await db.Set<CandleBattlesState>().AsNoTracking().Where(s => !s.Complete)
             .OrderBy(s => s.UpdatedAtUtc).ThenBy(s => s.MatchId).Take(100).Select(s => s.MatchId).ToListAsync(ct);
-        if (ids.Count == 0) return;
+        if (ids.Count == 0) return 0;
         var serverTime = await market.GetServerTimeAsync(ct);
+        var serverTimeUtc = DateTimeOffset.FromUnixTimeMilliseconds(serverTime).UtcDateTime;
+        logger.LogDebug("[CANDLE_BATTLE_TIMING] confirmation_scan_started_at_utc={StartedAtUtc} exchange_server_time_utc={ServerTimeUtc} match_count={MatchCount}",
+            DateTime.UtcNow, serverTimeUtc, ids.Count);
+        var persistedRounds = 0;
         foreach (var id in ids)
         {
             await heartbeat(ct);
             try
             {
                 var strategy = db.Database.CreateExecutionStrategy();
-                await strategy.ExecuteAsync(async token =>
+                persistedRounds += await strategy.ExecuteAsync(async token =>
                 {
                     db.ChangeTracker.Clear();
-                    await ProcessMatchAsync(id, serverTime, nowUtc, token);
+                    return await ProcessMatchAsync(id, serverTime, nowUtc, token);
                 }, ct);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
@@ -59,9 +64,10 @@ public sealed class CandleBattlesRoundService(EthicAIDbContext db, BinanceKlineC
                     .SetProperty(x => x.Status, "market-unavailable").SetProperty(x => x.UpdatedAtUtc, nowUtc), ct);
             }
         }
+        return persistedRounds;
     }
 
-    private async Task ProcessMatchAsync(int id, long serverTime, DateTime nowUtc, CancellationToken ct)
+    private async Task<int> ProcessMatchAsync(int id, long serverTime, DateTime nowUtc, CancellationToken ct)
     {
         var match = await db.Match.AsNoTracking().Include(m => m.TeamA).ThenInclude(t => t.Currency)
             .Include(m => m.TeamB).ThenInclude(t => t.Currency).SingleAsync(m => m.MatchId == id, ct);
@@ -83,12 +89,13 @@ public sealed class CandleBattlesRoundService(EthicAIDbContext db, BinanceKlineC
         // Serializes concurrent workers before reading the durable cursor; unique PK is a second guard.
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(20261015, {id})", ct);
         state = await db.Set<CandleBattlesState>().SingleAsync(s => s.MatchId == id, ct);
-        if (new DateTimeOffset(state.NextOpenUtc).ToUnixTimeMilliseconds() != cursor) return;
+        if (new DateTimeOffset(state.NextOpenUtc).ToUnixTimeMilliseconds() != cursor) return 0;
         state.Status = "live";
         var formingA = WithPreviewStrength(a.LastOrDefault(x => !x.Confirmed), a);
         var formingB = WithPreviewStrength(b.LastOrDefault(x => !x.Confirmed), b);
         state.LeftFormingJson = formingA is null ? state.LeftFormingJson : JsonSerializer.Serialize(formingA);
         state.RightFormingJson = formingB is null ? state.RightFormingJson : JsonSerializer.Serialize(formingB);
+        var inserted = new List<long>();
         for (var i = 0; i < 64 && cursor + 300_000 <= end; i++)
         {
             var left = a.SingleOrDefault(x => x.OpenTime == cursor && x.Confirmed);
@@ -99,10 +106,13 @@ public sealed class CandleBattlesRoundService(EthicAIDbContext db, BinanceKlineC
             var round = CandleBattlesResolver.Resolve(id, left, right, leftHistory, rightHistory);
             var openUtc = DateTimeOffset.FromUnixTimeMilliseconds(cursor).UtcDateTime;
             if (!await db.Set<CandleBattlesRound>().AnyAsync(r => r.MatchId == id && r.OpenTimeUtc == openUtc, ct))
+            {
                 db.Add(new CandleBattlesRound { MatchId = id, OpenTimeUtc = openUtc,
                     LeftCandleJson = JsonSerializer.Serialize(left), RightCandleJson = JsonSerializer.Serialize(right),
                     LeftStrength = round.LeftStrength, RightStrength = round.RightStrength,
                     Winner = round.Winner, RuleVersion = round.RuleVersion, ConfirmedAtUtc = DateTime.UtcNow });
+                inserted.Add(cursor);
+            }
             cursor += 300_000;
         }
         state.NextOpenUtc = DateTimeOffset.FromUnixTimeMilliseconds(cursor).UtcDateTime;
@@ -124,6 +134,24 @@ public sealed class CandleBattlesRoundService(EthicAIDbContext db, BinanceKlineC
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         db.ChangeTracker.Clear();
+        if (inserted.Count > 0)
+        {
+            var persistedAtUtc = DateTime.UtcNow;
+            foreach (var openMs in inserted)
+            {
+                var closeMs = openMs + CandleBattlesResolver.PeriodMs;
+                logger.LogInformation(
+                    "[CANDLE_BATTLE_TIMING] match_id={MatchId} round_id={RoundId} round_end_utc={RoundEndUtc} exchange_server_time_utc={ServerTimeUtc} confirmation_eligible_utc={EligibleUtc} persisted_at_utc={PersistedAtUtc} exchange_to_persist_ms={ExchangeToPersistMs}",
+                    id,
+                    $"{id}:5m:{openMs}",
+                    DateTimeOffset.FromUnixTimeMilliseconds(closeMs).UtcDateTime,
+                    DateTimeOffset.FromUnixTimeMilliseconds(serverTime).UtcDateTime,
+                    DateTimeOffset.FromUnixTimeMilliseconds(closeMs + 1500).UtcDateTime,
+                    persistedAtUtc,
+                    Math.Max(0, serverTime - closeMs));
+            }
+        }
+        return inserted.Count;
     }
 
     private static CandleBattlesCandleDto? WithPreviewStrength(CandleBattlesCandleDto? candle, IReadOnlyList<CandleBattlesCandleDto> history)

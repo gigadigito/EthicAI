@@ -739,6 +739,66 @@ test('LIVE enters neutral close-pending state and starts the collision hit on la
  expect(state.duplicate).toEqual({active:'191:5m:946684800000',score:{left:0,right:0}});
 });
 
+test('LIVE starts the decisive collision on the first eligible frame for every confirmation delay',async({page})=>{
+ await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine&&window.ready);
+ const observations=await page.evaluate(async()=>{
+  const engine=window.engine,{demoRound}=await import('/js/dist/candle-battles/model.js');
+  const source=demoRound(0),open=source.left.openTime,close=open+300000;
+  const delays=[0,500,2000,5000,10000];
+  return delays.map((delay,index)=>{
+   const matchId=300+index,round={...source,matchId,id:`${matchId}:5m:${open}`};
+   const base={matchId,leftSymbol:'BTC',rightSymbol:'ETH',left:null,right:null,rounds:[],status:'waiting-confirmation',finished:false,
+    matchStartTime:open,expectedRounds:18,serverTime:close};
+   engine.receive(base,true);engine.update(0);
+   const started=performance.now();
+   engine.receive({...base,serverTime:close+delay,rounds:[round],status:'live'},false);engine.update(16);
+   return {delay,elapsedMs:performance.now()-started,phase:engine.inspect().phase,active:engine.inspect().activeRoundId,
+    score:engine.snapshot().score,leftPose:engine.left.posePhase,leftAnimation:engine.left.poseAction};
+  });
+ });
+ for(const observation of observations){
+  expect(observation.phase).toBe('COLLISION');
+  expect(observation.active).toContain(':5m:');
+  expect(observation.score).toEqual({left:0,right:0});
+  expect(observation.leftPose).toBe('COLLISION');
+  expect(observation.leftAnimation).toBe('punch');
+  expect(observation.elapsedMs).toBeLessThan(100);
+ }
+});
+
+test('LIVE keeps 00:00 through a ten-second pending result and resumes the current financial candle after the finale',async({page})=>{
+ await page.goto(url+'?kind=live');await page.waitForFunction(()=>window.engine&&window.ready);
+ const state=await page.evaluate(async()=>{
+  const engine=window.engine,{demoRound}=await import('/js/dist/candle-battles/model.js');
+  const source=demoRound(0),open=source.left.openTime,close=open+300000,matchId=410;
+  const base={matchId,leftSymbol:'BTC',rightSymbol:'ETH',left:null,right:null,rounds:[],status:'waiting-confirmation',finished:false,
+   matchStartTime:open,expectedRounds:18,serverTime:close};
+  engine.receive(base,true);engine.update(0);
+  const pending=engine.snapshot();
+  engine.receive({...base,serverTime:close+10000},false);engine.update(16);
+  const delayedPending={...engine.snapshot(),countdown:engine.hud.get('nextBattle').text,active:engine.active?.id??null};
+  const round={...source,matchId,id:`${matchId}:5m:${open}`};
+  engine.receive({...base,serverTime:close+10000,rounds:[round],status:'live'},false);engine.update(16);
+  const finale={...engine.snapshot(),countdown:engine.hud.get('nextBattle').text,active:engine.active?.id??null};
+  for(let i=0;i<70&&engine.snapshot().finaleStatus!=='none';i++) engine.update(100);
+  const resumed={...engine.snapshot(),countdown:engine.hud.get('nextBattle').text,active:engine.active?.id??null};
+  return {pending,delayedPending,finale,resumed};
+ });
+ expect(state.pending.finaleStatus).toBe('pending');
+ expect(state.pending.displayRemainingMs).toBe(0);
+ expect(state.delayedPending.finaleStatus).toBe('pending');
+ expect(state.delayedPending.countdown).toMatch(/00:00/);
+ expect(state.delayedPending.active).toBeNull();
+ expect(state.finale.finaleStatus).toBe('finale');
+ expect(state.finale.countdown).toMatch(/00:00/);
+ expect(state.finale.active).toContain(':5m:');
+ expect(state.resumed.finaleStatus).toBe('none');
+ expect(state.resumed.active).toBeNull();
+ expect(state.resumed.displayRemainingMs).toBeGreaterThan(0);
+ expect(state.resumed.displayRemainingMs).toBeLessThan(300000);
+ expect(state.resumed.score.left+state.resumed.score.right).toBe(1);
+});
+
 test('mock LIVE follows three consecutive official UTC round transitions without stale animations',async({page})=>{
  test.setTimeout(60000);
  const errors=[];page.on('pageerror',error=>errors.push(error.message));

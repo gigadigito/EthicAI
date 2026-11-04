@@ -102,6 +102,10 @@ test('battle clock validates both confirmed UTC intervals and deduplicates by ma
     assert.ok(b.enqueue(demoRound(1)));assert.ok(b.enqueue(r));assert.equal(b.enqueue({...r,id:'another-id'}),false);
     assert.equal(b.next().id,r.id);assert.equal(b.next().id,demoRound(1).id);
 });
+test('battle clock can hand one official round to the presentation freeze without losing deduplication',()=>{
+    const b=new BattleClock(),r=demoRound(0);b.enqueue(r);
+    assert.equal(b.take(r.id).id,r.id);assert.equal(b.take(r.id),undefined);assert.equal(b.enqueue({...r,id:'duplicate-id'}),false);assert.equal(b.count,0);
+});
 test('a non-aligned 90-minute match admits exactly 18 confirmed market intervals',()=>{
     const first=demoRound(0).left.openTime;
     const start=first+42_000;

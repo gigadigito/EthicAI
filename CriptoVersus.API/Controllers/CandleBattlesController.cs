@@ -15,6 +15,7 @@ namespace CriptoVersus.API.Controllers;
 public sealed class CandleBattlesController(EthicAIDbContext db) : ControllerBase
 {
     [HttpGet, AllowAnonymous]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<ActionResult<CandleBattlesFeedDto>> Get(int matchId, [FromQuery] long? after = null,
         [FromQuery] int take = 200, CancellationToken ct = default)
     {

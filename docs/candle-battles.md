@@ -12,7 +12,7 @@ Implementação de 14/10/2026. Competição arcade independente: não altera Mat
 
 ## Dados, confirmação e autoridade
 
-O Worker é o único escritor. O `CandleBattlesWorker` executa `CandleBattlesRoundService` em escopo DbContext próprio, fora do ciclo geral de 60 segundos, com intervalo configurável de 5 segundos (`CriptoVersusWorker:CandleBattlesIntervalSeconds`). A falha do arcade não impede uma liquidação já realizada nas etapas gerais.
+O Worker é o único escritor. O `CandleBattlesWorker` executa `CandleBattlesRoundService` em escopo DbContext próprio, fora do ciclo geral de 60 segundos, com uma tentativa alinhada a cada fronteira UTC mais a janela de confirmação da exchange (1,5 segundo) e intervalo de recuperação configurável de 5 segundos (`CriptoVersusWorker:CandleBattlesIntervalSeconds`). Depois do commit de uma nova rodada, publica a invalidação `dashboard_changed` por `CriptoVersusWorker:DashboardNotifyUrl`; o polling Web de 1 segundo permanece somente como recuperação. Os logs `[CANDLE_BATTLE_TIMING]` registram fechamento do exchange, elegibilidade, persistência, publicação e latência até o navegador. A falha do arcade não impede uma liquidação já realizada nas etapas gerais.
 
 BinanceKlineClient centraliza o transporte público de klines usado também pelas janelas de volume existentes. O comportamento de leitura do volume financeiro permanece separado da validação OHLC do arcade. Não há conexão de mercado no navegador.
 
@@ -58,6 +58,12 @@ As poses incluem Idle/Bounce, corrida com oito posições, ataque com seis posi�
 
 As animações consomem apenas resultados confirmados. O heartbeat atualiza o próximo candle enquanto os lutadores exibem cópias imutáveis da rodada anterior. A duração visual pode ser ajustada por CandleBattles:AnimationDurationMs, limitada a 3000–5000 ms; o padrão é 3800 ms. Essa opção não muda o fechamento real de cinco minutos.
 
+### Round Finale Freeze
+
+No LIVE, o fechamento do candle e a chegada do resultado oficial são eventos separados. Quando o relógio chega exatamente a `00:00`, a apresentação entra em `pending`: congela o candle fechado, mantém o contador em `00:00` e suspende ataques normais sem alterar o relógio financeiro, OHLC, pontuação, território, labels ou contadores do Money Flow. Quando a rodada oficial chega, o mesmo `BattleStateMachine` continua a partir de `COLLISION` e a apresentação permanece em `finale` até a animação existente terminar. Em seguida, `resuming` restaura a janela financeira LIVE atual e o countdown real; não há replay de parcelas visuais acumuladas durante a pausa.
+
+O limite de espera é configurável por `CandleBattles:FinaleFreezeTimeoutMs` (padrão de 20.000 ms, limitado entre 1.000 e 60.000 ms). Se a confirmação não chegar nesse prazo, a apresentação retoma a janela atual e uma confirmação posterior é reconciliada apenas no histórico, sem inventar vencedor ou repetir a colisão. O estado do freeze e os marcos de fechamento, confirmação, finale e retomada aparecem somente nos diagnósticos opt-in de `CandleBattles:Diagnostics:Enabled`.
+
 Cada vitória cria um ponto e um bloco quadrado. Empates não criam nenhum dos dois. A grade tem 20 colunas e 6 linhas; linhas completas ficam no histórico, contam uma vez e não concedem pontos. Cada página cheia é preservada. Território usa somente vitórias como denominador. Combo, domínio e virada são efeitos visuais e sonoros. CandleBattles:CrushingDifference ajusta a diferença de força que dispara a vitória esmagadora (padrão 25, entre 0 e 100), sem alterar pontos.
 
 ## Encerramento cinematográfico
@@ -90,7 +96,7 @@ O áudio só é desbloqueado por interação local do usuário. Os botões são 
     dotnet test CriptoVersus.Worker.Tests/CriptoVersus.Worker.Tests.csproj --filter "FullyQualifiedName~CandleBattle|FullyQualifiedName~Volume"
     dotnet build EthicAI.sln
 
-Os testes visuais usam Edge headless e servidor estático local, sem API ou banco de produção. As capturas de referência estão em wwwroot/js/candle-battles/tests/visual.spec.mjs-snapshots; o diretório tests é excluído da publicação Web. A galeria cobre corpos pequeno/médio/grande, doji, pavios extremos, contornos das duas equipes, sprites de combate, inversão durante interpolação, reconexão, replay, blocos quadrados, resize, dispose, áudio real e fullscreen por gesto nativo.
+Os testes visuais usam Edge headless e servidor estático local, sem API ou banco de produção. As capturas de referência estão em wwwroot/js/candle-battles/tests/visual.spec.mjs-snapshots; o diretório tests é excluído da publicação Web. A galeria cobre corpos pequeno/médio/grande, doji, pavios extremos, contornos das duas equipes, sprites de combate, inversão durante interpolação, reconexão, replay, blocos quadrados, resize, dispose, áudio real, fullscreen por gesto nativo e o Round Finale Freeze com confirmação atrasada e retomada do candle financeiro atual.
 
 Neste workspace, arquivos de saída estavam bloqueados pela aplicação aberta e o projeto legado incluía obj antigo no glob. A validação da solução usa saída isolada e exclui esses objetos sem removê-los:
 

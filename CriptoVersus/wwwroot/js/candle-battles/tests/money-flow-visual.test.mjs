@@ -67,6 +67,17 @@ test('single-price batches use taker quote flow without inventing price movement
   assert.equal(state.ingest(batch({ sequence: 4, firstPrice: '99.8', lastPrice: '99.8', takerBuyQuote: '0', takerSellQuote: '0' })).direction, 'neutral');
 });
 
+test('freeze resume can discard accumulated visual parcels without losing financial energy', () => {
+  const state = new MoneyFlowVisualState();
+  state.ingest(batch());
+  assert.ok(state.pendingPositiveVolume > 0);
+  const before = state.snapshot();
+  state.discardPendingVisualEffects();
+  assert.equal(state.pendingPositiveVolume, 0);
+  assert.equal(state.pendingNegativeVolume, 0);
+  assert.deepEqual(state.snapshot(), before);
+});
+
 test('visual accumulator is bounded, smoothed, and responds in both directions', () => {
   const state = new MoneyFlowVisualState();
   for (let index = 0; index < 10; index++) state.ingest(batch({ sequence: index + 1 }));

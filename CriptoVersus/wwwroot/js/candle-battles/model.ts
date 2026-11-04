@@ -238,6 +238,11 @@ export class BattleClock {
     }
     next(): Readonly<Round> | undefined { return this.pending.shift(); }
     peek(): Readonly<Round> | undefined { return this.pending[0]; }
+    /** Removes one already-queued official round when the presentation freeze owns it. */
+    take(roundId: string): Readonly<Round> | undefined {
+        const index = this.pending.findIndex(round => round.id === roundId);
+        return index < 0 ? undefined : this.pending.splice(index, 1)[0];
+    }
     get count(): number { return this.pending.length; }
     clear(): void { this.seen.clear(); this.intervals.clear(); this.pending = []; }
 }

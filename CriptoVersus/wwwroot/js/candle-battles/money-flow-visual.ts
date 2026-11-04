@@ -337,6 +337,11 @@ export class MoneyFlowVisualState {
         else this.pendingSell = 0;
         return value;
     }
+    /** Discards only visual parcels accumulated while the arena was frozen. */
+    discardPendingVisualEffects(): void {
+        this.pendingBuy = 0;
+        this.pendingSell = 0;
+    }
 
     snapshot(): MoneyFlowVisualSnapshot {
         return {
@@ -581,6 +586,15 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         this.clearParticles();
         for (const side of SIDES) this.effects[side].state.reset();
         if (this.enabled) this.consumeBufferedBatches();
+    }
+
+    /** Reconciles the current official window without replaying frozen parcels. */
+    resumeAfterFreeze(round: MoneyFlowRoundWindow | undefined): void {
+        this.setLiveRound(round);
+        if (!this.enabled || !round) return;
+        this.consumeBufferedBatches();
+        this.effects.left.state.discardPendingVisualEffects();
+        this.effects.right.state.discardPendingVisualEffects();
     }
 
     setEnabled(enabled: boolean): void {

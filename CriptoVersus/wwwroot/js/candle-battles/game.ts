@@ -12,7 +12,8 @@ import type { MoneyFlowAnchors } from './money-flow-collectors.js';
 
 export interface Feed { matchId: number; leftSymbol: string; rightSymbol: string; left: Candle | null; right: Candle | null; rounds: Round[]; status: string; finished: boolean; matchStartTime?: number | null; matchEndTime?: number | null; expectedRounds?: number; serverTime?: number | null; scoreLeft?: number; scoreRight?: number; }
 export interface CaptureTarget { round?: number; phase?: string; }
-export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; socialCapture?: boolean; shell?: boolean; autoplay?: boolean; localLogos?: Record<string,string>; captureTarget?: CaptureTarget; moneyFlowVisualEffects?: boolean; moneyFlowCollectorsEnabled?: boolean; moneyFlowCollectorQuality?: 'low' | 'medium' | 'high'; diagnostics?: boolean; }
+export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; finaleFreezeTimeoutMs?: number; socialCapture?: boolean; shell?: boolean; autoplay?: boolean; localLogos?: Record<string,string>; captureTarget?: CaptureTarget; moneyFlowVisualEffects?: boolean; moneyFlowCollectorsEnabled?: boolean; moneyFlowCollectorQuality?: 'low' | 'medium' | 'high'; diagnostics?: boolean; }
+type RoundFreezeStatus = 'none' | 'pending' | 'finale' | 'resuming';
 const displaySymbol = (symbol: string): string => symbol.replace(/USDT$/i, '');
 export async function create(host: HTMLElement, options: Options): Promise<GameEngine> {
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
@@ -112,6 +113,15 @@ export class GameEngine {
     private lastClosedRoundId?: string;
     /** Short paint window so a frame that lands just after close still shows 00:00. */
     private closeDisplayUntil = 0;
+    /** Presentation-only freeze; liveNow() and all financial processing continue. */
+    private finaleStatus: RoundFreezeStatus = 'none';
+    private finaleRoundId?: string;
+    private finaleRound?: Readonly<Round>;
+    private presentationMarket?: { left?: Readonly<Candle>; right?: Readonly<Candle> };
+    private finaleRoundStartUtc = 0;
+    private finaleFreezeStartedAtUtc = 0;
+    private finaleWaitDeadlineUtc = 0;
+    private timedOutFinaleRounds = new Set<string>();
     private readonly resolutionReceivedAt = new Map<string, number>();
     private conversation?: Line[];
     private currentLine?: Line;
@@ -347,7 +357,7 @@ export class GameEngine {
     }
     receive(feed: Feed, reconcile = false): void {
         if (this.disposed || this.captureFrozen) return;
-        if (this.feed && this.feed.matchId !== feed.matchId) { this.history=[]; this.market.clear(); this.clock.clear(); this.territory.reset(); this.active=undefined; this.combatElapsed=0; this.state.reset(); this.autoplayInitialized=false; this.catchUpReplay=false; this.terminal=false; this.lastClosedRoundId=undefined; this.closeDisplayUntil=0; this.resetFinale(); this.clearDialogue(); }
+        if (this.feed && this.feed.matchId !== feed.matchId) { this.history=[]; this.market.clear(); this.clock.clear(); this.territory.reset(); this.active=undefined; this.combatElapsed=0; this.state.reset(); this.autoplayInitialized=false; this.catchUpReplay=false; this.terminal=false; this.lastClosedRoundId=undefined; this.closeDisplayUntil=0; this.resetRoundFreeze(); this.resetFinale(); this.clearDialogue(); }
         this.feed = feed; this.pendingReconcile ||= reconcile;
         this.moneyFlow?.setLiveMatch(feed.matchId, feed.leftSymbol, feed.rightSymbol, this.mode === 'live' && !feed.finished);
         if (feed.serverTime != null && Number.isFinite(feed.serverTime)) { this.serverAnchorMs=feed.serverTime; this.serverReceivedAt=performance.now(); }
@@ -386,6 +396,7 @@ export class GameEngine {
             if (this.options.socialCapture) this.pendingReconcile=false;
             else if (this.pendingReconcile) this.reconcile();
             else for (const round of fresh) this.clock.enqueue(round);
+            this.resolvePendingRoundFreeze();
             if (!this.options.socialCapture && !this.terminal) this.hud.get('status')?.setText(this.text(feed.finished?'finished':feed.status==='live'?'forming':'waiting'));
         } else if (this.mode === 'replay') this.hud.get('status')?.setText(this.text('forming'));
         this.setLogo('left',feed.leftSymbol); this.setLogo('right',feed.rightSymbol);
@@ -478,6 +489,7 @@ export class GameEngine {
     }
     private updateMarket(): void {
         if (this.mode === "replay") return;
+        if (this.isRoundFreezeActive()) return;
         const a = this.market.get('left'), b = this.market.get('right');
         for (const [side,c] of [['left',a],['right',b]] as const) if(c) {
             const pct=(c.close/c.open-1)*100;
@@ -530,6 +542,7 @@ export class GameEngine {
     private restart(): void {
         this.clearDialogue();
         delete this.host.dataset.finished;
+        this.resetRoundFreeze();
         this.active=undefined; this.combatElapsed=0; this.clock.clear(); this.territory.reset(); this.state.reset(); this.market.clear(); this.completedRounds=0; this.replayElapsed=0; this.terminal=false;
         this.resetFinale();
         this.tile?.destroy(); this.tile=undefined; this.dropTarget=undefined; this.demoIndex=0; this.demoElapsed=0; this.replayIndex=0; this.focusRound=-1;
@@ -668,7 +681,8 @@ export class GameEngine {
             if(this.demoElapsed>=this.state.durationMs+500) { const r=demoRound(this.demoIndex++); this.history.push(r); this.clock.enqueue(r); this.demoElapsed=0; }
         }
         if(!this.terminal && (this.started || this.mode==='live')) this.observeCandleClose();
-        if(!this.active && !this.terminal && (this.started || this.mode==='live')) {
+        if (this.finaleStatus !== 'none') this.advanceRoundFreeze(battleDt);
+        if(this.finaleStatus === 'none' && !this.active && !this.terminal && (this.started || this.mode==='live')) {
             if(this.mode==='replay' && this.clock.count===0 && this.replayIndex<this.replayHistory.length) {
                 const candidate=this.replayHistory[this.replayIndex];
                 const start=this.feed?.matchStartTime ?? this.replayHistory[0].left.openTime;
@@ -682,15 +696,15 @@ export class GameEngine {
                 if (next) {
                     // A delayed backend confirmation belongs to its closed
                     // candle, but must never replace the active next window.
-                    if (this.mode === 'live' && roundSupersededAt(next, this.liveNow()))
+                    if (this.mode === 'live' && (roundSupersededAt(next, this.liveNow()) || this.timedOutFinaleRounds.has(next.id)))
                         this.settleLateRound(next);
                     else this.begin(next);
                 }
             }
         }
-        if (this.active && this.mode === 'live' && roundSupersededAt(this.active, this.liveNow()))
+        if (this.finaleStatus === 'none' && this.active && this.mode === 'live' && roundSupersededAt(this.active, this.liveNow()))
             this.settleLateRound(this.active);
-        if(this.active) this.state.advance(battleDt,p=>this.enter(p));
+        if(this.finaleStatus === 'none' && this.active) this.state.advance(battleDt,p=>this.enter(p));
         const p=this.state.progress;
         // Closing cinematic runs after the last round and never touches score.
         if(this.finaleSequence.running) this.finaleSequence.advance(battleDt,phase=>this.enterFinale(phase));
@@ -705,8 +719,8 @@ export class GameEngine {
             this.left?.setCombatMotion(frame.left); this.right?.setCombatMotion(frame.right);
             this.applyCombatBeats(frame, 0);
         } else {
-            const remaining=this.candleRemaining();
-            const tension=remaining==null?0:remaining<=10_000?1:remaining<=60_000?1-(remaining-10_000)/50_000:0;
+            const remaining=this.finaleStatus === 'pending' ? 0 : this.candleRemaining();
+            const tension=this.finaleStatus === 'pending' ? 1 : remaining==null?0:remaining<=10_000?1:remaining<=60_000?1-(remaining-10_000)/50_000:0;
             this.left?.root.setPosition(330+Math.sin(this.time/1100)*Math.min(5,2+tension*3),this.shell?185:260);
             this.right?.root.setPosition(950-Math.sin(this.time/1170)*Math.min(5,2+tension*3),this.shell?185:260);
             this.left?.setPreparation(tension,this.time); this.right?.setPreparation(tension,this.time+650);
@@ -714,7 +728,7 @@ export class GameEngine {
         }
         this.left?.update(this.time,dt,p); this.right?.update(this.time,dt,p);
         this.updateMoneyFlow(dt);
-        this.updateDialogue(battleDt);
+        if (this.finaleStatus === 'none') this.updateDialogue(battleDt);
         if(this.tile && this.dropTarget) this.tile.setPosition(this.dropTarget.x,470+(this.dropTarget.y-470)*p*p);
         this.flash=Math.max(0,this.flash-dt/500);
         this.lineFlash?.clear();
@@ -743,6 +757,13 @@ export class GameEngine {
     }
     private updateMoneyFlow(delta: number): void {
         if (!this.moneyFlow || !this.feed) return;
+        if (this.isRoundFreezeActive()) {
+            // Keep the frozen round's counters and particles visible. The
+            // controller will consume current-window batches during resume,
+            // then discard only accumulated visual parcels.
+            this.updateMoneyFlowPanels();
+            return;
+        }
         const enabled = this.mode === 'live' && !this.feed.finished && !this.options.socialCapture;
         this.moneyFlow.setLiveMatch(this.feed.matchId, this.feed.leftSymbol, this.feed.rightSymbol, enabled);
         const round = enabled ? this.liveRoundWindow() : undefined;
@@ -807,21 +828,36 @@ export class GameEngine {
         const now = this.liveNow();
         const firstOpen = Math.floor(this.feed.matchStartTime / PERIOD) * PERIOD;
         const closedOpen = Math.floor(now / PERIOD) * PERIOD - PERIOD;
-        if (closedOpen < firstOpen || now < closedOpen + PERIOD || now >= this.feed.matchStartTime + this.matchLimit()) return;
+        const matchEnd = this.feed.matchStartTime + this.matchLimit();
+        if (closedOpen < firstOpen || now < closedOpen + PERIOD || closedOpen >= matchEnd) return;
         const roundId = `${this.feed.matchId}:5m:${closedOpen}`;
         if (this.lastClosedRoundId === roundId) return;
         this.lastClosedRoundId = roundId;
         this.closeDisplayUntil = performance.now() + 100;
-        const round = this.history.find(candidate => candidate.id === roundId);
+        this.finaleRoundId = roundId;
+        this.finaleRound = this.history.find(candidate => candidate.id === roundId);
+        this.finaleRoundStartUtc = closedOpen;
+        this.presentationMarket = { left: this.market.get('left'), right: this.market.get('right') };
+        this.finaleFreezeStartedAtUtc = Date.now();
+        this.finaleWaitDeadlineUtc = now + Math.max(1000, this.options.finaleFreezeTimeoutMs ?? 20_000);
+        this.finaleStatus = this.finaleRound ? 'finale' : 'pending';
+        this.host.dataset.finaleFreeze = this.finaleStatus;
+        if (!this.active) this.state.reset();
+        this.left?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+        this.right?.setCombatMotion({ attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 });
+        if (this.finaleRound) this.startFrozenFinale(this.finaleRound);
+        else this.host.dataset.candleResolution = 'pending';
+        const round = this.finaleRound;
         if (round) {
             this.traceRound('candle_closed', round, {
                 candleClosed: true,
                 resultConfirmed: true,
                 resultWinner: round.winner,
                 closeObservedAtUtc: Date.now(),
+                freezeStartedAtUtc: this.finaleFreezeStartedAtUtc,
+                resultConfirmedAtUtc: round.confirmedAtTime ?? null,
             });
         } else {
-            this.host.dataset.candleResolution = 'pending';
             this.traceRoundWindow('candle_closed_pending', {
                 id: roundId,
                 startMs: closedOpen,
@@ -829,14 +865,113 @@ export class GameEngine {
             });
         }
     }
+    private isRoundFreezeActive(): boolean { return this.mode === 'live' && (this.finaleStatus === 'pending' || this.finaleStatus === 'finale'); }
+    private resetRoundFreeze(): void {
+        this.finaleStatus = 'none';
+        this.finaleRoundId = undefined;
+        this.finaleRound = undefined;
+        this.presentationMarket = undefined;
+        this.finaleRoundStartUtc = 0;
+        this.finaleFreezeStartedAtUtc = 0;
+        this.finaleWaitDeadlineUtc = 0;
+        this.timedOutFinaleRounds.clear();
+        delete this.host.dataset.finaleFreeze;
+        delete this.host.dataset.candleResolution;
+    }
+    private resolvePendingRoundFreeze(): void {
+        if (this.finaleStatus !== 'pending' || !this.finaleRoundId) return;
+        const round = this.history.find(candidate => candidate.id === this.finaleRoundId);
+        if (!round) return;
+        this.finaleRound = round;
+        this.startFrozenFinale(round);
+        this.traceRound('result_confirmed_during_freeze', round, {
+            freezeStartedAtUtc: this.finaleFreezeStartedAtUtc,
+            resultConfirmedAtUtc: round.confirmedAtTime ?? Date.now(),
+            resultReceivedAtUtc: this.resolutionReceivedAt.get(round.id) ?? Date.now(),
+        });
+    }
+    private startFrozenFinale(round: Readonly<Round>): void {
+        if (this.finaleStatus !== 'finale' || this.active?.id === round.id) return;
+        this.finaleStatus = 'finale';
+        delete this.host.dataset.candleResolution;
+        this.host.dataset.finaleFreeze = 'finale';
+        if (this.active && this.active.id !== round.id) this.settleLateRound(this.active);
+        this.clock.take(round.id);
+        this.begin(round, true);
+        this.traceRound('finale_started', round, {
+            freezeStartedAtUtc: this.finaleFreezeStartedAtUtc,
+            finaleStartedAtUtc: Date.now(),
+        });
+    }
+    private advanceRoundFreeze(battleDt: number): void {
+        if (this.finaleStatus === 'pending') {
+            if (this.liveNow() >= this.finaleWaitDeadlineUtc) {
+                const roundId = this.finaleRoundId;
+                if (roundId) this.timedOutFinaleRounds.add(roundId);
+                this.traceRoundWindow('freeze_timeout', {
+                    id: roundId ?? 'unknown',
+                    startMs: this.finaleRoundStartUtc,
+                    endMs: this.finaleRoundStartUtc + PERIOD,
+                });
+                this.resumeFrozenPresentation('timeout');
+            }
+            return;
+        }
+        if (this.finaleStatus !== 'finale') return;
+        if (this.active) {
+            this.state.advance(battleDt, phase => {
+                this.enter(phase);
+                if (phase === 'FORMING_CANDLE') this.completeFrozenFinale(this.active?.id);
+            });
+        }
+    }
+    private completeFrozenFinale(roundId?: string): void {
+        if (this.finaleStatus !== 'finale') return;
+        const round = this.finaleRound;
+        this.finaleStatus = 'resuming';
+        this.host.dataset.finaleFreeze = 'resuming';
+        if (round) this.traceRound('finale_completed', round, {
+            freezeStartedAtUtc: this.finaleFreezeStartedAtUtc,
+            finaleCompletedAtUtc: Date.now(),
+            completedRoundId: roundId ?? round.id,
+        });
+        this.resumeFrozenPresentation('completed');
+    }
+    private resumeFrozenPresentation(reason: 'completed' | 'timeout'): void {
+        if (this.finaleStatus === 'none') return;
+        const round = this.finaleRound;
+        const resumeStartedAtUtc = Date.now();
+        this.finaleStatus = 'resuming';
+        this.host.dataset.finaleFreeze = 'resuming';
+        const liveRound = this.liveRoundWindow();
+        this.presentationMarket = undefined;
+        this.finaleRound = undefined;
+        this.finaleRoundId = undefined;
+        this.finaleRoundStartUtc = 0;
+        delete this.host.dataset.candleResolution;
+        this.updateMarket();
+        this.moneyFlow?.resumeAfterFreeze(liveRound);
+        this.finaleStatus = 'none';
+        delete this.host.dataset.finaleFreeze;
+        this.updateClocks();
+        this.updateDashboard(true);
+        if (round) this.traceRound('resume_completed', round, {
+            resumeStartedAtUtc,
+            resumeCompletedAtUtc: Date.now(),
+            liveRoundIdAfterResume: liveRound?.id ?? null,
+            displayRemainingMsAfterResume: liveRound ? Math.max(0, liveRound.endMs - this.liveNow()) : 0,
+            resumeReason: reason,
+        });
+        if (this.feed?.finished && !this.terminal) this.finish();
+    }
     private updateClocks(): void {
         const start=this.feed?.matchStartTime;
         const elapsed=this.mode==='demo'?Math.min(MATCH_DURATION,this.demoIndex*PERIOD+this.demoElapsed/(this.state.durationMs+500)*PERIOD)
             : start==null?0:this.mode==='replay'?this.replayElapsed:this.feed?.finished?this.matchLimit():Math.max(0,this.liveNow()-start);
         const capped=Math.min(MATCH_DURATION,elapsed);
         this.hud.get('matchTime')?.setText(this.text('matchTime','MATCH TIME')+'  '+clockParts(capped)+' / 90:00');
-        const remaining=this.candleRemaining();
-        const closeFrame = this.mode === 'live' && performance.now() <= this.closeDisplayUntil;
+        const remaining=this.isRoundFreezeActive()?0:this.candleRemaining();
+        const closeFrame = this.isRoundFreezeActive() || (this.mode === 'live' && performance.now() <= this.closeDisplayUntil);
         this.hud.get('nextBattle')?.setText(this.terminal?'':this.text('nextBattle','5-MINUTE CANDLES')+'  '+(closeFrame?'00:00':remaining==null?'--:--':clockParts(Math.ceil(remaining/1000)*1000)));
         const configuredRounds=this.feed?.expectedRounds??MATCH_ROUNDS;
         const expectedRounds=this.terminal && this.feed?.status==='finished' ? this.completedRounds : configuredRounds;
@@ -939,13 +1074,13 @@ export class GameEngine {
         delete this.host.dataset.finaleState;
         delete this.host.dataset.finaleIntensity;
     }
-    private begin(r:Readonly<Round>): void {
+    private begin(r:Readonly<Round>, forceResolved = false): void {
         this.clearDialogue();
         delete this.host.dataset.candleResolution;
         this.roundEvent='none';
         this.combatSequencer.left.reset(); this.combatSequencer.right.reset();
         this.active=r; this.combatElapsed=0; this.focusRound=this.completedRounds;
-        const resolvedAtClose = this.mode === 'live' && roundClosedAt(r, this.liveNow());
+        const resolvedAtClose = forceResolved || (this.mode === 'live' && roundClosedAt(r, this.liveNow()));
         this.traceRound('animation_started', r, {
             resolutionReceivedAtUtc: this.resolutionReceivedAt.get(r.id) ?? null,
             animationStartedAtUtc: Date.now(),
@@ -1162,6 +1297,14 @@ export class GameEngine {
             impactStartedAtUtc: null,
             winnerDisplayedAtUtc: null,
             roundTransitionAtUtc: new Date().toISOString(),
+            freezeStartedAtUtc: null,
+            resultConfirmedAtUtc: null,
+            finaleStartedAtUtc: null,
+            finaleCompletedAtUtc: null,
+            resumeStartedAtUtc: null,
+            resumeCompletedAtUtc: null,
+            liveRoundIdAfterResume: null,
+            displayRemainingMsAfterResume: null,
             finaleScheduled: false,
             finaleTriggered: false,
             attackAnimationStarted: false,
@@ -1188,6 +1331,14 @@ export class GameEngine {
             impactStartedAtUtc: null,
             winnerDisplayedAtUtc: null,
             roundTransitionAtUtc: null,
+            freezeStartedAtUtc: null,
+            resultConfirmedAtUtc: null,
+            finaleStartedAtUtc: null,
+            finaleCompletedAtUtc: null,
+            resumeStartedAtUtc: null,
+            resumeCompletedAtUtc: null,
+            liveRoundIdAfterResume: null,
+            displayRemainingMsAfterResume: null,
             resultConfirmed: true,
             resultWinner: round.winner,
             finaleScheduled: event === 'animation_started',
@@ -1367,9 +1518,9 @@ export class GameEngine {
         const countdown=this.terminal?'--:--':closeFrame?'00:00':remaining==null?'--:--':clockParts(Math.ceil(remaining/1000)*1000);
         put('countdown',countdown);
         put('countdownCaption',this.terminal?this.text('finished'):this.text('candleClose'));
-        put('countdownNote',this.terminal?this.text('matchFinished'):this.active?this.text('fight'):this.text('forming'));
+        put('countdownNote',this.terminal?this.text('matchFinished'):this.isRoundFreezeActive()?this.finaleStatus==='pending'?this.text('awaitingClose'):this.text('fight'):this.active?this.text('fight'):this.text('forming'));
         const progress=node('progress');
-        const fraction=remaining==null?0:Math.max(0,Math.min(1,1-remaining/PERIOD));
+        const fraction=this.isRoundFreezeActive()?1:remaining==null?0:Math.max(0,Math.min(1,1-remaining/PERIOD));
         if(progress){progress.setAttribute('aria-valuenow',String(Math.round(fraction*100)));const fill=progress.querySelector<HTMLElement>('i');if(fill)fill.style.width=`${(fraction*100).toFixed(2)}%`;}
         const countdownCard=this.dashboard.querySelector<HTMLElement>('.candle-battles__countdown');
         countdownCard?.classList.toggle('is-soon',remaining!=null && remaining>0 && remaining<=30_000);
@@ -1382,11 +1533,11 @@ export class GameEngine {
         const score=this.territory.score;
         put('leftScore',String(score.left));put('rightScore',String(score.right));put('infoScore',`${score.left} : ${score.right}`);
         put('mode',this.mode==='replay'?'REPLAY':this.mode==='demo'?'DEMO':'● LIVE');
-        put('infoStatus',this.terminal?this.text('finished'):this.mode==='replay'?'REPLAY':this.feed?.status==='live'?this.text('forming'):this.text('waiting'));
-        put('candleState',this.terminal?this.text('finished'):this.active?this.text('fight'):this.feed?.status==='waiting-confirmation'?this.text('awaitingClose'):this.text('forming'));
+        put('infoStatus',this.terminal?this.text('finished'):this.isRoundFreezeActive()?this.finaleStatus==='pending'?this.text('awaitingClose'):this.text('fight'):this.mode==='replay'?'REPLAY':this.feed?.status==='live'?this.text('forming'):this.text('waiting'));
+        put('candleState',this.terminal?this.text('finished'):this.isRoundFreezeActive()?this.finaleStatus==='pending'?this.text('awaitingClose'):this.text('fight'):this.active?this.text('fight'):this.feed?.status==='waiting-confirmation'?this.text('awaitingClose'):this.text('forming'));
         put('battleStatus',this.hud.get('status')?.text??'');
         const recent=this.mode==='replay'?this.replayHistory.slice(0,this.completedRounds):this.history.slice(0,this.completedRounds);
-        const candleFor=(side:Side):Candle|undefined=>this.active?.[side]??(this.mode==='replay'?recent[recent.length-1]?.[side]:this.market.get(side));
+        const candleFor=(side:Side):Candle|undefined=>this.finaleRound?.[side]??this.presentationMarket?.[side]??this.active?.[side]??(this.mode==='replay'?recent[recent.length-1]?.[side]:this.market.get(side));
         for(const side of ['left','right'] as const){
             const symbol=this.feed?.[side+'Symbol' as 'leftSymbol'|'rightSymbol']??(side==='left'?'BTC':'ETH');
             const shown=displaySymbol(symbol);
@@ -1461,7 +1612,7 @@ export class GameEngine {
             }
         }
     }
-    snapshot(): object { return {mode:this.mode,phase:this.state.phase,score:{...this.territory.score},tiles:this.territory.history.map(t=>({...t})),lines:this.territory.lines,left:this.left?.geometry,right:this.right?.geometry,faceSize:this.left?.faceSize}; }
+    snapshot(): object { return {mode:this.mode,phase:this.state.phase,score:{...this.territory.score},tiles:this.territory.history.map(t=>({...t})),lines:this.territory.lines,left:this.left?.geometry,right:this.right?.geometry,faceSize:this.left?.faceSize,finaleStatus:this.finaleStatus,finaleRoundId:this.finaleRoundId,presentationRoundId:this.finaleRoundId??this.active?.id??null,displayRemainingMs:this.isRoundFreezeActive()?0:this.candleRemaining()}; }
     private clearDialogue(): void {
         this.dialogue.reset(); this.conversation=undefined; this.currentLine=undefined; this.finale=undefined; this.finaleElapsed=0;
         if (this.bubble) this.bubble.hidden=true;
