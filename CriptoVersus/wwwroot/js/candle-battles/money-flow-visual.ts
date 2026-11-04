@@ -273,7 +273,10 @@ export function calculateFinancialLabelPosition(input: FinancialLabelPositionInp
     const bagHeight = Math.max(1, input.bagHeight);
     const labelWidth = Math.max(1, input.labelWidth);
     const labelHeight = Math.max(1, input.labelHeight);
-    const gap = Math.max(8, Math.min(22, bagWidth * .18));
+    // Keep the label visibly beside the bag, but close enough that the value
+    // reads as part of the same financial particle. The side selection and
+    // region clamping below still protect the bag, fighter and arena edges.
+    const gap = Math.max(4, Math.min(12, bagWidth * .12));
     const leftCandidate = input.bagX - bagWidth / 2 - gap - labelWidth / 2;
     const rightCandidate = input.bagX + bagWidth / 2 + gap + labelWidth / 2;
     const minX = input.region.left + labelWidth / 2;

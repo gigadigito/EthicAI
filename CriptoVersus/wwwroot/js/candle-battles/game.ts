@@ -293,7 +293,7 @@ export class GameEngine {
             const background = this.scene.add.graphics().setDepth(22);
             background.fillStyle(0x07131f, .82).fillRoundedRect(left, y, width, height, 7)
                 .lineStyle(1, color, .72).strokeRoundedRect(left, y, width, height, 7);
-            const labelStyle = { fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '9px' : '11px', fontStyle: 'bold' };
+            const labelStyle = { fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '11px' : '13px', fontStyle: 'bold', stroke: '#07131f', strokeThickness: 2 };
             const valueStyle = { fontFamily: 'system-ui, sans-serif', fontSize: this.shell ? '17px' : '22px', fontStyle: 'bold' };
             const rowHeight = height / 2;
             const buyLabel = this.scene.add.text(left + 9, y + rowHeight * .5, `↑ ${this.text('buyPressure', 'BUY PRESSURE')}`, { ...labelStyle, color: '#b9ff69' }).setOrigin(0, .5).setDepth(23);

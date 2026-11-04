@@ -150,6 +150,13 @@ test('live Money Flow renders bounded positive and negative effects, then clears
   const panels=window.engine.flowPanels;
   return {left:{buy:panels.get('left').buyLabel.text,sell:panels.get('left').sellLabel.text},right:{buy:panels.get('right').buyLabel.text,sell:panels.get('right').sellLabel.text}};
  })).toEqual({left:{buy:'↑ BUY PRESSURE',sell:'↓ SELL PRESSURE'},right:{buy:'↑ BUY PRESSURE',sell:'↓ SELL PRESSURE'}});
+ const panelTypography=await page.evaluate(()=>{
+  const panel=window.engine.flowPanels.get('left');
+  return {labelSize:parseFloat(String(panel.buyLabel.style.fontSize)),valueSize:parseFloat(String(panel.buyValue.style.fontSize)),stroke:Number(panel.buyLabel.style.strokeThickness)};
+ });
+ expect(panelTypography.labelSize).toBeGreaterThanOrEqual(13);
+ expect(panelTypography.valueSize).toBeGreaterThan(panelTypography.labelSize);
+ expect(panelTypography.stroke).toBeGreaterThanOrEqual(1);
  expect(visual.left.displayedCandle).toBeGreaterThan(.5);expect(visual.right.displayedCandle).toBeGreaterThan(.5);
  expect(visual.bags).toBeLessThanOrEqual(12);expect(visual.signs).toBeLessThanOrEqual(12);
  await page.screenshot({path:testInfo.outputPath('money-flow-live.png'),fullPage:true});
