@@ -16,6 +16,7 @@ export class ArenaPressureEngine {
         // Pressure state
         this.targetPressure = 50;
         this.currentPressure = 50;
+        this.previousPressureSample = 50;
         this.leftSymbol = 'LSK';
         this.rightSymbol = 'BMT';
         this.isFinished = false;
@@ -45,6 +46,7 @@ export class ArenaPressureEngine {
             this.targetPressure = initial.left;
         }
         this.currentPressure = this.targetPressure;
+        this.previousPressureSample = this.targetPressure;
         this.ready = new Promise((resolve, reject) => {
             this.readyResolve = resolve;
             this.readyReject = reject;
@@ -135,7 +137,10 @@ export class ArenaPressureEngine {
                     self.currentPressure += (self.targetPressure - self.currentPressure) * ease;
                     const dominance = determineDominance(self.currentPressure, 100 - self.currentPressure);
                     // 2. Central mechanism stays fixed; only the inner disc and LEDs react.
-                    self.wheel.update(self.currentPressure, self.targetPressure, safeDelta);
+                    // The wheel receives the change in the real pressure sample, not the
+                    // current dominance. Stable 70/30 pressure therefore coasts to rest.
+                    const pressureDelta = self.consumePressureSampleDelta();
+                    self.wheel.update(self.currentPressure, self.targetPressure, safeDelta, pressureDelta, self.playing);
                     // 3. Character pull teams
                     self.candles.update(time, self.currentPressure, 100 - self.currentPressure, self.isFinished);
                     // 4. Ropes anchored to the fixed wheel cleats and to the moving hands
@@ -180,6 +185,14 @@ export class ArenaPressureEngine {
         if (sampled !== null) {
             this.targetPressure = sampled;
         }
+    }
+    consumePressureSampleDelta() {
+        const current = this.targetPressure;
+        const delta = Number.isFinite(current) && Number.isFinite(this.previousPressureSample)
+            ? current - this.previousPressureSample
+            : 0;
+        this.previousPressureSample = current;
+        return delta;
     }
     /**
      * Stops rendering when the tab is hidden and resumes afterwards. The browser
@@ -245,6 +258,13 @@ export class ArenaPressureEngine {
                 this.playing = true;
                 if (this.mode === 'replay' && this.playheadSeconds >= this.historyDurationSeconds) {
                     this.playheadSeconds = 0;
+                    const sampled = sampleHistory(this.history, 0);
+                    if (sampled !== null) {
+                        this.targetPressure = sampled;
+                        this.currentPressure = sampled;
+                        this.previousPressureSample = sampled;
+                        this.wheel?.resetMotion();
+                    }
                 }
                 if (this.scene && this.autoPaused) {
                     this.autoPaused = false;
@@ -261,6 +281,8 @@ export class ArenaPressureEngine {
                     if (sampled !== null) {
                         this.targetPressure = sampled;
                         this.currentPressure = sampled;
+                        this.previousPressureSample = sampled;
+                        this.wheel?.resetMotion();
                     }
                 }
                 break;

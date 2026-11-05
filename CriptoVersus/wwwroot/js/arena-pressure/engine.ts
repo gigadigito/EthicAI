@@ -52,6 +52,7 @@ export class ArenaPressureEngine {
     // Pressure state
     private targetPressure: number = 50;
     private currentPressure: number = 50;
+    private previousPressureSample: number = 50;
     private leftSymbol: string = 'LSK';
     private rightSymbol: string = 'BMT';
     private isFinished: boolean = false;
@@ -96,6 +97,7 @@ export class ArenaPressureEngine {
             this.targetPressure = initial.left;
         }
         this.currentPressure = this.targetPressure;
+        this.previousPressureSample = this.targetPressure;
 
         this.ready = new Promise<void>((resolve, reject) => {
             this.readyResolve = resolve;
@@ -204,7 +206,16 @@ export class ArenaPressureEngine {
                     const dominance = determineDominance(self.currentPressure, 100 - self.currentPressure);
 
                     // 2. Central mechanism stays fixed; only the inner disc and LEDs react.
-                    self.wheel.update(self.currentPressure, self.targetPressure, safeDelta);
+                    // The wheel receives the change in the real pressure sample, not the
+                    // current dominance. Stable 70/30 pressure therefore coasts to rest.
+                    const pressureDelta = self.consumePressureSampleDelta();
+                    self.wheel.update(
+                        self.currentPressure,
+                        self.targetPressure,
+                        safeDelta,
+                        pressureDelta,
+                        self.playing
+                    );
 
                     // 3. Character pull teams
                     self.candles.update(
@@ -275,6 +286,15 @@ export class ArenaPressureEngine {
         if (sampled !== null) {
             this.targetPressure = sampled;
         }
+    }
+
+    private consumePressureSampleDelta(): number {
+        const current = this.targetPressure;
+        const delta = Number.isFinite(current) && Number.isFinite(this.previousPressureSample)
+            ? current - this.previousPressureSample
+            : 0;
+        this.previousPressureSample = current;
+        return delta;
     }
 
     /**
@@ -348,6 +368,13 @@ export class ArenaPressureEngine {
                 this.playing = true;
                 if (this.mode === 'replay' && this.playheadSeconds >= this.historyDurationSeconds) {
                     this.playheadSeconds = 0;
+                    const sampled = sampleHistory(this.history, 0);
+                    if (sampled !== null) {
+                        this.targetPressure = sampled;
+                        this.currentPressure = sampled;
+                        this.previousPressureSample = sampled;
+                        this.wheel?.resetMotion();
+                    }
                 }
                 if (this.scene && this.autoPaused) {
                     this.autoPaused = false;
@@ -364,6 +391,8 @@ export class ArenaPressureEngine {
                     if (sampled !== null) {
                         this.targetPressure = sampled;
                         this.currentPressure = sampled;
+                        this.previousPressureSample = sampled;
+                        this.wheel?.resetMotion();
                     }
                 }
                 break;

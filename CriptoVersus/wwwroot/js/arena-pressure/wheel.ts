@@ -8,6 +8,11 @@ const RING_GAP_RADIANS = 0.018;
 const RING_RADIUS_RATIO = 0.36;
 const RING_THICKNESS_RATIO = 0.075;
 const MIN_RING_REDRAW_DELTA = 0.02;
+const MAX_ANGULAR_VELOCITY = 2.4;
+const MAX_ANGULAR_ACCELERATION = 4.6;
+const MAX_PRESSURE_IMPULSE = 0.55;
+const PRESSURE_IMPULSE_GAIN = 2.1;
+const TARGET_VELOCITY_DECAY_PER_SECOND = 0.08;
 
 export interface WheelRingSegment {
     index: number;
@@ -15,6 +20,77 @@ export interface WheelRingSegment {
     endAngle: number;
     orangePortion: number;
     cyanPortion: number;
+}
+
+export interface WheelMotionState {
+    rotation: number;
+    angularVelocity: number;
+    targetAngularVelocity: number;
+}
+
+function clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, value));
+}
+
+function approach(current: number, target: number, amount: number): number {
+    if (current < target) {
+        return Math.min(target, current + amount);
+    }
+    return Math.max(target, current - amount);
+}
+
+/**
+ * Advances the heavy-disc motion without depending on Phaser. A positive market
+ * pressure delta means the left side advanced, so the disc receives a negative
+ * (counter-clockwise) Phaser rotation impulse. A missing delta is inert.
+ */
+export function stepWheelMotion(
+    state: WheelMotionState,
+    pressureDelta: number,
+    deltaMs: number,
+    motionActive: boolean = true
+): WheelMotionState {
+    const deltaSeconds = Math.min(64, Math.max(0, deltaMs)) / 1000;
+    if (!motionActive || deltaSeconds <= 0) {
+        return state;
+    }
+
+    const safePressureDelta = Number.isFinite(pressureDelta)
+        ? clamp(pressureDelta, -100, 100)
+        : 0;
+    const balanceDelta = safePressureDelta * 2 / 100;
+    const impulse = clamp(
+        -balanceDelta * PRESSURE_IMPULSE_GAIN,
+        -MAX_PRESSURE_IMPULSE,
+        MAX_PRESSURE_IMPULSE
+    );
+    const decay = Math.pow(TARGET_VELOCITY_DECAY_PER_SECOND, deltaSeconds);
+    const targetAngularVelocity = clamp(
+        (state.targetAngularVelocity + impulse) * decay,
+        -MAX_ANGULAR_VELOCITY,
+        MAX_ANGULAR_VELOCITY
+    );
+    const maxVelocityStep = MAX_ANGULAR_ACCELERATION * deltaSeconds;
+    let angularVelocity = approach(
+        state.angularVelocity,
+        targetAngularVelocity,
+        maxVelocityStep
+    );
+
+    // A heavy mechanism must pass through a brief zero-velocity point when the
+    // impulse changes sign; never snap directly from clockwise to counter-clockwise.
+    if (state.angularVelocity !== 0
+        && targetAngularVelocity !== 0
+        && Math.sign(state.angularVelocity) !== Math.sign(targetAngularVelocity)
+        && Math.abs(state.angularVelocity) <= maxVelocityStep) {
+        angularVelocity = 0;
+    }
+
+    return {
+        rotation: state.rotation + angularVelocity * deltaSeconds,
+        angularVelocity,
+        targetAngularVelocity
+    };
 }
 
 /**
@@ -104,28 +180,45 @@ export class WheelMechanism {
     }
 
     /**
-     * Updates rotation and renders LED rings.
+     * Updates the mechanical disc and renders the fixed LED ring.
      * @param currentPressure Interpolated left pressure (0..100)
      * @param targetPressure Target left pressure (0..100)
      * @param delta Delta time in ms
+     * @param pressureDelta Change in the real pressure sample since the previous update
+     * @param motionActive False while replay transport is paused
      */
-    public update(currentPressure: number, targetPressure: number, delta: number): void {
+    public update(
+        currentPressure: number,
+        targetPressure: number,
+        delta: number,
+        pressureDelta: number = 0,
+        motionActive: boolean = true
+    ): void {
         const left = Math.max(0, Math.min(100, currentPressure));
-        const pressureDelta = targetPressure - currentPressure;
 
-        // Rotational momentum reacts gently to CHANGES in pressure and continuous dominance
-        // Dominance bias gives a very subtle mechanical creep in the winning team's direction
-        const dominanceBias = (left - 50) * 0.00003;
-        const changeImpulse = pressureDelta * 0.00015;
-        this.targetRotationVelocity = changeImpulse + dominanceBias;
-
-        // Smooth damping
-        this.currentRotationVelocity += (this.targetRotationVelocity - this.currentRotationVelocity) * 0.12;
-        this.currentRotation += this.currentRotationVelocity * (delta / 16.6);
+        const motion = stepWheelMotion(
+            {
+                rotation: this.currentRotation,
+                angularVelocity: this.currentRotationVelocity,
+                targetAngularVelocity: this.targetRotationVelocity
+            },
+            pressureDelta,
+            delta,
+            motionActive
+        );
+        this.currentRotation = motion.rotation;
+        this.currentRotationVelocity = motion.angularVelocity;
+        this.targetRotationVelocity = motion.targetAngularVelocity;
         this.discSprite.setRotation(this.currentRotation);
 
         // Render LED ring segments
         this.drawLedRing(left);
+    }
+
+    /** Clears momentum after a replay seek without jumping the current angle. */
+    public resetMotion(): void {
+        this.currentRotationVelocity = 0;
+        this.targetRotationVelocity = 0;
     }
 
     private drawLedRing(left: number): void {
