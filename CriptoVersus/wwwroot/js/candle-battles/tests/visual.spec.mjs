@@ -227,6 +227,63 @@ test('sprite collectors reserve each bag once, animate both polarities and clear
  expect(errors).toEqual([]);
 });
 
+test('positive bag wings capture open, closed and exact angel handoff states',async({page},testInfo)=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(url+'?kind=live&collectors=1&quality=low');
+ await page.waitForFunction(()=>window.engine&&window.ready);
+ const flowUrl=await moneyFlowModuleUrl(page);
+ const setup=await page.evaluate(async(flowUrl)=>{
+  const engine=window.engine;
+  const open=Math.floor(Date.now()/300000)*300000,event=new Date(open+1000).toISOString();
+  engine.receive({matchId:98,leftSymbol:'BTCUSDT',rightSymbol:'ETHUSDT',left:null,right:null,rounds:[],status:'live',finished:false,matchStartTime:open,serverTime:open+5000},true);
+  const flow=await import(flowUrl);
+  flow.receiveMoneyFlowBatch({matchId:98,symbol:'BTCUSDT',sequence:1,windowStartUtc:new Date(open).toISOString(),windowEndUtc:event,eventTimeUtc:event,receivedAtUtc:event,publishedAtUtc:event,tradeCount:24,totalBaseQuantity:'1',takerBuyBaseQuantity:'1',takerSellBaseQuantity:'0',takerBuyQuote:'120',takerSellQuote:'0',netQuote:'120',firstPrice:'100',lastPrice:'100.4',highPrice:'100.4',lowPrice:'100',isPartial:false});
+  return true;
+ },flowUrl);
+ expect(setup).toBe(true);
+
+ const openState=await page.evaluate(()=>{
+  const engine=window.engine;
+  for(let tick=0;tick<80;tick++){
+   engine.update(40);
+   const bag=engine.inspect().moneyFlow.bagStates.find(item=>item.polarity==='positive'&&item.wingsVisible);
+   if(bag&&bag.wingsFrame==='positive-bag-wings-1')return bag;
+  }
+  return null;
+ });
+ expect(openState,'positive bag exposes open wings while waiting').not.toBeNull();
+ expect(openState.state).toBe('AVAILABLE');
+ await page.screenshot({path:testInfo.outputPath('money-flow-wings-open.png'),fullPage:true});
+
+ const closedState=await page.evaluate(()=>{
+  const engine=window.engine;
+  for(let tick=0;tick<80;tick++){
+   engine.update(40);
+   const bag=engine.inspect().moneyFlow.bagStates.find(item=>item.polarity==='positive'&&item.wingsVisible);
+   if(bag&&bag.wingsFrame==='positive-bag-wings-2')return bag;
+  }
+  return null;
+ });
+ expect(closedState,'positive bag exposes closed wings while waiting').not.toBeNull();
+ expect(closedState.state).toBe('AVAILABLE');
+ await page.screenshot({path:testInfo.outputPath('money-flow-wings-closed.png'),fullPage:true});
+
+ const handoff=await page.evaluate(()=>{
+  const engine=window.engine;
+  for(let tick=0;tick<220;tick++){
+   engine.update(40);
+   const state=engine.inspect().moneyFlow;
+   const carried=state.bagStates.find(item=>item.polarity==='positive'&&item.state==='CARRIED');
+   if(carried)return carried;
+  }
+  return null;
+ });
+ expect(handoff,'positive bag reaches the angel handoff').not.toBeNull();
+ expect(handoff.wingsVisible,'loose wings disappear at GRAB/CARRIED').toBe(false);
+ await page.screenshot({path:testInfo.outputPath('money-flow-wings-handoff.png'),fullPage:true});
+ expect(errors).toEqual([]);
+});
+
 test('collector feature gates preserve procedural, demo and social-capture fallbacks',async({page})=>{
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.route('**/games/candle-battles/assets/money-flow-collectors.*',route=>route.fulfill({status:404,body:''}));

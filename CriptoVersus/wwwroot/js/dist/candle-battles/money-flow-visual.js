@@ -1,6 +1,6 @@
 import { getMoneyFlowBuffer, inspectMoneyFlowBuffer } from './money-flow.js?v=20261104b';
 import { CollectorController, normalizeCollectorQuality, } from './money-flow-collectors.js?v=20261104b';
-import { BAG_ABSORB_MS, BAG_LANDING_MS, MONEY_FLOW_EFFECTS_ATLAS, MoneyFlowTerminalFx, bagFrameForPhase, moneyFlowEffectsAvailable, moneyBagSourceBounds, prepareMoneyFlowEffectsTextures, } from './money-flow-effects-renderer.js?v=20261104b';
+import { BAG_ABSORB_MS, BAG_LANDING_MS, MONEY_FLOW_EFFECTS_ATLAS, MoneyFlowTerminalFx, bagFrameForPhase, moneyFlowEffectsAvailable, moneyBagSourceBounds, prepareMoneyFlowEffectsTextures, positiveBagWingsFrame, } from './money-flow-effects-renderer.js?v=20261104b';
 const emptyCounters = () => ({
     left: { buy: 0, sell: 0, partial: false },
     right: { buy: 0, sell: 0, partial: false },
@@ -378,7 +378,7 @@ export class MoneyFlowController {
             right: this.createSideFx()
         };
         this.bags = new ReusablePool(MAX_BAGS_PER_SIDE * 2, () => ({
-            id: 0, active: false, view: this.createBagView(), side: 'left', positive: true,
+            id: 0, active: false, view: this.createBagView(), wingView: this.createWingView(), side: 'left', positive: true,
             state: 'REMOVED', age: 0, availableAge: 0, lifetime: 0, x: 0, y: 0,
             startX: 0, startY: 0, targetX: 0, targetY: 0, phase: 0,
             fallDuration: 1000, visualPhase: 'flying', phaseAge: 0, restY: 0, groundY: 0,
@@ -400,6 +400,12 @@ export class MoneyFlowController {
             ? this.scene.add.sprite(0, 0, MONEY_FLOW_EFFECTS_ATLAS, 'bag-fall-1')
                 .setOrigin(.5, 1).setDepth(12).setVisible(false)
             : this.scene.add.graphics().setDepth(12).setVisible(false);
+    }
+    createWingView() {
+        if (!this.spriteMode)
+            return undefined;
+        return this.scene.add.sprite(0, 0, MONEY_FLOW_EFFECTS_ATLAS, 'positive-bag-wings-2')
+            .setOrigin(.5, 1).setDepth(11).setVisible(false);
     }
     createSignView() {
         return this.scene.add.text(0, 0, '', {
@@ -558,6 +564,7 @@ export class MoneyFlowController {
             label.destroy();
         this.diagnosticLabels.clear();
         this.bags.forEach(item => item.view.destroy());
+        this.bags.forEach(item => item.wingView?.destroy());
         this.signs.forEach(item => item.view.destroy());
         for (const side of SIDES)
             this.effects[side].glow.destroy();
@@ -754,7 +761,15 @@ export class MoneyFlowController {
     visualBoundsForBag(bag) {
         if (bag.state === 'CARRIED' && bag.carriedBounds)
             return { ...bag.carriedBounds };
-        const renderedBounds = bag.view.getBounds();
+        const getBounds = bag.view.getBounds;
+        const renderedBounds = getBounds
+            ? getBounds.call(bag.view)
+            : {
+                x: bag.x - 15 * bag.viewScale,
+                y: bag.y - 19 * bag.viewScale,
+                width: 30 * bag.viewScale,
+                height: 39 * bag.viewScale,
+            };
         if (!this.spriteMode) {
             return {
                 left: renderedBounds.x,
@@ -882,6 +897,16 @@ export class MoneyFlowController {
             : bag.visualPhase === 'landing' ? clamp(bag.phaseAge / BAG_LANDING_MS)
                 : bag.visualPhase === 'absorbed' ? clamp(bag.phaseAge / BAG_ABSORB_MS) : 0;
         bag.view.setFrame(bagFrameForPhase(bag.visualPhase, this.reducedMotion ? 0 : progress));
+        const wingsVisible = bag.positive
+            && bag.state !== 'FLOWING'
+            && bag.state !== 'CARRIED'
+            && bag.state !== 'REMOVED'
+            && alpha > .01;
+        bag.wingView?.setPosition(bag.x, bag.y)
+            .setScale(scale)
+            .setAlpha(alpha)
+            .setFrame(positiveBagWingsFrame(bag.age, this.reducedMotion))
+            .setVisible(wingsVisible);
     }
     availableBags(side) {
         const result = [];
@@ -920,6 +945,7 @@ export class MoneyFlowController {
         // The collector sprites already carry the bag in their frames; showing
         // the loose sprite again would duplicate it.
         bag.view.setVisible(false);
+        bag.wingView?.setVisible(false);
         return true;
     }
     completeCollection(bagId, collectorId) {
@@ -971,6 +997,7 @@ export class MoneyFlowController {
         bag.viewScale = bag.baseScale;
         bag.viewAlpha = 1;
         bag.view.setScale(bag.baseScale).setAlpha(1).setVisible(true);
+        bag.wingView?.setScale(bag.baseScale).setAlpha(1).setVisible(bag.positive);
     }
     /** Expiry ending: the bag is released and a terminal effect plays in place. */
     terminateBag(bag) {
@@ -982,6 +1009,7 @@ export class MoneyFlowController {
         bag.ownerId = undefined;
         bag.carriedBounds = undefined;
         bag.view.setVisible(false);
+        bag.wingView?.setVisible(false);
         this.releaseFinancialLabel(bag.financialLabel, bag);
         this.bags.release(bag);
     }
@@ -1009,6 +1037,10 @@ export class MoneyFlowController {
                     frame: this.spriteMode
                         ? String(bag.view.frame?.name ?? '')
                         : 'procedural',
+                    wingsFrame: this.spriteMode && bag.wingView
+                        ? String(bag.wingView.frame?.name ?? '')
+                        : null,
+                    wingsVisible: Boolean(bag.wingView?.visible),
                     age: bag.age, availableAge: bag.availableAge,
                     ownerId: bag.ownerId ?? null, x: bag.x, y: bag.y,
                 });
@@ -1047,6 +1079,7 @@ export class MoneyFlowController {
             bag.visualPhase = 'flying';
             bag.carriedBounds = undefined;
             bag.view.setVisible(false);
+            bag.wingView?.setVisible(false);
             this.releaseFinancialLabel(bag.financialLabel, bag);
         });
         this.bags.releaseAll();

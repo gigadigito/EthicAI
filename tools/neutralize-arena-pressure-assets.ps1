@@ -14,6 +14,12 @@ function Test-PressureColor([System.Drawing.Color]$color) {
     return $orange -or $cyan
 }
 
+function Test-CrownPixel([System.Drawing.Color]$color, [int]$x, [int]$y) {
+    if ($x -lt 230 -or $x -gt 283 -or $y -lt 232 -or $y -gt 282) { return $false }
+    $warm = ($color.R -gt 118) -and ($color.G -gt 42) -and ($color.R -gt ($color.B * 1.35))
+    return $warm -and (($color.R - $color.B) -gt 42)
+}
+
 function Get-Radius([int]$x, [int]$y, [int]$center) {
     return [Math]::Sqrt([Math]::Pow($x - $center, 2) + [Math]::Pow($y - $center, 2))
 }
@@ -42,6 +48,42 @@ function Save-UpdatedPng(
     }
 
     Move-Item -LiteralPath $temporaryPath -Destination $path -Force
+}
+
+function Export-WheelCrown([string]$hubPath, [string]$crownPath) {
+    $source = [System.Drawing.Bitmap]::FromFile($hubPath)
+    $cleanHub = New-Object System.Drawing.Bitmap($source.Width, $source.Height, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $crown = New-Object System.Drawing.Bitmap($source.Width, $source.Height, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    try {
+        for ($y = 0; $y -lt $source.Height; $y++) {
+            for ($x = 0; $x -lt $source.Width; $x++) {
+                $pixel = $source.GetPixel($x, $y)
+                $cleanPixel = $pixel
+                $crownPixel = [System.Drawing.Color]::Transparent
+                if (Test-CrownPixel $pixel $x $y) {
+                    $luminance = (0.299 * $pixel.R) + (0.587 * $pixel.G) + (0.114 * $pixel.B)
+                    $value = [Math]::Min(255, [Math]::Max(90, [int]($luminance * 1.22)))
+                    $crownPixel = [System.Drawing.Color]::FromArgb($pixel.A, $value, $value, $value)
+                    $cleanPixel = [System.Drawing.Color]::FromArgb($pixel.A, 31, 24, 29)
+                }
+                $cleanHub.SetPixel($x, $y, $cleanPixel)
+                $crown.SetPixel($x, $y, $crownPixel)
+            }
+        }
+
+        $cleanTemporary = "$hubPath.crown-clean.tmp.png"
+        $crownTemporary = "$crownPath.tmp.png"
+        $cleanHub.Save($cleanTemporary, [System.Drawing.Imaging.ImageFormat]::Png)
+        $crown.Save($crownTemporary, [System.Drawing.Imaging.ImageFormat]::Png)
+    }
+    finally {
+        $source.Dispose()
+        $cleanHub.Dispose()
+        $crown.Dispose()
+    }
+
+    Move-Item -LiteralPath $cleanTemporary -Destination $hubPath -Force
+    Move-Item -LiteralPath $crownTemporary -Destination $crownPath -Force
 }
 
 $basePath = Join-Path $AssetDirectory 'wheel-base.png'
@@ -91,5 +133,9 @@ Save-UpdatedPng $discPath {
 
     return [System.Drawing.Color]::FromArgb($pixel.A, $sample.R, $sample.G, $sample.B)
 }
+
+$hubPath = Join-Path $AssetDirectory 'wheel-hub.png'
+$crownPath = Join-Path $AssetDirectory 'wheel-crown.png'
+Export-WheelCrown $hubPath $crownPath
 
 Write-Output "Neutralized fixed wheel shell and mechanical disc in $AssetDirectory"

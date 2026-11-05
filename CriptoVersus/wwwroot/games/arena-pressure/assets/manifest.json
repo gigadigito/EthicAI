@@ -13,7 +13,8 @@
     "ringRadius": 184,
     "ringWidth": 38,
     "angularSegments": 64,
-    "startAngleDegrees": 90
+    "startAngleDegrees": 90,
+    "crownAsset": "wheel-crown.png"
   },
   "colors": {
     "left": "#ff9100",

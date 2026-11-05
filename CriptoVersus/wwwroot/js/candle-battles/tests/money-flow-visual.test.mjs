@@ -11,6 +11,8 @@ import {
   bagFrameForPhase, accentFrameFor,
   BAG_FALL_FRAMES, BAG_FLYING_FRAMES, BAG_SQUASH_FRAMES, BAG_BURN_FRAMES,
   BAG_INTO_PIT_FRAMES, POSITIVE_COINS_FRAMES, NEGATIVE_ARROWS_FRAMES,
+  POSITIVE_BAG_WINGS_FRAMES, POSITIVE_BAG_WINGS_CYCLE_MS,
+  POSITIVE_BAG_WINGS_OPEN_FRAME, POSITIVE_BAG_WINGS_CLOSED_FRAME, positiveBagWingsFrame,
 } from '../../dist/candle-battles/money-flow-effects-renderer.js';
 import { buildMoneyFlowAnchors } from '../../dist/candle-battles/money-flow-collectors.js';
 
@@ -285,6 +287,9 @@ test('runtime frame counts stay in sync with the generated atlas catalog', () =>
   assert.equal(sequences['bag-into-pit'].count, BAG_INTO_PIT_FRAMES);
   assert.equal(sequences['positive-coins'].count, POSITIVE_COINS_FRAMES);
   assert.equal(sequences['negative-arrows'].count, NEGATIVE_ARROWS_FRAMES);
+  assert.equal(sequences['positive-bag-wings'].count, POSITIVE_BAG_WINGS_FRAMES);
+  assert.deepEqual(sequences['positive-bag-wings'].canvas, { w: 112, h: 152 });
+  assert.deepEqual(sequences['positive-bag-wings'].pivot, { x: .5, y: .55 });
 });
 
 test('negative arrow frames carry readable minus signs in varied positions', () => {
@@ -317,6 +322,14 @@ test('accent frames expose the coin and arrow sequences from the atlas', () => {
   assert.equal(accentFrameFor(true, 1), 'positive-coins-8');
   assert.equal(accentFrameFor(false, 0), 'negative-arrows-1');
   assert.equal(accentFrameFor(false, 1), 'negative-arrows-8');
+});
+
+test('positive-bag wings alternate on the bag clock and freeze for reduced motion', () => {
+  assert.equal(positiveBagWingsFrame(0), POSITIVE_BAG_WINGS_OPEN_FRAME);
+  assert.equal(positiveBagWingsFrame(POSITIVE_BAG_WINGS_CYCLE_MS / 2), POSITIVE_BAG_WINGS_CLOSED_FRAME);
+  assert.equal(positiveBagWingsFrame(POSITIVE_BAG_WINGS_CYCLE_MS), POSITIVE_BAG_WINGS_OPEN_FRAME);
+  assert.equal(positiveBagWingsFrame(0, true), POSITIVE_BAG_WINGS_CLOSED_FRAME);
+  assert.equal(positiveBagWingsFrame(POSITIVE_BAG_WINGS_CYCLE_MS / 2, true), POSITIVE_BAG_WINGS_CLOSED_FRAME);
 });
 
 const anchors = () => buildMoneyFlowAnchors({ side: 'left', centreX: 330, groundY: 445, laneLeft: 80, laneRight: 560 });

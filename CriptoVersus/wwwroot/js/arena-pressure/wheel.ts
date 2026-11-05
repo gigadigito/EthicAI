@@ -28,6 +28,16 @@ export interface WheelMotionState {
     targetAngularVelocity: number;
 }
 
+export function crownColorForPressure(leftPressure: number): number {
+    if (leftPressure > 50) {
+        return ARENA_COLORS.left;
+    }
+    if (leftPressure < 50) {
+        return ARENA_COLORS.right;
+    }
+    return ARENA_COLORS.gold;
+}
+
 function clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
 }
@@ -138,6 +148,7 @@ export class WheelMechanism {
     private readonly discSprite: Phaser.GameObjects.Image;
     private readonly ringGraphics: Phaser.GameObjects.Graphics;
     private readonly hubSprite: Phaser.GameObjects.Image;
+    private readonly crownSprite: Phaser.GameObjects.Image;
 
     private currentRotation: number = 0;
     private targetRotationVelocity: number = 0;
@@ -177,6 +188,12 @@ export class WheelMechanism {
         this.hubSprite = scene.add.image(x, y, 'wheel-hub')
             .setDisplaySize(size, size)
             .setDepth(9);
+
+        // Only the crown is dynamic. The hub shell and side brackets remain fixed.
+        this.crownSprite = scene.add.image(x, y, 'wheel-crown')
+            .setDisplaySize(size, size)
+            .setDepth(10)
+            .setTint(ARENA_COLORS.gold);
     }
 
     /**
@@ -210,6 +227,9 @@ export class WheelMechanism {
         this.currentRotationVelocity = motion.angularVelocity;
         this.targetRotationVelocity = motion.targetAngularVelocity;
         this.discSprite.setRotation(this.currentRotation);
+        this.crownSprite
+            .setRotation(this.currentRotation)
+            .setTint(crownColorForPressure(left));
 
         // Render LED ring segments
         this.drawLedRing(left);
@@ -317,5 +337,6 @@ export class WheelMechanism {
         this.discSprite.destroy();
         this.ringGraphics.destroy();
         this.hubSprite.destroy();
+        this.crownSprite.destroy();
     }
 }

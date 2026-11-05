@@ -11,6 +11,15 @@ const MAX_ANGULAR_ACCELERATION = 4.6;
 const MAX_PRESSURE_IMPULSE = 0.55;
 const PRESSURE_IMPULSE_GAIN = 2.1;
 const TARGET_VELOCITY_DECAY_PER_SECOND = 0.08;
+export function crownColorForPressure(leftPressure) {
+    if (leftPressure > 50) {
+        return ARENA_COLORS.left;
+    }
+    if (leftPressure < 50) {
+        return ARENA_COLORS.right;
+    }
+    return ARENA_COLORS.gold;
+}
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
@@ -109,6 +118,11 @@ export class WheelMechanism {
         this.hubSprite = scene.add.image(x, y, 'wheel-hub')
             .setDisplaySize(size, size)
             .setDepth(9);
+        // Only the crown is dynamic. The hub shell and side brackets remain fixed.
+        this.crownSprite = scene.add.image(x, y, 'wheel-crown')
+            .setDisplaySize(size, size)
+            .setDepth(10)
+            .setTint(ARENA_COLORS.gold);
     }
     /**
      * Updates the mechanical disc and renders the fixed LED ring.
@@ -129,6 +143,9 @@ export class WheelMechanism {
         this.currentRotationVelocity = motion.angularVelocity;
         this.targetRotationVelocity = motion.targetAngularVelocity;
         this.discSprite.setRotation(this.currentRotation);
+        this.crownSprite
+            .setRotation(this.currentRotation)
+            .setTint(crownColorForPressure(left));
         // Render LED ring segments
         this.drawLedRing(left);
     }
@@ -199,5 +216,6 @@ export class WheelMechanism {
         this.discSprite.destroy();
         this.ringGraphics.destroy();
         this.hubSprite.destroy();
+        this.crownSprite.destroy();
     }
 }

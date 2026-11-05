@@ -27,6 +27,7 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+from PIL import ImageDraw
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = Path(__file__).parent / "source" / "money-flow"
@@ -352,6 +353,46 @@ def add_sequence(
     return names
 
 
+def positive_bag_wings() -> list[Image.Image]:
+    """Small hard-edged wing overlays aligned to the falling-bag canvas."""
+    width, height = 112, 152
+    outline = (35, 22, 10, 255)
+    feather = (244, 237, 213, 255)
+    shadow = (177, 184, 177, 255)
+    highlight = (255, 249, 226, 255)
+
+    def mirror(points: list[tuple[int, int]]) -> list[tuple[int, int]]:
+        return [(width - 1 - x, y) for x, y in points]
+
+    def frame(opened: bool) -> Image.Image:
+        image = Image.new("RGBA", (width, height))
+        draw = ImageDraw.Draw(image)
+        if opened:
+            left = [(28, 55), (20, 52), (11, 58), (15, 64), (8, 71),
+                    (17, 73), (12, 83), (24, 78), (30, 68)]
+            left_shadow = [(21, 59), (13, 63), (18, 66), (12, 72), (22, 70), (18, 77), (27, 70)]
+            left_highlight = [(20, 55), (14, 60), (18, 61), (12, 69), (22, 65), (26, 59)]
+        else:
+            left = [(29, 59), (22, 62), (17, 69), (21, 72), (16, 80),
+                    (25, 76), (30, 68)]
+            left_shadow = [(23, 65), (19, 70), (23, 70), (19, 77), (27, 71)]
+            left_highlight = [(24, 63), (20, 68), (25, 67), (28, 63)]
+        for points in (left, mirror(left)):
+            draw.polygon(points, fill=outline)
+        for points in ([(x + 2, y + 1) for x, y in left],
+                       [(x - 2, y + 1) for x, y in mirror(left)]):
+            draw.polygon(points, fill=feather)
+        for points in (left_shadow, mirror(left_shadow)):
+            draw.polygon(points, fill=shadow)
+        for points in (left_highlight, mirror(left_highlight)):
+            draw.polygon(points, fill=highlight)
+        draw.rectangle((27, 66, 31, 69), fill=outline)
+        draw.rectangle((80, 66, 84, 69), fill=outline)
+        return image
+
+    return [frame(True), frame(False)]
+
+
 # --------------------------------------------------------------------------
 # Reviewed source layout.  Row/column bands are artistic facts of each board;
 # frames inside them are located by gap detection wherever the art allows it.
@@ -389,6 +430,10 @@ add_sequence("bag-burn", burn_frames, canvas=(128, 128), pivot=(.5, 1.0), tag="t
 # Landing squash is its own sequence; it is never part of the aerial fall.
 squash_board = trim_row = detect_frames(load("money-bag-squash.png"), 115, 622, 0, 2172, 4, "bag-squash")[0]
 add_sequence("bag-squash", squash_board, canvas=(128, 128), pivot=(.5, 1.0), tag="landing")
+
+# Append the overlay after the authored effects so every pre-existing frame
+# keeps its atlas rectangle and only the new wing row consumes space.
+add_sequence("positive-bag-wings", positive_bag_wings(), canvas=(112, 152), pivot=(.5, .55), tag="wing-overlay")
 
 
 # ---- collectors -----------------------------------------------------------

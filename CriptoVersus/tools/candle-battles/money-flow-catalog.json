@@ -175,6 +175,22 @@
       "count": 4,
       "tag": "landing"
     },
+    "positive-bag-wings": {
+      "frames": [
+        "positive-bag-wings-1",
+        "positive-bag-wings-2"
+      ],
+      "canvas": {
+        "w": 112,
+        "h": 152
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "count": 2,
+      "tag": "wing-overlay"
+    },
     "demon-emerge-right": {
       "frames": [
         "demon-emerge-right-1",

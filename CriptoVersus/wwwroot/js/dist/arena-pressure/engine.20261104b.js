@@ -93,6 +93,7 @@ export class ArenaPressureEngine {
                         'wheel-base',
                         'wheel-disc',
                         'wheel-hub',
+                        'wheel-crown',
                         'hud-crown',
                         'effect-sparks',
                         'effect-smoke'

@@ -93,6 +93,28 @@ def remove_disc_direction_colors(arr):
     return arr
 
 
+def split_dynamic_crown(hub_arr):
+    """Extract a neutral crown layer and remove its baked warm pixels from the hub."""
+    h, w = hub_arr.shape[:2]
+    y, x = np.ogrid[:h, :w]
+    rgb = hub_arr[:, :, :3].astype(np.float32)
+    crown_region = (x >= 230) & (x <= 283) & (y >= 232) & (y <= 282)
+    crown_mask = (hub_arr[:, :, 3] > 0) & crown_region
+    crown_mask &= (rgb[:, :, 0] > 118) & (rgb[:, :, 1] > 42)
+    crown_mask &= (rgb[:, :, 0] > rgb[:, :, 2] * 1.35)
+    crown_mask &= (rgb[:, :, 0] - rgb[:, :, 2]) > 42
+
+    crown = np.zeros_like(hub_arr)
+    luminance = rgb[:, :, 0] * 0.299 + rgb[:, :, 1] * 0.587 + rgb[:, :, 2] * 0.114
+    value = np.clip(luminance * 1.22, 90, 255).astype(np.uint8)
+    crown[crown_mask, :3] = value[crown_mask, None]
+    crown[crown_mask, 3] = hub_arr[crown_mask, 3]
+
+    clean_hub = hub_arr.copy()
+    clean_hub[crown_mask, :3] = np.array([31, 24, 29], dtype=np.uint8)
+    return clean_hub, crown
+
+
 def neutral_residue_mask(arr):
     rgb = arr[:, :, :3].astype(np.int16)
     lum = 0.299 * rgb[:, :, 0] + 0.587 * rgb[:, :, 1] + 0.114 * rgb[:, :, 2]
@@ -277,7 +299,9 @@ def build_concentric_wheel_layers(comp_path):
     hub_alpha = np.where(dist_from_center <= 50, 255, 0).astype(np.uint8)
     hub_alpha[conn_mask] = 255
     hub_arr[:, :, 3] = hub_alpha
+    hub_arr, crown_arr = split_dynamic_crown(hub_arr)
     wheel_hub = Image.fromarray(hub_arr, "RGBA")
+    wheel_crown = Image.fromarray(crown_arr, "RGBA")
 
     # 3. WHEEL BASE (outer gear ring with teeth, LED tiles and fixed rope cleats)
     base_arr = np.zeros_like(raw_arr)
@@ -295,7 +319,7 @@ def build_concentric_wheel_layers(comp_path):
     base_arr = neutralize_colored_ring(base_arr)
     wheel_base = Image.fromarray(zero_hidden_rgb(base_arr), "RGBA")
 
-    return wheel_base, wheel_disc, wheel_hub
+    return wheel_base, wheel_disc, wheel_hub, wheel_crown
 
 
 print("Starting asset processing...")
@@ -316,11 +340,12 @@ for sheet, side in (("orange-pull-sheet.png", "orange"), ("cyan-pull-sheet.png",
     print(f"Exported 8 cleaned {side} frames")
 
 # 3. Concentric wheel layers
-wb, wd, wh = build_concentric_wheel_layers(os.path.join(REF_SRC, "arena-neon-composition.png"))
+wb, wd, wh, wc = build_concentric_wheel_layers(os.path.join(REF_SRC, "arena-neon-composition.png"))
 wb.save(os.path.join(DEST_DIR, "wheel-base.png"), "PNG")
 wd.save(os.path.join(DEST_DIR, "wheel-disc.png"), "PNG")
 wh.save(os.path.join(DEST_DIR, "wheel-hub.png"), "PNG")
-print("Generated concentric 512x512 wheel layers (base, disc, hub)")
+wc.save(os.path.join(DEST_DIR, "wheel-crown.png"), "PNG")
+print("Generated concentric 512x512 wheel layers (base, disc, hub, crown)")
 
 # 4. HUD and FX assets
 for name in ["arrow-orange.png", "arrow-cyan.png", "hud-crown.png", "hud-orange.png", "hud-cyan.png",

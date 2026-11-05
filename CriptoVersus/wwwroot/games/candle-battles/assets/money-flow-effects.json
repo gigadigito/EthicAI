@@ -1199,13 +1199,53 @@
         "w": 128,
         "h": 128
       }
+    },
+    "positive-bag-wings-1": {
+      "frame": {
+        "x": 1908,
+        "y": 440,
+        "w": 112,
+        "h": 152
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 112,
+        "h": 152
+      },
+      "sourceSize": {
+        "w": 112,
+        "h": 152
+      }
+    },
+    "positive-bag-wings-2": {
+      "frame": {
+        "x": 4,
+        "y": 600,
+        "w": 112,
+        "h": 152
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 112,
+        "h": 152
+      },
+      "sourceSize": {
+        "w": 112,
+        "h": 152
+      }
     }
   },
   "meta": {
     "image": "money-flow-effects.png",
     "size": {
       "w": 2048,
-      "h": 572
+      "h": 756
     },
     "scale": "1",
     "animations": {
@@ -1282,6 +1322,10 @@
         "bag-squash-2",
         "bag-squash-3",
         "bag-squash-4"
+      ],
+      "positive-bag-wings": [
+        "positive-bag-wings-1",
+        "positive-bag-wings-2"
       ]
     }
   }

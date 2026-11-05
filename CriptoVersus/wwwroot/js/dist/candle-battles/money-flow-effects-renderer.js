@@ -16,11 +16,15 @@ export const BAG_INTO_PIT_FRAMES = 10;
 export const POSITIVE_COINS_FRAMES = 8;
 export const NEGATIVE_ARROWS_FRAMES = 8;
 export const INFERNAL_PIT_FRAMES = 10;
+export const POSITIVE_BAG_WINGS_FRAMES = 2;
 export const BAG_LANDING_MS = 240;
 export const BAG_ABSORB_MS = 900;
 export const TERMINAL_BURN_MS = 750;
 export const TERMINAL_SPARKLE_MS = 600;
 export const ACCENT_LOOP_MS = 700;
+export const POSITIVE_BAG_WINGS_CYCLE_MS = 520;
+export const POSITIVE_BAG_WINGS_OPEN_FRAME = 'positive-bag-wings-1';
+export const POSITIVE_BAG_WINGS_CLOSED_FRAME = 'positive-bag-wings-2';
 /**
  * Source-pixel bounds of the bag artwork, excluding the transparent/glow
  * padding in the atlas frame. The label uses these authored visual edges, not
@@ -84,6 +88,15 @@ export function accentFrameFor(positive, progress = 0) {
     return positive
         ? `positive-coins-${step(POSITIVE_COINS_FRAMES, progress)}`
         : `negative-arrows-${step(NEGATIVE_ARROWS_FRAMES, progress)}`;
+}
+/** Cyclic open/closed wing beat for the loose positive bag overlay. */
+export function positiveBagWingsFrame(ageMs = 0, reducedMotion = false) {
+    if (reducedMotion)
+        return POSITIVE_BAG_WINGS_CLOSED_FRAME;
+    const age = Math.max(0, Number(ageMs) || 0) % POSITIVE_BAG_WINGS_CYCLE_MS;
+    return age < POSITIVE_BAG_WINGS_CYCLE_MS / 2
+        ? POSITIVE_BAG_WINGS_OPEN_FRAME
+        : POSITIVE_BAG_WINGS_CLOSED_FRAME;
 }
 const MAX_TERMINAL_FX = 6;
 /**

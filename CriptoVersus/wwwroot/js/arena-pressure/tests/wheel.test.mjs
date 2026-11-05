@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
     buildWheelRingSegments,
+    crownColorForPressure,
     stepWheelMotion
 } from '../../dist/arena-pressure/wheel.js';
 
@@ -42,6 +43,12 @@ test('wheel motion only receives impulses from pressure changes', () => {
     const rightAdvance = stepWheelMotion({ rotation: 0, angularVelocity: 0, targetAngularVelocity: 0 }, -30, 16.6);
     assert.ok(rightAdvance.angularVelocity > 0, 'right advance must rotate clockwise');
     assert.ok(rightAdvance.rotation > 0);
+});
+
+test('wheel crown follows the winning pressure side', () => {
+    assert.equal(crownColorForPressure(70), 0xff9100);
+    assert.equal(crownColorForPressure(30), 0x18d8d2);
+    assert.equal(crownColorForPressure(50), 0xfdc62e);
 });
 
 test('wheel motion brakes before reversing and freezes while paused', () => {

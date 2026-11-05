@@ -23,6 +23,7 @@ import {
     moneyFlowEffectsAvailable,
     moneyBagSourceBounds,
     prepareMoneyFlowEffectsTextures,
+    positiveBagWingsFrame,
 } from './money-flow-effects-renderer.js';
 
 export type MoneyFlowDirection = 'positive' | 'negative' | 'neutral';
@@ -406,6 +407,7 @@ type SignView = PhaserTypes.GameObjects.Text;
 
 interface BagParticle extends CollectibleMoneyBag {
     view: BagView;
+    wingView?: PhaserTypes.GameObjects.Sprite;
     lifetime: number;
     startX: number;
     startY: number;
@@ -555,7 +557,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
             right: this.createSideFx()
         };
         this.bags = new ReusablePool(MAX_BAGS_PER_SIDE * 2, () => ({
-            id: 0, active: false, view: this.createBagView(), side: 'left', positive: true,
+            id: 0, active: false, view: this.createBagView(), wingView: this.createWingView(), side: 'left', positive: true,
             state: 'REMOVED', age: 0, availableAge: 0, lifetime: 0, x: 0, y: 0,
             startX: 0, startY: 0, targetX: 0, targetY: 0, phase: 0,
             fallDuration: 1000, visualPhase: 'flying', phaseAge: 0, restY: 0, groundY: 0,
@@ -578,6 +580,12 @@ export class MoneyFlowController implements MoneyFlowBagHost {
             ? this.scene.add.sprite(0, 0, MONEY_FLOW_EFFECTS_ATLAS, 'bag-fall-1')
                 .setOrigin(.5, 1).setDepth(12).setVisible(false)
             : this.scene.add.graphics().setDepth(12).setVisible(false);
+    }
+
+    private createWingView(): PhaserTypes.GameObjects.Sprite | undefined {
+        if (!this.spriteMode) return undefined;
+        return this.scene.add.sprite(0, 0, MONEY_FLOW_EFFECTS_ATLAS, 'positive-bag-wings-2')
+            .setOrigin(.5, 1).setDepth(11).setVisible(false);
     }
 
     private createSignView(): SignView {
@@ -730,6 +738,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         for (const label of this.diagnosticLabels.values()) label.destroy();
         this.diagnosticLabels.clear();
         this.bags.forEach(item => item.view.destroy());
+        this.bags.forEach(item => item.wingView?.destroy());
         this.signs.forEach(item => item.view.destroy());
         for (const side of SIDES) this.effects[side].glow.destroy();
     }
@@ -897,9 +906,17 @@ export class MoneyFlowController implements MoneyFlowBagHost {
 
     private visualBoundsForBag(bag: BagParticle): FinancialVisualBounds {
         if (bag.state === 'CARRIED' && bag.carriedBounds) return { ...bag.carriedBounds };
-        const renderedBounds = (bag.view as unknown as {
-            getBounds: () => { x: number; y: number; width: number; height: number };
-        }).getBounds();
+        const getBounds = (bag.view as unknown as {
+            getBounds?: () => { x: number; y: number; width: number; height: number };
+        }).getBounds;
+        const renderedBounds = getBounds
+            ? getBounds.call(bag.view)
+            : {
+                x: bag.x - 15 * bag.viewScale,
+                y: bag.y - 19 * bag.viewScale,
+                width: 30 * bag.viewScale,
+                height: 39 * bag.viewScale,
+            };
         if (!this.spriteMode) {
             return {
                 left: renderedBounds.x,
@@ -1047,6 +1064,16 @@ export class MoneyFlowController implements MoneyFlowBagHost {
                 : bag.visualPhase === 'absorbed' ? clamp(bag.phaseAge / BAG_ABSORB_MS) : 0;
         (bag.view as PhaserTypes.GameObjects.Sprite).setFrame(
             bagFrameForPhase(bag.visualPhase, this.reducedMotion ? 0 : progress));
+        const wingsVisible = bag.positive
+            && bag.state !== 'FLOWING'
+            && bag.state !== 'CARRIED'
+            && bag.state !== 'REMOVED'
+            && alpha > .01;
+        bag.wingView?.setPosition(bag.x, bag.y)
+            .setScale(scale)
+            .setAlpha(alpha)
+            .setFrame(positiveBagWingsFrame(bag.age, this.reducedMotion))
+            .setVisible(wingsVisible);
     }
 
     availableBags(side: Side): readonly CollectibleMoneyBag[] {
@@ -1085,6 +1112,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         // The collector sprites already carry the bag in their frames; showing
         // the loose sprite again would duplicate it.
         bag.view.setVisible(false);
+        bag.wingView?.setVisible(false);
         return true;
     }
 
@@ -1143,6 +1171,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         bag.viewScale = bag.baseScale;
         bag.viewAlpha = 1;
         bag.view.setScale(bag.baseScale).setAlpha(1).setVisible(true);
+        bag.wingView?.setScale(bag.baseScale).setAlpha(1).setVisible(bag.positive);
     }
 
     /** Expiry ending: the bag is released and a terminal effect plays in place. */
@@ -1156,6 +1185,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         bag.ownerId = undefined;
         bag.carriedBounds = undefined;
         bag.view.setVisible(false);
+        bag.wingView?.setVisible(false);
         this.releaseFinancialLabel(bag.financialLabel, bag);
         this.bags.release(bag);
     }
@@ -1182,6 +1212,10 @@ export class MoneyFlowController implements MoneyFlowBagHost {
                 frame: this.spriteMode
                     ? String((bag.view as PhaserTypes.GameObjects.Sprite).frame?.name ?? '')
                     : 'procedural',
+                wingsFrame: this.spriteMode && bag.wingView
+                    ? String(bag.wingView.frame?.name ?? '')
+                    : null,
+                wingsVisible: Boolean(bag.wingView?.visible),
                 age: bag.age, availableAge: bag.availableAge,
                 ownerId: bag.ownerId ?? null, x: bag.x, y: bag.y,
             });
@@ -1219,6 +1253,7 @@ export class MoneyFlowController implements MoneyFlowBagHost {
         this.bags.forEach(bag => {
             bag.state = 'REMOVED'; bag.ownerId = undefined; bag.visualPhase = 'flying'; bag.carriedBounds = undefined;
             bag.view.setVisible(false);
+            bag.wingView?.setVisible(false);
             this.releaseFinancialLabel(bag.financialLabel, bag);
         });
         this.bags.releaseAll();
