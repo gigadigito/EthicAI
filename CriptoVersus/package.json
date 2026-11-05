@@ -8,7 +8,7 @@
     "test:tv-charts": "node ./wwwroot/js/tvScoreEventMarkers.test.mjs && node ./wwwroot/js/tvTelemetryCube.test.mjs && node ./wwwroot/js/tvAudioFacade.test.mjs && node ./wwwroot/js/tvAudioConfig.test.mjs && node ./wwwroot/js/tvAudioRuntime.test.mjs && node ./wwwroot/js/tvProceduralAudio.test.mjs && node ./wwwroot/js/tvLineCrossovers.test.mjs",
     "test:candle-battles": "npm run ts:build && node --test wwwroot/js/candle-battles/tests/model.test.mjs wwwroot/js/candle-battles/tests/dialogue-engine.test.mjs wwwroot/js/candle-battles/tests/social-readiness.test.mjs wwwroot/js/candle-battles/tests/combat-animations.test.mjs wwwroot/js/candle-battles/tests/money-flow.test.mjs wwwroot/js/candle-battles/tests/money-flow-visual.test.mjs wwwroot/js/candle-battles/tests/money-flow-collectors.test.mjs wwwroot/js/candle-battles/tests/money-flow-collector-animation.test.mjs wwwroot/js/candle-battles/tests/money-flow-choreography.test.mjs",
     "test:candle-battles:visual": "npm run ts:build && playwright test -c playwright.candle-battles.config.mjs",
-    "test:arena-pressure": "npm run ts:build && node --test wwwroot/js/arena-pressure/tests/model.test.mjs"
+    "test:arena-pressure": "npm run ts:build && node --test wwwroot/js/arena-pressure/tests/model.test.mjs wwwroot/js/arena-pressure/tests/wheel.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

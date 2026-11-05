@@ -10,8 +10,10 @@
     "width": 512,
     "height": 512,
     "center": [256, 256],
-    "ringRadius": 128,
-    "ringWidth": 16
+    "ringRadius": 184,
+    "ringWidth": 38,
+    "angularSegments": 64,
+    "startAngleDegrees": 90
   },
   "colors": {
     "left": "#ff9100",

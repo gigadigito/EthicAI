@@ -1,9 +1,45 @@
 import { ARENA_COLORS } from './model.js';
+const TAU = Math.PI * 2;
+const RING_START_ANGLE = Math.PI * 0.5;
+const RING_SEGMENTS = 64;
+const RING_GAP_RADIANS = 0.018;
+const RING_RADIUS_RATIO = 0.36;
+const RING_THICKNESS_RATIO = 0.075;
+const MIN_RING_REDRAW_DELTA = 0.02;
+/**
+ * Maps the left pressure to one continuous clockwise 360-degree ring.
+ * The ring starts at the lower centre of the mechanism, travels around the
+ * left side first, and assigns the remainder to cyan. Keeping this pure makes
+ * the angular contract testable without a Phaser scene.
+ */
+export function buildWheelRingSegments(leftPressure, segmentCount = RING_SEGMENTS) {
+    const safePressure = Math.max(0, Math.min(100, leftPressure));
+    const orangeSweep = TAU * safePressure / 100;
+    const segmentSweep = TAU / segmentCount;
+    const gap = Math.min(RING_GAP_RADIANS, segmentSweep * 0.3);
+    return Array.from({ length: segmentCount }, (_, index) => {
+        const rawStart = index * segmentSweep;
+        const rawEnd = rawStart + segmentSweep;
+        const visibleStart = rawStart + gap * 0.5;
+        const visibleEnd = rawEnd - gap * 0.5;
+        const orangeStart = Math.max(rawStart, 0);
+        const orangeEnd = Math.min(rawEnd, orangeSweep);
+        const orangePortion = Math.max(0, orangeEnd - orangeStart) / segmentSweep;
+        return {
+            index,
+            startAngle: RING_START_ANGLE + visibleStart,
+            endAngle: RING_START_ANGLE + visibleEnd,
+            orangePortion,
+            cyanPortion: 1 - orangePortion
+        };
+    });
+}
 export class WheelMechanism {
     constructor(scene, x = 480, y = 277, size = 320) {
         this.currentRotation = 0;
         this.targetRotationVelocity = 0;
         this.currentRotationVelocity = 0;
+        this.lastRingPressure = Number.NaN;
         this.x = x;
         this.y = y;
         this.size = size;
@@ -35,7 +71,6 @@ export class WheelMechanism {
      */
     update(currentPressure, targetPressure, delta) {
         const left = Math.max(0, Math.min(100, currentPressure));
-        const right = 100 - left;
         const pressureDelta = targetPressure - currentPressure;
         // Rotational momentum reacts gently to CHANGES in pressure and continuous dominance
         // Dominance bias gives a very subtle mechanical creep in the winning team's direction
@@ -47,53 +82,50 @@ export class WheelMechanism {
         this.currentRotation += this.currentRotationVelocity * (delta / 16.6);
         this.discSprite.setRotation(this.currentRotation);
         // Render LED ring segments
-        this.drawLedRing(left, right);
+        this.drawLedRing(left);
     }
-    drawLedRing(left, right) {
+    drawLedRing(left) {
         const g = this.ringGraphics;
-        g.clear();
-        const radius = this.size * 0.4;
-        const totalSegments = 24;
-        const arcThickness = 12;
-        // Fractional fill: the boundary segment lights up gradually, so a reversal of
-        // dominance animates the lighting instead of jumping one whole tile at a time.
-        const activeLeft = totalSegments * (left / 100);
-        const activeRight = totalSegments * (right / 100);
-        // LEFT SEMICIRCLE: angles from PI/2 (bottom) clockwise to 3*PI/2 (top)
-        for (let i = 0; i < totalSegments; i++) {
-            const startAngle = Math.PI * 0.5 + (i / totalSegments) * Math.PI;
-            const endAngle = Math.PI * 0.5 + ((i + 0.74) / totalSegments) * Math.PI;
-            const intensity = Math.max(0, Math.min(1, activeLeft - i));
-            this.drawSegment(g, this.x, this.y, radius, startAngle, endAngle, arcThickness, ARENA_COLORS.left, ARENA_COLORS.leftDim, 0xffe6b0, intensity);
-        }
-        // RIGHT SEMICIRCLE: angles from -PI/2 (top) clockwise to PI/2 (bottom)
-        for (let i = 0; i < totalSegments; i++) {
-            const startAngle = -Math.PI * 0.5 + (i / totalSegments) * Math.PI;
-            const endAngle = -Math.PI * 0.5 + ((i + 0.74) / totalSegments) * Math.PI;
-            const intensity = Math.max(0, Math.min(1, activeRight - i));
-            this.drawSegment(g, this.x, this.y, radius, startAngle, endAngle, arcThickness, ARENA_COLORS.right, ARENA_COLORS.rightDim, 0xd0fffd, intensity);
-        }
-    }
-    drawSegment(g, cx, cy, radius, startAngle, endAngle, thickness, color, dimColor, beadColor, intensity) {
-        const arc = () => {
-            g.beginPath();
-            g.arc(cx, cy, radius, startAngle, endAngle, false);
-            g.strokePath();
-        };
-        if (intensity <= 0.001) {
-            g.lineStyle(thickness, dimColor, 0.45);
-            arc();
+        if (Number.isFinite(this.lastRingPressure)
+            && Math.abs(left - this.lastRingPressure) < MIN_RING_REDRAW_DELTA) {
             return;
         }
-        // Outer glow
-        g.lineStyle(thickness + 6, color, 0.28 * intensity);
-        arc();
-        // Core neon line, blended against the dim tile so partial fills read smoothly
-        g.lineStyle(thickness, color, 0.35 + 0.65 * intensity);
-        arc();
-        // Bright center bead
-        g.lineStyle(thickness * 0.45, beadColor, 0.9 * intensity);
-        arc();
+        this.lastRingPressure = left;
+        g.clear();
+        const radius = this.size * RING_RADIUS_RATIO;
+        const arcThickness = this.size * RING_THICKNESS_RATIO;
+        const segments = buildWheelRingSegments(left);
+        // A dark underlay keeps the ring physically seated in the recessed metal track.
+        for (const segment of segments) {
+            this.drawArc(g, this.x, this.y, radius, segment.startAngle, segment.endAngle, arcThickness + 4, 0x060b12, 0.92);
+        }
+        // Each segment is split at the exact pressure boundary. This preserves the
+        // requested angular ratio even when the boundary falls through a segment.
+        for (const segment of segments) {
+            const span = segment.endAngle - segment.startAngle;
+            const orangeEnd = segment.startAngle + span * segment.orangePortion;
+            const cyanStart = orangeEnd;
+            if (segment.orangePortion > 0) {
+                this.drawNeonArc(g, this.x, this.y, radius, segment.startAngle, orangeEnd, arcThickness, ARENA_COLORS.left, 0xffe6b0);
+            }
+            if (segment.cyanPortion > 0) {
+                this.drawNeonArc(g, this.x, this.y, radius, cyanStart, segment.endAngle, arcThickness, ARENA_COLORS.right, 0xd0fffd);
+            }
+        }
+    }
+    drawNeonArc(g, cx, cy, radius, startAngle, endAngle, thickness, color, highlightColor) {
+        if (endAngle - startAngle <= 0.0001) {
+            return;
+        }
+        this.drawArc(g, cx, cy, radius + 2, startAngle, endAngle, thickness + 8, color, 0.18);
+        this.drawArc(g, cx, cy, radius, startAngle, endAngle, thickness, color, 0.96);
+        this.drawArc(g, cx, cy, radius - thickness * 0.18, startAngle, endAngle, thickness * 0.34, highlightColor, 0.8);
+    }
+    drawArc(g, cx, cy, radius, startAngle, endAngle, thickness, color, alpha) {
+        g.lineStyle(thickness, color, alpha);
+        g.beginPath();
+        g.arc(cx, cy, radius, startAngle, endAngle, false);
+        g.strokePath();
     }
     /**
      * Attachment point for the left rope connector (the fixed rope cleat of the base art).

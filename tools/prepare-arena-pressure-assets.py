@@ -38,6 +38,61 @@ def zero_hidden_rgb(arr):
     return arr
 
 
+def neutralize_colored_ring(arr, radius_min=142, radius_max=250):
+    """Remove baked orange/cyan pressure coding from the fixed base shell."""
+    h, w = arr.shape[:2]
+    y, x = np.ogrid[:h, :w]
+    radius = np.sqrt((x - w / 2) ** 2 + (y - h / 2) ** 2)
+    rgb = arr[:, :, :3].astype(np.float32)
+    saturation = rgb.max(2) - rgb.min(2)
+    orange = (rgb[:, :, 0] > rgb[:, :, 2] * 1.22) & (rgb[:, :, 1] > rgb[:, :, 2] * 1.08)
+    cyan = (rgb[:, :, 2] > rgb[:, :, 0] * 1.22) & (rgb[:, :, 1] > rgb[:, :, 0] * 1.08)
+    connector_zone = (np.abs(x - w / 2) > 160) & (y >= 200) & (y <= 335)
+    side_light_zone = ((x < 48) | (x > 464)) & (y >= 220) & (y <= 295)
+    support_zone = y > 432
+    mask = (arr[:, :, 3] > 0) & (radius >= radius_min) & (radius <= radius_max)
+    mask &= ~(connector_zone & ~side_light_zone) & ~support_zone
+    mask &= saturation > 28
+    mask &= orange | cyan
+    luminance = rgb[:, :, 0] * 0.299 + rgb[:, :, 1] * 0.587 + rgb[:, :, 2] * 0.114
+    neutral = np.clip(luminance * 0.55, 36, 168)
+    arr[mask, :3] = (rgb[mask] * 0.08 + neutral[mask, None] * 0.92).astype(np.uint8)
+    return arr
+
+
+def remove_disc_direction_colors(arr):
+    """Remove only the colored chevrons from the rotating mechanical disc."""
+    h, w = arr.shape[:2]
+    y, x = np.ogrid[:h, :w]
+    cx, cy = w / 2, h / 2
+    radius = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
+    rgb = arr[:, :, :3].astype(np.float32)
+    saturation = rgb.max(2) - rgb.min(2)
+    orange = (rgb[:, :, 0] > rgb[:, :, 2] * 1.22) & (rgb[:, :, 1] > rgb[:, :, 2] * 1.08)
+    cyan = (rgb[:, :, 2] > rgb[:, :, 0] * 1.22) & (rgb[:, :, 1] > rgb[:, :, 0] * 1.08)
+    mask = (arr[:, :, 3] > 0) & (radius >= 92) & (radius <= 156)
+    mask &= (y >= 212) & (y <= 300) & (np.abs(x - cx) >= 82)
+    mask &= saturation > 28
+    mask &= orange | cyan
+    arrow_area = (((x >= 106) & (x <= 196)) | ((x >= 316) & (x <= 406))) & (y >= 232) & (y <= 282)
+    arrow_area &= arr[:, :, 3] > 0
+    metal = np.broadcast_to((38 + ((np.arange(h)[:, None] - 232) % 9) * 2).astype(np.uint8), (h, w))
+    arr[arrow_area, 0] = metal[arrow_area]
+    arr[arrow_area, 1] = np.clip(metal[arrow_area].astype(np.int16) + 4, 0, 255).astype(np.uint8)
+    arr[arrow_area, 2] = np.clip(metal[arrow_area].astype(np.int16) + 10, 0, 255).astype(np.uint8)
+    mask &= ~arrow_area
+    # Copy adjacent neutral metal across each side bar so the arrow silhouette disappears.
+    shifted = np.roll(arr[:, :, :3], 80, axis=1)
+    shifted[:, :80] = arr[:, :80, :3]
+    shifted_right = np.roll(arr[:, :, :3], -80, axis=1)
+    shifted_right[:, -80:] = arr[:, -80:, :3]
+    left = mask & (x < cx)
+    right = mask & (x >= cx)
+    arr[left, :3] = shifted[left]
+    arr[right, :3] = shifted_right[right]
+    return arr
+
+
 def neutral_residue_mask(arr):
     rgb = arr[:, :, :3].astype(np.int16)
     lum = 0.299 * rgb[:, :, 0] + 0.587 * rgb[:, :, 1] + 0.114 * rgb[:, :, 2]
@@ -209,6 +264,7 @@ def build_concentric_wheel_layers(comp_path):
     metal_tint[:, :, 1] = disc_lum * 0.95
     metal_tint[:, :, 2] = disc_lum * 1.05
     disc_arr[disc_mask, :3] = np.clip(disc_rgb[disc_mask] * 0.4 + metal_tint[disc_mask] * 0.6, 0, 255).astype(np.uint8)
+    disc_arr = remove_disc_direction_colors(disc_arr)
 
     wheel_disc = Image.fromarray(disc_arr, "RGBA")
 
@@ -236,6 +292,7 @@ def build_concentric_wheel_layers(comp_path):
     # Without this the floor bracket rectangle reads as a black slab behind the disc.
     base_alpha[dist_from_center < 147] = 0
     base_arr[:, :, 3] = base_alpha
+    base_arr = neutralize_colored_ring(base_arr)
     wheel_base = Image.fromarray(zero_hidden_rgb(base_arr), "RGBA")
 
     return wheel_base, wheel_disc, wheel_hub
