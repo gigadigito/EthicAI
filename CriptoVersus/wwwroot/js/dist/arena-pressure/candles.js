@@ -238,6 +238,14 @@ export class CandleTeamManager {
             };
         });
     }
+    /** Anchor for the single floating coin emblem above the middle candle. */
+    getTeamBadgeAnchor(team) {
+        const candles = team === 'left' ? this.leftCandles : this.rightCandles;
+        const center = candles[1] ?? candles[0];
+        return center
+            ? { x: center.sprite.x, y: center.sprite.y - 112 }
+            : { x: team === 'left' ? 170 : 790, y: 230 };
+    }
     readAnimationProgress(sprite) {
         try {
             const progress = sprite.anims.getProgress();

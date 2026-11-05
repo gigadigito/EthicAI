@@ -4,6 +4,7 @@ import { CandleTeamManager } from './candles.js';
 import { RopeRenderer } from './rope.js';
 import { ArenaPressureHud } from './hud.js';
 import { ArenaParticleSystem } from './particles.js';
+import { TeamLogoRenderer } from './logos.js';
 export async function create(host, options = {}) {
     const phaserUrl = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
     const Phaser = await import(phaserUrl);
@@ -87,14 +88,13 @@ export class ArenaPressureEngine {
                         frameWidth: 112,
                         frameHeight: 160
                     });
-                    // Only the layers the scene actually draws: the base art already carries
-                    // the rope cleats and the direction chevrons, so no extra overlays load.
+                    // Only the layers the scene actually draws. Team logos are loaded lazily
+                    // through the existing same-origin logo proxy after the scene is ready.
                     const images = [
                         'wheel-base',
                         'wheel-disc',
                         'wheel-hub',
                         'wheel-crown',
-                        'hud-crown',
                         'effect-sparks',
                         'effect-smoke'
                     ];
@@ -115,6 +115,7 @@ export class ArenaPressureEngine {
                         self.wheel = new WheelMechanism(this, 480, 277, 320);
                         self.candles = new CandleTeamManager(this, self.reducedMotion);
                         self.rope = new RopeRenderer(this, 9);
+                        self.logos = new TeamLogoRenderer(this, self.leftSymbol, self.rightSymbol);
                         self.particles = new ArenaParticleSystem(this, self.reducedMotion);
                         self.hud = new ArenaPressureHud(this, self.options.labels || DEFAULT_LABELS, self.leftSymbol, self.rightSymbol);
                         self.installVisibilityGuard();
@@ -125,7 +126,7 @@ export class ArenaPressureEngine {
                     }
                 },
                 update(time, delta) {
-                    if (self.isDisposed || !self.wheel || !self.candles || !self.rope || !self.hud || !self.particles) {
+                    if (self.isDisposed || !self.wheel || !self.candles || !self.rope || !self.logos || !self.hud || !self.particles) {
                         return;
                     }
                     const safeDelta = Math.min(64, Math.max(0, delta));
@@ -144,6 +145,8 @@ export class ArenaPressureEngine {
                     self.wheel.update(self.currentPressure, self.targetPressure, safeDelta, pressureDelta, self.playing);
                     // 3. Character pull teams
                     self.candles.update(time, self.currentPressure, 100 - self.currentPressure, self.isFinished);
+                    self.logos.setSymbols(self.leftSymbol, self.rightSymbol);
+                    self.logos.update(time, self.candles.getTeamBadgeAnchor('left'), self.candles.getTeamBadgeAnchor('right'));
                     // 4. Ropes anchored to the fixed wheel cleats and to the moving hands
                     const leftAnchor = self.wheel.getLeftAnchor();
                     const rightAnchor = self.wheel.getRightAnchor();
@@ -328,11 +331,13 @@ export class ArenaPressureEngine {
         this.visibilityHandler = undefined;
         this.particles?.destroy();
         this.hud?.destroy();
+        this.logos?.destroy();
         this.rope?.destroy();
         this.candles?.destroy();
         this.wheel?.destroy();
         this.particles = undefined;
         this.hud = undefined;
+        this.logos = undefined;
         this.rope = undefined;
         this.candles = undefined;
         this.wheel = undefined;

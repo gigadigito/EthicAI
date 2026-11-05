@@ -15,6 +15,7 @@ import { CandleTeamManager } from './candles.js';
 import { RopeRenderer } from './rope.js';
 import { ArenaPressureHud } from './hud.js';
 import { ArenaParticleSystem } from './particles.js';
+import { TeamLogoRenderer } from './logos.js';
 
 export async function create(
     host: HTMLElement,
@@ -46,6 +47,7 @@ export class ArenaPressureEngine {
     private wheel?: WheelMechanism;
     private candles?: CandleTeamManager;
     private rope?: RopeRenderer;
+    private logos?: TeamLogoRenderer;
     private hud?: ArenaPressureHud;
     private particles?: ArenaParticleSystem;
 
@@ -144,14 +146,13 @@ export class ArenaPressureEngine {
                         frameHeight: 160
                     });
 
-                    // Only the layers the scene actually draws: the base art already carries
-                    // the rope cleats and the direction chevrons, so no extra overlays load.
+                    // Only the layers the scene actually draws. Team logos are loaded lazily
+                    // through the existing same-origin logo proxy after the scene is ready.
                     const images = [
                         'wheel-base',
                         'wheel-disc',
                         'wheel-hub',
                         'wheel-crown',
-                        'hud-crown',
                         'effect-sparks',
                         'effect-smoke'
                     ];
@@ -175,6 +176,7 @@ export class ArenaPressureEngine {
                         self.wheel = new WheelMechanism(this, 480, 277, 320);
                         self.candles = new CandleTeamManager(this, self.reducedMotion);
                         self.rope = new RopeRenderer(this, 9);
+                        self.logos = new TeamLogoRenderer(this, self.leftSymbol, self.rightSymbol);
                         self.particles = new ArenaParticleSystem(this, self.reducedMotion);
                         self.hud = new ArenaPressureHud(
                             this,
@@ -190,7 +192,7 @@ export class ArenaPressureEngine {
                     }
                 },
                 update(this: PhaserTypes.Scene, time: number, delta: number) {
-                    if (self.isDisposed || !self.wheel || !self.candles || !self.rope || !self.hud || !self.particles) {
+                    if (self.isDisposed || !self.wheel || !self.candles || !self.rope || !self.logos || !self.hud || !self.particles) {
                         return;
                     }
 
@@ -224,6 +226,12 @@ export class ArenaPressureEngine {
                         self.currentPressure,
                         100 - self.currentPressure,
                         self.isFinished
+                    );
+                    self.logos.setSymbols(self.leftSymbol, self.rightSymbol);
+                    self.logos.update(
+                        time,
+                        self.candles.getTeamBadgeAnchor('left'),
+                        self.candles.getTeamBadgeAnchor('right')
                     );
 
                     // 4. Ropes anchored to the fixed wheel cleats and to the moving hands
@@ -449,11 +457,13 @@ export class ArenaPressureEngine {
 
         this.particles?.destroy();
         this.hud?.destroy();
+        this.logos?.destroy();
         this.rope?.destroy();
         this.candles?.destroy();
         this.wheel?.destroy();
         this.particles = undefined;
         this.hud = undefined;
+        this.logos = undefined;
         this.rope = undefined;
         this.candles = undefined;
         this.wheel = undefined;

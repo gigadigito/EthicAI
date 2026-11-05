@@ -6,20 +6,13 @@ export class ArenaPressureHud {
         this.topG = scene.add.graphics().setDepth(20);
         this.bottomG = scene.add.graphics().setDepth(20);
         // 1. TOP BAR ELEMENTS
-        this.titleText = scene.add.text(480, 24, this.labels.title, {
+        this.titleText = scene.add.text(480, 33, this.labels.title, {
             fontFamily: 'Inter, Montserrat, "Segoe UI", Arial, sans-serif',
-            fontSize: '28px',
+            fontSize: '26px',
             fontStyle: '900',
             color: '#f0f6fc',
             letterSpacing: 2
         }).setOrigin(0.5).setDepth(22);
-        // Center Crown Logo
-        if (scene.textures.exists('hud-crown')) {
-            this.crownIcon = scene.add.image(480, 52, 'hud-crown')
-                .setDisplaySize(24, 16)
-                .setDepth(22)
-                .setAlpha(0.85);
-        }
         // Left Symbol Badge (Orange)
         const leftFormatted = `${formatDisplaySymbol(leftSymbol)} / USDT`;
         this.leftSymbolText = scene.add.text(90, 42, leftFormatted, {
@@ -96,24 +89,20 @@ export class ArenaPressureHud {
         g.fillRoundedRect(712, 22, 220, 38, 6);
         g.lineStyle(2, ARENA_COLORS.right, 0.9);
         g.strokeRoundedRect(712, 22, 220, 38, 6);
-        // Center Title Plaque
+        // Center title plaque: clean and symmetrical, with linear colour accents
+        // instead of chevrons that can read as stray < or > characters.
         g.fillStyle(0x0c1524, 0.96);
-        g.fillRoundedRect(330, 10, 300, 42, 6);
+        g.fillRoundedRect(320, 11, 320, 44, 7);
         g.lineStyle(2, 0x364860, 0.85);
-        g.strokeRoundedRect(330, 10, 300, 42, 6);
-        // Title accent brackets
-        g.lineStyle(3, ARENA_COLORS.left, 0.95);
-        g.beginPath();
-        g.moveTo(330, 20);
-        g.lineTo(342, 31);
-        g.lineTo(330, 42);
-        g.strokePath();
-        g.lineStyle(3, ARENA_COLORS.right, 0.95);
-        g.beginPath();
-        g.moveTo(630, 20);
-        g.lineTo(618, 31);
-        g.lineTo(630, 42);
-        g.strokePath();
+        g.strokeRoundedRect(320, 11, 320, 44, 7);
+        g.fillStyle(ARENA_COLORS.left, 0.95);
+        g.fillRoundedRect(328, 17, 42, 3, 1.5);
+        g.fillStyle(ARENA_COLORS.right, 0.95);
+        g.fillRoundedRect(590, 17, 42, 3, 1.5);
+        g.fillStyle(ARENA_COLORS.left, 0.7);
+        g.fillCircle(326, 18.5, 2);
+        g.fillStyle(ARENA_COLORS.right, 0.7);
+        g.fillCircle(634, 18.5, 2);
     }
     /**
      * Updates dynamic HUD values, proportion bar, and dominance banner.
@@ -132,7 +121,7 @@ export class ArenaPressureHud {
             // A finished match keeps the real final pressure visible and marks the winner.
             statusString = dominance === 'balanced'
                 ? this.labels.finished
-                : `« ${dominance === 'left' ? this.labels.leftDominance : this.labels.rightDominance} »`;
+                : (dominance === 'left' ? this.labels.leftDominance : this.labels.rightDominance);
             statusColor = dominance === 'left'
                 ? ARENA_COLORS.leftHex
                 : dominance === 'right'
@@ -140,11 +129,11 @@ export class ArenaPressureHud {
                     : '#ffffff';
         }
         else if (dominance === 'left') {
-            statusString = `«« ${this.labels.leftDominance} ««`;
+            statusString = this.labels.leftDominance;
             statusColor = ARENA_COLORS.leftHex;
         }
         else if (dominance === 'right') {
-            statusString = `»» ${this.labels.rightDominance} »»`;
+            statusString = this.labels.rightDominance;
             statusColor = ARENA_COLORS.rightHex;
         }
         this.statusText.setText(statusString);
@@ -203,7 +192,6 @@ export class ArenaPressureHud {
         this.titleText.destroy();
         this.leftSymbolText.destroy();
         this.rightSymbolText.destroy();
-        this.crownIcon?.destroy();
         this.leftLabelText.destroy();
         this.leftPercentText.destroy();
         this.rightLabelText.destroy();
