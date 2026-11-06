@@ -1619,6 +1619,9 @@ test('host module revision and optional sprite atlases resolve on the served run
  expect(modulePath,'CandleBattlesHost must import a versioned game bundle').toBeTruthy();
  const revision=modulePath.match(/game\.([0-9a-z]+)\.js$/)?.[1];
  expect(revision,'versioned bundle name must carry a revision').toBeTruthy();
+ const moneyFlowPath=host.match(/import",\s*"(\/js\/dist\/candle-battles\/money-flow\.([0-9a-z]+)\.js)"/)?.[1];
+ expect(moneyFlowPath,'host Money Flow module must be versioned').toBeTruthy();
+ expect(moneyFlowPath).toBe(`/js/dist/candle-battles/money-flow.${revision}.js`);
  const response=await page.request.get(baseURL+modulePath);
  expect(response.ok(),'host bundle must be served').toBe(true);
  const bundle=await response.text();
@@ -1793,6 +1796,29 @@ test('combat beats drive real sprite frames and verifiable movement',async({page
   expect(info.state,`${state} reports itself`).toBe(state);
   expect(info.moved,`${state} must move the sprite`).toBeGreaterThan(0);
  }
+});
+
+test('walking keeps the real run montage and blink replacement fully covers open eyes',async({page})=>{
+ await page.goto('/js/candle-battles/tests/shell.html?autoplay=0');
+ await page.addStyleTag({path:'Components/Shared/CandleBattlesHost.razor.css'});
+ await page.waitForFunction(()=>window.engine&&window.ready);
+ const result=await page.evaluate(()=>{
+  const f=window.engine.left,sprite=f.root.list[2];
+  f.setReducedMotion(false);f.setPose('FORMING_CANDLE',true,false);
+  f.setLocomotion('walk-forward',true);f.setPreparation(0,0);f.update(0,16);
+  const anim=sprite.anims.currentAnim;
+  const blink=f.blinkLayer;
+  return {action:f.poseAction,frame:f.frameName,runFrames:anim?.frames?.length??0,
+   blinking:f.blinking,maskCommands:blink.commandBuffer?.length??0,
+   maskAlpha:blink.alpha,maskScaleX:blink.scaleX};
+ });
+ expect(result.action).toBe('run');
+ expect(result.frame).toMatch(/^fighter-left-neutral-run-1$/);
+ expect(result.runFrames).toBe(8);
+ expect(result.blinking).toBe(true);
+ expect(result.maskCommands).toBeGreaterThan(0);
+ expect(result.maskAlpha).toBe(1);
+ expect(result.maskScaleX).toBeGreaterThan(0);
 });
 
 test('combat beat frames follow the simulation clock at every replay speed',async({page})=>{

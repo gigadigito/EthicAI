@@ -1,13 +1,13 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, roundClosedAt, roundSupersededAt, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261106a';
-import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261106a';
-import { CandleRenderer } from './renderer.js?v=20261106a';
-import { AudioManager } from './audio.js?v=20261106a';
-import { DialogueClock, lineDuration } from './dialogue.js?v=20261106a';
-import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261106a';
-import { MoneyFlowController, formatMoneyFlowAmount } from './money-flow-visual.js?v=20261106a';
-import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261106a';
-import { CandleCharacterBehaviorController } from './character-behavior-controller.js?v=20261106a';
-const CANDLE_BATTLE_RUNTIME_REVISION = '20261106a';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, roundClosedAt, roundSupersededAt, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261106b';
+import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261106b';
+import { CandleRenderer } from './renderer.js?v=20261106b';
+import { AudioManager } from './audio.js?v=20261106b';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261106b';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261106b';
+import { MoneyFlowController, formatMoneyFlowAmount } from './money-flow-visual.js?v=20261106b';
+import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261106b';
+import { CandleCharacterBehaviorController } from './character-behavior-controller.js?v=20261106b';
+const CANDLE_BATTLE_RUNTIME_REVISION = '20261106b';
 const CANDLE_FREEZE_DIAGNOSTIC_VERSION = 'diagnostic-v1';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
 export async function create(host, options) {
@@ -124,15 +124,15 @@ export class GameEngine {
                     }
                     owner.readyReject(new Error(`Candle Battles asset failed to load: ${String(file.key)} (${String(file.src)})`));
                 });
-                this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261106a', '/games/candle-battles/assets/modular.json?v=20261106a');
-                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261106a', '/games/candle-battles/assets/candle-finishers.json?v=20261106a');
+                this.load.atlas('modular', '/games/candle-battles/assets/modular.png?v=20261106b', '/games/candle-battles/assets/modular.json?v=20261106b');
+                this.load.atlas('candle-finishers', '/games/candle-battles/assets/candle-finishers.png?v=20261106b', '/games/candle-battles/assets/candle-finishers.json?v=20261106b');
                 // The effects atlas carries the money bags themselves, so it is
                 // required whenever visual effects run, with or without collectors.
                 if (owner.options.moneyFlowVisualEffects) {
-                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261106a', '/games/candle-battles/assets/money-flow-effects.json?v=20261106a');
+                    this.load.atlas('money-flow-effects', '/games/candle-battles/assets/money-flow-effects.png?v=20261106b', '/games/candle-battles/assets/money-flow-effects.json?v=20261106b');
                 }
                 if (owner.options.moneyFlowVisualEffects && owner.options.moneyFlowCollectorsEnabled) {
-                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261106a', '/games/candle-battles/assets/money-flow-collectors.json?v=20261106a');
+                    this.load.atlas('money-flow-collectors', '/games/candle-battles/assets/money-flow-collectors.png?v=20261106b', '/games/candle-battles/assets/money-flow-collectors.json?v=20261106b');
                 }
             }
             create() { owner.setup(this); }

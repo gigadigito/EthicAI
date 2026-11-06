@@ -560,9 +560,9 @@ export class CandleRenderer {
         // Forming candle is an inter-round state.  Its old intermittent `run`
         // selection exposed side-profile source frames while fighters were
         // stationary, making them look vertically sliced.  Keep the canonical
-        // idle cell on screen; tension still drives the candle aura and the
+        // idle cell on screen; tension still drives the financial body and the
         // subtle stance motion above.
-        const next: FighterAnimation = 'idle';
+        const next: FighterAnimation = this.locomotion === 'idle' ? 'idle' : 'run';
         if (this.phase === 'FORMING_CANDLE' && next !== this.animation) { this.animation = next; this.playAnimation(true); }
         if (!this.target && !this.frozen) {
             this.sprite.setPosition(Math.sin(time/900)*(.8+this.preparation*1.5),185+Math.sin(time/650)*(1.2+this.preparation*1.8));
@@ -675,19 +675,10 @@ export class CandleRenderer {
             if (g.height > 8) this.body.lineStyle(1, 0xf3fff3, .7).lineBetween(-20, g.top + 3, 19, g.top + 3);
         } else this.body.lineStyle(2, this.outline).lineBetween(-24, g.top, 24, g.top);
 
+        // Keep the OHLC body crisp and isolated from the illustrated fighter.
+        // The former procedural envelope around this layer looked like a halo
+        // when the character locomotion and pixel-perfect canvas were active.
         this.aura.clear();
-        for (let i = 4; i >= 1; i--) this.aura.lineStyle(3 + i * 3, this.outline, (.012 + (this.frozen ? 0 : .006 * Math.sin(time / 170))) * (5 - i))
-            .strokeRect(-25, g.top, 50, Math.max(1, g.height));
-        // The solid body and wick remain the exact OHLC projection. A very
-        // faint envelope only on an unconfirmed forming candle breathes around
-        // those bounds, making incoming market updates legible without
-        // falsifying the candle size or either fighter's scale.
-        if (this.phase === 'FORMING_CANDLE' && !this.last?.confirmed && !this.frozen) {
-            const pulse = .8 + (Math.sin(time / 430) + 1) * Math.min(2.4, Math.max(.8, g.height * .055));
-            const top = g.top - pulse, height = Math.max(1, g.height + pulse * 2);
-            this.aura.fillStyle(color, .055).fillRect(-27, top, 54, height);
-            this.aura.lineStyle(1.5, this.outline, .38).strokeRect(-27, top, 54, height);
-        }
 
         const facing = this.side === 'left' ? 1 : -1;
         // The candle stays above the fighter. A fixed foot line keeps market
@@ -754,11 +745,17 @@ export class CandleRenderer {
         this.blinkLayer.clear();
         if (!compatible) return;
         this.blinkLayer.setPosition(this.sprite.x, this.sprite.y)
-            .setScale(scale)
+            .setScale(this.side === 'right' ? -scale : scale, scale)
             .setRotation(rotation)
             .setAlpha(this.sprite.alpha);
-        this.blinkLayer.fillStyle(0x071317, 1);
-        this.blinkLayer.fillRect(-12, -53, 7, 2).fillRect(5, -53, 7, 2);
+        // The original angry eyes occupy roughly x=96..103 and x=114..121
+        // in the 200px source cell. Cover those pixels opaquely before drawing
+        // a short closed-eye line; a dark overlay alone leaves the open pupils
+        // visible underneath and reads as a halo instead of a blink.
+        this.blinkLayer.fillStyle(this.side === 'left' ? 0xb8ff00 : 0x31d3d0, 1);
+        this.blinkLayer.fillRect(-4, -54, 9, 8).fillRect(14, -54, 9, 8);
+        this.blinkLayer.lineStyle(2, 0x071317, 1);
+        this.blinkLayer.lineBetween(-2, -49, 2, -49).lineBetween(16, -49, 20, -49);
     }
 
     /**
