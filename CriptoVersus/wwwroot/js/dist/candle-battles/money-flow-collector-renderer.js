@@ -1,4 +1,4 @@
-import { MONEY_FLOW_EFFECTS_ATLAS, INFERNAL_PIT_FRAMES } from './money-flow-effects-renderer.js?v=20261104b';
+import { MONEY_FLOW_EFFECTS_ATLAS, INFERNAL_PIT_FRAMES } from './money-flow-effects-renderer.js?v=20261106a';
 const COLLECTOR_ATLAS = 'money-flow-collectors';
 const EFFECT_ATLAS = MONEY_FLOW_EFFECTS_ATLAS;
 /**

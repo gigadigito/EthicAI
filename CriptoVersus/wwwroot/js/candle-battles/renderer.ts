@@ -3,6 +3,7 @@ import { Candle, CombatMotion, FighterAnimation, FinisherAnimation, FinalRole, G
 import { CombatStateName, CombatStatePlan, ImpactFxKind, frameAt, transformAt } from './combat-animations.js';
 import { buildMoneyFlowAnchors } from './money-flow-collectors.js';
 import type { MoneyFlowAnchors } from './money-flow-collectors.js';
+import type { LocomotionState } from './character-behavior-controller.js';
 
 type FighterDirection = keyof typeof OUTLINE;
 export type FinalFighterState = 'none' | FinalRole;
@@ -11,7 +12,7 @@ const CANDLE_LIFT = 60;
 const ACTION_FRAME_COUNTS: Record<Exclude<FighterAnimation, 'idle'>, number> = {
     // Hold the damage pose while its alpha fades; cycling the source montage
     // would reveal neighbouring colour variants.
-    run: 4,
+    run: 8,
     punch: 4,
     break: 1,
     recover: 3,
@@ -178,6 +179,7 @@ export class CandleRenderer {
     private readonly body: Phaser.GameObjects.Graphics;
     private readonly aura: Phaser.GameObjects.Graphics;
     private readonly sprite: Phaser.GameObjects.Sprite;
+    private readonly blinkLayer: Phaser.GameObjects.Graphics;
     private from?: Geometry;
     private target?: Geometry;
     private visibleGeometry?: Geometry;
@@ -191,6 +193,8 @@ export class CandleRenderer {
     private draw = false;
     private outline = OUTLINE.neutral;
     private animation: FighterAnimation = 'idle';
+    private locomotion: LocomotionState = 'idle';
+    private blinking = false;
     private combat: CombatMotion = { attack: 0, block: 0, dodge: 0, hit: 0, counter: 0, taunt: 0 };
     private preparation = 0;
     private finalState: FinalFighterState = 'none';
@@ -216,11 +220,12 @@ export class CandleRenderer {
         registerFinisherAnimations(scene, side);
         this.aura = scene.add.graphics();
         this.body = scene.add.graphics();
+        this.blinkLayer = scene.add.graphics();
         this.aura.setY(-CANDLE_LIFT);
         this.body.setY(-CANDLE_LIFT);
         this.sprite = scene.add.sprite(0, 0, 'modular', fighterFrame(side, 'neutral', 'idle', 1));
         this.sprite.setOrigin(.5, 1);
-        this.root = scene.add.container(x, y, [this.aura, this.body, this.sprite]);
+        this.root = scene.add.container(x, y, [this.aura, this.body, this.sprite, this.blinkLayer]);
         // Keep a neutral fighter visible while LIVE is waiting for the first
         // OHLC snapshot.  The direction remains neutral until setCandle()
         // receives real data, so this is only a visual idle placeholder.
@@ -257,6 +262,8 @@ export class CandleRenderer {
         this.heldFrame = undefined;
         this.finisher = undefined;
         this.phase = phase;
+        this.locomotion = 'idle';
+        this.blinking = false;
         if (phase !== 'FORMING_CANDLE') this.preparation = 0;
         this.win = winner;
         this.draw = draw;
@@ -424,6 +431,24 @@ export class CandleRenderer {
     }
 
     setCombatMotion(motion: CombatMotion): void { this.combat = { ...motion }; }
+
+    /** Applies the deterministic secondary movement layer when combat is idle. */
+    setLocomotion(state: LocomotionState, blink = false): void {
+        this.locomotion = state;
+        this.blinking = blink;
+        if (this.finalState !== 'none' || this.resultRole || this.combatPlan) {
+            this.blinking = false;
+            return;
+        }
+        const phaseAnimation = fighterAnimationForPhase(this.phase);
+        const next: FighterAnimation = state === 'idle'
+            ? phaseAnimation === 'run' ? 'idle' : phaseAnimation
+            : 'run';
+        if (next !== this.animation) {
+            this.animation = next;
+            this.playAnimation(true);
+        }
+    }
 
     /**
      * True while a combat beat owns the sprite frame. The closing cinematic and
@@ -688,6 +713,7 @@ export class CandleRenderer {
             : this.frozen || this.phase !== 'FORMING_CANDLE' ? 0 : Math.sin(time/1150)*(0.012+this.preparation*.015))
             + (ct ? ct.rotation : 0);
         this.sprite.setPosition(spriteX, footY).setScale(scale).setFlipX(this.side === 'right').setRotation(rotation);
+        this.updateBlinkLayer(scale, rotation);
         if (this.ownsSpriteFrame && this.combatPlan) {
             // Frames come from the simulation clock, so live, replay, seeking,
             // accelerated playback and pause all land on the same drawing.
@@ -715,6 +741,24 @@ export class CandleRenderer {
         this.sprite.setAlpha(spriteAlpha * (1 - .28 * Math.min(1, this.defeat)) * (1 - .45 * (ct?.flash ?? 0)));
         this.positionImpactFx(Math.max(0, delta), facing, scale);
         this.positionOverlays(time);
+    }
+
+    /**
+     * The supplied modular atlas has no standalone closed-eye frames. This
+     * tiny pixel layer is only visible during a compatible idle/walk beat; it
+     * never replaces, recolours, or resamples the original character sprite.
+     */
+    private updateBlinkLayer(scale: number, rotation: number): void {
+        const compatible = this.blinking && !this.frozen && this.finalState === 'none'
+            && !this.resultRole && !this.finisher && !this.combatPlan;
+        this.blinkLayer.clear();
+        if (!compatible) return;
+        this.blinkLayer.setPosition(this.sprite.x, this.sprite.y)
+            .setScale(scale)
+            .setRotation(rotation)
+            .setAlpha(this.sprite.alpha);
+        this.blinkLayer.fillStyle(0x071317, 1);
+        this.blinkLayer.fillRect(-12, -53, 7, 2).fillRect(5, -53, 7, 2);
     }
 
     /**

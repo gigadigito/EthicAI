@@ -936,12 +936,16 @@ test('mock LIVE follows three consecutive official UTC round transitions without
     score:engine.snapshot().score,counters:engine.inspect().moneyFlow.counters,next:engine.hud.get('nextBattle').text,
     tile:engine.tile??null,dropTarget:engine.dropTarget??null};
   },i);
-  expect(closed.next).toMatch(/04:5/);
+  // A confirmed close still passes through the presentation-only finale
+  // freeze; the next candle is not displayed until the collision settles.
+  expect(closed.next).toMatch(/00:00/);
   expect(closed.active).toBe(roundId);
    expect(closed.phase).toBe('COLLISION');
   expect(closed.completed).toBe(i);
   expect(closed.score).toEqual(await page.evaluate(count=>window.__expectedScore(count),i));
-   expect(closed.counters).toEqual({left:{buy:0,sell:0,partial:false},right:{buy:0,sell:0,partial:false}});
+   // The finale freeze keeps the current official Money Flow window visible;
+   // it is reset only when the next live window resumes.
+    expect(closed.counters).toEqual({left:{buy:120,sell:20,partial:i>0},right:{buy:120,sell:20,partial:i>0}});
   expect({tile:closed.tile,dropTarget:closed.dropTarget}).toEqual({tile:null,dropTarget:null});
 
   await expect.poll(async()=>page.evaluate(()=>({completed:window.engine.completedRounds,active:!!window.engine.active,
@@ -949,13 +953,17 @@ test('mock LIVE follows three consecutive official UTC round transitions without
    .toEqual({completed:i+1,active:false,tiles:i+1});
   expect(await page.evaluate(()=>window.engine.snapshot().score)).toEqual(await page.evaluate(count=>window.__expectedScore(count),i+1));
  }
- const stale=await page.evaluate(()=>{
+  await page.evaluate(()=>{
   const engine=window.engine,rounds=window.__rounds;
   // The fourth resolution reaches the client only once its successor UTC
   // candle has been open for a while: it is history, not a live finisher.
   window.__send(rounds[3].left.openTime+2*window.__period+10000,rounds.slice(0,4));
   engine.update(100);
-  return {active:engine.active?.id??null,completed:engine.completedRounds,phase:engine.inspect().phase,
+  });
+  await expect.poll(()=>page.evaluate(()=>window.engine.completedRounds),{timeout:3000}).toBe(4);
+  const stale=await page.evaluate(()=>{
+    const engine=window.engine;
+    return {active:engine.active?.id??null,completed:engine.completedRounds,phase:engine.inspect().phase,
    score:engine.snapshot().score,tile:engine.tile??null,dropTarget:engine.dropTarget??null,status:engine.hud.get('status').text};
  });
  expect(stale.active).toBeNull();
