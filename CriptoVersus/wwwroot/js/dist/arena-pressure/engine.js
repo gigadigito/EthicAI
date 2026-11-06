@@ -29,7 +29,10 @@ export class ArenaPressureEngine {
         this.host = host;
         this.options = options;
         this.Phaser = Phaser;
-        this.reducedMotion = Boolean(options.reducedMotion);
+        const prefersReducedMotion = typeof window !== 'undefined'
+            && typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        this.reducedMotion = Boolean(options.reducedMotion) || prefersReducedMotion;
         this.leftSymbol = options.leftSymbol || 'LSK';
         this.rightSymbol = options.rightSymbol || 'BMT';
         this.isFinished = Boolean(options.isFinished);
@@ -88,13 +91,10 @@ export class ArenaPressureEngine {
                         frameWidth: 112,
                         frameHeight: 160
                     });
-                    // Only the layers the scene actually draws. Team logos are loaded lazily
-                    // through the existing same-origin logo proxy after the scene is ready.
+                    // Only the Phaser layers the scene actually draws. The replacement
+                    // wheel loads its transparent PNG pack into a CanvasTexture so the
+                    // pedestal, shell, LEDs, hub and rope caps can move independently.
                     const images = [
-                        'wheel-base',
-                        'wheel-disc',
-                        'wheel-hub',
-                        'wheel-crown',
                         'effect-sparks',
                         'effect-smoke'
                     ];
@@ -112,14 +112,14 @@ export class ArenaPressureEngine {
                         // Background
                         this.add.image(480, 270, 'arena-bg').setDisplaySize(960, 540);
                         // Fixed mechanism + teams + ropes + effects + HUD
-                        self.wheel = new WheelMechanism(this, 480, 277, 320);
+                        self.wheel = new WheelMechanism(this, 480, 277, 410, self.options.spriteBaseUrl || '/games/arena-pressure/sprites/', self.reducedMotion);
                         self.candles = new CandleTeamManager(this, self.reducedMotion);
                         self.rope = new RopeRenderer(this, 9);
                         self.logos = new TeamLogoRenderer(this, self.leftSymbol, self.rightSymbol);
                         self.particles = new ArenaParticleSystem(this, self.reducedMotion);
                         self.hud = new ArenaPressureHud(this, self.options.labels || DEFAULT_LABELS, self.leftSymbol, self.rightSymbol);
                         self.installVisibilityGuard();
-                        self.readyResolve();
+                        void self.wheel.ready.then(() => self.readyResolve(), error => self.readyReject(error instanceof Error ? error : new Error(String(error))));
                     }
                     catch (err) {
                         self.readyReject(err instanceof Error ? err : new Error(String(err)));

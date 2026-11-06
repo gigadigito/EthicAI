@@ -35,6 +35,8 @@ export interface ArenaPressureVisualState {
 
 export interface ArenaPressureOptions {
     baseUrl?: string;
+    /** Root containing the modular Arena Pressure sprite pack and manifest. */
+    spriteBaseUrl?: string;
     initialLeft?: number;
     initialRight?: number;
     leftSymbol?: string;

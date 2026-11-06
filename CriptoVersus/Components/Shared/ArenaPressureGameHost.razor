@@ -319,7 +319,7 @@
         var stage = "module_import";
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/arena-pressure/engine.20261105b.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/arena-pressure/engine.20261106a.js");
             if (_disposed) return;
 
             stage = "history_load";
@@ -343,6 +343,7 @@
                 new
                 {
                     baseUrl = "/games/arena-pressure/assets/",
+                    spriteBaseUrl = "/games/arena-pressure/sprites/",
                     initialLeft = pair.Left,
                     initialRight = pair.Right,
                     leftSymbol = DisplayLeftSymbol,

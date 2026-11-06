@@ -1,32 +1,16 @@
 import type Phaser from 'phaser';
 import { ARENA_COLORS } from './model.js';
 
-const TAU = Math.PI * 2;
-const RING_START_ANGLE = Math.PI * 0.5;
-const RING_SEGMENTS = 18;
-const RING_GAP_RADIANS = 0.055;
-const RING_RADIUS_RATIO = 0.36;
-const RING_THICKNESS_RATIO = 0.105;
-const MIN_RING_REDRAW_DELTA = 0.02;
-const MAX_ANGULAR_VELOCITY = 2.4;
-const MAX_ANGULAR_ACCELERATION = 4.6;
-const MAX_PRESSURE_IMPULSE = 0.55;
-const PRESSURE_IMPULSE_GAIN = 2.1;
-const TARGET_VELOCITY_DECAY_PER_SECOND = 0.08;
+const SOURCE_SIZE = 1254;
+const SOURCE_CENTER_X = 626;
+const SOURCE_CENTER_Y = 599;
+const SOURCE_IMAGE_CENTER = SOURCE_SIZE / 2;
+const LEFT_ROPE_ANCHOR = { x: 70, y: 606 };
+const RIGHT_ROPE_ANCHOR = { x: 1184, y: 606 };
+const MAX_WOBBLE_DEGREES = 6;
+const SEGMENT_COUNT = 9;
 
-export interface WheelRingSegment {
-    index: number;
-    startAngle: number;
-    endAngle: number;
-    orangePortion: number;
-    cyanPortion: number;
-}
-
-export interface WheelMotionState {
-    rotation: number;
-    angularVelocity: number;
-    targetAngularVelocity: number;
-}
+export type HubColor = 'orange' | 'cyan' | 'neutral';
 
 export interface WheelMechanicalState {
     clock: number;
@@ -35,110 +19,72 @@ export interface WheelMechanicalState {
     angle: number;
 }
 
-export function crownColorForPressure(leftPressure: number): number {
-    if (leftPressure > 50) {
-        return ARENA_COLORS.left;
-    }
-    if (leftPressure < 50) {
-        return ARENA_COLORS.right;
-    }
-    return ARENA_COLORS.gold;
+interface SpriteEntry {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
 }
 
-/**
- * Returns the neutral-up, left, or right orientation of the mechanical pointer.
- * The crown remains upright; only this separate pointer changes direction.
- */
-export function dominancePointerRotationForPressure(leftPressure: number): number {
-    const bias = clamp((clamp(leftPressure, 0, 100) - 50) / 15, -1, 1);
-    return -Math.PI * 0.5 - bias * Math.PI * 0.5;
+interface SpriteManifest {
+    source_size: [number, number];
+    center_pivot_px: [number, number];
+    sprites: Record<string, SpriteEntry>;
 }
 
 function clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
 }
 
-function approach(current: number, target: number, amount: number): number {
-    if (current < target) {
-        return Math.min(target, current + amount);
-    }
-    return Math.max(target, current - amount);
+export function crownColorForPressure(leftPressure: number): number {
+    if (leftPressure > 50) return ARENA_COLORS.left;
+    if (leftPressure < 50) return ARENA_COLORS.right;
+    return ARENA_COLORS.gold;
 }
 
-function approachAngle(current: number, target: number, amount: number): number {
-    const difference = Math.atan2(Math.sin(target - current), Math.cos(target - current));
-    return current + difference * amount;
+export function hubColorForPressure(leftPressure: number): HubColor {
+    if (leftPressure > 50) return 'orange';
+    if (leftPressure < 50) return 'cyan';
+    return 'neutral';
 }
 
-/**
- * Advances the heavy-disc motion without depending on Phaser. A positive market
- * pressure delta means the left side advanced, so the disc receives a negative
- * (counter-clockwise) Phaser rotation impulse. A missing delta is inert.
- */
-export function stepWheelMotion(
-    state: WheelMotionState,
-    pressureDelta: number,
-    deltaMs: number,
-    motionActive: boolean = true
-): WheelMotionState {
-    const deltaSeconds = Math.min(64, Math.max(0, deltaMs)) / 1000;
-    if (!motionActive || deltaSeconds <= 0) {
-        return state;
-    }
+/** The atlas uses negative angles for the left/orange side and positive for cyan. */
+export function hubAngleForPressure(leftPressure: number): number {
+    return Math.round(clamp((50 - clamp(leftPressure, 0, 100)) * 0.6, -30, 30));
+}
 
-    const safePressureDelta = Number.isFinite(pressureDelta)
-        ? clamp(pressureDelta, -100, 100)
-        : 0;
-    const balanceDelta = safePressureDelta * 2 / 100;
-    const impulse = clamp(
-        -balanceDelta * PRESSURE_IMPULSE_GAIN,
-        -MAX_PRESSURE_IMPULSE,
-        MAX_PRESSURE_IMPULSE
-    );
-    const decay = Math.pow(TARGET_VELOCITY_DECAY_PER_SECOND, deltaSeconds);
-    const targetAngularVelocity = clamp(
-        (state.targetAngularVelocity + impulse) * decay,
-        -MAX_ANGULAR_VELOCITY,
-        MAX_ANGULAR_VELOCITY
-    );
-    const maxVelocityStep = MAX_ANGULAR_ACCELERATION * deltaSeconds;
-    let angularVelocity = approach(
-        state.angularVelocity,
-        targetAngularVelocity,
-        maxVelocityStep
-    );
-
-    // A heavy mechanism must pass through a brief zero-velocity point when the
-    // impulse changes sign; never snap directly from clockwise to counter-clockwise.
-    if (state.angularVelocity !== 0
-        && targetAngularVelocity !== 0
-        && Math.sign(state.angularVelocity) !== Math.sign(targetAngularVelocity)
-        && Math.abs(state.angularVelocity) <= maxVelocityStep) {
-        angularVelocity = 0;
-    }
-
-    return {
-        rotation: state.rotation + angularVelocity * deltaSeconds,
-        angularVelocity,
-        targetAngularVelocity
-    };
+/** Returns the nine opacity targets for one side of the segmented ring. */
+export function buildSegmentOpacities(pressure: number): number[] {
+    const filled = clamp(pressure, 0, 100) / 100 * SEGMENT_COUNT;
+    return Array.from({ length: SEGMENT_COUNT }, (_, index) => clamp(filled - index, 0, 1));
 }
 
 /**
- * Adds a small, damped reaction to the fixed mechanism even while the pressure
- * sample is stable. The base and rope anchors stay fixed; only the inner
- * assembly receives this sub-pixel mechanical play.
+ * Wobble is a small mechanical oscillation, not a winner pointer. The pressure bias
+ * is deliberately tiny; the two incommensurate waves let the wheel briefly answer
+ * in either direction even when one side dominates.
  */
+export function wheelWobbleAngleDegrees(
+    clockSeconds: number,
+    leftPressure: number,
+    reducedMotion = false
+): number {
+    const bias = clamp((leftPressure - 50) / 50, -1, 1) * 0.35;
+    const wave = Math.sin(clockSeconds * 0.78) * 4.2
+        + Math.sin(clockSeconds * 2.17 + 0.9) * 1.15
+        + bias;
+    return clamp(wave * (reducedMotion ? 0.35 : 1), -MAX_WOBBLE_DEGREES, MAX_WOBBLE_DEGREES);
+}
+
+/** Keeps restrained mechanical state independent from central hub orientation. */
 export function stepWheelMechanicalTension(
     state: WheelMechanicalState,
     leftPressure: number,
     deltaMs: number,
-    motionActive: boolean = true
+    motionActive = true
 ): WheelMechanicalState {
     const deltaSeconds = Math.min(64, Math.max(0, deltaMs)) / 1000;
-    if (!motionActive || deltaSeconds <= 0) {
-        return state;
-    }
+    if (!motionActive || deltaSeconds <= 0) return state;
 
     const pressureBias = clamp((leftPressure - 50) / 50, -1, 1);
     const effort = 0.58 + Math.abs(pressureBias) * 0.42;
@@ -158,59 +104,41 @@ export function stepWheelMechanicalTension(
     };
 }
 
-/**
- * Maps the left pressure to one continuous clockwise 360-degree ring.
- * The ring starts at the lower centre of the mechanism, travels around the
- * left side first, and assigns the remainder to cyan. Keeping this pure makes
- * the angular contract testable without a Phaser scene.
- */
-export function buildWheelRingSegments(
-    leftPressure: number,
-    segmentCount: number = RING_SEGMENTS
-): WheelRingSegment[] {
-    const safePressure = Math.max(0, Math.min(100, leftPressure));
-    const orangeSweep = TAU * safePressure / 100;
-    const segmentSweep = TAU / segmentCount;
-    const gap = Math.min(RING_GAP_RADIANS, segmentSweep * 0.3);
+function signedAngleName(angle: number): string {
+    const rounded = Math.round(clamp(angle, -30, 30));
+    return `${rounded >= 0 ? '+' : '-'}${String(Math.abs(rounded)).padStart(2, '0')}`;
+}
 
-    return Array.from({ length: segmentCount }, (_, index) => {
-        const rawStart = index * segmentSweep;
-        const rawEnd = rawStart + segmentSweep;
-        const visibleStart = rawStart + gap * 0.5;
-        const visibleEnd = rawEnd - gap * 0.5;
-        const orangeStart = Math.max(rawStart, 0);
-        const orangeEnd = Math.min(rawEnd, orangeSweep);
-        const orangePortion = Math.max(0, orangeEnd - orangeStart) / segmentSweep;
-
-        return {
-            index,
-            startAngle: RING_START_ANGLE + visibleStart,
-            endAngle: RING_START_ANGLE + visibleEnd,
-            orangePortion,
-            cyanPortion: 1 - orangePortion
-        };
-    });
+function wobbleName(angle: number): string {
+    const rounded = Math.round(clamp(angle, -MAX_WOBBLE_DEGREES, MAX_WOBBLE_DEGREES));
+    return `${rounded >= 0 ? '+' : '-'}${String(Math.abs(rounded)).padStart(2, '0')}`;
 }
 
 export class WheelMechanism {
     public readonly x: number;
     public readonly y: number;
     public readonly size: number;
+    public readonly ready: Promise<void>;
 
-    private readonly shadow: Phaser.GameObjects.Ellipse;
-    private readonly floorMount: Phaser.GameObjects.Rectangle;
-    private readonly baseSprite: Phaser.GameObjects.Image;
-    private readonly discSprite: Phaser.GameObjects.Image;
-    private readonly ringGraphics: Phaser.GameObjects.Graphics;
-    private readonly hubSprite: Phaser.GameObjects.Image;
-    private readonly pointerGraphics: Phaser.GameObjects.Graphics;
-    private readonly crownSprite: Phaser.GameObjects.Image;
-
-    private currentRotation: number = 0;
-    private targetRotationVelocity: number = 0;
-    private currentRotationVelocity: number = 0;
-    private lastRingPressure: number = Number.NaN;
-    private pointerRotation: number = -Math.PI * 0.5;
+    private readonly scene: Phaser.Scene;
+    private readonly assetRoot: string;
+    private readonly reducedMotion: boolean;
+    private readonly canvas: HTMLCanvasElement;
+    private readonly context: CanvasRenderingContext2D;
+    private readonly textureKey: string;
+    private readonly sprite: Phaser.GameObjects.Image;
+    private readonly images = new Map<string, HTMLImageElement>();
+    private readonly imageLoads = new Map<string, Promise<HTMLImageElement | null>>();
+    private readonly failedImages = new Set<string>();
+    private texture?: Phaser.Textures.CanvasTexture;
+    private manifest?: SpriteManifest;
+    private destroyed = false;
+    private currentHubAngle = 0;
+    private hubColor: HubColor = 'neutral';
+    private lastReadyHubPath = 'hub/frames/neutral/angulo_+00.png';
+    private lastPressure = 50;
+    private segmentAlphaLeft = buildSegmentOpacities(50);
+    private segmentAlphaRight = buildSegmentOpacities(50);
     private mechanicalState: WheelMechanicalState = {
         clock: 0,
         offsetX: 0,
@@ -220,79 +148,196 @@ export class WheelMechanism {
 
     constructor(
         scene: Phaser.Scene,
-        x: number = 480,
-        y: number = 277,
-        size: number = 320
+        x = 480,
+        y = 277,
+        size = 410,
+        assetRoot = '/games/arena-pressure/sprites/',
+        reducedMotion = false
     ) {
+        this.scene = scene;
         this.x = x;
         this.y = y;
         this.size = size;
+        this.assetRoot = assetRoot.replace(/\/?$/, '/');
+        this.reducedMotion = reducedMotion;
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = SOURCE_SIZE;
+        this.canvas.height = SOURCE_SIZE;
+        const context = this.canvas.getContext('2d');
+        if (!context) throw new Error('arena_pressure_canvas_context_unavailable');
+        this.context = context;
+        this.context.imageSmoothingEnabled = true;
 
-        // 1. Floor shadow and foundation anchor
-        this.shadow = scene.add.ellipse(x, y + size * 0.48, size * 1.15, size * 0.14, 0x000000, 0.65).setDepth(4);
-        this.floorMount = scene.add.rectangle(x, y + size * 0.35, size * 0.62, size * 0.22, 0x141b25)
-            .setStrokeStyle(3, 0x3d4d63)
-            .setDepth(5);
+        this.textureKey = `arena-pressure-sprite-wheel-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        this.texture = scene.sys.textures.addCanvas(this.textureKey, this.canvas) ?? undefined;
+        if (!this.texture) throw new Error('arena_pressure_canvas_texture_unavailable');
 
-        // 2. Fixed Outer Base (Gear rim and floor brackets)
-        this.baseSprite = scene.add.image(x, y, 'wheel-base')
+        const imageY = y + (SOURCE_IMAGE_CENTER - SOURCE_CENTER_Y) * (size / SOURCE_SIZE);
+        this.sprite = scene.add.image(x, imageY, this.textureKey)
             .setDisplaySize(size, size)
             .setDepth(6);
 
-        // 3. Rotating Mechanical Disc (Inner spokes turbine)
-        this.discSprite = scene.add.image(x, y, 'wheel-disc')
-            .setDisplaySize(size, size)
-            .setDepth(7);
-
-        // 4. Dynamic LED Ring Graphics (Neon segments showing relative pressure)
-        this.ringGraphics = scene.add.graphics().setDepth(8);
-
-        // 5. Central hub and independent dominance pointer. The pointer is drawn
-        // procedurally so it can move without rotating the crown artwork.
-        this.hubSprite = scene.add.image(x, y, 'wheel-hub')
-            .setDisplaySize(size, size)
-            .setDepth(9);
-
-        this.pointerGraphics = scene.add.graphics().setDepth(9.5);
-
-        // The crown artwork is always upright. Its tint changes, but its orientation
-        // is never used as a proxy for dominance.
-        this.crownSprite = scene.add.image(x, y, 'wheel-crown')
-            .setDisplaySize(size, size)
-            .setDepth(10)
-            .setTint(ARENA_COLORS.gold);
+        this.ready = this.initialize();
     }
 
-    /**
-     * Updates the mechanical disc and renders the fixed LED ring.
-     * @param currentPressure Interpolated left pressure (0..100)
-     * @param targetPressure Target left pressure (0..100)
-     * @param delta Delta time in ms
-     * @param pressureDelta Change in the real pressure sample since the previous update
-     * @param motionActive False while replay transport is paused
-     */
+    private async initialize(): Promise<void> {
+        const response = await fetch(`${this.assetRoot}manifest.json`, { cache: 'force-cache' });
+        if (!response.ok) throw new Error(`arena_pressure_manifest_${response.status}`);
+        this.manifest = await response.json() as SpriteManifest;
+        if (this.manifest.source_size[0] !== SOURCE_SIZE || this.manifest.source_size[1] !== SOURCE_SIZE) {
+            throw new Error('arena_pressure_manifest_source_size_mismatch');
+        }
+
+        const wobblePaths = Array.from({ length: 13 }, (_, index) => {
+            const angle = index - MAX_WOBBLE_DEGREES;
+            return `wheel/wobble/inclinacao_${wobbleName(angle)}.png`;
+        });
+        const staticPaths = [
+            'base/suporte_fixo.png',
+            'base/cordas_extremidades.png',
+            'lights/special/left_raios_internos.png',
+            'lights/special/right_raios_internos.png',
+            'lights/special/left_suporte.png',
+            'lights/special/right_suporte.png',
+            'hub/frames/neutral/angulo_+00.png',
+            ...wobblePaths,
+            ...Array.from({ length: SEGMENT_COUNT }, (_, index) =>
+                `lights/segments/left/segment_${String(index + 1).padStart(2, '0')}.png`),
+            ...Array.from({ length: SEGMENT_COUNT }, (_, index) =>
+                `lights/segments/right/segment_${String(index + 1).padStart(2, '0')}.png`)
+        ];
+
+        const loaded = await Promise.all(staticPaths.map(path => this.loadImage(path)));
+        if (loaded.some(image => image === null)) {
+            throw new Error('arena_pressure_required_sprite_load_failed');
+        }
+        this.render(50);
+    }
+
+    private loadImage(path: string): Promise<HTMLImageElement | null> {
+        const existing = this.imageLoads.get(path);
+        if (existing) return existing;
+        if (this.images.has(path)) return Promise.resolve(this.images.get(path) ?? null);
+        if (this.failedImages.has(path)) return Promise.resolve(null);
+
+        const promise = new Promise<HTMLImageElement | null>(resolve => {
+            const image = new Image();
+            image.decoding = 'async';
+            image.onload = () => {
+                if (!this.destroyed) {
+                    this.images.set(path, image);
+                    this.render(this.lastPressure);
+                }
+                resolve(image);
+            };
+            image.onerror = () => {
+                this.failedImages.add(path);
+                resolve(null);
+            };
+            image.src = `${this.assetRoot}${path}`;
+        });
+
+        this.imageLoads.set(path, promise);
+        return promise;
+    }
+
+    private ensureHubFrame(path: string): void {
+        if (this.images.has(path) || this.failedImages.has(path)) return;
+        void this.loadImage(path);
+    }
+
+    private drawSprite(path: string, alpha = 1): void {
+        if (alpha <= 0 || !this.manifest) return;
+        const image = this.images.get(path);
+        const sprite = this.manifest.sprites[path];
+        if (!image || !sprite) return;
+
+        this.context.save();
+        this.context.globalAlpha = clamp(alpha, 0, 1);
+        this.context.drawImage(image, sprite.x, sprite.y, sprite.width, sprite.height);
+        this.context.restore();
+    }
+
+    private updateHubColor(targetColor: HubColor): void {
+        if (targetColor === 'neutral') {
+            this.hubColor = 'neutral';
+            return;
+        }
+
+        if (this.hubColor === targetColor) return;
+        if (this.hubColor === 'neutral') {
+            if (Math.abs(this.currentHubAngle) >= 2) {
+                this.hubColor = this.currentHubAngle < 0 ? 'orange' : 'cyan';
+            }
+            return;
+        }
+
+        // Leadership changes cross the neutral atlas instead of recolouring a frame
+        // while it is still visibly leaning toward the previous side.
+        const crossing = this.hubColor === 'orange'
+            ? this.currentHubAngle >= -1
+            : this.currentHubAngle <= 1;
+        if (crossing) this.hubColor = 'neutral';
+    }
+
+    private render(leftPressure: number): void {
+        if (this.destroyed || !this.manifest || !this.texture) return;
+        const wobble = wheelWobbleAngleDegrees(
+            this.mechanicalState.clock,
+            leftPressure,
+            this.reducedMotion
+        );
+        const wobblePath = `wheel/wobble/inclinacao_${wobbleName(wobble)}.png`;
+        const targetHubPath = `hub/frames/${this.hubColor}/angulo_${signedAngleName(this.currentHubAngle)}.png`;
+        this.ensureHubFrame(targetHubPath);
+
+        this.context.clearRect(0, 0, SOURCE_SIZE, SOURCE_SIZE);
+        this.drawSprite('base/suporte_fixo.png');
+        this.drawSprite(wobblePath);
+
+        // Segment and ray layers use the manifest pivot, keeping transparent cuts
+        // registered with the pre-rendered wheel wobble frame.
+        const pivot = this.manifest.center_pivot_px;
+        this.context.save();
+        this.context.translate(pivot[0], pivot[1]);
+        this.context.rotate(wobble * Math.PI / 180);
+        this.context.translate(-pivot[0], -pivot[1]);
+
+        for (let index = 0; index < SEGMENT_COUNT; index++) {
+            const leftPath = `lights/segments/left/segment_${String(index + 1).padStart(2, '0')}.png`;
+            const rightIndex = SEGMENT_COUNT - index;
+            const rightPath = `lights/segments/right/segment_${String(rightIndex).padStart(2, '0')}.png`;
+            const pulse = this.reducedMotion ? 0 : Math.sin(this.mechanicalState.clock * 4.4 + index * 0.65) * 0.035;
+            this.drawSprite(leftPath, clamp(this.segmentAlphaLeft[index] + pulse, 0, 1));
+            this.drawSprite(rightPath, clamp(this.segmentAlphaRight[index] + pulse, 0, 1));
+        }
+
+        this.drawSprite('lights/special/left_raios_internos.png', 0.08 + leftPressure / 100 * 0.84);
+        this.drawSprite('lights/special/right_raios_internos.png', 0.08 + (100 - leftPressure) / 100 * 0.84);
+        this.context.restore();
+
+        // Support LEDs stay fixed with the pedestal, unlike ring lights.
+        this.drawSprite('lights/special/left_suporte.png', leftPressure / 100);
+        this.drawSprite('lights/special/right_suporte.png', (100 - leftPressure) / 100);
+
+        // Each hub frame already contains its crown. Never layer a second crown.
+        if (this.images.has(targetHubPath)) this.lastReadyHubPath = targetHubPath;
+        this.drawSprite(this.lastReadyHubPath);
+
+        // Rope end caps remain fixed to the original source coordinates.
+        this.drawSprite('base/cordas_extremidades.png');
+        this.texture.refresh();
+    }
+
     public update(
         currentPressure: number,
-        targetPressure: number,
+        _targetPressure: number,
         delta: number,
-        pressureDelta: number = 0,
-        motionActive: boolean = true
+        _pressureDelta = 0,
+        motionActive = true
     ): void {
-        const left = Math.max(0, Math.min(100, currentPressure));
-
-        const motion = stepWheelMotion(
-            {
-                rotation: this.currentRotation,
-                angularVelocity: this.currentRotationVelocity,
-                targetAngularVelocity: this.targetRotationVelocity
-            },
-            pressureDelta,
-            delta,
-            motionActive
-        );
-        this.currentRotation = motion.rotation;
-        this.currentRotationVelocity = motion.angularVelocity;
-        this.targetRotationVelocity = motion.targetAngularVelocity;
+        const left = clamp(currentPressure, 0, 100);
+        this.lastPressure = left;
         this.mechanicalState = stepWheelMechanicalTension(
             this.mechanicalState,
             left,
@@ -300,245 +345,58 @@ export class WheelMechanism {
             motionActive
         );
 
-        this.discSprite
-            .setPosition(this.x + this.mechanicalState.offsetX * 0.38, this.y + this.mechanicalState.offsetY * 0.3)
-            .setRotation(this.currentRotation + this.mechanicalState.angle);
-        this.ringGraphics.setPosition(this.mechanicalState.offsetX * 0.34, this.mechanicalState.offsetY * 0.26);
-        this.hubSprite.setPosition(this.x + this.mechanicalState.offsetX * 0.68, this.y + this.mechanicalState.offsetY * 0.52);
+        const targetHubAngle = hubAngleForPressure(left);
+        const hubResponse = 1 - Math.exp(-Math.min(64, Math.max(0, delta)) / 1000 * 7);
+        this.currentHubAngle += (targetHubAngle - this.currentHubAngle) * hubResponse;
+        this.updateHubColor(hubColorForPressure(left));
 
-        const targetPointerRotation = dominancePointerRotationForPressure(left);
-        const crownResponse = 1 - Math.exp(-Math.min(64, Math.max(0, delta)) / 1000 * 7);
-        this.pointerRotation = approachAngle(this.pointerRotation, targetPointerRotation, crownResponse);
-        const hubX = this.x + this.mechanicalState.offsetX * 0.68;
-        const hubY = this.y + this.mechanicalState.offsetY * 0.52;
-        this.crownSprite
-            .setPosition(hubX, hubY)
-            .setRotation(0)
-            .setTint(crownColorForPressure(left));
-        this.pointerGraphics
-            .setPosition(hubX, hubY)
-            .setRotation(this.pointerRotation);
-        this.drawDominancePointer(crownColorForPressure(left));
+        const targetLeft = buildSegmentOpacities(left);
+        const targetRight = buildSegmentOpacities(100 - left);
+        const lightResponse = 1 - Math.exp(-Math.min(64, Math.max(0, delta)) / 1000 * 8);
+        this.segmentAlphaLeft = this.segmentAlphaLeft.map((value, index) =>
+            value + (targetLeft[index] - value) * lightResponse);
+        this.segmentAlphaRight = this.segmentAlphaRight.map((value, index) =>
+            value + (targetRight[index] - value) * lightResponse);
 
-        // Render LED ring segments
-        this.drawLedRing(left);
+        this.render(left);
     }
 
-    /** Clears momentum after a replay seek without jumping the current angle. */
+    /** Clears the mechanical clock response after a replay seek. */
     public resetMotion(): void {
-        this.currentRotationVelocity = 0;
-        this.targetRotationVelocity = 0;
+        this.mechanicalState = {
+            ...this.mechanicalState,
+            offsetX: 0,
+            offsetY: 0,
+            angle: 0
+        };
     }
 
-    private drawLedRing(left: number): void {
-        const g = this.ringGraphics;
-        if (Number.isFinite(this.lastRingPressure)
-            && Math.abs(left - this.lastRingPressure) < MIN_RING_REDRAW_DELTA) {
-            return;
-        }
-        this.lastRingPressure = left;
-        g.clear();
-
-        const radius = this.size * RING_RADIUS_RATIO;
-        const arcThickness = this.size * RING_THICKNESS_RATIO;
-        const segments = buildWheelRingSegments(left);
-
-        // A dark underlay keeps the ring physically seated in the recessed metal track.
-        for (const segment of segments) {
-            this.drawArc(g, this.x, this.y, radius, segment.startAngle, segment.endAngle,
-                arcThickness + 8, 0x060b12, 0.96);
-        }
-
-        // Each segment is split at the exact pressure boundary. This preserves the
-        // requested angular ratio even when the boundary falls through a segment.
-        for (const segment of segments) {
-            const span = segment.endAngle - segment.startAngle;
-            const orangeEnd = segment.startAngle + span * segment.orangePortion;
-            const cyanStart = orangeEnd;
-
-            if (segment.orangePortion > 0) {
-                this.drawGlassPanel(g, this.x, this.y, radius, segment.startAngle, orangeEnd,
-                    arcThickness, ARENA_COLORS.left, 0xffe6b0);
-            }
-            if (segment.cyanPortion > 0) {
-                this.drawGlassPanel(g, this.x, this.y, radius, cyanStart, segment.endAngle,
-                    arcThickness, ARENA_COLORS.right, 0xd0fffd);
-            }
-        }
-    }
-
-    private drawGlassPanel(
-        g: Phaser.GameObjects.Graphics,
-        cx: number,
-        cy: number,
-        radius: number,
-        startAngle: number,
-        endAngle: number,
-        thickness: number,
-        color: number,
-        highlightColor: number
-    ): void {
-        if (endAngle - startAngle <= 0.0001) {
-            return;
-        }
-
-        const edgeColor = color === ARENA_COLORS.left ? 0x5b2d08 : 0x0b4b4d;
-
-        const span = endAngle - startAngle;
-        const outerRadius = radius + thickness * 0.5;
-        const innerRadius = Math.max(1, radius - thickness * 0.5);
-
-        // Rear emission, recessed edge, translucent body, internal light, and
-        // bevel highlights make each large wedge read as a thick glass module.
-        this.drawArc(g, cx, cy, radius + 4, startAngle, endAngle, thickness + 12, color, 0.16);
-        this.drawWedge(g, cx, cy, outerRadius + 3, innerRadius - 3, startAngle, endAngle, edgeColor, 0.92);
-        this.drawWedge(g, cx, cy, outerRadius, innerRadius, startAngle, endAngle, color, 0.8);
-        this.drawWedge(
-            g,
-            cx,
-            cy,
-            outerRadius - thickness * 0.08,
-            innerRadius + thickness * 0.16,
-            startAngle,
-            endAngle,
-            color,
-            0.5
-        );
-        this.drawArc(g, cx, cy, radius - thickness * 0.24, startAngle, endAngle,
-            thickness * 0.16, highlightColor, 0.82);
-        this.drawArc(g, cx, cy, outerRadius - 1, startAngle, endAngle,
-            1.6, 0xffffff, 0.28);
-        this.drawArc(g, cx, cy, innerRadius + 1, startAngle, endAngle,
-            1.4, highlightColor, 0.46);
-
-        // A short specular reflection sits on the front face instead of filling
-        // the entire segment with a flat neon stroke.
-        const reflectionStart = startAngle + span * 0.16;
-        const reflectionEnd = startAngle + span * 0.48;
-        this.drawArc(g, cx, cy, radius + thickness * 0.08, reflectionStart, reflectionEnd,
-            thickness * 0.075, 0xffffff, 0.26);
-    }
-
-    private drawDominancePointer(color: number): void {
-        const g = this.pointerGraphics;
-        const length = this.size * 0.225;
-        const shaftStart = this.size * 0.035;
-        const shaftEnd = length * 0.74;
-        const shaftWidth = Math.max(4, this.size * 0.024);
-        const headWidth = Math.max(10, this.size * 0.075);
-
-        g.clear();
-        g.lineStyle(shaftWidth + 8, color, 0.12);
-        g.beginPath();
-        g.moveTo(shaftStart, 0);
-        g.lineTo(shaftEnd, 0);
-        g.strokePath();
-
-        g.lineStyle(shaftWidth + 3, 0x160f13, 0.95);
-        g.beginPath();
-        g.moveTo(shaftStart, 0);
-        g.lineTo(shaftEnd, 0);
-        g.strokePath();
-
-        g.lineStyle(shaftWidth, color, 0.96);
-        g.beginPath();
-        g.moveTo(shaftStart, 0);
-        g.lineTo(shaftEnd, 0);
-        g.strokePath();
-
-        g.fillStyle(0x160f13, 0.96);
-        g.beginPath();
-        g.moveTo(shaftEnd - headWidth * 0.16, -headWidth * 0.62);
-        g.lineTo(length + headWidth * 0.28, 0);
-        g.lineTo(shaftEnd - headWidth * 0.16, headWidth * 0.62);
-        g.lineTo(shaftEnd + headWidth * 0.1, 0);
-        g.closePath();
-        g.fillPath();
-
-        g.fillStyle(color, 0.98);
-        g.beginPath();
-        g.moveTo(shaftEnd - headWidth * 0.16, -headWidth * 0.43);
-        g.lineTo(length + headWidth * 0.2, 0);
-        g.lineTo(shaftEnd - headWidth * 0.16, headWidth * 0.43);
-        g.lineTo(shaftEnd + headWidth * 0.08, 0);
-        g.closePath();
-        g.fillPath();
-
-        g.lineStyle(1.5, 0xffffff, 0.44);
-        g.beginPath();
-        g.moveTo(shaftEnd - headWidth * 0.04, -headWidth * 0.3);
-        g.lineTo(length + headWidth * 0.13, 0);
-        g.strokePath();
-    }
-
-    private drawWedge(
-        g: Phaser.GameObjects.Graphics,
-        cx: number,
-        cy: number,
-        outerRadius: number,
-        innerRadius: number,
-        startAngle: number,
-        endAngle: number,
-        color: number,
-        alpha: number
-    ): void {
-        const steps = Math.max(4, Math.ceil((endAngle - startAngle) / (TAU / 48)));
-        g.fillStyle(color, alpha);
-        g.beginPath();
-        for (let index = 0; index <= steps; index++) {
-            const angle = startAngle + (endAngle - startAngle) * index / steps;
-            const x = cx + Math.cos(angle) * outerRadius;
-            const y = cy + Math.sin(angle) * outerRadius;
-            if (index === 0) g.moveTo(x, y);
-            else g.lineTo(x, y);
-        }
-        for (let index = steps; index >= 0; index--) {
-            const angle = startAngle + (endAngle - startAngle) * index / steps;
-            g.lineTo(cx + Math.cos(angle) * innerRadius, cy + Math.sin(angle) * innerRadius);
-        }
-        g.closePath();
-        g.fillPath();
-    }
-
-    private drawArc(
-        g: Phaser.GameObjects.Graphics,
-        cx: number,
-        cy: number,
-        radius: number,
-        startAngle: number,
-        endAngle: number,
-        thickness: number,
-        color: number,
-        alpha: number
-    ): void {
-        g.lineStyle(thickness, color, alpha);
-        g.beginPath();
-        g.arc(cx, cy, radius, startAngle, endAngle, false);
-        g.strokePath();
-    }
-
-    /**
-     * Attachment point for the left rope connector (the fixed rope cleat of the base art).
-     */
     public getLeftAnchor(): { x: number; y: number } {
-        return { x: this.x - this.size * 0.42, y: this.y };
+        const scale = this.size / SOURCE_SIZE;
+        const imageY = this.y + (SOURCE_IMAGE_CENTER - SOURCE_CENTER_Y) * scale;
+        return {
+            x: this.x + (LEFT_ROPE_ANCHOR.x - SOURCE_IMAGE_CENTER) * scale,
+            y: imageY + (LEFT_ROPE_ANCHOR.y - SOURCE_IMAGE_CENTER) * scale
+        };
     }
 
-    /**
-     * Attachment point for the right rope connector (the fixed rope cleat of the base art).
-     */
     public getRightAnchor(): { x: number; y: number } {
-        return { x: this.x + this.size * 0.42, y: this.y };
+        const scale = this.size / SOURCE_SIZE;
+        const imageY = this.y + (SOURCE_IMAGE_CENTER - SOURCE_CENTER_Y) * scale;
+        return {
+            x: this.x + (RIGHT_ROPE_ANCHOR.x - SOURCE_IMAGE_CENTER) * scale,
+            y: imageY + (RIGHT_ROPE_ANCHOR.y - SOURCE_IMAGE_CENTER) * scale
+        };
     }
 
     public destroy(): void {
-        this.shadow.destroy();
-        this.floorMount.destroy();
-        this.baseSprite.destroy();
-        this.discSprite.destroy();
-        this.ringGraphics.destroy();
-        this.hubSprite.destroy();
-        this.pointerGraphics.destroy();
-        this.crownSprite.destroy();
+        if (this.destroyed) return;
+        this.destroyed = true;
+        this.sprite.destroy();
+        this.scene.sys.textures.remove(this.textureKey);
+        this.texture = undefined;
+        this.images.clear();
+        this.imageLoads.clear();
+        this.failedImages.clear();
     }
 }

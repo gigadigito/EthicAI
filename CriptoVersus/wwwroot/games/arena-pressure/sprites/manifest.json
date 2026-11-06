@@ -1,0 +1,2790 @@
+{
+  "format": "CriptoVersus Arena Pressure sprite pack v1",
+  "source_size": [
+    1254,
+    1254
+  ],
+  "center_pivot_px": [
+    626,
+    599
+  ],
+  "notes": [
+    "Sprites are cut from the user-provided transparent original, not AI-redrawn.",
+    "Canvas renderer: use file x/y positions; source origin is 0,0.",
+    "Positive hub angle means clockwise inclination toward the cyan/right side.",
+    "Orange is left (#ff9100), cyan is right (#18d8d2).",
+    "Light and wobble transforms act independently."
+  ],
+  "layers": {
+    "static": [
+      "base/suporte_fixo.png",
+      "base/cordas_extremidades.png"
+    ],
+    "rotating_wheel": [
+      "wheel/wobble/inclinacao_+00.png"
+    ],
+    "ring_light_left": [
+      "lights/segments/left/segment_01.png",
+      "lights/segments/left/segment_02.png",
+      "lights/segments/left/segment_03.png",
+      "lights/segments/left/segment_04.png",
+      "lights/segments/left/segment_05.png",
+      "lights/segments/left/segment_06.png",
+      "lights/segments/left/segment_07.png",
+      "lights/segments/left/segment_08.png",
+      "lights/segments/left/segment_09.png"
+    ],
+    "ring_light_right": [
+      "lights/segments/right/segment_01.png",
+      "lights/segments/right/segment_02.png",
+      "lights/segments/right/segment_03.png",
+      "lights/segments/right/segment_04.png",
+      "lights/segments/right/segment_05.png",
+      "lights/segments/right/segment_06.png",
+      "lights/segments/right/segment_07.png",
+      "lights/segments/right/segment_08.png",
+      "lights/segments/right/segment_09.png"
+    ],
+    "hub": [
+      "hub/frames/cyan/angulo_+00.png"
+    ],
+    "underwheel_original_reference": "docs/original_transparente.png"
+  },
+  "sprites": {
+    "base/estrutura_apagada.png": {
+      "x": 0,
+      "y": 0,
+      "width": 1254,
+      "height": 1254
+    },
+    "base/suporte_fixo.png": {
+      "x": 122,
+      "y": 1063,
+      "width": 1009,
+      "height": 191
+    },
+    "wheel/estrutura_reclinavel_apagada.png": {
+      "x": 67,
+      "y": 0,
+      "width": 1119,
+      "height": 1150
+    },
+    "lights/segments/right/segment_01.png": {
+      "x": 625,
+      "y": 69,
+      "width": 184,
+      "height": 201,
+      "angular_range_deg": [
+        0,
+        20
+      ]
+    },
+    "lights/segments/right/segment_02.png": {
+      "x": 748,
+      "y": 101,
+      "width": 221,
+      "height": 234,
+      "angular_range_deg": [
+        20,
+        40
+      ]
+    },
+    "lights/segments/right/segment_03.png": {
+      "x": 849,
+      "y": 192,
+      "width": 235,
+      "height": 235,
+      "angular_range_deg": [
+        40,
+        60
+      ]
+    },
+    "lights/segments/right/segment_04.png": {
+      "x": 926,
+      "y": 335,
+      "width": 224,
+      "height": 206,
+      "angular_range_deg": [
+        60,
+        80
+      ]
+    },
+    "lights/segments/right/segment_05.png": {
+      "x": 967,
+      "y": 506,
+      "width": 192,
+      "height": 187,
+      "angular_range_deg": [
+        80,
+        100
+      ]
+    },
+    "lights/segments/right/segment_06.png": {
+      "x": 919,
+      "y": 658,
+      "width": 230,
+      "height": 224,
+      "angular_range_deg": [
+        100,
+        122
+      ]
+    },
+    "lights/segments/right/segment_07.png": {
+      "x": 829,
+      "y": 782,
+      "width": 249,
+      "height": 240,
+      "angular_range_deg": [
+        122,
+        144
+      ]
+    },
+    "lights/segments/right/segment_08.png": {
+      "x": 715,
+      "y": 879,
+      "width": 218,
+      "height": 227,
+      "angular_range_deg": [
+        144,
+        165
+      ]
+    },
+    "lights/segments/right/segment_09.png": {
+      "x": 625,
+      "y": 934,
+      "width": 133,
+      "height": 184,
+      "angular_range_deg": [
+        165,
+        180
+      ]
+    },
+    "lights/special/right_todos_segmentos.png": {
+      "x": 625,
+      "y": 69,
+      "width": 534,
+      "height": 1049
+    },
+    "lights/special/right_raios_internos.png": {
+      "x": 624,
+      "y": 241,
+      "width": 364,
+      "height": 719
+    },
+    "lights/special/right_suporte.png": {
+      "x": 624,
+      "y": 1078,
+      "width": 494,
+      "height": 165
+    },
+    "lights/segments/left/segment_01.png": {
+      "x": 439,
+      "y": 922,
+      "width": 189,
+      "height": 209,
+      "angular_range_deg": [
+        180,
+        201
+      ]
+    },
+    "lights/segments/left/segment_02.png": {
+      "x": 270,
+      "y": 856,
+      "width": 234,
+      "height": 230,
+      "angular_range_deg": [
+        201,
+        222
+      ]
+    },
+    "lights/segments/left/segment_03.png": {
+      "x": 152,
+      "y": 756,
+      "width": 243,
+      "height": 239,
+      "angular_range_deg": [
+        222,
+        243
+      ]
+    },
+    "lights/segments/left/segment_04.png": {
+      "x": 97,
+      "y": 634,
+      "width": 222,
+      "height": 208,
+      "angular_range_deg": [
+        243,
+        264
+      ]
+    },
+    "lights/segments/left/segment_05.png": {
+      "x": 94,
+      "y": 461,
+      "width": 199,
+      "height": 196,
+      "angular_range_deg": [
+        264,
+        285
+      ]
+    },
+    "lights/segments/left/segment_06.png": {
+      "x": 115,
+      "y": 286,
+      "width": 232,
+      "height": 225,
+      "angular_range_deg": [
+        285,
+        306
+      ]
+    },
+    "lights/segments/left/segment_07.png": {
+      "x": 196,
+      "y": 158,
+      "width": 243,
+      "height": 239,
+      "angular_range_deg": [
+        306,
+        327
+      ]
+    },
+    "lights/segments/left/segment_08.png": {
+      "x": 339,
+      "y": 79,
+      "width": 217,
+      "height": 231,
+      "angular_range_deg": [
+        327,
+        348
+      ]
+    },
+    "lights/segments/left/segment_09.png": {
+      "x": 515,
+      "y": 67,
+      "width": 113,
+      "height": 195,
+      "angular_range_deg": [
+        348,
+        360
+      ]
+    },
+    "lights/special/left_todos_segmentos.png": {
+      "x": 94,
+      "y": 67,
+      "width": 534,
+      "height": 1064
+    },
+    "lights/special/left_raios_internos.png": {
+      "x": 265,
+      "y": 239,
+      "width": 363,
+      "height": 721
+    },
+    "lights/special/left_suporte.png": {
+      "x": 138,
+      "y": 1078,
+      "width": 490,
+      "height": 165
+    },
+    "hub/disco_sem_luz_da_coroa.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/crown/coroa_orange.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/crown/coroa_cyan.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/crown/coroa_neutral.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-30.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -30,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-29.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -29,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-28.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -28,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-27.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -27,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-26.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -26,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-25.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -25,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-24.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -24,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-23.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -23,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-22.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -22,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-21.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -21,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-20.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -20,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-19.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -19,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-18.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -18,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-17.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -17,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-16.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -16,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-15.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -15,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-14.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -14,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-13.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -13,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-12.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -12,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-11.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -11,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-10.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -10,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-09.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -9,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-08.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -8,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-07.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -7,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-06.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -6,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-05.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -5,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-04.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -4,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-03.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -3,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-02.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -2,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_-01.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -1,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+00.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 0,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+01.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 1,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+02.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 2,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+03.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 3,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+04.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 4,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+05.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 5,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+06.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 6,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+07.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 7,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+08.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 8,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+09.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 9,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+10.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 10,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+11.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 11,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+12.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 12,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+13.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 13,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+14.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 14,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+15.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 15,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+16.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 16,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+17.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 17,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+18.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 18,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+19.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 19,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+20.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 20,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+21.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 21,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+22.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 22,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+23.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 23,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+24.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 24,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+25.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 25,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+26.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 26,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+27.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 27,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+28.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 28,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+29.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 29,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/orange/angulo_+30.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 30,
+      "winner_color": "orange",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-30.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -30,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-29.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -29,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-28.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -28,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-27.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -27,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-26.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -26,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-25.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -25,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-24.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -24,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-23.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -23,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-22.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -22,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-21.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -21,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-20.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -20,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-19.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -19,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-18.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -18,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-17.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -17,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-16.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -16,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-15.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -15,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-14.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -14,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-13.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -13,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-12.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -12,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-11.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -11,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-10.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -10,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-09.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -9,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-08.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -8,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-07.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -7,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-06.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -6,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-05.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -5,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-04.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -4,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-03.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -3,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-02.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -2,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_-01.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -1,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+00.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 0,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+01.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 1,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+02.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 2,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+03.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 3,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+04.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 4,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+05.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 5,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+06.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 6,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+07.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 7,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+08.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 8,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+09.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 9,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+10.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 10,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+11.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 11,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+12.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 12,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+13.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 13,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+14.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 14,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+15.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 15,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+16.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 16,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+17.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 17,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+18.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 18,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+19.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 19,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+20.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 20,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+21.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 21,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+22.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 22,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+23.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 23,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+24.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 24,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+25.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 25,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+26.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 26,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+27.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 27,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+28.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 28,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+29.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 29,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/cyan/angulo_+30.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 30,
+      "winner_color": "cyan",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-30.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -30,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-29.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -29,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-28.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -28,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-27.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -27,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-26.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -26,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-25.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -25,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-24.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -24,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-23.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -23,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-22.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -22,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-21.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -21,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-20.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -20,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-19.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -19,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-18.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -18,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-17.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -17,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-16.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -16,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-15.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -15,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-14.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -14,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-13.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -13,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-12.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -12,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-11.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -11,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-10.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -10,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-09.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -9,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-08.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -8,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-07.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -7,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-06.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -6,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-05.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -5,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-04.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -4,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-03.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -3,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-02.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -2,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_-01.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": -1,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+00.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 0,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+01.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 1,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+02.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 2,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+03.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 3,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+04.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 4,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+05.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 5,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+06.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 6,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+07.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 7,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+08.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 8,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+09.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 9,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+10.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 10,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+11.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 11,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+12.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 12,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+13.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 13,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+14.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 14,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+15.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 15,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+16.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 16,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+17.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 17,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+18.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 18,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+19.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 19,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+20.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 20,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+21.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 21,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+22.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 22,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+23.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 23,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+24.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 24,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+25.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 25,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+26.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 26,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+27.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 27,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+28.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 28,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+29.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 29,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "hub/frames/neutral/angulo_+30.png": {
+      "x": 437,
+      "y": 410,
+      "width": 379,
+      "height": 379,
+      "angle_deg_clockwise": 30,
+      "winner_color": "neutral",
+      "pivot_local": [
+        189,
+        189
+      ]
+    },
+    "wheel/wobble/inclinacao_-06.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": -6,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "wheel/wobble/inclinacao_-05.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": -5,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "wheel/wobble/inclinacao_-04.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": -4,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "wheel/wobble/inclinacao_-03.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": -3,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "wheel/wobble/inclinacao_-02.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": -2,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "wheel/wobble/inclinacao_-01.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": -1,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "wheel/wobble/inclinacao_+00.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": 0,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "wheel/wobble/inclinacao_+01.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": 1,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "wheel/wobble/inclinacao_+02.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": 2,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "wheel/wobble/inclinacao_+03.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": 3,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "wheel/wobble/inclinacao_+04.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": 4,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "wheel/wobble/inclinacao_+05.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": 5,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "wheel/wobble/inclinacao_+06.png": {
+      "x": 42,
+      "y": 0,
+      "width": 1173,
+      "height": 1156,
+      "angle_deg_clockwise": 6,
+      "pivot_local": [
+        584,
+        599
+      ]
+    },
+    "base/cordas_extremidades.png": {
+      "x": 0,
+      "y": 550,
+      "width": 1254,
+      "height": 115
+    },
+    "docs/original_transparente.png": {
+      "x": 0,
+      "y": 0,
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "animation": {
+    "wobble_angles_deg": [
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "hub_angles_deg_clockwise": [
+      -30,
+      -29,
+      -28,
+      -27,
+      -26,
+      -25,
+      -24,
+      -23,
+      -22,
+      -21,
+      -20,
+      -19,
+      -18,
+      -17,
+      -16,
+      -15,
+      -14,
+      -13,
+      -12,
+      -11,
+      -10,
+      -9,
+      -8,
+      -7,
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30
+    ],
+    "hub_colors": {
+      "orange": [
+        255,
+        145,
+        0
+      ],
+      "cyan": [
+        24,
+        216,
+        210
+      ],
+      "neutral": [
+        229,
+        225,
+        186
+      ]
+    },
+    "sides": {
+      "left": "orange",
+      "right": "cyan"
+    },
+    "wobble_logic": "Small alternating tilt +/-6deg driven by rope tension; not by pressure winner.",
+    "hub_logic": "Center orb rotates to LEFT for left win (negative angle), RIGHT for right win (positive angle).",
+    "pressure_logic": "Set individual segment alpha per side, e.g. 39% orange vs 61% cyan. Fade and sequence LEDs; light segments may be tinted but are already colored.",
+    "frame_count": 196,
+    "pixel_dimensions": [
+      1254,
+      1254
+    ],
+    "renderer_note": "Use the pre-rendered wobble frames for the wheel shell. Add segmented light overlays with the same wheel rotation; draw hub on top of the shell, with its independent tilt and winner color."
+  }
+}
