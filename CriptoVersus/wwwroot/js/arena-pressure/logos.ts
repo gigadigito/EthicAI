@@ -3,9 +3,9 @@ import { ARENA_COLORS, formatDisplaySymbol, RopePoint } from './model.js';
 
 type TeamSide = 'left' | 'right';
 
-const COIN_IMAGE_SIZE = 29 * 1.5;
+const COIN_IMAGE_SIZE = 29 * 1.5 * 1.5;
 const COIN_BADGE_Y_OFFSET = -18;
-const COIN_FALLBACK_FONT_SIZE = '16.5px';
+const COIN_FALLBACK_FONT_SIZE = '24.75px';
 
 interface TeamBadge {
     readonly side: TeamSide;

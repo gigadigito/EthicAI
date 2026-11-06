@@ -172,9 +172,12 @@ export class CandleTeamManager {
         candle.hop *= 0.88;
         // 4. Never let a candle reach the fixed wheel.
         const rawX = candle.baseX + candle.currentDisplacementX + candle.slipKick;
+        const victoryVibration = state === 'victory'
+            ? Math.sin(time * 0.065 + candle.index * 2.1) * (this.reducedMotion ? 0.8 : 2.4)
+            : 0;
         const clampedX = isLeft
-            ? Math.min(rawX, LEFT_TEAM_MAX_X)
-            : Math.max(rawX, RIGHT_TEAM_MIN_X);
+            ? Math.min(rawX + victoryVibration, LEFT_TEAM_MAX_X)
+            : Math.max(rawX + victoryVibration, RIGHT_TEAM_MIN_X);
         // 5. Organic breathing / effort bob on top of the state beats.
         const bounceFreq = this.reducedMotion ? 0.004 : 0.007;
         const bounceAmp = (this.reducedMotion ? 0.6 : 1.0) * (1.0 + (pressure / 100) * 2.0);
@@ -243,7 +246,7 @@ export class CandleTeamManager {
         const candles = team === 'left' ? this.leftCandles : this.rightCandles;
         const center = candles[1] ?? candles[0];
         return center
-            ? { x: center.sprite.x, y: center.baseY - 112 }
+            ? { x: center.baseX + center.currentDisplacementX, y: center.baseY - 112 }
             : { x: team === 'left' ? 170 : 790, y: 230 };
     }
     readAnimationProgress(sprite) {

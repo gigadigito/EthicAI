@@ -1,7 +1,7 @@
 import { ARENA_COLORS, formatDisplaySymbol } from './model.js';
-const COIN_IMAGE_SIZE = 29 * 1.5;
+const COIN_IMAGE_SIZE = 29 * 1.5 * 1.5;
 const COIN_BADGE_Y_OFFSET = -18;
-const COIN_FALLBACK_FONT_SIZE = '16.5px';
+const COIN_FALLBACK_FONT_SIZE = '24.75px';
 /** Keeps one cached coin emblem per team and follows the middle candle. */
 export class TeamLogoRenderer {
     constructor(scene, leftSymbol, rightSymbol) {
