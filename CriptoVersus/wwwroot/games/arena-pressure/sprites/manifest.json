@@ -1,5 +1,5 @@
 {
-  "format": "CriptoVersus Arena Pressure sprite pack v1",
+  "format": "CriptoVersus Arena Pressure sprite pack v2 — full-ring 100% illumination",
   "source_size": [
     1254,
     1254
@@ -2675,6 +2675,366 @@
       "y": 0,
       "width": 1254,
       "height": 1254
+    },
+    "lights/fullring/glass_01_orange.png": {
+      "x": 439,
+      "y": 922,
+      "width": 189,
+      "height": 209,
+      "angular_range_deg": [
+        180,
+        201
+      ]
+    },
+    "lights/fullring/glass_01_cyan.png": {
+      "x": 439,
+      "y": 922,
+      "width": 189,
+      "height": 209,
+      "angular_range_deg": [
+        180,
+        201
+      ]
+    },
+    "lights/fullring/glass_02_orange.png": {
+      "x": 270,
+      "y": 856,
+      "width": 234,
+      "height": 230,
+      "angular_range_deg": [
+        201,
+        222
+      ]
+    },
+    "lights/fullring/glass_02_cyan.png": {
+      "x": 270,
+      "y": 856,
+      "width": 234,
+      "height": 230,
+      "angular_range_deg": [
+        201,
+        222
+      ]
+    },
+    "lights/fullring/glass_03_orange.png": {
+      "x": 152,
+      "y": 756,
+      "width": 243,
+      "height": 239,
+      "angular_range_deg": [
+        222,
+        243
+      ]
+    },
+    "lights/fullring/glass_03_cyan.png": {
+      "x": 152,
+      "y": 756,
+      "width": 243,
+      "height": 239,
+      "angular_range_deg": [
+        222,
+        243
+      ]
+    },
+    "lights/fullring/glass_04_orange.png": {
+      "x": 97,
+      "y": 634,
+      "width": 222,
+      "height": 208,
+      "angular_range_deg": [
+        243,
+        264
+      ]
+    },
+    "lights/fullring/glass_04_cyan.png": {
+      "x": 97,
+      "y": 634,
+      "width": 222,
+      "height": 208,
+      "angular_range_deg": [
+        243,
+        264
+      ]
+    },
+    "lights/fullring/glass_05_orange.png": {
+      "x": 94,
+      "y": 461,
+      "width": 199,
+      "height": 196,
+      "angular_range_deg": [
+        264,
+        285
+      ]
+    },
+    "lights/fullring/glass_05_cyan.png": {
+      "x": 94,
+      "y": 461,
+      "width": 199,
+      "height": 196,
+      "angular_range_deg": [
+        264,
+        285
+      ]
+    },
+    "lights/fullring/glass_06_orange.png": {
+      "x": 115,
+      "y": 286,
+      "width": 232,
+      "height": 225,
+      "angular_range_deg": [
+        285,
+        306
+      ]
+    },
+    "lights/fullring/glass_06_cyan.png": {
+      "x": 115,
+      "y": 286,
+      "width": 232,
+      "height": 225,
+      "angular_range_deg": [
+        285,
+        306
+      ]
+    },
+    "lights/fullring/glass_07_orange.png": {
+      "x": 196,
+      "y": 158,
+      "width": 243,
+      "height": 239,
+      "angular_range_deg": [
+        306,
+        327
+      ]
+    },
+    "lights/fullring/glass_07_cyan.png": {
+      "x": 196,
+      "y": 158,
+      "width": 243,
+      "height": 239,
+      "angular_range_deg": [
+        306,
+        327
+      ]
+    },
+    "lights/fullring/glass_08_orange.png": {
+      "x": 339,
+      "y": 79,
+      "width": 217,
+      "height": 231,
+      "angular_range_deg": [
+        327,
+        348
+      ]
+    },
+    "lights/fullring/glass_08_cyan.png": {
+      "x": 339,
+      "y": 79,
+      "width": 217,
+      "height": 231,
+      "angular_range_deg": [
+        327,
+        348
+      ]
+    },
+    "lights/fullring/glass_09_orange.png": {
+      "x": 515,
+      "y": 67,
+      "width": 113,
+      "height": 195,
+      "angular_range_deg": [
+        348,
+        360
+      ]
+    },
+    "lights/fullring/glass_09_cyan.png": {
+      "x": 515,
+      "y": 67,
+      "width": 113,
+      "height": 195,
+      "angular_range_deg": [
+        348,
+        360
+      ]
+    },
+    "lights/fullring/glass_10_orange.png": {
+      "x": 625,
+      "y": 69,
+      "width": 184,
+      "height": 201,
+      "angular_range_deg": [
+        0,
+        20
+      ]
+    },
+    "lights/fullring/glass_10_cyan.png": {
+      "x": 625,
+      "y": 69,
+      "width": 184,
+      "height": 201,
+      "angular_range_deg": [
+        0,
+        20
+      ]
+    },
+    "lights/fullring/glass_11_orange.png": {
+      "x": 748,
+      "y": 101,
+      "width": 221,
+      "height": 234,
+      "angular_range_deg": [
+        20,
+        40
+      ]
+    },
+    "lights/fullring/glass_11_cyan.png": {
+      "x": 748,
+      "y": 101,
+      "width": 221,
+      "height": 234,
+      "angular_range_deg": [
+        20,
+        40
+      ]
+    },
+    "lights/fullring/glass_12_orange.png": {
+      "x": 849,
+      "y": 192,
+      "width": 235,
+      "height": 235,
+      "angular_range_deg": [
+        40,
+        60
+      ]
+    },
+    "lights/fullring/glass_12_cyan.png": {
+      "x": 849,
+      "y": 192,
+      "width": 235,
+      "height": 235,
+      "angular_range_deg": [
+        40,
+        60
+      ]
+    },
+    "lights/fullring/glass_13_orange.png": {
+      "x": 926,
+      "y": 335,
+      "width": 224,
+      "height": 206,
+      "angular_range_deg": [
+        60,
+        80
+      ]
+    },
+    "lights/fullring/glass_13_cyan.png": {
+      "x": 926,
+      "y": 335,
+      "width": 224,
+      "height": 206,
+      "angular_range_deg": [
+        60,
+        80
+      ]
+    },
+    "lights/fullring/glass_14_orange.png": {
+      "x": 967,
+      "y": 506,
+      "width": 192,
+      "height": 187,
+      "angular_range_deg": [
+        80,
+        100
+      ]
+    },
+    "lights/fullring/glass_14_cyan.png": {
+      "x": 967,
+      "y": 506,
+      "width": 192,
+      "height": 187,
+      "angular_range_deg": [
+        80,
+        100
+      ]
+    },
+    "lights/fullring/glass_15_orange.png": {
+      "x": 919,
+      "y": 658,
+      "width": 230,
+      "height": 224,
+      "angular_range_deg": [
+        100,
+        122
+      ]
+    },
+    "lights/fullring/glass_15_cyan.png": {
+      "x": 919,
+      "y": 658,
+      "width": 230,
+      "height": 224,
+      "angular_range_deg": [
+        100,
+        122
+      ]
+    },
+    "lights/fullring/glass_16_orange.png": {
+      "x": 829,
+      "y": 782,
+      "width": 249,
+      "height": 240,
+      "angular_range_deg": [
+        122,
+        144
+      ]
+    },
+    "lights/fullring/glass_16_cyan.png": {
+      "x": 829,
+      "y": 782,
+      "width": 249,
+      "height": 240,
+      "angular_range_deg": [
+        122,
+        144
+      ]
+    },
+    "lights/fullring/glass_17_orange.png": {
+      "x": 715,
+      "y": 879,
+      "width": 218,
+      "height": 227,
+      "angular_range_deg": [
+        144,
+        165
+      ]
+    },
+    "lights/fullring/glass_17_cyan.png": {
+      "x": 715,
+      "y": 879,
+      "width": 218,
+      "height": 227,
+      "angular_range_deg": [
+        144,
+        165
+      ]
+    },
+    "lights/fullring/glass_18_orange.png": {
+      "x": 625,
+      "y": 934,
+      "width": 133,
+      "height": 184,
+      "angular_range_deg": [
+        165,
+        180
+      ]
+    },
+    "lights/fullring/glass_18_cyan.png": {
+      "x": 625,
+      "y": 934,
+      "width": 133,
+      "height": 184,
+      "angular_range_deg": [
+        165,
+        180
+      ]
     }
   },
   "animation": {
@@ -2786,5 +3146,165 @@
       1254
     ],
     "renderer_note": "Use the pre-rendered wobble frames for the wheel shell. Add segmented light overlays with the same wheel rotation; draw hub on top of the shell, with its independent tilt and winner color."
+  },
+  "full_ring_v2": {
+    "mode": "full_circumference_100_percent",
+    "description": "Two team colors always cover the ENTIRE 18-section wheel. Never pressure/100 * 9 on each half.",
+    "start_origin": "6 oclock/bottom",
+    "order": "clockwise from bottom through LEFT 9 sectors, then RIGHT 9 sectors",
+    "sweep_degrees": 360,
+    "segment_count": 18,
+    "percentage_definition": "orange=pressureLeft/(pressureLeft+pressureRight)*100; cyan=complement. Zero sum yields 50/50.",
+    "fractional_segment": "Use angular canvas clip for exact boundary, not alpha fade on entire segment.",
+    "wheel_pivot": [
+      626,
+      599
+    ],
+    "segments": [
+      {
+        "index": 0,
+        "center_angle_degrees_from_bottom_clockwise": 10,
+        "angle_start_deg": 0,
+        "angle_end_deg": 20,
+        "orange": "lights/fullring/glass_01_orange.png",
+        "cyan": "lights/fullring/glass_01_cyan.png"
+      },
+      {
+        "index": 1,
+        "center_angle_degrees_from_bottom_clockwise": 30,
+        "angle_start_deg": 20,
+        "angle_end_deg": 40,
+        "orange": "lights/fullring/glass_02_orange.png",
+        "cyan": "lights/fullring/glass_02_cyan.png"
+      },
+      {
+        "index": 2,
+        "center_angle_degrees_from_bottom_clockwise": 50,
+        "angle_start_deg": 40,
+        "angle_end_deg": 60,
+        "orange": "lights/fullring/glass_03_orange.png",
+        "cyan": "lights/fullring/glass_03_cyan.png"
+      },
+      {
+        "index": 3,
+        "center_angle_degrees_from_bottom_clockwise": 70,
+        "angle_start_deg": 60,
+        "angle_end_deg": 80,
+        "orange": "lights/fullring/glass_04_orange.png",
+        "cyan": "lights/fullring/glass_04_cyan.png"
+      },
+      {
+        "index": 4,
+        "center_angle_degrees_from_bottom_clockwise": 90,
+        "angle_start_deg": 80,
+        "angle_end_deg": 100,
+        "orange": "lights/fullring/glass_05_orange.png",
+        "cyan": "lights/fullring/glass_05_cyan.png"
+      },
+      {
+        "index": 5,
+        "center_angle_degrees_from_bottom_clockwise": 110,
+        "angle_start_deg": 100,
+        "angle_end_deg": 120,
+        "orange": "lights/fullring/glass_06_orange.png",
+        "cyan": "lights/fullring/glass_06_cyan.png"
+      },
+      {
+        "index": 6,
+        "center_angle_degrees_from_bottom_clockwise": 130,
+        "angle_start_deg": 120,
+        "angle_end_deg": 140,
+        "orange": "lights/fullring/glass_07_orange.png",
+        "cyan": "lights/fullring/glass_07_cyan.png"
+      },
+      {
+        "index": 7,
+        "center_angle_degrees_from_bottom_clockwise": 150,
+        "angle_start_deg": 140,
+        "angle_end_deg": 160,
+        "orange": "lights/fullring/glass_08_orange.png",
+        "cyan": "lights/fullring/glass_08_cyan.png"
+      },
+      {
+        "index": 8,
+        "center_angle_degrees_from_bottom_clockwise": 170,
+        "angle_start_deg": 160,
+        "angle_end_deg": 180,
+        "orange": "lights/fullring/glass_09_orange.png",
+        "cyan": "lights/fullring/glass_09_cyan.png"
+      },
+      {
+        "index": 9,
+        "center_angle_degrees_from_bottom_clockwise": 190,
+        "angle_start_deg": 180,
+        "angle_end_deg": 200,
+        "orange": "lights/fullring/glass_10_orange.png",
+        "cyan": "lights/fullring/glass_10_cyan.png"
+      },
+      {
+        "index": 10,
+        "center_angle_degrees_from_bottom_clockwise": 210,
+        "angle_start_deg": 200,
+        "angle_end_deg": 220,
+        "orange": "lights/fullring/glass_11_orange.png",
+        "cyan": "lights/fullring/glass_11_cyan.png"
+      },
+      {
+        "index": 11,
+        "center_angle_degrees_from_bottom_clockwise": 230,
+        "angle_start_deg": 220,
+        "angle_end_deg": 240,
+        "orange": "lights/fullring/glass_12_orange.png",
+        "cyan": "lights/fullring/glass_12_cyan.png"
+      },
+      {
+        "index": 12,
+        "center_angle_degrees_from_bottom_clockwise": 250,
+        "angle_start_deg": 240,
+        "angle_end_deg": 260,
+        "orange": "lights/fullring/glass_13_orange.png",
+        "cyan": "lights/fullring/glass_13_cyan.png"
+      },
+      {
+        "index": 13,
+        "center_angle_degrees_from_bottom_clockwise": 270,
+        "angle_start_deg": 260,
+        "angle_end_deg": 280,
+        "orange": "lights/fullring/glass_14_orange.png",
+        "cyan": "lights/fullring/glass_14_cyan.png"
+      },
+      {
+        "index": 14,
+        "center_angle_degrees_from_bottom_clockwise": 290,
+        "angle_start_deg": 280,
+        "angle_end_deg": 300,
+        "orange": "lights/fullring/glass_15_orange.png",
+        "cyan": "lights/fullring/glass_15_cyan.png"
+      },
+      {
+        "index": 15,
+        "center_angle_degrees_from_bottom_clockwise": 310,
+        "angle_start_deg": 300,
+        "angle_end_deg": 320,
+        "orange": "lights/fullring/glass_16_orange.png",
+        "cyan": "lights/fullring/glass_16_cyan.png"
+      },
+      {
+        "index": 16,
+        "center_angle_degrees_from_bottom_clockwise": 330,
+        "angle_start_deg": 320,
+        "angle_end_deg": 340,
+        "orange": "lights/fullring/glass_17_orange.png",
+        "cyan": "lights/fullring/glass_17_cyan.png"
+      },
+      {
+        "index": 17,
+        "center_angle_degrees_from_bottom_clockwise": 350,
+        "angle_start_deg": 340,
+        "angle_end_deg": 360,
+        "orange": "lights/fullring/glass_18_orange.png",
+        "cyan": "lights/fullring/glass_18_cyan.png"
+      }
+    ]
   }
 }

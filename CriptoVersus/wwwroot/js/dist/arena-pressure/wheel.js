@@ -6,7 +6,7 @@ const SOURCE_IMAGE_CENTER = SOURCE_SIZE / 2;
 const LEFT_ROPE_ANCHOR = { x: 70, y: 606 };
 const RIGHT_ROPE_ANCHOR = { x: 1184, y: 606 };
 const MAX_WOBBLE_DEGREES = 6;
-const SEGMENT_COUNT = 9;
+const FULL_RING_SEGMENT_COUNT = 18;
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
@@ -28,10 +28,21 @@ export function hubColorForPressure(leftPressure) {
 export function hubAngleForPressure(leftPressure) {
     return Math.round(clamp((50 - clamp(leftPressure, 0, 100)) * 0.6, -30, 30));
 }
-/** Returns the nine opacity targets for one side of the segmented ring. */
-export function buildSegmentOpacities(pressure) {
-    const filled = clamp(pressure, 0, 100) / 100 * SEGMENT_COUNT;
-    return Array.from({ length: SEGMENT_COUNT }, (_, index) => clamp(filled - index, 0, 1));
+/**
+ * Maps the normalized pressure pair to a complete 18-sector ring. The sum of the
+ * orange and cyan portions is exactly 18, so no sector is lost when the boundary is
+ * fractional (37/63 produces 6.66/11.34 sectors).
+ */
+export function buildFullRingCoverage(leftPressure, rightPressure) {
+    const left = Math.max(0, Number.isFinite(leftPressure) ? leftPressure : 0);
+    const right = Math.max(0, Number.isFinite(rightPressure) ? rightPressure : 0);
+    const total = left + right;
+    const orangeBoundary = (total > 0 ? left / total : 0.5) * FULL_RING_SEGMENT_COUNT;
+    return Array.from({ length: FULL_RING_SEGMENT_COUNT }, (_, index) => ({
+        index,
+        orangePortion: clamp(orangeBoundary - index, 0, 1),
+        cyanPortion: clamp(index + 1 - orangeBoundary, 0, 1)
+    }));
 }
 /**
  * Wobble is a small mechanical oscillation, not a winner pointer. The pressure bias
@@ -84,8 +95,7 @@ export class WheelMechanism {
         this.hubColor = 'neutral';
         this.lastReadyHubPath = 'hub/frames/neutral/angulo_+00.png';
         this.lastPressure = 50;
-        this.segmentAlphaLeft = buildSegmentOpacities(50);
-        this.segmentAlphaRight = buildSegmentOpacities(50);
+        this.currentRingOrangeShare = 0.5;
         this.mechanicalState = {
             clock: 0,
             offsetX: 0,
@@ -124,6 +134,10 @@ export class WheelMechanism {
         if (this.manifest.source_size[0] !== SOURCE_SIZE || this.manifest.source_size[1] !== SOURCE_SIZE) {
             throw new Error('arena_pressure_manifest_source_size_mismatch');
         }
+        const fullRing = this.manifest.full_ring_v2;
+        if (!fullRing || fullRing.segments.length !== FULL_RING_SEGMENT_COUNT) {
+            throw new Error('arena_pressure_full_ring_manifest_unavailable');
+        }
         const wobblePaths = Array.from({ length: 13 }, (_, index) => {
             const angle = index - MAX_WOBBLE_DEGREES;
             return `wheel/wobble/inclinacao_${wobbleName(angle)}.png`;
@@ -137,8 +151,7 @@ export class WheelMechanism {
             'lights/special/right_suporte.png',
             'hub/frames/neutral/angulo_+00.png',
             ...wobblePaths,
-            ...Array.from({ length: SEGMENT_COUNT }, (_, index) => `lights/segments/left/segment_${String(index + 1).padStart(2, '0')}.png`),
-            ...Array.from({ length: SEGMENT_COUNT }, (_, index) => `lights/segments/right/segment_${String(index + 1).padStart(2, '0')}.png`)
+            ...fullRing.segments.flatMap(segment => [segment.orange, segment.cyan])
         ];
         const loaded = await Promise.all(staticPaths.map(path => this.loadImage(path)));
         if (loaded.some(image => image === null)) {
@@ -190,6 +203,45 @@ export class WheelMechanism {
         this.context.drawImage(image, sprite.x, sprite.y, sprite.width, sprite.height);
         this.context.restore();
     }
+    drawFullRingSprite(path, sectorStart, sectorEnd, sectorIndex) {
+        if (!this.manifest || sectorEnd <= sectorStart)
+            return;
+        const image = this.images.get(path);
+        const sprite = this.manifest.sprites[path];
+        if (!image || !sprite)
+            return;
+        const pivot = this.manifest.full_ring_v2?.wheel_pivot ?? [SOURCE_CENTER_X, SOURCE_CENTER_Y];
+        this.context.save();
+        // Full-sector sprites retain their hand-cut silhouette. Only the sector that
+        // contains the pressure boundary receives an angular clip.
+        if (sectorStart > sectorIndex + 0.0001 || sectorEnd < sectorIndex + 1 - 0.0001) {
+            const startAngle = Math.PI / 2 + (sectorStart / FULL_RING_SEGMENT_COUNT) * Math.PI * 2;
+            const endAngle = Math.PI / 2 + (sectorEnd / FULL_RING_SEGMENT_COUNT) * Math.PI * 2;
+            this.context.beginPath();
+            this.context.moveTo(pivot[0], pivot[1]);
+            this.context.arc(pivot[0], pivot[1], 1600, startAngle, endAngle, false);
+            this.context.closePath();
+            this.context.clip();
+        }
+        this.context.drawImage(image, sprite.x, sprite.y, sprite.width, sprite.height);
+        this.context.restore();
+    }
+    drawFullRingLights(wobbleDegrees) {
+        const fullRing = this.manifest?.full_ring_v2;
+        if (!fullRing)
+            return;
+        const boundary = clamp(this.currentRingOrangeShare, 0, 1) * FULL_RING_SEGMENT_COUNT;
+        const pivot = fullRing.wheel_pivot;
+        this.context.save();
+        this.context.translate(pivot[0], pivot[1]);
+        this.context.rotate(wobbleDegrees * Math.PI / 180);
+        this.context.translate(-pivot[0], -pivot[1]);
+        fullRing.segments.forEach((segment, index) => {
+            this.drawFullRingSprite(segment.orange, index, Math.min(index + 1, boundary), index);
+            this.drawFullRingSprite(segment.cyan, Math.max(index, boundary), index + 1, index);
+        });
+        this.context.restore();
+    }
     updateHubColor(targetColor) {
         if (targetColor === 'neutral') {
             this.hubColor = 'neutral';
@@ -221,21 +273,16 @@ export class WheelMechanism {
         this.context.clearRect(0, 0, SOURCE_SIZE, SOURCE_SIZE);
         this.drawSprite('base/suporte_fixo.png');
         this.drawSprite(wobblePath);
-        // Segment and ray layers use the manifest pivot, keeping transparent cuts
-        // registered with the pre-rendered wheel wobble frame.
-        const pivot = this.manifest.center_pivot_px;
+        // Full-ring vitral layers use the same manifest pivot as the shell wobble.
+        // Only the exact orange/cyan boundary is clipped; complete sectors keep the
+        // supplied hand-cut silhouette and metallic reflections intact.
+        this.drawFullRingLights(wobble);
+        // Internal rays follow the same external wobble; support LEDs remain fixed.
+        const pivot = this.manifest.full_ring_v2?.wheel_pivot ?? this.manifest.center_pivot_px;
         this.context.save();
         this.context.translate(pivot[0], pivot[1]);
         this.context.rotate(wobble * Math.PI / 180);
         this.context.translate(-pivot[0], -pivot[1]);
-        for (let index = 0; index < SEGMENT_COUNT; index++) {
-            const leftPath = `lights/segments/left/segment_${String(index + 1).padStart(2, '0')}.png`;
-            const rightIndex = SEGMENT_COUNT - index;
-            const rightPath = `lights/segments/right/segment_${String(rightIndex).padStart(2, '0')}.png`;
-            const pulse = this.reducedMotion ? 0 : Math.sin(this.mechanicalState.clock * 4.4 + index * 0.65) * 0.035;
-            this.drawSprite(leftPath, clamp(this.segmentAlphaLeft[index] + pulse, 0, 1));
-            this.drawSprite(rightPath, clamp(this.segmentAlphaRight[index] + pulse, 0, 1));
-        }
         this.drawSprite('lights/special/left_raios_internos.png', 0.08 + leftPressure / 100 * 0.84);
         this.drawSprite('lights/special/right_raios_internos.png', 0.08 + (100 - leftPressure) / 100 * 0.84);
         this.context.restore();
@@ -258,11 +305,9 @@ export class WheelMechanism {
         const hubResponse = 1 - Math.exp(-Math.min(64, Math.max(0, delta)) / 1000 * 7);
         this.currentHubAngle += (targetHubAngle - this.currentHubAngle) * hubResponse;
         this.updateHubColor(hubColorForPressure(left));
-        const targetLeft = buildSegmentOpacities(left);
-        const targetRight = buildSegmentOpacities(100 - left);
+        const targetRingOrangeShare = clamp(left / 100, 0, 1);
         const lightResponse = 1 - Math.exp(-Math.min(64, Math.max(0, delta)) / 1000 * 8);
-        this.segmentAlphaLeft = this.segmentAlphaLeft.map((value, index) => value + (targetLeft[index] - value) * lightResponse);
-        this.segmentAlphaRight = this.segmentAlphaRight.map((value, index) => value + (targetRight[index] - value) * lightResponse);
+        this.currentRingOrangeShare += (targetRingOrangeShare - this.currentRingOrangeShare) * lightResponse;
         this.render(left);
     }
     /** Clears the mechanical clock response after a replay seek. */

@@ -1,4 +1,7 @@
 import { ARENA_COLORS, formatDisplaySymbol } from './model.20261106a.js';
+const COIN_IMAGE_SIZE = 29 * 1.5;
+const COIN_BADGE_Y_OFFSET = -18;
+const COIN_FALLBACK_FONT_SIZE = '16.5px';
 /** Keeps one cached coin emblem per team and follows the middle candle. */
 export class TeamLogoRenderer {
     constructor(scene, leftSymbol, rightSymbol) {
@@ -17,9 +20,9 @@ export class TeamLogoRenderer {
         this.setSymbol(this.badges.left, leftSymbol);
         this.setSymbol(this.badges.right, rightSymbol);
     }
-    update(time, leftAnchor, rightAnchor) {
-        this.updateBadge(this.badges.left, leftAnchor, time, 0);
-        this.updateBadge(this.badges.right, rightAnchor, time, Math.PI);
+    update(_time, leftAnchor, rightAnchor) {
+        this.updateBadge(this.badges.left, leftAnchor);
+        this.updateBadge(this.badges.right, rightAnchor);
     }
     createBadge(side) {
         const badge = {
@@ -28,7 +31,7 @@ export class TeamLogoRenderer {
             symbol: '',
             displaySymbol: '?'
         };
-        this.drawFrame(badge, 0);
+        this.drawFrame(badge);
         return badge;
     }
     setSymbol(badge, rawSymbol) {
@@ -97,32 +100,31 @@ export class TeamLogoRenderer {
         const source = image.texture.getSourceImage();
         const width = Math.max(1, Number(source.width) || 1);
         const height = Math.max(1, Number(source.height) || 1);
-        image.setScale(Math.min(29 / width, 29 / height));
+        image.setScale(Math.min(COIN_IMAGE_SIZE / width, COIN_IMAGE_SIZE / height));
         badge.image = image;
     }
     showFallback(badge) {
         const color = badge.side === 'left' ? ARENA_COLORS.leftHex : ARENA_COLORS.rightHex;
         badge.fallback = this.scene.add.text(0, 0, badge.displaySymbol, {
             fontFamily: 'Inter, Montserrat, "Segoe UI", Arial, sans-serif',
-            fontSize: '11px',
+            fontSize: COIN_FALLBACK_FONT_SIZE,
             fontStyle: '900',
             color,
             align: 'center'
         }).setOrigin(0.5).setDepth(17);
     }
-    updateBadge(badge, anchor, time, phase) {
-        const bob = Math.sin(time * 0.002 + phase) * 0.8;
+    updateBadge(badge, anchor) {
         const x = anchor.x;
-        const y = anchor.y + bob;
+        const y = anchor.y + COIN_BADGE_Y_OFFSET;
         badge.frame.setPosition(x, y);
-        this.drawFrame(badge, time * 0.001 + phase);
+        this.drawFrame(badge);
         badge.image?.setPosition(x, y);
         badge.fallback?.setPosition(x, y);
     }
-    drawFrame(badge, phase) {
+    drawFrame(badge) {
         const color = badge.side === 'left' ? ARENA_COLORS.left : ARENA_COLORS.right;
         const glow = badge.side === 'left' ? 0x5d2c05 : 0x073f42;
-        const pulse = 0.72 + Math.sin(phase * 2.4) * 0.08;
+        const pulse = 0.8;
         const g = badge.frame;
         g.clear();
         g.fillStyle(0x07101b, 0.96);

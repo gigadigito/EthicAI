@@ -338,7 +338,7 @@ export class CandleTeamManager {
         const candles = team === 'left' ? this.leftCandles : this.rightCandles;
         const center = candles[1] ?? candles[0];
         return center
-            ? { x: center.sprite.x, y: center.sprite.y - 112 }
+            ? { x: center.sprite.x, y: center.baseY - 112 }
             : { x: team === 'left' ? 170 : 790, y: 230 };
     }
 

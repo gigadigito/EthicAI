@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    buildSegmentOpacities,
+    buildFullRingCoverage,
     crownColorForPressure,
     hubAngleForPressure,
     hubColorForPressure,
@@ -9,12 +9,23 @@ import {
     wheelWobbleAngleDegrees
 } from '../../dist/arena-pressure/wheel.js';
 
-test('segment opacities fill only the proportional capacity', () => {
-    assert.deepEqual(buildSegmentOpacities(0), [0, 0, 0, 0, 0, 0, 0, 0, 0]);
-    assert.deepEqual(buildSegmentOpacities(50), [1, 1, 1, 1, 0.5, 0, 0, 0, 0]);
-    assert.deepEqual(buildSegmentOpacities(100), [1, 1, 1, 1, 1, 1, 1, 1, 1]);
-    assert.ok(Math.abs(buildSegmentOpacities(39).reduce((sum, value) => sum + value, 0) - 3.51) < 1e-9);
-    assert.ok(Math.abs(buildSegmentOpacities(61).reduce((sum, value) => sum + value, 0) - 5.49) < 1e-9);
+test('full ring coverage assigns every sector to one of the two colors', () => {
+    for (const [left, right] of [[0, 100], [37, 63], [50, 50], [65, 35], [100, 0]]) {
+        const coverage = buildFullRingCoverage(left, right);
+        assert.equal(coverage.length, 18);
+        assert.ok(coverage.every(segment => segment.orangePortion + segment.cyanPortion > 0.999999));
+        assert.ok(coverage.every(segment => segment.orangePortion + segment.cyanPortion <= 1.000001));
+        assert.ok(Math.abs(coverage.reduce((sum, segment) => sum + segment.orangePortion, 0) - left / 100 * 18) < 1e-9);
+        assert.ok(Math.abs(coverage.reduce((sum, segment) => sum + segment.cyanPortion, 0) - right / 100 * 18) < 1e-9);
+    }
+});
+
+test('full ring clips a fractional boundary without leaving a dark sector', () => {
+    const coverage = buildFullRingCoverage(37, 63);
+    const partial = coverage.filter(segment => segment.orangePortion > 0 && segment.orangePortion < 1);
+    assert.equal(partial.length, 1);
+    assert.ok(Math.abs(partial[0].orangePortion - 0.66) < 1e-9);
+    assert.ok(Math.abs(partial[0].cyanPortion - 0.34) < 1e-9);
 });
 
 test('hub angle and color follow the real pressure difference', () => {
