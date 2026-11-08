@@ -8,6 +8,8 @@ export class WhaleOceanRuntime {
         this.detector = new VolumeEventDetector();
         this.symbols = new Map();
         this.fishGroups = [];
+        this.spriteAtlases = new Map();
+        this.spriteManagers = [];
         this.bubbles = [];
         this.flowActors = [];
         this.whales = [];
@@ -60,6 +62,7 @@ export class WhaleOceanRuntime {
         this.camera.minZ = 0.1;
         this.camera.maxZ = 100;
         this.buildEnvironment();
+        await this.buildSpriteLibrary();
         this.buildFishGroups();
         this.buildBubbles();
         this.updateHud();
@@ -146,7 +149,8 @@ export class WhaleOceanRuntime {
         }
         while (this.flowActors.length > QUALITY_FLOW_ACTORS[quality]) {
             const oldest = this.flowActors.shift();
-            oldest?.root.dispose(false, true);
+            if (oldest)
+                this.disposeFlowActor(oldest);
         }
         this.write("quality", quality);
     }
@@ -161,6 +165,8 @@ export class WhaleOceanRuntime {
         if (this.visibilityHandler)
             document.removeEventListener("visibilitychange", this.visibilityHandler);
         this.engine?.stopRenderLoop();
+        for (const manager of this.spriteManagers)
+            manager.dispose();
         this.scene?.dispose();
         this.engine?.dispose();
         this.scene = null;
@@ -226,6 +232,42 @@ export class WhaleOceanRuntime {
             weed.material = material;
         }
     }
+    async buildSpriteLibrary() {
+        const B = this.B;
+        const scene = this.scene;
+        const response = await fetch("/games/whale-ocean/sprites/manifest.json", { cache: "force-cache" });
+        if (!response.ok)
+            throw new Error(`Whale Ocean sprite manifest returned ${response.status}.`);
+        const manifest = await response.json();
+        if (manifest.frameWidth !== 512 || manifest.frameHeight !== 256 || manifest.framesPerAnimation !== 12
+            || manifest.atlas.columns !== 4 || manifest.atlas.rows !== 3)
+            throw new Error("Whale Ocean sprite manifest has an unsupported atlas layout.");
+        const atlasPromises = Object.entries(manifest.animations).map(async ([name, definition]) => {
+            const territory = name.endsWith("_lima") ? "left" : "right";
+            const manager = new B.SpriteManager(`whale-ocean-sprites-${name}`, `/games/whale-ocean/sprites/${definition.atlas}`, QUALITY_FISH.High * 2 + 32, { width: manifest.frameWidth, height: manifest.frameHeight }, scene, 0.01, B.Texture.NEAREST_SAMPLINGMODE);
+            manager.isPickable = false;
+            manager.disableDepthWrite = true;
+            manager.fogEnabled = true;
+            this.spriteManagers.push(manager);
+            await waitForSpriteTexture(manager.texture);
+            this.spriteAtlases.set(`${definition.kind}:${territory}`, { manager, fps: definition.fps, kind: definition.kind, territory });
+        });
+        await Promise.all(atlasPromises);
+    }
+    createAnimatedSprite(kind, territory, name, seed) {
+        const B = this.B;
+        const atlas = this.spriteAtlases.get(`${kind}:${territory}`);
+        if (!atlas)
+            throw new Error(`Missing Whale Ocean sprite atlas for ${kind}:${territory}.`);
+        const sprite = new B.Sprite(name, atlas.manager);
+        sprite.cellIndex = Math.floor(seed * 12) % 12;
+        sprite.invertV = false;
+        sprite.invertU = false;
+        sprite.color = new B.Color4(1, 1, 1, 1);
+        sprite.playAnimation(0, 11, true, 1000 / (atlas.fps * (0.9 + seed * 0.2)));
+        sprite.isVisible = false;
+        return sprite;
+    }
     buildFishGroups() {
         const left = this.options.leftSymbol;
         const right = this.options.rightSymbol;
@@ -236,35 +278,31 @@ export class WhaleOceanRuntime {
     }
     createFishGroup(symbol, territory, side, centerX) {
         const B = this.B;
-        const scene = this.scene;
-        const territoryColor = territory === "left" ? this.options.leftColor : this.options.rightColor;
-        const sideColor = side === "buy" ? "#35e3ad" : "#f46551";
-        const bodyMaterial = new B.StandardMaterial(`whale-ocean-fish-${territory}-${side}`, scene);
-        bodyMaterial.diffuseColor = B.Color3.FromHexString(sideColor);
-        bodyMaterial.emissiveColor = B.Color3.FromHexString(sideColor).scale(0.18);
-        const body = B.MeshBuilder.CreateSphere(`whale-ocean-fish-body-${territory}-${side}`, { diameter: 1, segments: 6 }, scene);
-        body.material = bodyMaterial;
-        body.isVisible = false;
-        const territoryMaterial = new B.StandardMaterial(`whale-ocean-fish-territory-${territory}-${side}`, scene);
-        territoryMaterial.diffuseColor = B.Color3.FromHexString(territoryColor);
-        territoryMaterial.emissiveColor = B.Color3.FromHexString(territoryColor).scale(0.16);
-        const tail = B.MeshBuilder.CreateCylinder(`whale-ocean-fish-tail-${territory}-${side}`, { height: 0.55, diameterTop: 0, diameterBottom: 0.45, tessellation: 3 }, scene);
-        tail.material = territoryMaterial;
-        tail.isVisible = false;
         // Keep the highest-capacity pool so changing quality upward can restore
         // density without allocating during an active render loop.
         const capacity = QUALITY_FISH.High;
         const agents = [];
         for (let index = 0; index < capacity; index++) {
             const angle = this.random() * Math.PI * 2;
+            const kindRoll = this.random();
+            const kind = kindRoll < 0.76 ? "peixe_p" : kindRoll < 0.95 ? "peixe_m" : "peixe_g";
+            const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-fish-${territory}-${side}-${index}`, this.random());
+            sprite.width = spriteSizeForKind(kind);
+            sprite.height = sprite.width * 0.5;
+            const tone = side === "buy" ? [0.76, 1, 0.9] : [1, 0.78, 0.72];
+            sprite.color.r = tone[0];
+            sprite.color.g = tone[1];
+            sprite.color.b = tone[2];
             agents.push({
                 position: new B.Vector3(centerX + (this.random() - 0.5) * 9, (this.random() - 0.5) * 6, (this.random() - 0.5) * 2.6),
                 velocity: new B.Vector3(Math.cos(angle) * 0.012, (this.random() - 0.5) * 0.01, Math.sin(angle) * 0.009),
                 phase: this.random() * Math.PI * 2,
-                seed: this.random()
+                seed: this.random(),
+                sprite,
+                kind
             });
         }
-        this.fishGroups.push({ side, symbol, territory, body, tail, bodyMaterial, agents, matrices: new Float32Array(capacity * 16), targetCount: 0, baseline: 0, activity: 0, flowBias: 0 });
+        this.fishGroups.push({ side, symbol, territory, agents, targetCount: 0, baseline: 0, activity: 0, flowBias: 0 });
     }
     buildBubbles() {
         const B = this.B;
@@ -285,7 +323,6 @@ export class WhaleOceanRuntime {
         const state = this.symbols.get(symbol);
         if (!state || quote <= 0)
             return;
-        const B = this.B;
         for (const group of this.fishGroups) {
             if (group.symbol !== symbol || group.side !== side)
                 continue;
@@ -293,9 +330,10 @@ export class WhaleOceanRuntime {
             group.activity = Math.max(0, Math.min(1, group.activity * 0.92 + normalizeActivity(activeQuote || quote, group.baseline) * 0.08));
             const pressure = computePressure(state.buyQuote, state.sellQuote);
             const pressureStrength = side === "buy" ? pressure.buy ?? 0 : pressure.sell ?? 0;
-            group.flowBias = ((pressure.buy ?? 0) - (pressure.sell ?? 0)) * (group.territory === "left" ? 1 : -1) * 0.012;
+            const territoryDirection = group.territory === "left" ? 1 : -1;
+            const sideDirection = group.side === "buy" ? 1 : -1;
+            group.flowBias = territoryDirection * sideDirection * (0.003 + pressureStrength * 0.009);
             group.targetCount = visualDensity(quote, group.baseline, pressureStrength, this.quality);
-            group.bodyMaterial.emissiveColor = B.Color3.FromHexString(group.side === "buy" ? "#35e3ad" : "#f46551").scale(0.16 + group.activity * 0.34);
         }
     }
     frame() {
@@ -315,7 +353,6 @@ export class WhaleOceanRuntime {
         this.updateWhales(now);
     }
     updateFish(seconds, factor) {
-        const B = this.B;
         for (const group of this.fishGroups) {
             const activeCount = Math.min(group.agents.length, Math.max(0, Math.round(group.targetCount)));
             const grid = new Map();
@@ -328,13 +365,11 @@ export class WhaleOceanRuntime {
                 else
                     grid.set(key, [index]);
             }
-            const matrix = B.Matrix.Identity();
-            const scale = new B.Vector3(0, 0, 0);
-            const rotation = new B.Quaternion(0, 0, 0, 1);
             for (let index = 0; index < group.agents.length; index++) {
                 const agent = group.agents[index];
+                const sprite = agent.sprite;
                 if (index >= activeCount) {
-                    writeMatrix(B, group.matrices, index, agent.position, 0, 0, 0, matrix, scale, rotation);
+                    sprite.isVisible = false;
                     continue;
                 }
                 let separationX = 0;
@@ -395,7 +430,9 @@ export class WhaleOceanRuntime {
                 const speed = Math.max(0.006, Math.min(0.055, agent.velocity.length()));
                 agent.velocity.scaleInPlace(0.996);
                 agent.velocity.normalize().scaleInPlace(speed);
-                agent.position.addInPlace(agent.velocity.scale(factor));
+                agent.position.x += agent.velocity.x * factor;
+                agent.position.y += agent.velocity.y * factor;
+                agent.position.z += agent.velocity.z * factor;
                 const minX = group.territory === "left" ? -17 : 1;
                 const maxX = group.territory === "left" ? -1 : 17;
                 if (agent.position.x < minX)
@@ -406,12 +443,16 @@ export class WhaleOceanRuntime {
                     agent.velocity.y *= -1;
                 if (agent.position.z < -2.5 || agent.position.z > 2.4)
                     agent.velocity.z *= -1;
-                const yaw = Math.atan2(agent.velocity.z, agent.velocity.x);
-                const pitch = -Math.atan2(agent.velocity.y, Math.max(0.001, Math.hypot(agent.velocity.x, agent.velocity.z)));
-                writeMatrix(B, group.matrices, index, agent.position, yaw, pitch, 0.13 + agent.seed * 0.06 + group.activity * 0.08, matrix, scale, rotation);
+                sprite.position.x = agent.position.x;
+                sprite.position.y = agent.position.y;
+                sprite.position.z = agent.position.z;
+                sprite.invertU = agent.velocity.x < 0;
+                const size = spriteSizeForKind(agent.kind) * (1 + group.activity * 0.35 + agent.seed * 0.12);
+                sprite.width = size;
+                sprite.height = size * 0.5;
+                sprite.color.a = Math.min(1, 0.42 + group.activity * 0.58);
+                sprite.isVisible = true;
             }
-            group.body.thinInstanceSetBuffer("matrix", group.matrices, 16, true);
-            group.tail.thinInstanceSetBuffer("matrix", group.matrices, 16, true);
         }
     }
     updateBubbles(seconds) {
@@ -437,85 +478,34 @@ export class WhaleOceanRuntime {
         state.lastActorAt = now;
         while (this.flowActors.length >= QUALITY_FLOW_ACTORS[this.quality]) {
             const oldest = this.flowActors.shift();
-            oldest?.root.dispose(false, true);
+            if (oldest)
+                this.disposeFlowActor(oldest);
         }
-        const B = this.B;
-        const scene = this.scene;
         const territory = this.options.leftSymbol === symbol ? "left" : "right";
         const movingRight = territory === "left" ? side === "buy" : side === "sell";
-        const direction = movingRight ? 1 : -1;
         const sideColor = side === "buy" ? "#36e7b0" : "#ff6b55";
-        const territoryColor = territory === "left" ? this.options.leftColor : this.options.rightColor;
-        const material = new B.StandardMaterial(`whale-ocean-flow-${symbol}-${now}`, scene);
-        material.diffuseColor = B.Color3.FromHexString(sideColor);
-        material.emissiveColor = B.Color3.FromHexString(sideColor).scale(0.24 + profile.intensity * 0.5);
-        material.alpha = 0.78 + profile.intensity * 0.2;
-        const root = B.MeshBuilder.CreateSphere(`whale-ocean-flow-fish-${symbol}-${now}`, {
-            diameter: 1,
-            segments: this.quality === "Low" ? 5 : 8
-        }, scene);
-        root.material = material;
-        root.scaling.set(profile.size * 2.25, profile.size * 1.05, profile.size * 0.72);
-        const tail = B.MeshBuilder.CreateCylinder(`whale-ocean-flow-tail-${symbol}-${now}`, {
-            height: profile.size * 1.45,
-            diameterTop: 0,
-            diameterBottom: profile.size * 0.9,
-            tessellation: 4
-        }, scene);
-        tail.material = material;
-        tail.rotation.z = Math.PI / 2;
-        tail.position.x = -direction * profile.size * 1.65;
-        tail.parent = root;
-        const fin = B.MeshBuilder.CreateCylinder(`whale-ocean-flow-fin-${symbol}-${now}`, {
-            height: profile.size * 0.72,
-            diameterTop: 0,
-            diameterBottom: profile.size * 0.5,
-            tessellation: 4
-        }, scene);
-        fin.material = material;
-        fin.rotation.x = Math.PI / 2;
-        fin.position.y = profile.size * 0.72;
-        fin.parent = root;
-        const trailMaterial = new B.StandardMaterial(`whale-ocean-flow-trail-${symbol}-${now}`, scene);
-        trailMaterial.diffuseColor = B.Color3.FromHexString(sideColor);
-        trailMaterial.emissiveColor = B.Color3.FromHexString(sideColor).scale(0.28 + profile.intensity * 0.4);
-        trailMaterial.alpha = 0.08 + profile.intensity * 0.18;
-        const trail = B.MeshBuilder.CreateCylinder(`whale-ocean-flow-trail-${symbol}-${now}`, {
-            height: profile.trailLength,
-            diameterTop: profile.size * 0.25,
-            diameterBottom: profile.size * 0.6,
-            tessellation: 6
-        }, scene);
-        trail.material = trailMaterial;
-        trail.rotation.z = Math.PI / 2;
-        trail.position.x = -direction * (profile.size * 2.1 + profile.trailLength * 0.45);
-        trail.parent = root;
-        const territoryRingMaterial = new B.StandardMaterial(`whale-ocean-flow-territory-${symbol}-${now}`, scene);
-        territoryRingMaterial.diffuseColor = B.Color3.FromHexString(territoryColor);
-        territoryRingMaterial.emissiveColor = B.Color3.FromHexString(territoryColor).scale(0.3);
-        territoryRingMaterial.alpha = 0.38;
-        const territoryRing = B.MeshBuilder.CreateTorus(`whale-ocean-flow-ring-${symbol}-${now}`, {
-            diameter: profile.size * 4.1,
-            thickness: Math.max(0.018, profile.size * 0.08),
-            tessellation: 18
-        }, scene);
-        territoryRing.material = territoryRingMaterial;
-        territoryRing.rotation.x = Math.PI / 2;
-        territoryRing.parent = root;
-        if (profile.showLabel) {
-            const label = this.createVolumeLabel(`${side === "buy" ? "BUY" : "SELL"} · ${formatCompactVolume(notional)}`, sideColor, profile.size);
-            label.position.y = profile.size * 2.15;
-            label.parent = root;
-        }
+        const kind = profile.tier === "whale" ? "baleia" : profile.tier === "large" ? "peixe_g" : profile.tier === "medium" ? "peixe_m" : "peixe_p";
+        const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-flow-${symbol}-${now}`, this.random());
+        sprite.width = profile.size * 2.65;
+        sprite.height = profile.size * 1.35;
+        sprite.invertU = !movingRight;
+        sprite.color.r = side === "buy" ? 0.78 : 1;
+        sprite.color.g = side === "buy" ? 1 : 0.78;
+        sprite.color.b = side === "buy" ? 0.9 : 0.72;
         const outer = territory === "left" ? -16.5 : 16.5;
         const inner = territory === "left" ? -1.4 : 1.4;
         const fromX = movingRight ? outer : inner;
         const toX = movingRight ? inner : outer;
-        root.position.set(fromX, -0.4 + (this.random() - 0.5) * 4.8, (this.random() - 0.5) * 1.2);
-        root.rotation.z = direction > 0 ? 0 : Math.PI;
-        root.visibility = 0;
+        sprite.position.x = fromX;
+        sprite.position.y = -0.4 + (this.random() - 0.5) * 4.8;
+        sprite.position.z = (this.random() - 0.5) * 1.2;
+        sprite.color.a = 0;
+        const label = profile.showLabel
+            ? this.createVolumeLabel(`${side === "buy" ? "BUY" : "SELL"} · ${formatCompactVolume(notional)}`, sideColor, profile.size)
+            : null;
         this.flowActors.push({
-            root,
+            sprite,
+            label,
             startedAt: now,
             duration: profile.durationMs,
             fromX,
@@ -551,61 +541,65 @@ export class WhaleOceanRuntime {
             const actor = this.flowActors[index];
             const rawProgress = (now - actor.startedAt) / actor.duration;
             if (rawProgress >= 1) {
-                actor.root.dispose(false, true);
+                this.disposeFlowActor(actor);
                 this.flowActors.splice(index, 1);
                 continue;
             }
             const progress = Math.max(0, Math.min(1, rawProgress));
             const eased = progress * progress * (3 - 2 * progress);
             const direction = actor.toX >= actor.fromX ? 1 : -1;
-            actor.root.position.x = actor.fromX + (actor.toX - actor.fromX) * eased;
-            actor.root.position.y += Math.sin(progress * Math.PI * 2 + actor.phase) * 0.0025;
-            actor.root.position.z = Math.sin(progress * Math.PI * 3 + actor.phase) * 0.38;
-            actor.root.rotation.z = direction > 0 ? 0 : Math.PI;
+            actor.sprite.position.x = actor.fromX + (actor.toX - actor.fromX) * eased;
+            actor.sprite.position.y += Math.sin(progress * Math.PI * 2 + actor.phase) * 0.0025;
+            actor.sprite.position.z = Math.sin(progress * Math.PI * 3 + actor.phase) * 0.38;
+            actor.sprite.invertU = direction < 0;
             const pulse = 1 + Math.sin(progress * Math.PI * 3 + actor.phase) * (0.025 + actor.intensity * 0.04);
-            actor.root.scaling.y = actor.size * 1.05 * pulse;
+            actor.sprite.width = actor.size * 2.65 * pulse;
+            actor.sprite.height = actor.size * 1.35 * pulse;
             const fadeIn = Math.min(1, progress / 0.12);
             const fadeOut = Math.min(1, (1 - progress) / 0.16);
-            actor.root.visibility = Math.min(fadeIn, fadeOut);
+            actor.sprite.color.a = Math.min(fadeIn, fadeOut);
+            if (actor.label) {
+                actor.label.position.set(actor.sprite.position.x, actor.sprite.position.y + actor.size * 2.1, actor.sprite.position.z - 0.04);
+                actor.label.visibility = actor.sprite.color.a;
+            }
         }
     }
+    disposeFlowActor(actor) {
+        actor.sprite.dispose();
+        actor.label?.dispose(false, true);
+    }
     spawnEvent(event) {
-        const B = this.B;
-        const scene = this.scene;
         while (this.whales.length >= 6) {
             const oldest = this.whales.shift();
-            oldest?.root.dispose(false, true);
+            if (oldest) {
+                oldest.sprite.dispose();
+                oldest.label?.dispose(false, true);
+            }
         }
-        const material = new B.StandardMaterial(`whale-ocean-event-${event.id}`, scene);
         const territory = this.options.leftSymbol === event.symbol ? "left" : "right";
         const baseColor = event.side === "buy"
             ? (territory === "left" ? this.options.leftColor : this.options.rightColor)
             : (territory === "left" ? "#a85e27" : "#0b8e94");
-        material.diffuseColor = B.Color3.FromHexString(baseColor);
-        material.emissiveColor = B.Color3.FromHexString(baseColor).scale(0.35);
-        const root = B.MeshBuilder.CreateSphere(`whale-ocean-${event.kind}-${event.id}`, { diameter: event.kind === "whale" ? 2.7 : 1.35, segments: 8 }, scene);
-        root.material = material;
         const movingRight = territory === "left" ? event.side === "buy" : event.side === "sell";
         const outer = territory === "left" ? -17 : 17;
         const inner = territory === "left" ? -1.5 : 1.5;
         const fromX = movingRight ? outer : inner;
         const toX = movingRight ? inner : outer;
-        root.position.set(fromX, -3.2, 0.5);
-        root.scaling.set(event.kind === "whale" ? 1.35 : 0.95, event.kind === "whale" ? 1.1 : 0.9, 0.55);
-        root.rotation.z = movingRight ? 0 : Math.PI;
-        const tail = B.MeshBuilder.CreateCylinder(`whale-ocean-event-tail-${event.id}`, { height: 0.9, diameterTop: 0, diameterBottom: 0.75, tessellation: 3 }, scene);
-        tail.material = material;
-        tail.rotation.z = Math.PI / 2;
-        tail.position.x = -1.4;
-        tail.parent = root;
-        const sonar = B.MeshBuilder.CreateTorus(`whale-ocean-sonar-${event.id}`, { diameter: 3.5, thickness: 0.025, tessellation: 24 }, scene);
-        sonar.material = material;
-        sonar.rotation.x = Math.PI / 2;
-        sonar.parent = root;
+        const kind = event.kind === "whale" ? "baleia" : "tubarao";
+        const size = event.kind === "whale" ? 3.8 : 2.35;
+        const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-${event.kind}-${event.id}`, this.random());
+        sprite.width = size;
+        sprite.height = size * 0.5;
+        sprite.invertU = !movingRight;
+        sprite.position.x = fromX;
+        sprite.position.y = -3.2;
+        sprite.position.z = 0.5;
+        sprite.color.r = event.side === "buy" ? 0.78 : 1;
+        sprite.color.g = event.side === "buy" ? 1 : 0.78;
+        sprite.color.b = event.side === "buy" ? 0.9 : 0.72;
+        sprite.color.a = 0;
         const label = this.createVolumeLabel(`${event.side === "buy" ? "BUY" : "SELL"} · ${formatCompactVolume(event.notionalUsdt)}`, baseColor, event.kind === "whale" ? 0.8 : 0.5);
-        label.position.y = event.kind === "whale" ? 2.35 : 1.45;
-        label.parent = root;
-        this.whales.push({ root, startedAt: performance.now(), duration: event.kind === "whale" ? 11000 : 8000, fromX, toX });
+        this.whales.push({ sprite, label, startedAt: performance.now(), duration: event.kind === "whale" ? 11000 : 8000, fromX, toX, size });
         this.addAlert(event);
     }
     updateWhales(now) {
@@ -613,18 +607,24 @@ export class WhaleOceanRuntime {
             const event = this.whales[index];
             const progress = (now - event.startedAt) / event.duration;
             if (progress >= 1) {
-                event.root.dispose(false, true);
+                event.sprite.dispose();
+                event.label?.dispose(false, true);
                 this.whales.splice(index, 1);
                 continue;
             }
-            event.root.position.x = event.fromX + (event.toX - event.fromX) * progress;
-            event.root.position.y = -3.2 + Math.sin(progress * Math.PI * 2) * 1.2;
-            event.root.position.z = Math.sin(progress * Math.PI * 3) * 0.6;
-            event.root.scaling.y = 0.8 + Math.sin(progress * Math.PI) * 0.12;
-            event.root.scaling.x = 1 + Math.sin(progress * Math.PI) * 0.14;
+            event.sprite.position.x = event.fromX + (event.toX - event.fromX) * progress;
+            event.sprite.position.y = -3.2 + Math.sin(progress * Math.PI * 2) * 1.2;
+            event.sprite.position.z = Math.sin(progress * Math.PI * 3) * 0.6;
+            event.sprite.invertU = event.toX < event.fromX;
+            const pulse = 1 + Math.sin(progress * Math.PI) * 0.12;
+            event.sprite.width = event.size * pulse;
+            event.sprite.height = event.size * 0.5 * pulse;
             const fadeIn = Math.min(1, progress / 0.14);
             const fadeOut = Math.min(1, (1 - progress) / 0.18);
-            event.root.visibility = Math.min(fadeIn, fadeOut);
+            event.sprite.color.a = Math.min(fadeIn, fadeOut);
+            event.label?.position.set(event.sprite.position.x, event.sprite.position.y + event.size * 0.56, event.sprite.position.z - 0.05);
+            if (event.label)
+                event.label.visibility = event.sprite.color.a;
         }
     }
     addAlert(event) {
@@ -674,11 +674,22 @@ export class WhaleOceanRuntime {
         return this.randomState / 4294967296;
     }
 }
-function writeMatrix(B, buffer, index, position, yaw, pitch, scaleValue, matrix, scale, rotation) {
-    scale.set(scaleValue * 1.65, scaleValue, scaleValue * 0.7);
-    B.Quaternion.RotationYawPitchRollToRef(yaw, pitch, 0, rotation);
-    B.Matrix.ComposeToRef(scale, rotation, position, matrix);
-    matrix.copyToArray(buffer, index * 16);
+function spriteSizeForKind(kind) {
+    switch (kind) {
+        case "peixe_m": return 0.46;
+        case "peixe_g": return 0.72;
+        case "tubarao": return 2.35;
+        case "baleia": return 3.8;
+        default: return 0.32;
+    }
+}
+async function waitForSpriteTexture(texture) {
+    const deadline = performance.now() + 8000;
+    while (!texture.isReady()) {
+        if (performance.now() >= deadline)
+            throw new Error("Timed out loading Whale Ocean sprite atlas.");
+        await new Promise(resolve => setTimeout(resolve, 16));
+    }
 }
 function parseNumber(value) {
     const parsed = Number(value);

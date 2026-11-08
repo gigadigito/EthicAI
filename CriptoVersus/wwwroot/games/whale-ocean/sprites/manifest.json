@@ -1,0 +1,103 @@
+{
+  "version": 2,
+  "frameWidth": 512,
+  "frameHeight": 256,
+  "framesPerAnimation": 12,
+  "atlas": {
+    "columns": 4,
+    "rows": 3
+  },
+  "direction": "right; flip horizontally for left",
+  "animations": {
+    "peixe_p_lima": {
+      "folder": "peixe_p/lima",
+      "atlas": "atlas_peixe_p_lima.png",
+      "preview": "preview_peixe_p_lima.gif",
+      "fps": 12,
+      "frameCount": 12,
+      "color": "#789a0c",
+      "kind": "peixe_p"
+    },
+    "peixe_p_ciano": {
+      "folder": "peixe_p/ciano",
+      "atlas": "atlas_peixe_p_ciano.png",
+      "preview": "preview_peixe_p_ciano.gif",
+      "fps": 12,
+      "frameCount": 12,
+      "color": "#087f83",
+      "kind": "peixe_p"
+    },
+    "peixe_m_lima": {
+      "folder": "peixe_m/lima",
+      "atlas": "atlas_peixe_m_lima.png",
+      "preview": "preview_peixe_m_lima.gif",
+      "fps": 12,
+      "frameCount": 12,
+      "color": "#789a0c",
+      "kind": "peixe_m"
+    },
+    "peixe_m_ciano": {
+      "folder": "peixe_m/ciano",
+      "atlas": "atlas_peixe_m_ciano.png",
+      "preview": "preview_peixe_m_ciano.gif",
+      "fps": 12,
+      "frameCount": 12,
+      "color": "#087f83",
+      "kind": "peixe_m"
+    },
+    "peixe_g_lima": {
+      "folder": "peixe_g/lima",
+      "atlas": "atlas_peixe_g_lima.png",
+      "preview": "preview_peixe_g_lima.gif",
+      "fps": 12,
+      "frameCount": 12,
+      "color": "#789a0c",
+      "kind": "peixe_g"
+    },
+    "peixe_g_ciano": {
+      "folder": "peixe_g/ciano",
+      "atlas": "atlas_peixe_g_ciano.png",
+      "preview": "preview_peixe_g_ciano.gif",
+      "fps": 12,
+      "frameCount": 12,
+      "color": "#087f83",
+      "kind": "peixe_g"
+    },
+    "tubarao_lima": {
+      "folder": "tubarao/lima",
+      "atlas": "atlas_tubarao_lima.png",
+      "preview": "preview_tubarao_lima.gif",
+      "fps": 12,
+      "frameCount": 12,
+      "color": "#789a0c",
+      "kind": "tubarao"
+    },
+    "tubarao_ciano": {
+      "folder": "tubarao/ciano",
+      "atlas": "atlas_tubarao_ciano.png",
+      "preview": "preview_tubarao_ciano.gif",
+      "fps": 12,
+      "frameCount": 12,
+      "color": "#087f83",
+      "kind": "tubarao"
+    },
+    "baleia_lima": {
+      "folder": "baleia/lima",
+      "atlas": "atlas_baleia_lima.png",
+      "preview": "preview_baleia_lima.gif",
+      "fps": 10,
+      "frameCount": 12,
+      "color": "#789a0c",
+      "kind": "baleia"
+    },
+    "baleia_ciano": {
+      "folder": "baleia/ciano",
+      "atlas": "atlas_baleia_ciano.png",
+      "preview": "preview_baleia_ciano.gif",
+      "fps": 10,
+      "frameCount": 12,
+      "color": "#087f83",
+      "kind": "baleia"
+    }
+  }
+}
