@@ -47,6 +47,7 @@ export class WhaleOceanRuntime {
         });
         this.engine.setHardwareScalingLevel(this.quality === "Low" ? 1.6 : this.quality === "Medium" ? 1.25 : 1);
         this.scene = new this.B.Scene(this.engine);
+        this.scene.spritesEnabled = true;
         this.scene.clearColor = this.B.Color4.FromHexString("#031525ff");
         this.scene.fogMode = this.B.Scene.FOGMODE_EXP2;
         this.scene.fogDensity = this.quality === "Low" ? 0.018 : 0.012;
@@ -247,7 +248,8 @@ export class WhaleOceanRuntime {
             const manager = new B.SpriteManager(`whale-ocean-sprites-${name}`, `/games/whale-ocean/sprites/${definition.atlas}`, QUALITY_FISH.High * 2 + 32, { width: manifest.frameWidth, height: manifest.frameHeight }, scene, 0.01, B.Texture.NEAREST_SAMPLINGMODE);
             manager.isPickable = false;
             manager.disableDepthWrite = true;
-            manager.fogEnabled = true;
+            manager.fogEnabled = false;
+            manager.renderingGroupId = 1;
             this.spriteManagers.push(manager);
             await waitForSpriteTexture(manager.texture);
             this.spriteAtlases.set(`${definition.kind}:${territory}`, { manager, fps: definition.fps, kind: definition.kind, territory });
@@ -486,8 +488,9 @@ export class WhaleOceanRuntime {
         const sideColor = side === "buy" ? "#36e7b0" : "#ff6b55";
         const kind = profile.tier === "whale" ? "baleia" : profile.tier === "large" ? "peixe_g" : profile.tier === "medium" ? "peixe_m" : "peixe_p";
         const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-flow-${symbol}-${now}`, this.random());
-        sprite.width = profile.size * 2.65;
-        sprite.height = profile.size * 1.35;
+        const spriteWidth = spriteSizeForKind(kind) * (1 + profile.intensity * 0.25);
+        sprite.width = spriteWidth;
+        sprite.height = spriteWidth * 0.5;
         sprite.invertU = !movingRight;
         sprite.color.r = side === "buy" ? 0.78 : 1;
         sprite.color.g = side === "buy" ? 1 : 0.78;
@@ -511,7 +514,7 @@ export class WhaleOceanRuntime {
             fromX,
             toX,
             side,
-            size: profile.size,
+            size: spriteWidth,
             intensity: profile.intensity,
             phase: this.random() * Math.PI * 2
         });
@@ -553,13 +556,13 @@ export class WhaleOceanRuntime {
             actor.sprite.position.z = Math.sin(progress * Math.PI * 3 + actor.phase) * 0.38;
             actor.sprite.invertU = direction < 0;
             const pulse = 1 + Math.sin(progress * Math.PI * 3 + actor.phase) * (0.025 + actor.intensity * 0.04);
-            actor.sprite.width = actor.size * 2.65 * pulse;
-            actor.sprite.height = actor.size * 1.35 * pulse;
+            actor.sprite.width = actor.size * pulse;
+            actor.sprite.height = actor.size * 0.5 * pulse;
             const fadeIn = Math.min(1, progress / 0.12);
             const fadeOut = Math.min(1, (1 - progress) / 0.16);
             actor.sprite.color.a = Math.min(fadeIn, fadeOut);
             if (actor.label) {
-                actor.label.position.set(actor.sprite.position.x, actor.sprite.position.y + actor.size * 2.1, actor.sprite.position.z - 0.04);
+                actor.label.position.set(actor.sprite.position.x, actor.sprite.position.y + actor.size * 0.62, actor.sprite.position.z - 0.04);
                 actor.label.visibility = actor.sprite.color.a;
             }
         }
@@ -676,11 +679,11 @@ export class WhaleOceanRuntime {
 }
 function spriteSizeForKind(kind) {
     switch (kind) {
-        case "peixe_m": return 0.46;
-        case "peixe_g": return 0.72;
-        case "tubarao": return 2.35;
-        case "baleia": return 3.8;
-        default: return 0.32;
+        case "peixe_m": return 1.18;
+        case "peixe_g": return 1.7;
+        case "tubarao": return 3.2;
+        case "baleia": return 5.4;
+        default: return 0.78;
     }
 }
 async function waitForSpriteTexture(texture) {
