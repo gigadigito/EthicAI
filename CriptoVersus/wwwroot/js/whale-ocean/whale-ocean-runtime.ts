@@ -19,6 +19,7 @@ import type { ArcRotateCamera, Engine, Mesh, Scene, Sprite, SpriteManager, Stand
 type BabylonApi = typeof import("babylonjs");
 type Quality = "Low" | "Medium" | "High";
 type SpriteKind = WhaleOceanAnimalKind;
+type FlowOrigin = "LIVE" | "REPLAY" | "DEMO";
 
 interface SpriteAtlas {
     manager: SpriteManager;
@@ -42,6 +43,7 @@ export interface WhaleOceanRuntimeOptions {
     rightColor: string;
     quality?: Quality;
     diagnostic?: "sprites" | "showcase";
+    developmentDiagnostics?: boolean;
 }
 
 interface FishAgent {
@@ -63,6 +65,10 @@ interface FishGroup {
     activity: number;
     flowBias: number;
     lastActiveAt: number;
+    recentLots: Array<{ at: number; quote: number; tradeCount: number; origin: FlowOrigin }>;
+    visibleCount: number;
+    lastLiveAt: number;
+    lastOrigin: FlowOrigin | null;
 }
 
 interface Bubble {
@@ -136,6 +142,7 @@ export class WhaleOceanRuntime {
     private frameAccumulator = 0;
     private alertCount = 0;
     private randomState = 0x51f15e;
+    private lastDiagnosticsAt = 0;
 
     public constructor(options: WhaleOceanRuntimeOptions) {
         this.options = options;
@@ -183,6 +190,7 @@ export class WhaleOceanRuntime {
             this.buildFishGroups();
             this.buildBubbles();
             this.updateHud();
+            this.refreshDiagnostics(Date.now(), true);
             if (this.options.diagnostic === "showcase") {
                 this.buildShowcaseDiagnostic();
                 this.setStatus("DIAGNOSTIC_SHOWCASE");
@@ -223,8 +231,10 @@ export class WhaleOceanRuntime {
         state.updatedAt = now;
         const side = buyQuote >= sellQuote ? "buy" : "sell";
         const activity = buyQuote + sellQuote;
-        this.updateGroup(symbol, "buy", buyQuote, side === "buy" ? activity : 0);
-        this.updateGroup(symbol, "sell", sellQuote, side === "sell" ? activity : 0);
+        const origin: FlowOrigin = batch.isReplay ? "REPLAY" : "LIVE";
+        const tradeCount = Math.max(0, Math.round(parseNumber(batch.tradeCount)));
+        this.updateGroup(symbol, "buy", buyQuote, side === "buy" ? activity : 0, tradeCount, origin, now);
+        this.updateGroup(symbol, "sell", sellQuote, side === "sell" ? activity : 0, tradeCount, origin, now);
 
         if (batch.isReplay) {
             if (!this.replayComplete) {
@@ -239,6 +249,7 @@ export class WhaleOceanRuntime {
             else this.spawnFlowActor(symbol, side, totalQuote, baselineBefore, now);
         }
         this.updateHud();
+        this.refreshDiagnostics(now, true);
     }
 
     public setPaused(paused: boolean): void {
@@ -445,7 +456,10 @@ export class WhaleOceanRuntime {
                 kind
             });
         }
-        this.fishGroups.push({ side, symbol, territory, agents, targetCount: 0, baseline: 0, activity: 0, flowBias: 0, lastActiveAt: 0 });
+        this.fishGroups.push({
+            side, symbol, territory, agents, targetCount: 0, baseline: 0, activity: 0, flowBias: 0, lastActiveAt: 0,
+            recentLots: [], visibleCount: 0, lastLiveAt: 0, lastOrigin: null
+        });
     }
 
     private buildBubbles(): void {
@@ -514,7 +528,7 @@ export class WhaleOceanRuntime {
         });
     }
 
-    private updateGroup(symbol: string, side: WhaleOceanSide, quote: number, activeQuote: number): void {
+    private updateGroup(symbol: string, side: WhaleOceanSide, quote: number, activeQuote: number, tradeCount: number, origin: FlowOrigin, now: number): void {
         const state = this.symbols.get(symbol);
         if (!state) return;
         for (const group of this.fishGroups) {
@@ -525,6 +539,10 @@ export class WhaleOceanRuntime {
                 group.targetCount *= 0.82;
                 continue;
             }
+            group.recentLots.push({ at: now, quote, tradeCount, origin });
+            while (group.recentLots.length > 0 && group.recentLots[0].at < now - 30_000) group.recentLots.shift();
+            group.lastOrigin = origin;
+            if (origin === "LIVE") group.lastLiveAt = now;
             group.baseline = group.baseline === 0 ? Math.max(quote, 1) : group.baseline * 0.97 + Math.max(quote, 1) * 0.03;
             group.activity = Math.max(0, Math.min(1, group.activity * 0.92 + normalizeActivity(activeQuote || quote, group.baseline) * 0.08));
             const pressure = computePressure(state.buyQuote, state.sellQuote);
@@ -533,7 +551,7 @@ export class WhaleOceanRuntime {
             const sideDirection = group.side === "buy" ? 1 : -1;
             group.flowBias = territoryDirection * sideDirection * (0.003 + pressureStrength * 0.009);
             group.targetCount = visualDensity(quote, group.baseline, pressureStrength, this.quality);
-            group.lastActiveAt = Date.now();
+            group.lastActiveAt = now;
         }
     }
 
@@ -560,11 +578,13 @@ export class WhaleOceanRuntime {
         this.updateBubbles(seconds);
         this.updateFlowActors(now);
         this.updateWhales(now);
+        this.refreshDiagnostics(Date.now());
     }
 
     private updateFish(seconds: number, factor: number): void {
         for (const group of this.fishGroups) {
             const activeCount = Math.min(group.agents.length, Math.max(0, Math.round(group.targetCount)));
+            group.visibleCount = activeCount;
             const grid = new Map<string, number[]>();
             for (let index = 0; index < activeCount; index++) {
                 const agent = group.agents[index];
