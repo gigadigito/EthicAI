@@ -61,6 +61,11 @@ public sealed record MoneyFlowClientBatchDto
     public string HighPrice { get; init; } = "0";
     public string LowPrice { get; init; } = "0";
     public bool IsPartial { get; init; }
+    /// <summary>
+    /// True only for bounded catch-up data sent when a client joins a match group.
+    /// Replay data is presentation-only and must never create a new live alert.
+    /// </summary>
+    public bool IsReplay { get; init; }
 }
 
 public sealed record MoneyFlowTransportAccepted(int Accepted, int Duplicates, int Rejected);

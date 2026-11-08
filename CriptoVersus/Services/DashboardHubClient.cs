@@ -29,6 +29,7 @@ namespace CriptoVersus.Web.Services
 
         public event Action<string?>? DashboardChanged;
         public event Action<MoneyFlowClientBatchDto>? MoneyFlowBatchReceived;
+        public event Action<bool>? MoneyFlowConnectionChanged;
         private readonly HashSet<int> _moneyFlowMatches = [];
 
         public HubConnectionState State => _hub?.State ?? HubConnectionState.Disconnected;
@@ -55,6 +56,7 @@ namespace CriptoVersus.Web.Services
             {
                 if (_hub is not null && _hub.State == HubConnectionState.Connected)
                 {
+                    MoneyFlowConnectionChanged?.Invoke(true);
                     _logger.LogDebug("EnsureStartedAsync already connected id={id} connId={connId}", _id, _hub.ConnectionId);
                     return;
                 }
@@ -72,6 +74,7 @@ namespace CriptoVersus.Web.Services
 
                 _logger.LogInformation("Starting hub... id={id} url={url}", _id, _hubUrl);
                 await _hub.StartAsync(linked.Token);
+                MoneyFlowConnectionChanged?.Invoke(true);
                 await RejoinMoneyFlowGroupsAsync(linked.Token);
                 _logger.LogInformation("Hub started OK id={id} connId={connId} state={state}", _id, _hub.ConnectionId, _hub.State);
             }
@@ -135,12 +138,14 @@ namespace CriptoVersus.Web.Services
 
             hub.Reconnecting += ex =>
             {
+                MoneyFlowConnectionChanged?.Invoke(false);
                 _logger.LogWarning(ex, "Hub reconnecting id={id} state={state}", _id, hub.State);
                 return Task.CompletedTask;
             };
 
             hub.Reconnected += connId =>
             {
+                MoneyFlowConnectionChanged?.Invoke(true);
                 _logger.LogInformation("Hub reconnected id={id} connId={connId} state={state}", _id, connId, hub.State);
                 return RejoinMoneyFlowGroupsAsync(_lifetimeCts.Token);
             };
@@ -151,6 +156,7 @@ namespace CriptoVersus.Web.Services
                     return Task.CompletedTask;
 
                 _logger.LogWarning(ex, "Hub CLOSED id={id} state={state}. Will start reconnect loop.", _id, hub.State);
+                MoneyFlowConnectionChanged?.Invoke(false);
 
                 // dispara loop em background, mas garantimos 1 por vez
                 if (_reconnectTask is null || _reconnectTask.IsCompleted)

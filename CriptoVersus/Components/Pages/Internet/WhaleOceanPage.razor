@@ -1,0 +1,225 @@
+@page "/tv/whale-ocean/{MatchId:int}/{Slug}"
+@page "/en/tv/whale-ocean/{MatchId:int}/{Slug}"
+@page "/pt/tv/whale-ocean/{MatchId:int}/{Slug}"
+@page "/zh/tv/whale-ocean/{MatchId:int}/{Slug}"
+@page "/es/tv/whale-ocean/{MatchId:int}/{Slug}"
+@page "/fr/tv/whale-ocean/{MatchId:int}/{Slug}"
+@page "/de/tv/whale-ocean/{MatchId:int}/{Slug}"
+@page "/it/tv/whale-ocean/{MatchId:int}/{Slug}"
+@page "/ja/tv/whale-ocean/{MatchId:int}/{Slug}"
+@using DTOs
+@using Microsoft.JSInterop
+@using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
+@inject DashboardHubClient Hub
+@inject AppCultureService AppCulture
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject RouteLocalizationService RouteLocalization
+@inject ILogger<WhaleOceanPage> Logger
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+
+<PageTitle>Whale Ocean 3D · @(_match?.TeamA ?? "") vs @(_match?.TeamB ?? "")</PageTitle>
+
+<main class="whale-ocean" data-ocean-state="BOOTSTRAP_PENDING">
+    <header class="whale-ocean__header">
+        <div>
+            <div class="whale-ocean__eyebrow">CRIPTOVERSUS · MARKET VISUALIZATION</div>
+            <h1>Whale Ocean <span>3D</span></h1>
+            <p>Real-time market flow, represented from the match's official trade stream.</p>
+        </div>
+        <div class="whale-ocean__actions">
+            @if (_match is not null)
+            {
+                <a href="@RouteLocalization.BuildTvMatchPath(_culture, MatchId, Slug ?? string.Empty)">Back to TV</a>
+            }
+            <button type="button" @onclick="TogglePaused">Pause</button>
+            <label>Quality <select @bind="_quality" @bind:after="QualityChangedAsync"><option>Low</option><option>Medium</option><option>High</option></select></label>
+        </div>
+    </header>
+
+    @if (_match is null)
+    {
+        <section class="whale-ocean__loading" aria-live="polite">@(_loadError ?? "Loading match and ocean state…")</section>
+    }
+    else
+    {
+        <section class="whale-ocean__stage" aria-label="Whale Ocean 3D visualization">
+            <canvas @ref="_canvas" class="whale-ocean__canvas"></canvas>
+            <div class="whale-ocean__topbar">
+                <div class="whale-ocean__status"><i></i><span data-whale-ocean="status">BOOTSTRAP_PENDING</span></div>
+                <div class="whale-ocean__state-note">No simulated market data · DEMO mode is off</div>
+            </div>
+            <div class="whale-ocean__territory whale-ocean__territory--left">
+                <strong>@_match.TeamA</strong><small data-whale-ocean="left-price">—</small>
+                <div><span>BUY</span><b data-whale-ocean="left-buy">—</b></div>
+                <div><span>SELL</span><b data-whale-ocean="left-sell">—</b></div>
+                <em data-whale-ocean="left-change">@FormatPercent(_match.PctA)</em>
+                <small>volume <span data-whale-ocean="left-volume">—</span> USDT</small>
+            </div>
+            <div class="whale-ocean__territory whale-ocean__territory--right">
+                <strong>@_match.TeamB</strong><small data-whale-ocean="right-price">—</small>
+                <div><span>BUY</span><b data-whale-ocean="right-buy">—</b></div>
+                <div><span>SELL</span><b data-whale-ocean="right-sell">—</b></div>
+                <em data-whale-ocean="right-change">@FormatPercent(_match.PctB)</em>
+                <small>volume <span data-whale-ocean="right-volume">—</span> USDT</small>
+            </div>
+            <div class="whale-ocean__legend"><span class="buy">● BUY AGGRESSOR</span><span class="sell">● SELL AGGRESSOR</span><span>Events <b data-whale-ocean="events">0</b></span></div>
+            <div class="whale-ocean__alerts" data-whale-ocean="alerts" aria-live="polite"></div>
+        </section>
+    }
+</main>
+
+@code {
+    [Parameter] public int MatchId { get; set; }
+    [Parameter] public string? Slug { get; set; }
+
+    private readonly CancellationTokenSource _lifetime = new();
+    private ElementReference _canvas;
+    private IJSObjectReference? _module;
+    private MatchDto? _match;
+    private string _culture = AppCultureService.DefaultRouteCulture;
+    private string? _loadError;
+    private string _quality = "Medium";
+    private bool _paused;
+    private bool _subscribed;
+    private int _loadedMatchId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _culture = AppCulture.ResolveNavigationCulture(Nav, HttpContextAccessor.HttpContext);
+        if (_loadedMatchId == MatchId && _match is not null) return;
+        _loadedMatchId = MatchId;
+        _match = null;
+        _loadError = null;
+        await DisposeJsAsync();
+        try
+        {
+            _match = await Api.GetMatchByIdAsync(MatchId, includeParticipants: false, _lifetime.Token);
+            if (_match is null)
+            {
+                _loadError = "Match not found.";
+                return;
+            }
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Whale Ocean match load failed. MatchId={MatchId}", MatchId);
+            _loadError = "Unable to load this match right now.";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_match is null || _module is not null || _lifetime.IsCancellationRequested) return;
+        try
+        {
+            var leftPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamA, _lifetime.Token);
+            var rightPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamB, _lifetime.Token);
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261108-whale-ocean-v1");
+            await _module.InvokeVoidAsync("initialize", new
+            {
+                canvas = _canvas,
+                matchId = MatchId,
+                leftSymbol = _match.TeamA.ToUpperInvariant(),
+                rightSymbol = _match.TeamB.ToUpperInvariant(),
+                leftPrice = leftPrice?.LastPriceUsdt,
+                rightPrice = rightPrice?.LastPriceUsdt,
+                leftChange = leftPrice?.PercentageChange ?? _match.PctA ?? 0,
+                rightChange = rightPrice?.PercentageChange ?? _match.PctB ?? 0,
+                leftColor = "#ff9100",
+                rightColor = "#18d8d2",
+                quality = _quality
+            });
+            Hub.MoneyFlowBatchReceived += OnMoneyFlowBatch;
+            Hub.MoneyFlowConnectionChanged += OnMoneyFlowConnectionChanged;
+            _subscribed = await Hub.SubscribeToMoneyFlowAsync(MatchId, _lifetime.Token);
+            await _module.InvokeVoidAsync("setConnectionState", MatchId, _subscribed);
+            await _module.InvokeVoidAsync("completeReplay", MatchId);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex) when (ex is JSException or InvalidOperationException or HttpRequestException)
+        {
+            Logger.LogWarning(ex, "Whale Ocean bootstrap failed. MatchId={MatchId}", MatchId);
+            await DisposeJsAsync();
+            _loadError = "The ocean renderer could not start on this device.";
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnMoneyFlowBatch(MoneyFlowClientBatchDto batch)
+    {
+        if (batch.MatchId != MatchId || _module is null) return;
+        _ = InvokeAsync(async () =>
+        {
+            try
+            {
+                await _module.InvokeVoidAsync("receive", MatchId, new
+                {
+                    matchId = batch.MatchId,
+                    symbol = batch.Symbol,
+                    sequence = batch.Sequence,
+                    eventTimeUtc = batch.EventTimeUtc,
+                    tradeCount = batch.TradeCount,
+                    takerBuyQuote = batch.TakerBuyQuote,
+                    takerSellQuote = batch.TakerSellQuote,
+                    lastPrice = batch.LastPrice,
+                    isPartial = batch.IsPartial,
+                    isReplay = batch.IsReplay
+                });
+            }
+            catch (JSDisconnectedException) { }
+        });
+    }
+
+    private void OnMoneyFlowConnectionChanged(bool connected)
+    {
+        if (_module is null) return;
+        _ = InvokeAsync(async () =>
+        {
+            try { await _module.InvokeVoidAsync("setConnectionState", MatchId, connected); }
+            catch (JSDisconnectedException) { }
+        });
+    }
+
+    private async Task TogglePaused()
+    {
+        _paused = !_paused;
+        if (_module is not null) await _module.InvokeVoidAsync("setPaused", MatchId, _paused);
+    }
+
+    private async Task QualityChangedAsync()
+    {
+        if (_module is not null) await _module.InvokeVoidAsync("setQuality", MatchId, _quality);
+    }
+
+    private static string FormatPercent(decimal? value)
+        => value.HasValue ? $"{(value.Value >= 0 ? "+" : string.Empty)}{value.Value:0.00}%" : "—";
+
+    private async Task DisposeJsAsync()
+    {
+        Hub.MoneyFlowBatchReceived -= OnMoneyFlowBatch;
+        Hub.MoneyFlowConnectionChanged -= OnMoneyFlowConnectionChanged;
+        if (_subscribed)
+        {
+            await Hub.UnsubscribeFromMoneyFlowAsync(MatchId);
+            _subscribed = false;
+        }
+        if (_module is not null)
+        {
+            try { await _module.InvokeVoidAsync("dispose", MatchId); } catch (JSDisconnectedException) { }
+            await _module.DisposeAsync();
+            _module = null;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _lifetime.Cancel();
+        await DisposeJsAsync();
+        _lifetime.Dispose();
+    }
+}

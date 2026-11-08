@@ -102,7 +102,7 @@ public sealed class MoneyFlowDispatcher : BackgroundService
                 _replayByMatch.Remove(matchId);
                 return Array.Empty<MoneyFlowClientBatchDto>();
             }
-            return replay.Select(x => x.Batch).ToArray();
+            return replay.Select(x => x.Batch with { IsReplay = true }).ToArray();
         }
     }
 

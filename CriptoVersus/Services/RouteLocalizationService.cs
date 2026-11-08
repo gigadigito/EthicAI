@@ -150,6 +150,9 @@ public sealed class RouteLocalizationService
     public string BuildArenaPressurePath(string? culture, int id, string slug)
         => $"{BuildTvPath(culture)}/pressure/{id}/{NormalizeRouteSegment(slug)}";
 
+    public string BuildWhaleOceanPath(string? culture, int id, string slug)
+        => $"{BuildTvPath(culture)}/whale-ocean/{id}/{NormalizeRouteSegment(slug)}";
+
     public string BuildCandleBattlesDemoPath(string? culture)
         => $"/{NormalizeCulture(culture)}/games/candle-battles/demo";
 
@@ -311,6 +314,12 @@ public sealed class RouteLocalizationService
 
             if (TryExtractConverterPair(cleanPath, out var localizedFromSymbol, out var localizedToSymbol))
                 return BuildConverterPath(normalizedTarget, localizedFromSymbol, localizedToSymbol) + querySuffix;
+
+            if (segments.Length >= 5
+                && segments[1].Equals("tv", StringComparison.OrdinalIgnoreCase)
+                && segments[2].Equals("whale-ocean", StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(segments[3], out var localizedWhaleId))
+                return BuildWhaleOceanPath(normalizedTarget, localizedWhaleId, segments[4]) + querySuffix;
         }
 
         if (cleanPath.Equals("/tv", StringComparison.OrdinalIgnoreCase)
@@ -336,12 +345,27 @@ public sealed class RouteLocalizationService
             return BuildTvMatchPath(normalizedTarget, legacyTvMatchId, segments[3]) + querySuffix;
         }
 
+        if (segments.Length >= 4
+            && cleanPath.StartsWith("/tv/whale-ocean/", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segments[2], out var legacyWhaleOceanId))
+        {
+            return BuildWhaleOceanPath(normalizedTarget, legacyWhaleOceanId, segments[3]) + querySuffix;
+        }
+
         if (segments.Length >= 5
             && segments[1].Equals("tv", StringComparison.OrdinalIgnoreCase)
             && segments[2].Equals("match", StringComparison.OrdinalIgnoreCase)
             && int.TryParse(segments[3], out var localizedTvMatchId))
         {
             return BuildTvMatchPath(normalizedTarget, localizedTvMatchId, segments[4]) + querySuffix;
+        }
+
+        if (segments.Length >= 5
+            && segments[1].Equals("tv", StringComparison.OrdinalIgnoreCase)
+            && segments[2].Equals("whale-ocean", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segments[3], out var localizedWhaleOceanId))
+        {
+            return BuildWhaleOceanPath(normalizedTarget, localizedWhaleOceanId, segments[4]) + querySuffix;
         }
 
         if (segments.Length == 5 && segments[1].Equals("tv", StringComparison.OrdinalIgnoreCase)
