@@ -1,6 +1,7 @@
 export type WhaleOceanSide = "buy" | "sell";
 export type WhaleOceanEventKind = "shark" | "whale";
 export type WhaleOceanVisualTier = "micro" | "small" | "medium" | "large" | "whale";
+export type WhaleOceanAnimalKind = "peixe_p" | "peixe_m" | "peixe_g" | "tubarao" | "baleia";
 
 export interface WhaleOceanBatch {
     matchId: number;
@@ -40,6 +41,19 @@ export interface WhaleOceanVisualProfile {
     durationMs: number;
     trailLength: number;
     showLabel: boolean;
+}
+
+export function animalKindForVisualTier(tier: WhaleOceanVisualTier): WhaleOceanAnimalKind {
+    switch (tier) {
+        case "whale": return "baleia";
+        case "large": return "peixe_g";
+        case "medium": return "peixe_m";
+        default: return "peixe_p";
+    }
+}
+
+export function animalKindForEvent(kind: WhaleOceanEventKind): WhaleOceanAnimalKind {
+    return kind === "whale" ? "baleia" : "tubarao";
 }
 
 export function takerSideFromBuyerIsMaker(buyerIsMaker: boolean): WhaleOceanSide {

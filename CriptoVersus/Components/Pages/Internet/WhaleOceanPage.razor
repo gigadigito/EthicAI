@@ -119,7 +119,7 @@
         {
             var leftPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamA, _lifetime.Token);
             var rightPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamB, _lifetime.Token);
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261108-whale-ocean-v1");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261108-whale-ocean-sprites-v2");
             await _module.InvokeVoidAsync("initialize", new
             {
                 canvas = _canvas,

@@ -7,7 +7,10 @@ import {
     visualProfile,
     visualDensity,
     VolumeEventDetector,
+    animalKindForEvent,
+    animalKindForVisualTier,
     type WhaleOceanBatch,
+    type WhaleOceanAnimalKind,
     type WhaleOceanEvent,
     type WhaleOceanSide
 } from "./whale-ocean-model.js";
@@ -15,13 +18,15 @@ import type { ArcRotateCamera, Engine, Mesh, Scene, Sprite, SpriteManager, Stand
 
 type BabylonApi = typeof import("babylonjs");
 type Quality = "Low" | "Medium" | "High";
-type SpriteKind = "peixe_p" | "peixe_m" | "peixe_g" | "tubarao" | "baleia";
+type SpriteKind = WhaleOceanAnimalKind;
 
 interface SpriteAtlas {
     manager: SpriteManager;
     fps: number;
     kind: SpriteKind;
     territory: "left" | "right";
+    visualWidthRatio: number;
+    visualHeightRatio: number;
 }
 
 export interface WhaleOceanRuntimeOptions {
@@ -36,6 +41,7 @@ export interface WhaleOceanRuntimeOptions {
     leftColor: string;
     rightColor: string;
     quality?: Quality;
+    diagnostic?: "sprites" | "showcase";
 }
 
 interface FishAgent {
@@ -56,6 +62,7 @@ interface FishGroup {
     baseline: number;
     activity: number;
     flowBias: number;
+    lastActiveAt: number;
 }
 
 interface Bubble {
@@ -92,6 +99,13 @@ interface LiveSymbolState {
 const QUALITY_FPS: Record<Quality, number> = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FISH: Record<Quality, number> = { Low: 45, Medium: 130, High: 275 };
 const QUALITY_FLOW_ACTORS: Record<Quality, number> = { Low: 5, Medium: 10, High: 16 };
+const ANIMAL_VISUAL_LENGTH: Record<SpriteKind, number> = {
+    peixe_p: 1.22,
+    peixe_m: 2.25,
+    peixe_g: 3.85,
+    tubarao: 6.7,
+    baleia: 10.6
+};
 
 export class WhaleOceanRuntime {
     private readonly canvas: HTMLCanvasElement;
@@ -162,9 +176,18 @@ export class WhaleOceanRuntime {
 
         this.buildEnvironment();
         await this.buildSpriteLibrary();
-        this.buildFishGroups();
-        this.buildBubbles();
-        this.updateHud();
+        if (this.options.diagnostic === "sprites") {
+            this.buildSpriteDiagnostic();
+            this.setStatus("DIAGNOSTIC_SPRITES");
+        } else {
+            this.buildFishGroups();
+            this.buildBubbles();
+            this.updateHud();
+            if (this.options.diagnostic === "showcase") {
+                this.buildShowcaseDiagnostic();
+                this.setStatus("DIAGNOSTIC_SHOWCASE");
+            }
+        }
 
         this.renderObserver = this.scene.onBeforeRenderObservable.add(() => this.frame());
         this.engine.runRenderLoop(() => {
@@ -174,7 +197,7 @@ export class WhaleOceanRuntime {
         window.addEventListener("resize", this.resizeHandler, { passive: true });
         this.visibilityHandler = () => this.setPaused(document.hidden);
         document.addEventListener("visibilitychange", this.visibilityHandler);
-        this.setStatus("BOOTSTRAP_PENDING");
+        if (!this.options.diagnostic) this.setStatus("BOOTSTRAP_PENDING");
     }
 
     public receive(batch: WhaleOceanBatch): void {
@@ -348,9 +371,11 @@ export class WhaleOceanRuntime {
 
         const atlasPromises = Object.entries(manifest.animations).map(async ([name, definition]) => {
             const territory = name.endsWith("_lima") ? "left" : "right";
+            const atlasUrl = `/games/whale-ocean/sprites/${definition.atlas}`;
+            const bounds = await measureAtlasBounds(atlasUrl, manifest.frameWidth, manifest.frameHeight, manifest.framesPerAnimation);
             const manager = new B.SpriteManager(
                 `whale-ocean-sprites-${name}`,
-                `/games/whale-ocean/sprites/${definition.atlas}`,
+                atlasUrl,
                 QUALITY_FISH.High * 2 + 32,
                 { width: manifest.frameWidth, height: manifest.frameHeight },
                 scene,
@@ -363,7 +388,14 @@ export class WhaleOceanRuntime {
             manager.renderingGroupId = 1;
             this.spriteManagers.push(manager);
             await waitForSpriteTexture(manager.texture);
-            this.spriteAtlases.set(`${definition.kind}:${territory}`, { manager, fps: definition.fps, kind: definition.kind, territory });
+            this.spriteAtlases.set(`${definition.kind}:${territory}`, {
+                manager,
+                fps: definition.fps,
+                kind: definition.kind,
+                territory,
+                visualWidthRatio: bounds.widthRatio,
+                visualHeightRatio: bounds.heightRatio
+            });
         });
         await Promise.all(atlasPromises);
     }
@@ -402,12 +434,8 @@ export class WhaleOceanRuntime {
             const kindRoll = this.random();
             const kind: SpriteKind = kindRoll < 0.76 ? "peixe_p" : kindRoll < 0.95 ? "peixe_m" : "peixe_g";
             const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-fish-${territory}-${side}-${index}`, this.random());
-            sprite.width = spriteSizeForKind(kind);
+            sprite.width = this.spriteWidthFor(kind, territory);
             sprite.height = sprite.width * 0.5;
-            const tone = side === "buy" ? [0.76, 1, 0.9] : [1, 0.78, 0.72];
-            sprite.color.r = tone[0];
-            sprite.color.g = tone[1];
-            sprite.color.b = tone[2];
             agents.push({
                 position: new B.Vector3(centerX + (this.random() - 0.5) * 9, (this.random() - 0.5) * 6, (this.random() - 0.5) * 2.6),
                 velocity: new B.Vector3(Math.cos(angle) * 0.012, (this.random() - 0.5) * 0.01, Math.sin(angle) * 0.009),
@@ -417,7 +445,7 @@ export class WhaleOceanRuntime {
                 kind
             });
         }
-        this.fishGroups.push({ side, symbol, territory, agents, targetCount: 0, baseline: 0, activity: 0, flowBias: 0 });
+        this.fishGroups.push({ side, symbol, territory, agents, targetCount: 0, baseline: 0, activity: 0, flowBias: 0, lastActiveAt: 0 });
     }
 
     private buildBubbles(): void {
@@ -436,11 +464,67 @@ export class WhaleOceanRuntime {
         }
     }
 
+    private spriteWidthFor(kind: SpriteKind, territory: "left" | "right"): number {
+        const atlas = this.spriteAtlases.get(`${kind}:${territory}`);
+        if (!atlas || atlas.visualWidthRatio <= 0)
+            throw new Error(`Whale Ocean sprite metrics are unavailable for ${kind}:${territory}.`);
+        return ANIMAL_VISUAL_LENGTH[kind] / atlas.visualWidthRatio;
+    }
+
+    private buildSpriteDiagnostic(): void {
+        const kinds: SpriteKind[] = ["peixe_p", "peixe_m", "peixe_g", "tubarao", "baleia"];
+        for (const [row, kind] of kinds.entries()) {
+            for (const [column, territory] of (["left", "right"] as const).entries()) {
+                const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-diagnostic-${territory}-${kind}`, (row + column * 0.37) / 7);
+                const width = this.spriteWidthFor(kind, territory) * 0.46;
+                sprite.width = width;
+                sprite.height = width * 0.5;
+                sprite.position.set(column === 0 ? -8 : 8, 3.6 - row * 1.8, 0);
+                sprite.color.a = 1;
+                sprite.isVisible = true;
+            }
+        }
+    }
+
+    private buildShowcaseDiagnostic(): void {
+        for (const group of this.fishGroups) {
+            group.targetCount = 22;
+            group.activity = 0.75;
+            group.flowBias = group.territory === "left" ? 0.008 : -0.008;
+        }
+        this.spawnEvent({
+            id: "diagnostic-shark",
+            kind: "shark",
+            symbol: this.options.leftSymbol,
+            side: "buy",
+            notionalUsdt: 850_000,
+            ratio: 5,
+            sequence: 1,
+            eventTimeUtc: new Date().toISOString()
+        });
+        this.spawnEvent({
+            id: "diagnostic-whale",
+            kind: "whale",
+            symbol: this.options.rightSymbol,
+            side: "sell",
+            notionalUsdt: 2_400_000,
+            ratio: 9,
+            sequence: 2,
+            eventTimeUtc: new Date().toISOString()
+        });
+    }
+
     private updateGroup(symbol: string, side: WhaleOceanSide, quote: number, activeQuote: number): void {
         const state = this.symbols.get(symbol);
-        if (!state || quote <= 0) return;
+        if (!state) return;
         for (const group of this.fishGroups) {
             if (group.symbol !== symbol || group.side !== side) continue;
+            if (quote <= 0) {
+                group.activity *= 0.86;
+                group.flowBias *= 0.8;
+                group.targetCount *= 0.82;
+                continue;
+            }
             group.baseline = group.baseline === 0 ? Math.max(quote, 1) : group.baseline * 0.97 + Math.max(quote, 1) * 0.03;
             group.activity = Math.max(0, Math.min(1, group.activity * 0.92 + normalizeActivity(activeQuote || quote, group.baseline) * 0.08));
             const pressure = computePressure(state.buyQuote, state.sellQuote);
@@ -449,6 +533,16 @@ export class WhaleOceanRuntime {
             const sideDirection = group.side === "buy" ? 1 : -1;
             group.flowBias = territoryDirection * sideDirection * (0.003 + pressureStrength * 0.009);
             group.targetCount = visualDensity(quote, group.baseline, pressureStrength, this.quality);
+            group.lastActiveAt = Date.now();
+        }
+    }
+
+    private decayInactiveFish(now: number): void {
+        for (const group of this.fishGroups) {
+            if (group.lastActiveAt === 0 || now - group.lastActiveAt < 30_000) continue;
+            group.activity *= 0.94;
+            group.flowBias *= 0.92;
+            group.targetCount *= 0.94;
         }
     }
 
@@ -462,6 +556,7 @@ export class WhaleOceanRuntime {
         this.frameAccumulator = 0;
         const seconds = now / 1_000;
         this.updateFish(seconds, elapsed / 16.67);
+        if (!this.options.diagnostic) this.decayInactiveFish(Date.now());
         this.updateBubbles(seconds);
         this.updateFlowActors(now);
         this.updateWhales(now);
@@ -550,10 +645,10 @@ export class WhaleOceanRuntime {
                 sprite.position.y = agent.position.y;
                 sprite.position.z = agent.position.z;
                 sprite.invertU = agent.velocity.x < 0;
-                const size = spriteSizeForKind(agent.kind) * (1 + group.activity * 0.35 + agent.seed * 0.12);
+                const size = this.spriteWidthFor(agent.kind, group.territory) * (1 + group.activity * 0.18 + agent.seed * 0.07);
                 sprite.width = size;
                 sprite.height = size * 0.5;
-                sprite.color.a = Math.min(1, 0.42 + group.activity * 0.58);
+                sprite.color.a = Math.min(1, 0.72 + group.activity * 0.28);
                 sprite.isVisible = true;
             }
         }
@@ -586,15 +681,12 @@ export class WhaleOceanRuntime {
         const territory = this.options.leftSymbol === symbol ? "left" : "right";
         const movingRight = territory === "left" ? side === "buy" : side === "sell";
         const sideColor = side === "buy" ? "#36e7b0" : "#ff6b55";
-        const kind: SpriteKind = profile.tier === "whale" ? "baleia" : profile.tier === "large" ? "peixe_g" : profile.tier === "medium" ? "peixe_m" : "peixe_p";
+        const kind = animalKindForVisualTier(profile.tier);
         const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-flow-${symbol}-${now}`, this.random());
-        const spriteWidth = spriteSizeForKind(kind) * (1 + profile.intensity * 0.25);
+        const spriteWidth = this.spriteWidthFor(kind, territory) * (1 + profile.intensity * 0.12);
         sprite.width = spriteWidth;
         sprite.height = spriteWidth * 0.5;
         sprite.invertU = !movingRight;
-        sprite.color.r = side === "buy" ? 0.78 : 1;
-        sprite.color.g = side === "buy" ? 1 : 0.78;
-        sprite.color.b = side === "buy" ? 0.9 : 0.72;
 
         const outer = territory === "left" ? -16.5 : 16.5;
         const inner = territory === "left" ? -1.4 : 1.4;
@@ -693,8 +785,8 @@ export class WhaleOceanRuntime {
         const inner = territory === "left" ? -1.5 : 1.5;
         const fromX = movingRight ? outer : inner;
         const toX = movingRight ? inner : outer;
-        const kind: SpriteKind = event.kind === "whale" ? "baleia" : "tubarao";
-        const size = event.kind === "whale" ? 3.8 : 2.35;
+        const kind = animalKindForEvent(event.kind);
+        const size = this.spriteWidthFor(kind, territory);
         const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-${event.kind}-${event.id}`, this.random());
         sprite.width = size;
         sprite.height = size * 0.5;
@@ -702,9 +794,6 @@ export class WhaleOceanRuntime {
         sprite.position.x = fromX;
         sprite.position.y = -3.2;
         sprite.position.z = 0.5;
-        sprite.color.r = event.side === "buy" ? 0.78 : 1;
-        sprite.color.g = event.side === "buy" ? 1 : 0.78;
-        sprite.color.b = event.side === "buy" ? 0.9 : 0.72;
         sprite.color.a = 0;
         const label = this.createVolumeLabel(`${event.side === "buy" ? "BUY" : "SELL"} · ${formatCompactVolume(event.notionalUsdt)}`, baseColor, event.kind === "whale" ? 0.8 : 0.5);
         this.whales.push({ sprite, label, startedAt: performance.now(), duration: event.kind === "whale" ? 11_000 : 8_000, fromX, toX, size });
@@ -786,13 +875,52 @@ export class WhaleOceanRuntime {
     }
 }
 
-function spriteSizeForKind(kind: SpriteKind): number {
-    switch (kind) {
-        case "peixe_m": return 1.18;
-        case "peixe_g": return 1.7;
-        case "tubarao": return 3.2;
-        case "baleia": return 5.4;
-        default: return 0.78;
+interface MeasuredAtlasBounds {
+    widthRatio: number;
+    heightRatio: number;
+}
+
+async function measureAtlasBounds(url: string, frameWidth: number, frameHeight: number, frameCount: number): Promise<MeasuredAtlasBounds> {
+    const response = await fetch(url, { cache: "force-cache" });
+    if (!response.ok) throw new Error(`Whale Ocean sprite atlas returned ${response.status}: ${url}`);
+    const bitmap = await createImageBitmap(await response.blob());
+    try {
+        const canvas = document.createElement("canvas");
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context) throw new Error(`Unable to inspect alpha bounds for ${url}.`);
+        context.drawImage(bitmap, 0, 0);
+        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+        if (canvas.width !== frameWidth * 4 || canvas.height !== frameHeight * 3)
+            throw new Error(`Whale Ocean atlas dimensions are invalid for ${url}.`);
+
+        let minX = frameWidth;
+        let minY = frameHeight;
+        let maxX = -1;
+        let maxY = -1;
+        for (let frame = 0; frame < frameCount; frame++) {
+            const column = frame % 4;
+            const row = Math.floor(frame / 4);
+            let framePixels = 0;
+            for (let y = 0; y < frameHeight; y++) for (let x = 0; x < frameWidth; x++) {
+                const alpha = pixels[((row * frameHeight + y) * canvas.width + column * frameWidth + x) * 4 + 3];
+                if (alpha <= 8) continue;
+                framePixels++;
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+            }
+            if (framePixels === 0) throw new Error(`Whale Ocean atlas has an empty animation frame: ${url} frame ${frame}.`);
+        }
+        if (maxX < minX || maxY < minY) throw new Error(`Whale Ocean atlas has no visible pixels: ${url}.`);
+        return {
+            widthRatio: (maxX - minX + 1) / frameWidth,
+            heightRatio: (maxY - minY + 1) / frameHeight
+        };
+    } finally {
+        bitmap.close();
     }
 }
 

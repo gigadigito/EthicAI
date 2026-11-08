@@ -1,3 +1,14 @@
+export function animalKindForVisualTier(tier) {
+    switch (tier) {
+        case "whale": return "baleia";
+        case "large": return "peixe_g";
+        case "medium": return "peixe_m";
+        default: return "peixe_p";
+    }
+}
+export function animalKindForEvent(kind) {
+    return kind === "whale" ? "baleia" : "tubarao";
+}
 export function takerSideFromBuyerIsMaker(buyerIsMaker) {
     return buyerIsMaker ? "sell" : "buy";
 }

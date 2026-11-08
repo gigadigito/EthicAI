@@ -16,6 +16,24 @@ export async function initialize(options: WhaleOceanRuntimeOptions): Promise<voi
     }
 }
 
+export async function initializeDiagnostic(canvas: HTMLCanvasElement, mode: "sprites" | "showcase"): Promise<void> {
+    const matchId = mode === "sprites" ? -10_001 : -10_002;
+    await initialize({
+        canvas,
+        matchId,
+        leftSymbol: "LIMA",
+        rightSymbol: "CIANO",
+        leftPrice: null,
+        rightPrice: null,
+        leftChange: 0,
+        rightChange: 0,
+        leftColor: "#789A0C",
+        rightColor: "#087F83",
+        quality: "High",
+        diagnostic: mode
+    });
+}
+
 export function receive(matchId: number, batch: WhaleOceanBatch): void {
     instances.get(matchId)?.receive(batch);
 }

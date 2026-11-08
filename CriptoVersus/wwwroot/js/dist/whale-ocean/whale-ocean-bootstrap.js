@@ -13,6 +13,23 @@ export async function initialize(options) {
         throw error;
     }
 }
+export async function initializeDiagnostic(canvas, mode) {
+    const matchId = mode === "sprites" ? -10001 : -10002;
+    await initialize({
+        canvas,
+        matchId,
+        leftSymbol: "LIMA",
+        rightSymbol: "CIANO",
+        leftPrice: null,
+        rightPrice: null,
+        leftChange: 0,
+        rightChange: 0,
+        leftColor: "#789A0C",
+        rightColor: "#087F83",
+        quality: "High",
+        diagnostic: mode
+    });
+}
 export function receive(matchId, batch) {
     instances.get(matchId)?.receive(batch);
 }

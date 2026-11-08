@@ -1,0 +1,59 @@
+@page "/dev/whale-ocean-diagnostics"
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@inject IWebHostEnvironment HostEnvironment
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+
+<PageTitle>Whale Ocean sprite diagnostics</PageTitle>
+
+@if (!HostEnvironment.IsDevelopment())
+{
+    <main class="whale-ocean-diagnostic-unavailable">This diagnostic is available only in Development.</main>
+}
+else
+{
+    <main class="whale-ocean whale-ocean-diagnostic" data-ocean-state="DIAGNOSTIC">
+        <header class="whale-ocean-diagnostic__header">
+            <div>
+                <div>WHALE OCEAN · DEVELOPMENT DIAGNOSTIC</div>
+                <h1>@(IsShowcase ? "Deterministic showcase" : "Sprite atlas validation")</h1>
+                <p>@(IsShowcase ? "Four isolated financial schools with shark and whale actors." : "All ten atlas variants animate independently without API, Worker or SignalR.")</p>
+            </div>
+            <nav aria-label="Diagnostic mode">
+                <a href="/dev/whale-ocean-diagnostics?mode=sprites">10 sprites</a>
+                <a href="/dev/whale-ocean-diagnostics?mode=showcase">Showcase</a>
+            </nav>
+        </header>
+        <section class="whale-ocean-diagnostic__stage" aria-label="Whale Ocean development scene">
+            <canvas @ref="_canvas" class="whale-ocean__canvas"></canvas>
+            <div class="whale-ocean-diagnostic__status" data-whale-ocean="status">INITIALIZING</div>
+            <div class="whale-ocean__alerts" data-whale-ocean="alerts" aria-live="polite"></div>
+        </section>
+    </main>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "mode")]
+    public string? Mode { get; set; }
+
+    private ElementReference _canvas;
+    private IJSObjectReference? _module;
+    private bool IsShowcase => string.Equals(Mode, "showcase", StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !HostEnvironment.IsDevelopment()) return;
+        _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261108-whale-ocean-sprites-v2");
+        await _module.InvokeVoidAsync("initializeDiagnostic", _canvas, IsShowcase ? "showcase" : "sprites");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is null) return;
+        try { await _module.InvokeVoidAsync("dispose", IsShowcase ? -10_002 : -10_001); }
+        catch (JSDisconnectedException) { }
+        await _module.DisposeAsync();
+    }
+}

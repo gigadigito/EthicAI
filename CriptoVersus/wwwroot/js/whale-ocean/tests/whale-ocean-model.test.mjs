@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
     clampVisualEntityCount,
+    animalKindForEvent,
+    animalKindForVisualTier,
     computePressure,
     formatCompactVolume,
     quoteNotional,
@@ -10,6 +12,15 @@ import {
     visualProfile,
     VolumeEventDetector
 } from "../../dist/whale-ocean/whale-ocean-model.js";
+
+test("maps every financial animal to a supplied atlas species", () => {
+    assert.equal(animalKindForVisualTier("small"), "peixe_p");
+    assert.equal(animalKindForVisualTier("medium"), "peixe_m");
+    assert.equal(animalKindForVisualTier("large"), "peixe_g");
+    assert.equal(animalKindForVisualTier("whale"), "baleia");
+    assert.equal(animalKindForEvent("shark"), "tubarao");
+    assert.equal(animalKindForEvent("whale"), "baleia");
+});
 
 test("uses Binance m semantics for aggressor side", () => {
     assert.equal(takerSideFromBuyerIsMaker(false), "buy");
