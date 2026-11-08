@@ -3,9 +3,11 @@ import test from "node:test";
 import {
     clampVisualEntityCount,
     computePressure,
+    formatCompactVolume,
     quoteNotional,
     takerSideFromBuyerIsMaker,
     visualDensity,
+    visualProfile,
     VolumeEventDetector
 } from "../../dist/whale-ocean/whale-ocean-model.js";
 
@@ -33,6 +35,21 @@ test("keeps visual entity counts within the quality budget", () => {
 test("density follows volume and does not create fish for an empty side", () => {
     assert.equal(visualDensity(0, 100, 0.5, "Medium"), 0);
     assert.ok(visualDensity(800, 100, 0.8, "Medium") > visualDensity(120, 100, 0.5, "Medium"));
+});
+
+test("profiles readable flow fish by relative volume", () => {
+    assert.equal(visualProfile(100, 100).tier, "micro");
+    assert.equal(visualProfile(180, 100).tier, "medium");
+    assert.equal(visualProfile(300, 100).tier, "large");
+    assert.equal(visualProfile(700, 100).tier, "whale");
+    assert.equal(visualProfile(180, 100).showLabel, true);
+    assert.ok(visualProfile(700, 100).durationMs > visualProfile(180, 100).durationMs);
+});
+
+test("formats compact transaction labels", () => {
+    assert.equal(formatCompactVolume(5_000), "5K");
+    assert.equal(formatCompactVolume(2_400_000), "2.4M");
+    assert.equal(formatCompactVolume(1_250_000_000), "1.25B");
 });
 
 function batch(sequence, quote, side = "buy", isReplay = false) {

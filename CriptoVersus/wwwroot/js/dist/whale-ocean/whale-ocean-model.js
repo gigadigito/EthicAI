@@ -25,6 +25,50 @@ export function visualDensity(quote, baseline, pressure, quality) {
     const pressureStrength = pressure ?? 0;
     return clampVisualEntityCount(18 + normalizeActivity(quote, baseline) * 80 + pressureStrength * 55, quality);
 }
+/** Presentation profile for a bounded, individually readable flow fish. */
+export function visualProfile(notional, baseline) {
+    const safeNotional = Number.isFinite(notional) && notional > 0 ? notional : 0;
+    const safeBaseline = Number.isFinite(baseline) && baseline > 0 ? baseline : safeNotional;
+    const relativeVolume = safeBaseline > 0 ? safeNotional / safeBaseline : 0;
+    const normalized = normalizeActivity(safeNotional, safeBaseline);
+    let tier = "micro";
+    if (relativeVolume >= 6)
+        tier = "whale";
+    else if (relativeVolume >= 3)
+        tier = "large";
+    else if (relativeVolume >= 1.75)
+        tier = "medium";
+    else if (relativeVolume >= 1.25)
+        tier = "small";
+    const profiles = {
+        micro: { size: 0.1, durationMs: 3800, trailLength: 0.35, showLabel: false },
+        small: { size: 0.14, durationMs: 5200, trailLength: 0.65, showLabel: false },
+        medium: { size: 0.21, durationMs: 7000, trailLength: 1.05, showLabel: true },
+        large: { size: 0.31, durationMs: 9000, trailLength: 1.55, showLabel: true },
+        whale: { size: 0.46, durationMs: 11000, trailLength: 2.2, showLabel: true }
+    };
+    return {
+        tier,
+        relativeVolume,
+        intensity: Math.min(1, 0.2 + normalized * 0.8),
+        ...profiles[tier]
+    };
+}
+export function formatCompactVolume(value) {
+    if (!Number.isFinite(value) || value <= 0)
+        return "—";
+    const absolute = Math.abs(value);
+    if (absolute >= 1000000000)
+        return `${trimCompact(value / 1000000000)}B`;
+    if (absolute >= 1000000)
+        return `${trimCompact(value / 1000000)}M`;
+    if (absolute >= 1000)
+        return `${trimCompact(value / 1000)}K`;
+    return trimCompact(value);
+}
+function trimCompact(value) {
+    return value >= 100 ? value.toFixed(0) : value >= 10 ? value.toFixed(1) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+}
 export function clampVisualEntityCount(value, quality) {
     const limits = { Low: 180, Medium: 520, High: 1100 };
     return Math.max(0, Math.min(limits[quality], Math.round(Number.isFinite(value) ? value : 0)));
