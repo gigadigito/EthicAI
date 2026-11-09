@@ -1,7 +1,36 @@
 export type WhaleOceanSide = "buy" | "sell";
 export type WhaleOceanEventKind = "shark" | "whale";
 export type WhaleOceanVisualTier = "micro" | "small" | "medium" | "large" | "whale";
-export type WhaleOceanAnimalKind = "peixe_p" | "peixe_m" | "peixe_g" | "tubarao" | "baleia";
+export type WhaleOceanFlowAnimalKind = "sardine" | "bluefish" | "mackerel" | "snook" | "grouper" | "barracuda" | "tuna" | "swordfish";
+export type WhaleOceanAnimalKind = WhaleOceanFlowAnimalKind | "shark" | "whale";
+
+export interface WhaleOceanSpecies {
+    kind: WhaleOceanAnimalKind;
+    name: string;
+    financialLevel: number;
+    visualLength: number;
+    swimSpeed: number;
+    fps: number;
+}
+
+export const WHALE_OCEAN_SPECIES: Readonly<Record<WhaleOceanAnimalKind, WhaleOceanSpecies>> = {
+    sardine: { kind: "sardine", name: "Sardinha", financialLevel: 1, visualLength: 0.76, swimSpeed: 1.18, fps: 12 },
+    bluefish: { kind: "bluefish", name: "Peixe-azul", financialLevel: 2, visualLength: 1.02, swimSpeed: 1.12, fps: 12 },
+    mackerel: { kind: "mackerel", name: "Cavala", financialLevel: 3, visualLength: 1.32, swimSpeed: 1.08, fps: 12 },
+    snook: { kind: "snook", name: "Robalo", financialLevel: 4, visualLength: 1.74, swimSpeed: 1.02, fps: 12 },
+    grouper: { kind: "grouper", name: "Garoupa", financialLevel: 5, visualLength: 2.25, swimSpeed: 0.96, fps: 12 },
+    barracuda: { kind: "barracuda", name: "Barracuda", financialLevel: 6, visualLength: 2.9, swimSpeed: 1.08, fps: 12 },
+    tuna: { kind: "tuna", name: "Atum", financialLevel: 7, visualLength: 3.8, swimSpeed: 1.0, fps: 12 },
+    swordfish: { kind: "swordfish", name: "Peixe-espada", financialLevel: 8, visualLength: 5.05, swimSpeed: 1.03, fps: 12 },
+    shark: { kind: "shark", name: "Tubarão", financialLevel: 9, visualLength: 6.7, swimSpeed: 0.92, fps: 12 },
+    whale: { kind: "whale", name: "Baleia", financialLevel: 10, visualLength: 10.6, swimSpeed: 0.76, fps: 12 }
+};
+
+export const WHALE_OCEAN_FLOW_SPECIES: readonly WhaleOceanFlowAnimalKind[] = [
+    "sardine", "bluefish", "mackerel", "snook", "grouper", "barracuda", "tuna", "swordfish"
+];
+
+const FLOW_TIER_THRESHOLDS = [0.35, 0.55, 0.78, 1.08, 1.48, 2.0, 2.8] as const;
 
 export interface WhaleOceanBatch {
     matchId: number;
@@ -35,6 +64,7 @@ export interface WhaleOceanEvent {
 
 export interface WhaleOceanVisualProfile {
     tier: WhaleOceanVisualTier;
+    kind: WhaleOceanFlowAnimalKind;
     relativeVolume: number;
     intensity: number;
     size: number;
@@ -43,17 +73,38 @@ export interface WhaleOceanVisualProfile {
     showLabel: boolean;
 }
 
-export function animalKindForVisualTier(tier: WhaleOceanVisualTier): WhaleOceanAnimalKind {
+export function animalKindForVisualTier(tier: WhaleOceanVisualTier): WhaleOceanFlowAnimalKind {
     switch (tier) {
-        case "whale": return "baleia";
-        case "large": return "peixe_g";
-        case "medium": return "peixe_m";
-        default: return "peixe_p";
+        case "whale": return "swordfish";
+        case "large": return "tuna";
+        case "medium": return "grouper";
+        case "small": return "mackerel";
+        default: return "sardine";
     }
 }
 
 export function animalKindForEvent(kind: WhaleOceanEventKind): WhaleOceanAnimalKind {
-    return kind === "whale" ? "baleia" : "tubarao";
+    return kind === "whale" ? "whale" : "shark";
+}
+
+/**
+ * Maps an aggregated Money Flow lot to one of the eight non-exceptional species.
+ * The comparison is symbol-local and has a seven-percent hysteresis band so a
+ * normal fluctuation around a boundary does not make a school flicker species.
+ */
+export function animalKindForFinancialVolume(notional: number, baseline: number, previous?: WhaleOceanFlowAnimalKind): WhaleOceanFlowAnimalKind {
+    const safeNotional = Number.isFinite(notional) && notional > 0 ? notional : 0;
+    const safeBaseline = Number.isFinite(baseline) && baseline > 0 ? baseline : Math.max(safeNotional, 1);
+    const relative = safeNotional / safeBaseline;
+    const nextIndex = FLOW_TIER_THRESHOLDS.findIndex(threshold => relative < threshold);
+    const classifiedIndex = nextIndex < 0 ? WHALE_OCEAN_FLOW_SPECIES.length - 1 : nextIndex;
+    if (!previous) return WHALE_OCEAN_FLOW_SPECIES[classifiedIndex];
+
+    const previousIndex = WHALE_OCEAN_FLOW_SPECIES.indexOf(previous);
+    if (previousIndex < 0) return WHALE_OCEAN_FLOW_SPECIES[classifiedIndex];
+    const lower = previousIndex === 0 ? 0 : FLOW_TIER_THRESHOLDS[previousIndex - 1] * 0.93;
+    const upper = previousIndex === FLOW_TIER_THRESHOLDS.length ? Number.POSITIVE_INFINITY : FLOW_TIER_THRESHOLDS[previousIndex] * 1.07;
+    return relative >= lower && relative < upper ? previous : WHALE_OCEAN_FLOW_SPECIES[classifiedIndex];
 }
 
 export function takerSideFromBuyerIsMaker(buyerIsMaker: boolean): WhaleOceanSide {
@@ -106,7 +157,7 @@ export function visualProfile(notional: number, baseline: number): WhaleOceanVis
     else if (relativeVolume >= 1.75) tier = "medium";
     else if (relativeVolume >= 1.25) tier = "small";
 
-    const profiles: Record<WhaleOceanVisualTier, Omit<WhaleOceanVisualProfile, "tier" | "relativeVolume" | "intensity">> = {
+    const profiles: Record<WhaleOceanVisualTier, Omit<WhaleOceanVisualProfile, "tier" | "kind" | "relativeVolume" | "intensity">> = {
         micro: { size: 0.1, durationMs: 3_800, trailLength: 0.35, showLabel: false },
         small: { size: 0.14, durationMs: 5_200, trailLength: 0.65, showLabel: false },
         medium: { size: 0.21, durationMs: 7_000, trailLength: 1.05, showLabel: true },
@@ -116,6 +167,7 @@ export function visualProfile(notional: number, baseline: number): WhaleOceanVis
 
     return {
         tier,
+        kind: animalKindForFinancialVolume(safeNotional, safeBaseline),
         relativeVolume,
         intensity: Math.min(1, 0.2 + normalized * 0.8),
         ...profiles[tier]

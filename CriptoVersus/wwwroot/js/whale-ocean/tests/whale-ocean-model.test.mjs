@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
     clampVisualEntityCount,
+    animalKindForFinancialVolume,
     animalKindForEvent,
     animalKindForVisualTier,
     computePressure,
@@ -14,12 +15,24 @@ import {
 } from "../../dist/whale-ocean/whale-ocean-model.js";
 
 test("maps every financial animal to a supplied atlas species", () => {
-    assert.equal(animalKindForVisualTier("small"), "peixe_p");
-    assert.equal(animalKindForVisualTier("medium"), "peixe_m");
-    assert.equal(animalKindForVisualTier("large"), "peixe_g");
-    assert.equal(animalKindForVisualTier("whale"), "baleia");
-    assert.equal(animalKindForEvent("shark"), "tubarao");
-    assert.equal(animalKindForEvent("whale"), "baleia");
+    assert.equal(animalKindForVisualTier("small"), "mackerel");
+    assert.equal(animalKindForVisualTier("medium"), "grouper");
+    assert.equal(animalKindForVisualTier("large"), "tuna");
+    assert.equal(animalKindForVisualTier("whale"), "swordfish");
+    assert.equal(animalKindForEvent("shark"), "shark");
+    assert.equal(animalKindForEvent("whale"), "whale");
+});
+
+test("classifies normal aggregate volume across the eight financial species", () => {
+    assert.equal(animalKindForFinancialVolume(20, 100), "sardine");
+    assert.equal(animalKindForFinancialVolume(45, 100), "bluefish");
+    assert.equal(animalKindForFinancialVolume(65, 100), "mackerel");
+    assert.equal(animalKindForFinancialVolume(95, 100), "snook");
+    assert.equal(animalKindForFinancialVolume(125, 100), "grouper");
+    assert.equal(animalKindForFinancialVolume(170, 100), "barracuda");
+    assert.equal(animalKindForFinancialVolume(240, 100), "tuna");
+    assert.equal(animalKindForFinancialVolume(400, 100), "swordfish");
+    assert.equal(animalKindForFinancialVolume(1.1, 1, "snook"), "snook", "hysteresis avoids boundary flicker");
 });
 
 test("uses Binance m semantics for aggressor side", () => {

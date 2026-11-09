@@ -15,7 +15,9 @@ test("ships the documented Whale Ocean atlas set", async () => {
     assert.equal(manifest.framesPerAnimation, 12);
     assert.equal(manifest.atlas.columns, 4);
     assert.equal(manifest.atlas.rows, 3);
-    assert.equal(entries.length, 10);
+    assert.equal(entries.length, 20);
+    const kinds = new Set(entries.map(([, definition]) => definition.kind));
+    assert.deepEqual([...kinds].sort(), ["barracuda", "bluefish", "grouper", "mackerel", "sardine", "shark", "snook", "swordfish", "tuna", "whale"]);
 
     for (const [, definition] of entries) {
         assert.equal(definition.frameCount, 12);
