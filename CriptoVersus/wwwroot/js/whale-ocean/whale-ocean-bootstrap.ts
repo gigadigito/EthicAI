@@ -9,9 +9,9 @@ export async function initialize(options: WhaleOceanRuntimeOptions): Promise<voi
     const runtime = new WhaleOceanRuntime({
         ...options,
         visualBudget: {
-            maxVisibleAnimals: mobile ? 36 : 48,
-            maxSchoolAnimalsPerGroup: mobile ? 9 : 12,
-            maxOccupancyPerTerritory: mobile ? 21 : 28,
+            maxVisibleAnimals: mobile ? 12 : 24,
+            maxSchoolAnimalsPerGroup: mobile ? 3 : 6,
+            maxOccupancyPerTerritory: mobile ? 7 : 14,
             ...options.visualBudget
         }
     });

@@ -1,13 +1,13 @@
 export const DEFAULT_WHALE_OCEAN_VISUAL_BUDGET = {
-    maxVisibleAnimals: 48,
+    maxVisibleAnimals: 24,
     maxLargeHighlightsPerTerritory: 2,
-    maxSchoolAnimalsPerGroup: 12,
-    maxOccupancyPerTerritory: 28,
+    maxSchoolAnimalsPerGroup: 6,
+    maxOccupancyPerTerritory: 14,
     windowMs: 30000
 };
 export const WHALE_OCEAN_VISUAL_SIZE_LIMITS = {
-    school: { minLength: 0.92, maxLength: 3.35 },
-    highlight: { minLength: 4.8, maxLength: 6.4 }
+    school: { minLength: 1.08, maxLength: 2.72 },
+    highlight: { minLength: 4.35, maxLength: 5.8 }
 };
 export const WHALE_OCEAN_SPECIES = {
     sardine: { kind: "sardine", name: "Sardinha", financialLevel: 1, visualLength: 0.92, swimSpeed: 1.18, fps: 12 },
@@ -151,7 +151,7 @@ function trimCompact(value) {
     return value >= 100 ? value.toFixed(0) : value >= 10 ? value.toFixed(1) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
 }
 export function clampVisualEntityCount(value, quality) {
-    const limits = { Low: 28, Medium: 40, High: 48 };
+    const limits = { Low: 12, Medium: 18, High: 24 };
     return Math.max(0, Math.min(limits[quality], Math.round(Number.isFinite(value) ? value : 0)));
 }
 function parseQuote(value) {

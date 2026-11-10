@@ -66,18 +66,18 @@ test("returns no pressure when a window has no trades", () => {
 });
 
 test("keeps visual entity counts within the quality budget", () => {
-    assert.equal(clampVisualEntityCount(999, "Low"), 28);
-    assert.equal(clampVisualEntityCount(999, "Medium"), 40);
-    assert.equal(clampVisualEntityCount(9_999, "High"), 48);
+    assert.equal(clampVisualEntityCount(999, "Low"), 12);
+    assert.equal(clampVisualEntityCount(999, "Medium"), 18);
+    assert.equal(clampVisualEntityCount(9_999, "High"), 24);
 });
 
 test("uses a shared, configurable visual budget", () => {
-    assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxVisibleAnimals, 48);
+    assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxVisibleAnimals, 24);
     assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxLargeHighlightsPerTerritory, 2);
     assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.windowMs, 30_000);
     assert.deepEqual(WHALE_OCEAN_VISUAL_SIZE_LIMITS, {
-        school: { minLength: 0.92, maxLength: 3.35 },
-        highlight: { minLength: 4.8, maxLength: 6.4 }
+        school: { minLength: 1.08, maxLength: 2.72 },
+        highlight: { minLength: 4.35, maxLength: 5.8 }
     });
 });
 

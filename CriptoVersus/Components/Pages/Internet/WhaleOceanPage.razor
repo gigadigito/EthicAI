@@ -54,8 +54,9 @@
                 <div class="whale-ocean__status"><i></i><span data-whale-ocean="status">BOOTSTRAP_PENDING</span></div>
                 <div class="whale-ocean__state-note">No simulated market data · DEMO mode is off</div>
             </div>
+            <div class="whale-ocean__direction whale-ocean__direction--left" aria-label="@Localization.T("whaleOcean.direction", _culture)"><span class="sell">← @Localization.T("whaleOcean.sell", _culture)</span><strong>@_match.TeamA</strong><span class="buy">@Localization.T("whaleOcean.buy", _culture) →</span></div>
+            <div class="whale-ocean__direction whale-ocean__direction--right" aria-label="@Localization.T("whaleOcean.direction", _culture)"><span class="sell">← @Localization.T("whaleOcean.sell", _culture)</span><strong>@_match.TeamB</strong><span class="buy">@Localization.T("whaleOcean.buy", _culture) →</span></div>
             <div class="whale-ocean__territory whale-ocean__territory--left">
-                <div class="whale-ocean__direction" aria-label="@Localization.T("whaleOcean.direction", _culture)">← @Localization.T("whaleOcean.sell", _culture) · @_match.TeamA · @Localization.T("whaleOcean.buy", _culture) →</div>
                 <strong>@_match.TeamA</strong><small data-whale-ocean="left-price">—</small>
                 <div><span>BUY</span><b data-whale-ocean="left-buy">—</b></div>
                 <div><span>SELL</span><b data-whale-ocean="left-sell">—</b></div>
@@ -63,7 +64,6 @@
                 <small>@Localization.T("whaleOcean.windowVolume", _culture) <span data-whale-ocean="left-volume">—</span> <span data-whale-ocean="left-currency">QUOTE</span></small>
             </div>
             <div class="whale-ocean__territory whale-ocean__territory--right">
-                <div class="whale-ocean__direction" aria-label="@Localization.T("whaleOcean.direction", _culture)">← @Localization.T("whaleOcean.sell", _culture) · @_match.TeamB · @Localization.T("whaleOcean.buy", _culture) →</div>
                 <strong>@_match.TeamB</strong><small data-whale-ocean="right-price">—</small>
                 <div><span>BUY</span><b data-whale-ocean="right-buy">—</b></div>
                 <div><span>SELL</span><b data-whale-ocean="right-sell">—</b></div>
@@ -131,7 +131,7 @@
         {
             var leftPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamA, _lifetime.Token);
             var rightPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamB, _lifetime.Token);
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261110-whale-ocean-direction-debug-v5");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261110-whale-ocean-transit-v6");
             await _module.InvokeVoidAsync("initialize", new
             {
                 canvas = _canvas,
@@ -214,10 +214,10 @@
         => value.HasValue ? $"{(value.Value >= 0 ? "+" : string.Empty)}{value.Value:0.00}%" : "—";
 
     private bool DebugWhaleOceanEnabled()
-        => Nav.ToAbsoluteUri(Nav.Uri).Query
+        => !Nav.ToAbsoluteUri(Nav.Uri).Query
             .Split('&', StringSplitOptions.RemoveEmptyEntries)
-            .Any(part => part.Equals("?debugWhaleOcean=1", StringComparison.OrdinalIgnoreCase)
-                || part.Equals("debugWhaleOcean=1", StringComparison.OrdinalIgnoreCase));
+            .Any(part => part.Equals("?debugWhaleOcean=0", StringComparison.OrdinalIgnoreCase)
+                || part.Equals("debugWhaleOcean=0", StringComparison.OrdinalIgnoreCase));
 
     private async Task DisposeJsAsync()
     {

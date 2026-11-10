@@ -13,16 +13,16 @@ export interface WhaleOceanVisualBudget {
 }
 
 export const DEFAULT_WHALE_OCEAN_VISUAL_BUDGET: Readonly<WhaleOceanVisualBudget> = {
-    maxVisibleAnimals: 48,
+    maxVisibleAnimals: 24,
     maxLargeHighlightsPerTerritory: 2,
-    maxSchoolAnimalsPerGroup: 12,
-    maxOccupancyPerTerritory: 28,
+    maxSchoolAnimalsPerGroup: 6,
+    maxOccupancyPerTerritory: 14,
     windowMs: 30_000
 };
 
 export const WHALE_OCEAN_VISUAL_SIZE_LIMITS = {
-    school: { minLength: 0.92, maxLength: 3.35 },
-    highlight: { minLength: 4.8, maxLength: 6.4 }
+    school: { minLength: 1.08, maxLength: 2.72 },
+    highlight: { minLength: 4.35, maxLength: 5.8 }
 } as const;
 
 export interface WhaleOceanSpecies {
@@ -234,7 +234,7 @@ function trimCompact(value: number): string {
 }
 
 export function clampVisualEntityCount(value: number, quality: "Low" | "Medium" | "High"): number {
-    const limits = { Low: 28, Medium: 40, High: 48 };
+    const limits = { Low: 12, Medium: 18, High: 24 };
     return Math.max(0, Math.min(limits[quality], Math.round(Number.isFinite(value) ? value : 0)));
 }
 

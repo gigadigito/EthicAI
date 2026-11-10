@@ -1,6 +1,6 @@
 ﻿// interop/blazor.ts
 
-import { updateWorkerDashboard } from "../dashboard/index";
+import { updateWorkerDashboard } from "../dashboard/index.js";
 
 // expõe função global pro Blazor
 declare global {
