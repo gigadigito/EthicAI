@@ -3010,5 +3010,11 @@
     "metaDescription": "Suivez le tir à la corde Arena Pressure en direct entre les deux équipes d’un match CriptoVersus.",
     "metaDescriptionForPair": "Arena Pressure entre {0} et {1} : pression en direct, dominance et replay à partir des données réelles du match.",
     "stageAria": "Scène du jeu Arena Pressure"
+  },
+  "whaleOcean": {
+    "direction": "Direction du flux",
+    "sell": "VENTE",
+    "buy": "ACHAT",
+    "windowVolume": "volume 30 s"
   }
 }

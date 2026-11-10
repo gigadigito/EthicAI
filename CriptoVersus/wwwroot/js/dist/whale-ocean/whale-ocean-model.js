@@ -43,6 +43,20 @@ export function isLargeAnimalKind(kind) {
 export function isHighlightAnimalKind(kind) {
     return kind === "shark" || kind === "whale";
 }
+/** BUY always swims to the right and SELL always swims to the left. */
+export function swimDirectionForSide(side) {
+    return side === "buy" ? "right" : "left";
+}
+/**
+ * Money-flow batches currently carry a symbol, not an explicit quote-currency
+ * field. Keep this suffix list conservative so labels never claim a currency
+ * that cannot be inferred from the public symbol contract.
+ */
+export function quoteCurrencyForSymbol(symbol) {
+    const normalized = symbol.trim().toUpperCase();
+    const knownQuotes = ["USDT", "USDC", "BUSD", "FDUSD", "TUSD", "USDP", "DAI", "BTC", "ETH", "BNB", "SOL", "EUR", "BRL", "TRY", "GBP", "JPY", "AUD"];
+    return knownQuotes.find(quote => normalized.endsWith(quote)) ?? null;
+}
 /**
  * Maps an aggregated Money Flow lot to one of the eight non-exceptional species.
  * The comparison is symbol-local and has a seven-percent hysteresis band so a

@@ -3012,5 +3012,11 @@
     "metaDescription": "观看 CriptoVersus 比赛中两支队伍的 Arena Pressure 实时拔河对决。",
     "metaDescriptionForPair": "{0} 与 {1} 的 Arena Pressure：实时压力、主导权以及基于真实比赛数据的回放。",
     "stageAria": "Arena Pressure 游戏舞台"
+  },
+  "whaleOcean": {
+    "direction": "流向",
+    "sell": "卖出",
+    "buy": "买入",
+    "windowVolume": "30秒成交量"
   }
 }

@@ -3010,5 +3010,11 @@
     "metaDescription": "Verfolge den Arena Pressure Tauziehen-Live-Wettbewerb zwischen den beiden Teams eines CriptoVersus-Spiels.",
     "metaDescriptionForPair": "Arena Pressure zwischen {0} und {1}: Live-Druck, Dominanz und Wiedergabe aus den echten Spieldaten.",
     "stageAria": "Arena Pressure Spielbühne"
+  },
+  "whaleOcean": {
+    "direction": "Flussrichtung",
+    "sell": "VERKAUF",
+    "buy": "KAUF",
+    "windowVolume": "30-s-Volumen"
   }
 }

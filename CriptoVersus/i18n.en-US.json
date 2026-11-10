@@ -3011,5 +3011,11 @@
     "metaDescription": "Watch the live Arena Pressure tug-of-war between the two teams of a CriptoVersus match.",
     "metaDescriptionForPair": "Arena Pressure between {0} and {1}: live pressure, dominance and replay built from the real match data.",
     "stageAria": "Arena Pressure game stage"
+  },
+  "whaleOcean": {
+    "direction": "Flow direction",
+    "sell": "SELL",
+    "buy": "BUY",
+    "windowVolume": "30s volume"
   }
 }

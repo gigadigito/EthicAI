@@ -3011,5 +3011,11 @@
     "metaDescription": "Acompanhe o cabo de guerra Arena Pressure ao vivo entre as duas equipes de uma partida CriptoVersus.",
     "metaDescriptionForPair": "Arena Pressure entre {0} e {1}: pressão ao vivo, dominância e replay a partir dos dados reais da partida.",
     "stageAria": "Palco do jogo Arena Pressure"
+  },
+  "whaleOcean": {
+    "direction": "Direção do fluxo",
+    "sell": "VENDA",
+    "buy": "COMPRA",
+    "windowVolume": "30s volume"
   }
 }

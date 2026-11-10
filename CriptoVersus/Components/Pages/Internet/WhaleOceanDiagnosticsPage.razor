@@ -45,7 +45,7 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || !HostEnvironment.IsDevelopment()) return;
-        _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261110-whale-ocean-budget-v4");
+        _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261110-whale-ocean-direction-debug-v5");
         await _module.InvokeVoidAsync("initializeDiagnostic", _canvas, IsShowcase ? "showcase" : "sprites");
     }
 

@@ -3010,5 +3010,11 @@
     "metaDescription": "Guarda la sfida di tiro alla fune Arena Pressure dal vivo tra le due squadre di una partita CriptoVersus.",
     "metaDescriptionForPair": "Arena Pressure tra {0} e {1}: pressione dal vivo, dominanza e replay basati sui dati reali della partita.",
     "stageAria": "Palco del gioco Arena Pressure"
+  },
+  "whaleOcean": {
+    "direction": "Direzione del flusso",
+    "sell": "VENDITA",
+    "buy": "ACQUISTO",
+    "windowVolume": "volume 30 s"
   }
 }

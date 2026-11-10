@@ -17,6 +17,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject RouteLocalizationService RouteLocalization
+@inject LocalizationService Localization
 @inject ILogger<WhaleOceanPage> Logger
 @inject IWebHostEnvironment HostEnvironment
 @rendermode InteractiveServer
@@ -54,18 +55,20 @@
                 <div class="whale-ocean__state-note">No simulated market data · DEMO mode is off</div>
             </div>
             <div class="whale-ocean__territory whale-ocean__territory--left">
+                <div class="whale-ocean__direction" aria-label="@Localization.T("whaleOcean.direction", _culture)">← @Localization.T("whaleOcean.sell", _culture) · @_match.TeamA · @Localization.T("whaleOcean.buy", _culture) →</div>
                 <strong>@_match.TeamA</strong><small data-whale-ocean="left-price">—</small>
                 <div><span>BUY</span><b data-whale-ocean="left-buy">—</b></div>
                 <div><span>SELL</span><b data-whale-ocean="left-sell">—</b></div>
                 <em data-whale-ocean="left-change">@FormatPercent(_match.PctA)</em>
-                <small>30s volume <span data-whale-ocean="left-volume">—</span> USDT</small>
+                <small>@Localization.T("whaleOcean.windowVolume", _culture) <span data-whale-ocean="left-volume">—</span> <span data-whale-ocean="left-currency">QUOTE</span></small>
             </div>
             <div class="whale-ocean__territory whale-ocean__territory--right">
+                <div class="whale-ocean__direction" aria-label="@Localization.T("whaleOcean.direction", _culture)">← @Localization.T("whaleOcean.sell", _culture) · @_match.TeamB · @Localization.T("whaleOcean.buy", _culture) →</div>
                 <strong>@_match.TeamB</strong><small data-whale-ocean="right-price">—</small>
                 <div><span>BUY</span><b data-whale-ocean="right-buy">—</b></div>
                 <div><span>SELL</span><b data-whale-ocean="right-sell">—</b></div>
                 <em data-whale-ocean="right-change">@FormatPercent(_match.PctB)</em>
-                <small>30s volume <span data-whale-ocean="right-volume">—</span> USDT</small>
+                <small>@Localization.T("whaleOcean.windowVolume", _culture) <span data-whale-ocean="right-volume">—</span> <span data-whale-ocean="right-currency">QUOTE</span></small>
             </div>
             <div class="whale-ocean__legend"><span class="buy">● BUY AGGRESSOR</span><span class="sell">● SELL AGGRESSOR</span><span>Events <b data-whale-ocean="events">0</b></span></div>
             <div class="whale-ocean__alerts" data-whale-ocean="alerts" aria-live="polite"></div>
@@ -128,7 +131,7 @@
         {
             var leftPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamA, _lifetime.Token);
             var rightPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamB, _lifetime.Token);
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261110-whale-ocean-budget-v4");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261110-whale-ocean-direction-debug-v5");
             await _module.InvokeVoidAsync("initialize", new
             {
                 canvas = _canvas,
@@ -142,7 +145,8 @@
                 leftColor = "#ff9100",
                 rightColor = "#18d8d2",
                 quality = _quality,
-                developmentDiagnostics = HostEnvironment.IsDevelopment()
+                developmentDiagnostics = HostEnvironment.IsDevelopment(),
+                debugWhaleOcean = DebugWhaleOceanEnabled()
             });
             Hub.MoneyFlowBatchReceived += OnMoneyFlowBatch;
             Hub.MoneyFlowConnectionChanged += OnMoneyFlowConnectionChanged;
@@ -208,6 +212,12 @@
 
     private static string FormatPercent(decimal? value)
         => value.HasValue ? $"{(value.Value >= 0 ? "+" : string.Empty)}{value.Value:0.00}%" : "—";
+
+    private bool DebugWhaleOceanEnabled()
+        => Nav.ToAbsoluteUri(Nav.Uri).Query
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Any(part => part.Equals("?debugWhaleOcean=1", StringComparison.OrdinalIgnoreCase)
+                || part.Equals("debugWhaleOcean=1", StringComparison.OrdinalIgnoreCase));
 
     private async Task DisposeJsAsync()
     {

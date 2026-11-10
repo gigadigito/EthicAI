@@ -3010,5 +3010,11 @@
     "metaDescription": "CriptoVersusの試合で2チームが争うArena Pressureの綱引きをライブでご覧ください。",
     "metaDescriptionForPair": "{0} と {1} のArena Pressure：実際の試合データに基づくライブの圧力、支配、リプレイ。",
     "stageAria": "Arena Pressureゲームのステージ"
+  },
+  "whaleOcean": {
+    "direction": "フローの方向",
+    "sell": "売り",
+    "buy": "買い",
+    "windowVolume": "30秒間の出来高"
   }
 }

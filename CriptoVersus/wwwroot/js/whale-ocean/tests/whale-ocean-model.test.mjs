@@ -9,7 +9,9 @@ import {
     DEFAULT_WHALE_OCEAN_VISUAL_BUDGET,
     WHALE_OCEAN_VISUAL_SIZE_LIMITS,
     formatCompactVolume,
+    quoteCurrencyForSymbol,
     quoteNotional,
+    swimDirectionForSide,
     takerSideFromBuyerIsMaker,
     visualDensity,
     visualProfile,
@@ -40,6 +42,17 @@ test("classifies normal aggregate volume across the eight financial species", ()
 test("uses Binance m semantics for aggressor side", () => {
     assert.equal(takerSideFromBuyerIsMaker(false), "buy");
     assert.equal(takerSideFromBuyerIsMaker(true), "sell");
+});
+
+test("keeps swim direction semantic across both territories", () => {
+    assert.equal(swimDirectionForSide("buy"), "right");
+    assert.equal(swimDirectionForSide("sell"), "left");
+});
+
+test("derives only conservative quote currencies from symbols", () => {
+    assert.equal(quoteCurrencyForSymbol("BTCUSDT"), "USDT");
+    assert.equal(quoteCurrencyForSymbol("ETHBTC"), "BTC");
+    assert.equal(quoteCurrencyForSymbol("UNKNOWN"), null);
 });
 
 test("calculates quote notional", () => {

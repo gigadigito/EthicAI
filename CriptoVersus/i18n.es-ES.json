@@ -3010,5 +3010,11 @@
     "metaDescription": "Mira el tirón de guerra Arena Pressure en vivo entre los dos equipos de un partido de CriptoVersus.",
     "metaDescriptionForPair": "Arena Pressure entre {0} y {1}: presión en vivo, dominancia y repetición a partir de los datos reales del partido.",
     "stageAria": "Escenario del juego Arena Pressure"
+  },
+  "whaleOcean": {
+    "direction": "Dirección del flujo",
+    "sell": "VENTA",
+    "buy": "COMPRA",
+    "windowVolume": "volumen 30s"
   }
 }

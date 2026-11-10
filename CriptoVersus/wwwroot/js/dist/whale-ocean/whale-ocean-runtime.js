@@ -1,8 +1,8 @@
 import { acquireBabylon, releaseBabylon } from "../futurebol/futurebol-babylon-loader.js";
-import { computePressure, formatCompactVolume, normalizeActivity, visualProfile, visualDensity, VolumeEventDetector, WHALE_OCEAN_SPECIES, DEFAULT_WHALE_OCEAN_VISUAL_BUDGET, animalKindForFinancialVolume, animalKindForEvent, isLargeAnimalKind, isHighlightAnimalKind, WHALE_OCEAN_VISUAL_SIZE_LIMITS } from "./whale-ocean-model.js";
+import { computePressure, formatCompactVolume, normalizeActivity, visualProfile, visualDensity, VolumeEventDetector, WHALE_OCEAN_SPECIES, DEFAULT_WHALE_OCEAN_VISUAL_BUDGET, animalKindForFinancialVolume, animalKindForEvent, isLargeAnimalKind, isHighlightAnimalKind, WHALE_OCEAN_VISUAL_SIZE_LIMITS, quoteCurrencyForSymbol, swimDirectionForSide } from "./whale-ocean-model.js";
 const QUALITY_FPS = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS = { Low: 2, Medium: 4, High: 6 };
-const SPRITE_ASSET_VERSION = "20261110-whale-ocean-budget-v4";
+const SPRITE_ASSET_VERSION = "20261110-whale-ocean-direction-debug-v5";
 export class WhaleOceanRuntime {
     constructor(options) {
         this.detector = new VolumeEventDetector();
@@ -33,6 +33,7 @@ export class WhaleOceanRuntime {
         this.alertCount = 0;
         this.randomState = 0x51f15e;
         this.lastDiagnosticsAt = 0;
+        this.lastDebugSummaryAt = 0;
         this.options = options;
         const requestedBudget = options.visualBudget ?? {};
         this.budget = {
@@ -47,8 +48,8 @@ export class WhaleOceanRuntime {
         this.canvas = options.canvas;
         this.root = this.canvas.closest(".whale-ocean");
         this.quality = options.quality ?? "Medium";
-        this.symbols.set(options.leftSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.leftPrice, updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
-        this.symbols.set(options.rightSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.rightPrice, updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
+        this.symbols.set(options.leftSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.leftPrice, quoteCurrency: quoteCurrencyForSymbol(options.leftSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
+        this.symbols.set(options.rightSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.rightPrice, quoteCurrency: quoteCurrencyForSymbol(options.rightSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
     }
     async initialize() {
         this.B = await acquireBabylon();
@@ -105,15 +106,24 @@ export class WhaleOceanRuntime {
             this.setStatus("BOOTSTRAP_PENDING");
     }
     receive(batch) {
+        this.debugReceive(batch);
         if (this.disposed || batch.matchId !== this.options.matchId)
             return;
         const symbol = batch.symbol.trim().toUpperCase();
         const state = this.symbols.get(symbol);
-        if (!state)
+        if (!state) {
+            this.debugFilter(batch, "unmatched_symbol");
             return;
+        }
         const lastSequence = this.lastBatchSequence.get(symbol) ?? 0;
-        if (!Number.isFinite(batch.sequence) || batch.sequence <= lastSequence)
+        if (!Number.isFinite(batch.sequence)) {
+            this.debugFilter(batch, "invalid_sequence");
             return;
+        }
+        if (batch.sequence <= lastSequence) {
+            this.debugFilter(batch, batch.sequence === lastSequence ? "duplicate_sequence" : "late_sequence");
+            return;
+        }
         this.lastBatchSequence.set(symbol, batch.sequence);
         const buyQuote = parseNumber(batch.takerBuyQuote);
         const sellQuote = parseNumber(batch.takerSellQuote);
@@ -159,6 +169,8 @@ export class WhaleOceanRuntime {
         this.rebalancePopulation();
         this.updateHud();
         this.refreshDiagnostics(now, true);
+        this.debugFilter(batch, "accepted");
+        this.debugSummary(now, true);
     }
     setPaused(paused) {
         this.paused = paused;
@@ -343,7 +355,10 @@ export class WhaleOceanRuntime {
                 seed: this.random(),
                 sprite,
                 kind,
-                allocatedNotional: 0
+                allocatedNotional: 0,
+                label: null,
+                labelText: "",
+                debugId: `school-${territory}-${side}-${index}`
             });
         }
         this.fishGroups.push({
@@ -392,11 +407,14 @@ export class WhaleOceanRuntime {
     }
     buildShowcaseDiagnostic() {
         const showcaseSpecies = ["sardine", "grouper", "tuna", "swordfish"];
+        const now = Date.now();
         for (const [index, group] of this.fishGroups.entries()) {
             group.targetCount = 6;
             group.activity = 0.75;
-            group.flowBias = group.territory === "left" ? 0.008 : -0.008;
+            group.flowBias = group.side === "buy" ? 0.008 : -0.008;
             group.schoolKind = showcaseSpecies[index];
+            group.baseline = 25000 + index * 12000;
+            group.recentLots = [{ at: now, quote: group.baseline * 2.4, tradeCount: 6, origin: "DEMO", kind: showcaseSpecies[index] }];
         }
         this.spawnEvent({
             id: "diagnostic-shark",
@@ -446,9 +464,8 @@ export class WhaleOceanRuntime {
             group.activity = Math.max(0, Math.min(1, group.activity * 0.92 + normalizeActivity(activeQuote || quote, group.baseline) * 0.08));
             const pressure = computePressure(state.buyQuote, state.sellQuote);
             const pressureStrength = side === "buy" ? pressure.buy ?? 0 : pressure.sell ?? 0;
-            const territoryDirection = group.territory === "left" ? 1 : -1;
             const sideDirection = group.side === "buy" ? 1 : -1;
-            group.flowBias = territoryDirection * sideDirection * (0.003 + pressureStrength * 0.009);
+            group.flowBias = sideDirection * (0.003 + pressureStrength * 0.009);
             const windowQuote = group.recentLots.reduce((sum, lot) => sum + lot.quote, 0);
             group.targetCount = visualDensity(windowQuote, group.baseline, pressureStrength, this.quality);
             group.lastActiveAt = now;
@@ -539,8 +556,13 @@ export class WhaleOceanRuntime {
                 this.assignAgentSpecies(agent, visualKind, group.territory, group.symbol, group.side, allocation.notionalUsdt);
                 activeAgents.push({ agent, group, index });
             }
-            for (let index = activeCount; index < group.agents.length; index++)
-                group.agents[index].sprite.isVisible = false;
+            for (let index = activeCount; index < group.agents.length; index++) {
+                const inactive = group.agents[index];
+                inactive.sprite.isVisible = false;
+                inactive.label?.dispose(false, true);
+                inactive.label = null;
+                inactive.labelText = "";
+            }
         }
         const grid = new Map();
         for (const item of activeAgents) {
@@ -606,6 +628,8 @@ export class WhaleOceanRuntime {
             const speed = Math.max(0.006, Math.min(0.055, agent.velocity.length()));
             agent.velocity.scaleInPlace(0.996);
             agent.velocity.normalize().scaleInPlace(speed);
+            const horizontalSign = group.side === "buy" ? 1 : -1;
+            agent.velocity.x = horizontalSign * Math.max(0.01, Math.abs(agent.velocity.x));
             agent.position.x += agent.velocity.x * factor;
             agent.position.y += agent.velocity.y * factor;
             agent.position.z += agent.velocity.z * factor;
@@ -613,14 +637,14 @@ export class WhaleOceanRuntime {
             const edgePadding = Math.max(0.6, size * 0.45);
             const minX = group.territory === "left" ? -16.1 + edgePadding : 1.1 + edgePadding;
             const maxX = group.territory === "left" ? -1.1 - edgePadding : 16.1 - edgePadding;
-            if (agent.position.x < minX) {
+            if (group.side === "buy" && agent.position.x > maxX)
                 agent.position.x = minX;
-                agent.velocity.x = Math.abs(agent.velocity.x);
-            }
-            if (agent.position.x > maxX) {
+            if (group.side === "sell" && agent.position.x < minX)
                 agent.position.x = maxX;
-                agent.velocity.x = -Math.abs(agent.velocity.x);
-            }
+            if (group.side === "buy" && agent.position.x < minX)
+                agent.position.x = minX;
+            if (group.side === "sell" && agent.position.x > maxX)
+                agent.position.x = maxX;
             if (agent.position.y < -4.15 + edgePadding * 0.35) {
                 agent.position.y = -4.15 + edgePadding * 0.35;
                 agent.velocity.y = Math.abs(agent.velocity.y);
@@ -640,11 +664,23 @@ export class WhaleOceanRuntime {
             sprite.position.x = agent.position.x;
             sprite.position.y = agent.position.y;
             sprite.position.z = agent.position.z;
-            sprite.invertU = agent.velocity.x < 0;
+            sprite.invertU = horizontalSign < 0;
             sprite.width = size;
             sprite.height = size * 0.5;
-            sprite.color.a = Math.min(1, 0.74 + group.activity * 0.26);
+            const exitDistance = group.side === "buy" ? maxX - agent.position.x : agent.position.x - minX;
+            const entryDistance = group.side === "buy" ? agent.position.x - minX : maxX - agent.position.x;
+            const fadeDistance = Math.max(1.15, size * 1.2);
+            const edgeFade = Math.min(1, Math.max(0, exitDistance / fadeDistance), Math.max(0, entryDistance / fadeDistance));
+            sprite.color.a = Math.min(1, 0.74 + group.activity * 0.26) * Math.max(0.18, edgeFade);
             sprite.isVisible = true;
+            const currency = this.symbols.get(group.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(group.symbol);
+            const labelText = `${group.side === "buy" ? "BUY →" : "SELL ←"} ${formatCompactVolume(agent.allocatedNotional)} ${currency ?? "QUOTE"}`;
+            this.ensureFishLabel(agent, labelText, group.side === "buy" ? "#36e7b0" : "#ff6b55", size);
+            if (agent.label) {
+                const labelOffset = index % 2 === 0 ? size * 0.55 : -size * 0.55;
+                agent.label.position.set(agent.position.x, agent.position.y + labelOffset, agent.position.z - 0.04);
+                agent.label.visibility = sprite.color.a;
+            }
         }
     }
     /** Distributes each 30-second aggregate exactly once among visible school fish. */
@@ -689,6 +725,8 @@ export class WhaleOceanRuntime {
         return allocations;
     }
     assignAgentSpecies(agent, kind, territory, symbol, side, notionalUsdt) {
+        const previousKind = agent.kind;
+        const previousNotional = agent.allocatedNotional;
         if (agent.kind !== kind) {
             agent.sprite.dispose();
             agent.sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-fish-${territory}-${side}-${kind}-${this.random()}`, agent.seed);
@@ -701,6 +739,136 @@ export class WhaleOceanRuntime {
             notionalUsdt,
             kind,
             source: "money_flow_aggregate_allocation"
+        };
+        if (previousKind !== kind || previousNotional !== notionalUsdt)
+            this.debugRender(previousKind === kind ? "updated" : "created", {
+                animalId: agent.debugId,
+                symbol,
+                side,
+                volume: notionalUsdt,
+                direction: swimDirectionForSide(side),
+                kind,
+                source: "money_flow_aggregate_allocation"
+            });
+    }
+    ensureFishLabel(agent, text, color, size) {
+        if (agent.label && agent.labelText === text)
+            return;
+        agent.label?.dispose(false, true);
+        agent.label = this.createVolumeLabel(text, color, size, true);
+        agent.labelText = text;
+    }
+    debugReceive(batch) {
+        if (!this.options.debugWhaleOcean)
+            return;
+        const symbol = batch.symbol.trim().toUpperCase();
+        const territory = symbol === this.options.leftSymbol ? "left" : symbol === this.options.rightSymbol ? "right" : null;
+        const quoteCurrency = quoteCurrencyForSymbol(symbol);
+        console.groupCollapsed(`[WhaleOcean][RECEIVE] money_flow_batch ${symbol || "(sem símbolo)"}`);
+        console.table([{
+                receivedAtUtc: new Date().toISOString(),
+                eventType: "money_flow_batch",
+                symbol: symbol || null,
+                territory,
+                batchId: null,
+                sequence: batch.sequence,
+                originalTimestamp: batch.eventTimeUtc || null,
+                buyQuote: batch.takerBuyQuote,
+                sellQuote: batch.takerSellQuote,
+                quoteCurrency,
+                quoteCurrencySource: quoteCurrency ? "symbol_suffix" : "unavailable",
+                isPartial: batch.isPartial,
+                isReplay: batch.isReplay ?? false,
+                missingContractFields: ["batchId", "quoteCurrency"]
+            }]);
+        console.log("payload", this.safeDebugPayload(batch));
+        console.groupEnd();
+    }
+    debugFilter(batch, reason) {
+        if (!this.options.debugWhaleOcean)
+            return;
+        const symbol = batch.symbol.trim().toUpperCase();
+        console.groupCollapsed(`[WhaleOcean][FILTER] ${reason} ${symbol}`);
+        console.table([{
+                symbol,
+                sequence: batch.sequence,
+                reason,
+                partial: batch.isPartial,
+                replay: batch.isReplay ?? false,
+                buyQuote: batch.takerBuyQuote,
+                sellQuote: batch.takerSellQuote
+            }]);
+        console.groupEnd();
+    }
+    debugRender(action, data) {
+        if (!this.options.debugWhaleOcean)
+            return;
+        console.groupCollapsed(`[WhaleOcean][RENDER] ${action}`);
+        console.table([data]);
+        console.groupEnd();
+    }
+    debugSummary(now, force = false) {
+        if (!this.options.debugWhaleOcean || (!force && now - this.lastDebugSummaryAt < 500))
+            return;
+        this.lastDebugSummaryAt = now;
+        const groups = this.fishGroups.map(group => ({
+            symbol: group.symbol,
+            territory: group.territory,
+            side: group.side,
+            visible: group.visibleCount,
+            windowVolume: group.recentLots.reduce((sum, lot) => sum + lot.quote, 0),
+            representedVolume: group.agents.slice(0, group.visibleCount).reduce((sum, agent) => sum + agent.allocatedNotional, 0)
+        }));
+        const financial = [...this.symbols.entries()].map(([symbol, state]) => ({
+            symbol,
+            quoteCurrency: state.quoteCurrency,
+            buy: state.buyQuote,
+            sell: state.sellQuote,
+            windowTotal: state.volume
+        }));
+        const visible = groups.reduce((sum, group) => sum + group.visible, 0) + this.flowActors.length + this.whales.length;
+        const represented = groups.reduce((sum, group) => sum + group.representedVolume, 0)
+            + this.flowActors.reduce((sum, actor) => sum + actor.notional, 0)
+            + this.whales.reduce((sum, event) => sum + event.notional, 0);
+        const financialTotal = financial.reduce((sum, state) => sum + state.windowTotal, 0);
+        console.groupCollapsed("[WhaleOcean][SUMMARY] janela móvel e orçamento visual");
+        console.table(groups);
+        console.table([{
+                visibleAnimals: visible,
+                maxVisibleAnimals: this.budget.maxVisibleAnimals,
+                occupancyLeft: this.territoryOccupancy("left"),
+                occupancyRight: this.territoryOccupancy("right"),
+                maxOccupancyPerTerritory: this.budget.maxOccupancyPerTerritory,
+                financialWindowTotal: financialTotal,
+                visuallyRepresentedTotal: represented,
+                financialMinusRepresented: financialTotal - represented,
+                pendingEvents: this.pendingEvents.length
+            }]);
+        console.table(financial);
+        console.groupEnd();
+    }
+    territoryOccupancy(territory) {
+        const schools = this.fishGroups
+            .filter(group => group.territory === territory)
+            .reduce((sum, group) => sum + group.visibleCount * this.estimatedSchoolOccupancy(group), 0);
+        const transient = this.flowActors.filter(actor => actor.territory === territory)
+            .reduce((sum, actor) => sum + Math.max(1, actor.size * 0.7), 0);
+        const highlights = this.whales.filter(event => event.territory === territory)
+            .reduce((sum, event) => sum + Math.max(1, event.size * 0.7), 0);
+        return Number((schools + transient + highlights).toFixed(2));
+    }
+    safeDebugPayload(batch) {
+        return {
+            matchId: batch.matchId,
+            symbol: batch.symbol,
+            sequence: batch.sequence,
+            eventTimeUtc: batch.eventTimeUtc,
+            tradeCount: batch.tradeCount,
+            takerBuyQuote: batch.takerBuyQuote,
+            takerSellQuote: batch.takerSellQuote,
+            lastPrice: batch.lastPrice,
+            isPartial: batch.isPartial,
+            isReplay: batch.isReplay ?? false
         };
     }
     refreshDiagnostics(now, force = false) {
@@ -768,7 +936,7 @@ export class WhaleOceanRuntime {
             if (oldest)
                 this.disposeFlowActor(oldest);
         }
-        const movingRight = territory === "left" ? side === "buy" : side === "sell";
+        const movingRight = side === "buy";
         const sideColor = side === "buy" ? "#36e7b0" : "#ff6b55";
         const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-flow-${symbol}-${now}`, this.random());
         const spriteWidth = this.spriteWidthFor(kind, territory) * (1 + profile.intensity * 0.12);
@@ -783,8 +951,9 @@ export class WhaleOceanRuntime {
         sprite.position.y = side === "buy" ? 2.7 + (this.random() - 0.5) * 0.6 : -2.7 + (this.random() - 0.5) * 0.6;
         sprite.position.z = (this.random() - 0.5) * 1.2;
         sprite.color.a = 0;
+        const quoteCurrency = state.quoteCurrency ?? quoteCurrencyForSymbol(symbol);
         const label = profile.showLabel
-            ? this.createVolumeLabel(`${side === "buy" ? "BUY" : "SELL"} ${formatCompactVolume(notional)} USDT`, sideColor, profile.size)
+            ? this.createVolumeLabel(`${side === "buy" ? "BUY →" : "SELL ←"} ${formatCompactVolume(notional)} ${quoteCurrency ?? "QUOTE"}`, sideColor, profile.size)
             : null;
         this.flowActors.push({
             sprite,
@@ -798,7 +967,18 @@ export class WhaleOceanRuntime {
             kind,
             size: spriteWidth,
             intensity: profile.intensity,
-            phase: this.random() * Math.PI * 2
+            phase: this.random() * Math.PI * 2,
+            notional,
+            quoteCurrency
+        });
+        this.debugRender("created", {
+            animalId: sprite.name,
+            symbol,
+            side,
+            volume: notional,
+            direction: swimDirectionForSide(side),
+            kind,
+            source: "money_flow_batch"
         });
         this.rebalancePopulation();
     }
@@ -807,12 +987,12 @@ export class WhaleOceanRuntime {
             + this.flowActors.filter(actor => actor.territory === territory && isHighlightAnimalKind(actor.kind)).length;
         return active < this.budget.maxLargeHighlightsPerTerritory;
     }
-    createVolumeLabel(text, color, size) {
+    createVolumeLabel(text, color, size, compact = false) {
         const B = this.B;
         const scene = this.scene;
-        const texture = new B.DynamicTexture(`whale-ocean-volume-label-${this.random()}`, { width: 320, height: 88 }, scene, true);
+        const texture = new B.DynamicTexture(`whale-ocean-volume-label-${this.random()}`, compact ? { width: 256, height: 56 } : { width: 320, height: 88 }, scene, true);
         texture.hasAlpha = true;
-        texture.drawText(text, 16, 59, "bold 34px Arial", "#f5ffff", "transparent", true);
+        texture.drawText(text, compact ? 8 : 16, compact ? 38 : 59, compact ? "bold 22px Arial" : "bold 34px Arial", "#f5ffff", "transparent", true);
         const material = new B.StandardMaterial(`whale-ocean-volume-label-material-${this.random()}`, scene);
         material.diffuseTexture = texture;
         material.opacityTexture = texture;
@@ -820,8 +1000,8 @@ export class WhaleOceanRuntime {
         material.backFaceCulling = false;
         material.useAlphaFromDiffuseTexture = true;
         const label = B.MeshBuilder.CreatePlane(`whale-ocean-volume-label-${this.random()}`, {
-            width: 2.2 + size * 1.7,
-            height: 0.58 + size * 0.32
+            width: compact ? Math.max(1.0, Math.min(2.3, 1.0 + size * 0.14)) : 2.2 + size * 1.7,
+            height: compact ? 0.3 : 0.58 + size * 0.32
         }, scene);
         label.material = material;
         label.billboardMode = B.Mesh.BILLBOARDMODE_ALL;
@@ -858,6 +1038,15 @@ export class WhaleOceanRuntime {
     disposeFlowActor(actor) {
         actor.sprite.dispose();
         actor.label?.dispose(false, true);
+        this.debugRender("removed", {
+            animalId: actor.sprite.name,
+            symbol: actor.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol,
+            side: actor.side,
+            volume: actor.notional,
+            direction: swimDirectionForSide(actor.side),
+            kind: actor.kind,
+            source: "money_flow_batch"
+        });
     }
     spawnEvent(event, allowPreviouslySeen = false) {
         const alreadySeen = this.seenEventIds.has(event.id);
@@ -877,7 +1066,7 @@ export class WhaleOceanRuntime {
         const baseColor = event.side === "buy"
             ? (territory === "left" ? this.options.leftColor : this.options.rightColor)
             : (territory === "left" ? "#a85e27" : "#0b8e94");
-        const movingRight = territory === "left" ? event.side === "buy" : event.side === "sell";
+        const movingRight = event.side === "buy";
         const outer = territory === "left" ? -17 : 17;
         const inner = territory === "left" ? -1.5 : 1.5;
         const fromX = movingRight ? outer : inner;
@@ -892,8 +1081,10 @@ export class WhaleOceanRuntime {
         sprite.position.y = event.side === "buy" ? 3.15 : -3.15;
         sprite.position.z = 0.5;
         sprite.color.a = 0;
-        const label = this.createVolumeLabel(`${event.side === "buy" ? "BUY" : "SELL"} ${formatCompactVolume(event.notionalUsdt)} USDT`, baseColor, event.kind === "whale" ? 0.8 : 0.5);
-        this.whales.push({ sprite, label, startedAt: performance.now(), duration: event.kind === "whale" ? 11000 : 8000, fromX, toX, size, territory, kind, side: event.side });
+        const quoteCurrency = this.symbols.get(event.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(event.symbol);
+        const label = this.createVolumeLabel(`${event.side === "buy" ? "BUY →" : "SELL ←"} ${formatCompactVolume(event.notionalUsdt)} ${quoteCurrency ?? "QUOTE"}`, baseColor, event.kind === "whale" ? 0.8 : 0.5);
+        this.whales.push({ sprite, label, startedAt: performance.now(), duration: event.kind === "whale" ? 11000 : 8000, fromX, toX, size, territory, kind, side: event.side, notional: event.notionalUsdt, quoteCurrency, eventId: event.id });
+        this.debugRender("created", { animalId: event.id, symbol: event.symbol, side: event.side, volume: event.notionalUsdt, direction: swimDirectionForSide(event.side), kind, source: "classified_event" });
         this.rebalancePopulation();
     }
     promotePendingEvents() {
@@ -917,6 +1108,7 @@ export class WhaleOceanRuntime {
             if (progress >= 1) {
                 event.sprite.dispose();
                 event.label?.dispose(false, true);
+                this.debugRender("removed", { animalId: event.eventId, symbol: event.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, side: event.side, volume: event.notional, direction: swimDirectionForSide(event.side), kind: event.kind, source: "classified_event" });
                 this.whales.splice(index, 1);
                 continue;
             }
@@ -944,7 +1136,8 @@ export class WhaleOceanRuntime {
         const item = document.createElement("div");
         item.className = `whale-ocean-alert whale-ocean-alert--${event.kind}`;
         const value = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(event.notionalUsdt);
-        item.textContent = `${event.kind === "whale" ? "BALEIA" : "TUBARÃO"} · ${event.symbol} · ${event.side === "buy" ? "COMPRA" : "VENDA"} · ${value} USDT`;
+        const currency = this.symbols.get(event.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(event.symbol) ?? "QUOTE";
+        item.textContent = `${event.kind === "whale" ? "BALEIA" : "TUBARÃO"} · ${event.symbol} · ${event.side === "buy" ? "COMPRA" : "VENDA"} · ${value} ${currency}`;
         list.prepend(item);
         while (list.children.length > 5)
             list.lastElementChild?.remove();
@@ -965,6 +1158,8 @@ export class WhaleOceanRuntime {
         this.write("right-sell", formatPressure(rightPressure.sell));
         this.write("left-volume", formatVolume(left?.volume ?? 0));
         this.write("right-volume", formatVolume(right?.volume ?? 0));
+        this.write("left-currency", left?.quoteCurrency ?? "QUOTE");
+        this.write("right-currency", right?.quoteCurrency ?? "QUOTE");
     }
     hasLiveData() {
         return [...this.symbols.values()].some(state => state.updatedAt > 0);
