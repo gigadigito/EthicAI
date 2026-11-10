@@ -1,4 +1,4 @@
-import { WhaleOceanRuntime, type WhaleOceanRuntimeOptions } from "./whale-ocean-runtime.js";
+import { WhaleOceanRuntime, type WhaleOceanRuntimeOptions, type WhaleOceanVisualDiagnosticRow } from "./whale-ocean-runtime.js";
 import type { WhaleOceanBatch } from "./whale-ocean-model.js";
 
 const instances = new Map<number, WhaleOceanRuntime>();
@@ -45,6 +45,10 @@ export async function initializeDiagnostic(canvas: HTMLCanvasElement, mode: "spr
 
 export function receive(matchId: number, batch: WhaleOceanBatch): void {
     instances.get(matchId)?.receive(batch);
+}
+
+export function getVisualDiagnostics(matchId: number): WhaleOceanVisualDiagnosticRow[] {
+    return instances.get(matchId)?.visualDiagnostics() ?? [];
 }
 
 export function setPaused(matchId: number, paused: boolean): void {

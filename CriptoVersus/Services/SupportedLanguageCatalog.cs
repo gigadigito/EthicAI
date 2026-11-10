@@ -28,7 +28,8 @@ public sealed class SupportedLanguageCatalog
         new("fr", "fr-FR", "French", "Français", "FR", "fr_FR", false, true, "fr-fr"),
         new("de", "de-DE", "German", "Deutsch", "DE", "de_DE", false, true, "de-de"),
         new("it", "it-IT", "Italian", "Italiano", "IT", "it_IT", false, true, "it-it"),
-        new("ja", "ja-JP", "Japanese", "日本語", "JA", "ja_JP", false, true, "ja-jp")
+        new("ja", "ja-JP", "Japanese", "日本語", "JA", "ja_JP", false, true, "ja-jp"),
+        new("hi", "hi-IN", "Hindi", "हिन्दी", "HI", "hi_IN", false, true, "hi-in")
     ];
 
     private static readonly SupportedLanguage Default =

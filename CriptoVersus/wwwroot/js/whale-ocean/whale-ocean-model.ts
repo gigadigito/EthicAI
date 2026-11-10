@@ -20,31 +20,56 @@ export const DEFAULT_WHALE_OCEAN_VISUAL_BUDGET: Readonly<WhaleOceanVisualBudget>
     windowMs: 30_000
 };
 
-export const WHALE_OCEAN_VISUAL_SIZE_LIMITS = {
-    school: { minLength: 1.08, maxLength: 2.72 },
-    highlight: { minLength: 4.35, maxLength: 5.8 }
+/**
+ * Visible-body bands expressed in CSS pixels, measured excluding the
+ * transparent margins of each atlas frame. Targets are calibrated for a
+ * scene area roughly 1400 CSS px wide and adapt to the scene through the
+ * camera projection instead of fixed world units.
+ */
+export type WhaleOceanSizeCategory = "small" | "medium" | "large" | "shark" | "whale";
+
+export const WHALE_OCEAN_SIZE_CATEGORIES: Readonly<Record<WhaleOceanSizeCategory, { minPx: number; maxPx: number }>> = {
+    small: { minPx: 45, maxPx: 65 },
+    medium: { minPx: 70, maxPx: 95 },
+    large: { minPx: 100, maxPx: 135 },
+    shark: { minPx: 145, maxPx: 185 },
+    whale: { minPx: 190, maxPx: 240 }
 } as const;
+
+export function sizeCategoryForKind(kind: WhaleOceanAnimalKind): WhaleOceanSizeCategory {
+    switch (kind) {
+        case "shark": return "shark";
+        case "whale": return "whale";
+        case "tuna":
+        case "swordfish": return "large";
+        case "snook":
+        case "grouper":
+        case "barracuda": return "medium";
+        default: return "small";
+    }
+}
 
 export interface WhaleOceanSpecies {
     kind: WhaleOceanAnimalKind;
     name: string;
     financialLevel: number;
-    visualLength: number;
+    /** Target visible body length in CSS pixels (atlas margins excluded). */
+    bodyLengthPx: number;
     swimSpeed: number;
     fps: number;
 }
 
 export const WHALE_OCEAN_SPECIES: Readonly<Record<WhaleOceanAnimalKind, WhaleOceanSpecies>> = {
-    sardine: { kind: "sardine", name: "Sardinha", financialLevel: 1, visualLength: 0.92, swimSpeed: 1.18, fps: 12 },
-    bluefish: { kind: "bluefish", name: "Peixe-azul", financialLevel: 2, visualLength: 1.08, swimSpeed: 1.12, fps: 12 },
-    mackerel: { kind: "mackerel", name: "Cavala", financialLevel: 3, visualLength: 1.28, swimSpeed: 1.08, fps: 12 },
-    snook: { kind: "snook", name: "Robalo", financialLevel: 4, visualLength: 1.52, swimSpeed: 1.02, fps: 12 },
-    grouper: { kind: "grouper", name: "Garoupa", financialLevel: 5, visualLength: 1.86, swimSpeed: 0.96, fps: 12 },
-    barracuda: { kind: "barracuda", name: "Barracuda", financialLevel: 6, visualLength: 2.24, swimSpeed: 1.08, fps: 12 },
-    tuna: { kind: "tuna", name: "Atum", financialLevel: 7, visualLength: 2.72, swimSpeed: 1.0, fps: 12 },
-    swordfish: { kind: "swordfish", name: "Peixe-espada", financialLevel: 8, visualLength: 3.35, swimSpeed: 1.03, fps: 12 },
-    shark: { kind: "shark", name: "Tubarão", financialLevel: 9, visualLength: 4.8, swimSpeed: 0.92, fps: 12 },
-    whale: { kind: "whale", name: "Baleia", financialLevel: 10, visualLength: 6.4, swimSpeed: 0.76, fps: 12 }
+    sardine: { kind: "sardine", name: "Sardinha", financialLevel: 1, bodyLengthPx: 50, swimSpeed: 1.18, fps: 12 },
+    bluefish: { kind: "bluefish", name: "Peixe-azul", financialLevel: 2, bodyLengthPx: 57, swimSpeed: 1.12, fps: 12 },
+    mackerel: { kind: "mackerel", name: "Cavala", financialLevel: 3, bodyLengthPx: 64, swimSpeed: 1.08, fps: 12 },
+    snook: { kind: "snook", name: "Robalo", financialLevel: 4, bodyLengthPx: 78, swimSpeed: 1.02, fps: 12 },
+    grouper: { kind: "grouper", name: "Garoupa", financialLevel: 5, bodyLengthPx: 85, swimSpeed: 0.96, fps: 12 },
+    barracuda: { kind: "barracuda", name: "Barracuda", financialLevel: 6, bodyLengthPx: 94, swimSpeed: 1.08, fps: 12 },
+    tuna: { kind: "tuna", name: "Atum", financialLevel: 7, bodyLengthPx: 112, swimSpeed: 1.0, fps: 12 },
+    swordfish: { kind: "swordfish", name: "Peixe-espada", financialLevel: 8, bodyLengthPx: 130, swimSpeed: 1.03, fps: 12 },
+    shark: { kind: "shark", name: "Tubarão", financialLevel: 9, bodyLengthPx: 165, swimSpeed: 0.92, fps: 12 },
+    whale: { kind: "whale", name: "Baleia", financialLevel: 10, bodyLengthPx: 215, swimSpeed: 0.76, fps: 12 }
 };
 
 export const WHALE_OCEAN_FLOW_SPECIES: readonly WhaleOceanFlowAnimalKind[] = [

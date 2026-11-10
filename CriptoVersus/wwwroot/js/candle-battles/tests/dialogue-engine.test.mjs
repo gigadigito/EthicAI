@@ -5,7 +5,7 @@ import {
     fillTemplate, personalityFor, resolveCatalog, templateVars, LENGTH_BANDS
 } from '../../dist/candle-battles/dialogue-engine.js';
 
-const CULTURES = ['pt-BR', 'en-US', 'es-ES', 'fr-FR', 'de-DE', 'it-IT', 'ja-JP', 'zh-CN'];
+const CULTURES = ['pt-BR', 'en-US', 'es-ES', 'fr-FR', 'de-DE', 'it-IT', 'ja-JP', 'zh-CN', 'hi-IN'];
 
 const contextFor = (matchId, overrides = {}) => ({
     matchId,

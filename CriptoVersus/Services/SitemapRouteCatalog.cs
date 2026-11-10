@@ -145,7 +145,10 @@ public static class SitemapRouteCatalog
             "daily", 0.68m, "monthly", 0.58m),
         new("candle-battles-classic", "/{culture}/candle/{matchId}/{slug}",
             (routes, culture, id, slug) => routes.BuildCandleBattleV2Path(culture, id, slug),
-            "daily", 0.66m, "monthly", 0.56m)
+            "daily", 0.66m, "monthly", 0.56m),
+        new("arena-pressure", "/{culture}/tv/pressure/{matchId}/{slug}",
+            (routes, culture, id, slug) => routes.BuildArenaPressurePath(culture, id, slug),
+            "hourly", 0.64m, "monthly", 0.54m)
     ];
 
     public static IReadOnlyList<SitemapDynamicFamily> DynamicFamilies { get; } =
@@ -167,13 +170,14 @@ public static class SitemapRouteCatalog
         new("cultureless-canonical-aliases", SitemapExclusionKind.AliasRedirect,
             "Culture-less alias; the page canonicalizes to the localized URL already listed in the sitemap.",
             "/stats", "/stats/matches", "/stats/teams", "/stats/rankings", "/stats/records",
-            "/stats/teams/{slug}", "/match/{matchId}/{slug}", "/tv/match/{matchId}/{slug}"),
+            "/stats/teams/{slug}", "/match/{matchId}/{slug}", "/tv/match/{matchId}/{slug}",
+            "/tv/whale-ocean/{matchId}/{slug}", "/tv/pressure/{matchId}/{slug}"),
         new("localized-match-route-aliases", SitemapExclusionKind.AliasRedirect,
             "Alias of the canonical match route (pt uses /partida, other cultures use /match); the middleware 301-redirects to the canonical form.",
             "/pt/match/{matchId}/{slug}",
             "/en/partida/{matchId}/{slug}", "/zh/partida/{matchId}/{slug}", "/es/partida/{matchId}/{slug}",
             "/fr/partida/{matchId}/{slug}", "/de/partida/{matchId}/{slug}", "/it/partida/{matchId}/{slug}",
-            "/ja/partida/{matchId}/{slug}"),
+            "/ja/partida/{matchId}/{slug}", "/hi/partida/{matchId}/{slug}"),
         new("legacy-match-versus-slugs", SitemapExclusionKind.Noindex,
             "Legacy match URLs; the page declares noindex and the middleware redirects to the canonical match route.",
             "/match/{slugA}-vs-{slugB}", "/match/{slugA}-vs-{slugB}/{matchId}"),
@@ -199,8 +203,8 @@ public static class SitemapRouteCatalog
             "/intranet/dashboard",
             "/minha-carteira", "/pt/minha-carteira", "/en/my-wallet", "/zh/my-wallet"),
         new("diagnostic-harness", SitemapExclusionKind.Diagnostic,
-            "Internal diagnostic harness for Candle Battles rendering.",
-            "/_diag/candle-battle"),
+            "Internal diagnostic harness for Candle Battles and Whale Ocean rendering.",
+            "/_diag/candle-battle", "/dev/whale-ocean-diagnostics"),
         new("template-and-error-pages", SitemapExclusionKind.Template,
             "Scaffolding and technical error routes without public SEO value.",
             "/counter", "/weather", "/error")

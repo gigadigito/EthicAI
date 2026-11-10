@@ -19,6 +19,27 @@ public sealed class RouteLocalizationServiceTests
     }
 
     [Fact]
+    public void BuildLocalizedPath_ForHindiRoute_UsesMatchSegment()
+    {
+        Assert.Equal("/hi/match/39/ada-vs-bnb", _service.BuildLocalizedPath("hi", 39, "ada-vs-bnb"));
+    }
+
+    [Fact]
+    public void BuildLocalizedPathForCurrentPage_PreservesPageAndIdsWhenSwitchingToHindi()
+    {
+        Assert.Equal("/hi/match/39/ada-vs-bnb",
+            _service.BuildLocalizedPathForCurrentPage("hi", "/en/match/39/ada-vs-bnb"));
+        Assert.Equal("/hi",
+            _service.BuildLocalizedPathForCurrentPage("hi", "/ja"));
+        Assert.Equal("/hi/faq",
+            _service.BuildLocalizedPathForCurrentPage("hi", "/en/faq"));
+        Assert.Equal("/hi/tv/whale-ocean/39/ada-vs-bnb",
+            _service.BuildLocalizedPathForCurrentPage("hi", "/en/tv/whale-ocean/39/ada-vs-bnb"));
+        Assert.Equal("/en/match/39/ada-vs-bnb",
+            _service.BuildLocalizedPathForCurrentPage("en", "/hi/match/39/ada-vs-bnb"));
+    }
+
+    [Fact]
     public void BuildLocalizedPath_EncodesUnicodeSlugSegments()
     {
         var slug = "å¸å®‰äººç”Ÿ-vs-ãƒ“ãƒƒãƒˆã‚³ã‚¤ãƒ³";

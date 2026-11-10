@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Whale Ocean visual fixtures</title>
+<link rel="stylesheet" href="/app.css">
+<link rel="stylesheet" href="/tests/whale-ocean-page.css">
+<style>body{margin:0;background:#020a14}</style>
+</head>
+<body>
+<main class="whale-ocean" data-ocean-state="BOOTSTRAP_PENDING">
+    <section class="whale-ocean__stage" aria-label="Whale Ocean 3D visualization">
+        <canvas class="whale-ocean__canvas"></canvas>
+        <div class="whale-ocean__labels" data-whale-ocean="labels" aria-hidden="true"></div>
+        <div class="whale-ocean__topbar">
+            <div class="whale-ocean__status"><i></i><span data-whale-ocean="status">BOOTSTRAP_PENDING</span></div>
+            <div class="whale-ocean__state-note">No simulated market data · DEMO mode is off</div>
+        </div>
+        <div class="whale-ocean__direction whale-ocean__direction--left"><span class="sell">← SELL</span><strong>INITUSDT</strong><span class="buy">BUY →</span></div>
+        <div class="whale-ocean__direction whale-ocean__direction--right"><span class="sell">← SELL</span><strong>ONEUSDT</strong><span class="buy">BUY →</span></div>
+        <div class="whale-ocean__territory whale-ocean__territory--left">
+            <strong>INITUSDT</strong><small data-whale-ocean="left-price">—</small>
+            <div><span>BUY</span><b data-whale-ocean="left-buy">—</b></div>
+            <div><span>SELL</span><b data-whale-ocean="left-sell">—</b></div>
+            <em data-whale-ocean="left-change">+0.00%</em>
+            <small>30s volume <span data-whale-ocean="left-volume">—</span> <span data-whale-ocean="left-currency">QUOTE</span></small>
+        </div>
+        <div class="whale-ocean__territory whale-ocean__territory--right">
+            <strong>ONEUSDT</strong><small data-whale-ocean="right-price">—</small>
+            <div><span>BUY</span><b data-whale-ocean="right-buy">—</b></div>
+            <div><span>SELL</span><b data-whale-ocean="right-sell">—</b></div>
+            <em data-whale-ocean="right-change">+0.00%</em>
+            <small>30s volume <span data-whale-ocean="right-volume">—</span> <span data-whale-ocean="right-currency">QUOTE</span></small>
+        </div>
+        <div class="whale-ocean__legend"><span class="buy">● BUY AGGRESSOR</span><span class="sell">● SELL AGGRESSOR</span><span>Events <b data-whale-ocean="events">0</b></span></div>
+        <div class="whale-ocean__alerts" data-whale-ocean="alerts" aria-live="polite"></div>
+    </section>
+</main>
+<script type="module">
+import * as bootstrap from "/js/dist/whale-ocean/whale-ocean-bootstrap.js";
+const matchId = 7;
+await bootstrap.initialize({
+    canvas: document.querySelector(".whale-ocean__canvas"),
+    matchId,
+    leftSymbol: "INITUSDT",
+    rightSymbol: "ONEUSDT",
+    leftPrice: 1.234,
+    rightPrice: 0.0456,
+    leftChange: 2.5,
+    rightChange: -1.2,
+    leftColor: "#ff9100",
+    rightColor: "#18d8d2",
+    quality: "High",
+    developmentDiagnostics: false,
+    debugWhaleOcean: false
+});
+window.wo = {
+    receive: batch => bootstrap.receive(matchId, batch),
+    diagnostics: () => bootstrap.getVisualDiagnostics(matchId)
+};
+window.woReady = true;
+</script>
+</body>
+</html>

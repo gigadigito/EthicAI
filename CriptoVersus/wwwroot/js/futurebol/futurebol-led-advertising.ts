@@ -22,7 +22,8 @@ export interface FuturebolAdvertisingInput {
 const phrases: Record<string, readonly string[]> = {
     en: ["CRYPTO NEVER SLEEPS", "THE MARKET IS THE MATCH", "PRICE MOVES. PLAYERS MOVE."],
     pt: ["CRIPTO NÃO DORME", "O MERCADO É O JOGO", "PREÇOS MOVEM O JOGO"],
-    zh: ["加密市场永不眠", "市场就是比赛", "价格驱动比赛"]
+    zh: ["加密市场永不眠", "市场就是比赛", "价格驱动比赛"],
+    hi: ["क्रिप्टो कभी नहीं सोता", "मार्केट ही मैच है", "प्राइस चलता है, खिलाड़ी चलते हैं"]
 };
 export function advertisingQuality(quality: FuturebolQuality) {
     return quality === "High" ? { count: 5, width: 1024, height: 256 }

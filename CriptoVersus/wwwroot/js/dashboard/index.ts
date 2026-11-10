@@ -3,12 +3,11 @@
 import {
     parseHealthJson,
     renderHealthList,
-} from "./workerHealth";
+} from "./workerHealth.js";
 import {
     computeWorkerStatus,
     renderStatusBadge,
-} from "./workerStatus";
-
+} from "./workerStatus.js";
 /**
  * Atualiza a UI do dashboard do worker
  */

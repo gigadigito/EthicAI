@@ -16,7 +16,8 @@ const supportedLanguages = [
     { route: "fr", culture: "fr-FR", aliases: ["fr-fr"] },
     { route: "de", culture: "de-DE", aliases: ["de-de"] },
     { route: "it", culture: "it-IT", aliases: ["it-it"] },
-    { route: "ja", culture: "ja-JP", aliases: ["ja-jp"] }
+    { route: "ja", culture: "ja-JP", aliases: ["ja-jp"] },
+    { route: "hi", culture: "hi-IN", aliases: ["hi-in"] }
 ];
 
 function testMatchesBrowserLanguagesInOrder() {
@@ -26,6 +27,7 @@ function testMatchesBrowserLanguagesInOrder() {
     assert.equal(matchSupportedCulture(["fr-FR"], supportedLanguages), "fr");
     assert.equal(matchSupportedCulture(["it-IT"], supportedLanguages), "it");
     assert.equal(matchSupportedCulture(["ja-JP"], supportedLanguages), "ja");
+    assert.equal(matchSupportedCulture(["hi-IN"], supportedLanguages), "hi");
 }
 
 function testMatchesBaseOnlyLanguages() {
@@ -33,6 +35,7 @@ function testMatchesBaseOnlyLanguages() {
     assert.equal(matchSupportedCulture(["es"], supportedLanguages), "es");
     assert.equal(matchSupportedCulture(["fr"], supportedLanguages), "fr");
     assert.equal(matchSupportedCulture(["de"], supportedLanguages), "de");
+    assert.equal(matchSupportedCulture(["hi"], supportedLanguages), "hi");
 }
 
 function testRegionalVariantsFallBackToSupportedLanguage() {
@@ -40,6 +43,7 @@ function testRegionalVariantsFallBackToSupportedLanguage() {
     assert.equal(matchSupportedCulture(["es-MX"], supportedLanguages), "es");
     assert.equal(matchSupportedCulture(["de-AT"], supportedLanguages), "de");
     assert.equal(matchSupportedCulture(["zh-TW"], supportedLanguages), "zh");
+    assert.equal(matchSupportedCulture(["hi-MY"], supportedLanguages), "hi");
 }
 
 function testUnknownLanguagesReturnNull() {
@@ -126,6 +130,27 @@ function testManualChoiceSurvivesReload() {
     });
 }
 
+function testHindiManualChoiceSurvivesReload() {
+    withBrowserStorage(null, null, ({ storage }) => {
+        setPreferredCulture("hi");
+        assert.equal(storage.get("cv_culture"), "hi");
+        assert.equal(storage.get("cv_culture_source"), "manual");
+        assert.equal(readPersistedCulture(), "hi");
+    });
+}
+
+function testHindiIsDetectedFromBrowserLanguages() {
+    withBrowserStorage(null, null, ({ storage }) => {
+        globalThis.navigator = { languages: ["hi-IN", "en-US"], language: "hi-IN" };
+
+        const result = syncPreferredCulture(supportedLanguages);
+
+        assert.equal(result, "hi");
+        assert.equal(storage.get("cv_culture"), "hi");
+        assert.equal(storage.get("cv_culture_source"), "auto");
+    });
+}
+
 function testSyncMirrorsStoredPreferenceToCookie() {
     withBrowserStorage("pt", null, ({ storage }) => {
         globalThis.navigator = { languages: ["de-DE"], language: "de-DE" };
@@ -150,6 +175,8 @@ testFirstSupportedLanguageIsNotAssumedToBeTheDefault();
 testSyncPersistsDetectedBrowserLanguageOnFirstVisit();
 testSyncDoesNotOverwriteManualChoice();
 testManualChoiceSurvivesReload();
+testHindiManualChoiceSurvivesReload();
+testHindiIsDetectedFromBrowserLanguages();
 testSyncMirrorsStoredPreferenceToCookie();
 testDetectUsesNavigatorLanguages();
 

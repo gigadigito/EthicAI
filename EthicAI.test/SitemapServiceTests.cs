@@ -12,16 +12,16 @@ public sealed class SitemapServiceTests
     private static readonly XNamespace SitemapNs = "http://www.sitemaps.org/schemas/sitemap/0.9";
     private static readonly XNamespace XhtmlNs = "http://www.w3.org/1999/xhtml";
 
-    private static readonly string[] ExpectedCultures = ["en", "pt", "zh", "es", "fr", "de", "it", "ja"];
-    private static readonly string[] ExpectedHrefLangs = ["en-US", "pt-BR", "zh-CN", "es-ES", "fr-FR", "de-DE", "it-IT", "ja-JP"];
+    private static readonly string[] ExpectedCultures = ["en", "pt", "zh", "es", "fr", "de", "it", "ja", "hi"];
+    private static readonly string[] ExpectedHrefLangs = ["en-US", "pt-BR", "zh-CN", "es-ES", "fr-FR", "de-DE", "it-IT", "ja-JP", "hi-IN"];
 
     [Fact]
-    public void SupportedLanguageCatalog_ContainsEightLanguages()
+    public void SupportedLanguageCatalog_ContainsNineLanguages()
     {
         var catalog = new SupportedLanguageCatalog();
         var enabled = catalog.EnabledLanguages;
 
-        Assert.Equal(8, enabled.Count);
+        Assert.Equal(9, enabled.Count);
     }
 
     [Fact]
@@ -58,6 +58,7 @@ public sealed class SitemapServiceTests
         Assert.Contains(additional, l => l.RouteCulture == "de");
         Assert.Contains(additional, l => l.RouteCulture == "it");
         Assert.Contains(additional, l => l.RouteCulture == "ja");
+        Assert.Contains(additional, l => l.RouteCulture == "hi");
         Assert.DoesNotContain(additional, l => l.RouteCulture == "en");
         Assert.DoesNotContain(additional, l => l.RouteCulture == "pt");
         Assert.DoesNotContain(additional, l => l.RouteCulture == "zh");
@@ -115,6 +116,7 @@ public sealed class SitemapServiceTests
         Assert.Contains("/match/", service.BuildLocalizedPath("de", 1, "test"));
         Assert.Contains("/match/", service.BuildLocalizedPath("it", 1, "test"));
         Assert.Contains("/match/", service.BuildLocalizedPath("ja", 1, "test"));
+        Assert.Contains("/match/", service.BuildLocalizedPath("hi", 1, "test"));
     }
 
     [Fact]
@@ -139,6 +141,7 @@ public sealed class SitemapServiceTests
         Assert.Equal("de-DE", service.GetHrefLang("de"));
         Assert.Equal("it-IT", service.GetHrefLang("it"));
         Assert.Equal("ja-JP", service.GetHrefLang("ja"));
+        Assert.Equal("hi-IN", service.GetHrefLang("hi"));
     }
 
     [Fact]
@@ -148,7 +151,7 @@ public sealed class SitemapServiceTests
         var appCulture = new AppCultureService(catalog);
         var service = new RouteLocalizationService(appCulture);
 
-        var newCultures = new[] { "es", "fr", "de", "it", "ja" };
+        var newCultures = new[] { "es", "fr", "de", "it", "ja", "hi" };
         foreach (var culture in newCultures)
         {
             Assert.StartsWith($"/{culture}/", service.BuildFaqPath(culture));
@@ -169,7 +172,7 @@ public sealed class SitemapServiceTests
     }
 
     [Fact]
-    public void MatchSeoService_BuildAlternateLinks_ContainsAllEightCultures()
+    public void MatchSeoService_BuildAlternateLinks_ContainsAllNineCultures()
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -200,7 +203,7 @@ public sealed class SitemapServiceTests
 
         var alternates = seoService.BuildAlternateLinks(1, "btc-vs-eth");
 
-        Assert.Equal(8, alternates.Count);
+        Assert.Equal(9, alternates.Count);
 
         var hrefLangs = alternates.Select(a => a.HrefLang).ToList();
         foreach (var expected in ExpectedHrefLangs)
@@ -288,10 +291,13 @@ public sealed class SitemapServiceTests
 
         var jaLink = alternates.First(a => a.HrefLang == "ja-JP");
         Assert.Contains("/ja/match/42/", jaLink.Href);
+
+        var hiLink = alternates.First(a => a.HrefLang == "hi-IN");
+        Assert.Contains("/hi/match/42/", hiLink.Href);
     }
 
     [Fact]
-    public void RoadmapContentService_NormalizeCulture_RecognizesAllEightCultures()
+    public void RoadmapContentService_NormalizeCulture_RecognizesAllNineCultures()
     {
         var service = CreateRoadmapService();
 
@@ -303,6 +309,7 @@ public sealed class SitemapServiceTests
         Assert.Equal("de", service.NormalizeCulture("de"));
         Assert.Equal("it", service.NormalizeCulture("it"));
         Assert.Equal("ja", service.NormalizeCulture("ja"));
+        Assert.Equal("hi", service.NormalizeCulture("hi"));
     }
 
     [Fact]
@@ -316,13 +323,13 @@ public sealed class SitemapServiceTests
     }
 
     [Fact]
-    public void RoadmapContentService_BuildPage_HasAlternateLinksForAllEightCultures()
+    public void RoadmapContentService_BuildPage_HasAlternateLinksForAllNineCultures()
     {
         var service = CreateRoadmapService();
 
         var page = service.BuildPage("en");
 
-        Assert.Equal(8, page.AlternateLinks.Count);
+        Assert.Equal(9, page.AlternateLinks.Count);
         Assert.Contains(page.AlternateLinks, l => l.HrefLang == "en-US");
         Assert.Contains(page.AlternateLinks, l => l.HrefLang == "pt-BR");
         Assert.Contains(page.AlternateLinks, l => l.HrefLang == "zh-CN");
@@ -331,13 +338,14 @@ public sealed class SitemapServiceTests
         Assert.Contains(page.AlternateLinks, l => l.HrefLang == "de-DE");
         Assert.Contains(page.AlternateLinks, l => l.HrefLang == "it-IT");
         Assert.Contains(page.AlternateLinks, l => l.HrefLang == "ja-JP");
+        Assert.Contains(page.AlternateLinks, l => l.HrefLang == "hi-IN");
     }
 
     [Fact]
-    public void RoadmapContentService_AllEightCulturesHaveOwnContent()
+    public void RoadmapContentService_AllNineCulturesHaveOwnContent()
     {
         var service = CreateRoadmapService();
-        var cultures = new[] { "en", "pt", "zh", "es", "fr", "de", "it", "ja" };
+        var cultures = new[] { "en", "pt", "zh", "es", "fr", "de", "it", "ja", "hi" };
 
         foreach (var culture in cultures)
         {
@@ -353,14 +361,14 @@ public sealed class SitemapServiceTests
     }
 
     [Fact]
-    public void I18n_FilesExistForAllEightCultures()
+    public void I18n_FilesExistForAllNineCultures()
     {
         var contentRoot = "C:\\EthicAI\\EthicAI\\CriptoVersus";
         var expectedFiles = new[]
         {
             "i18n.en-US.json", "i18n.pt-BR.json", "i18n.zh-CN.json",
             "i18n.es-ES.json", "i18n.fr-FR.json", "i18n.de-DE.json",
-            "i18n.it-IT.json", "i18n.ja-JP.json"
+            "i18n.it-IT.json", "i18n.ja-JP.json", "i18n.hi-IN.json"
         };
 
         foreach (var file in expectedFiles)
@@ -374,7 +382,7 @@ public sealed class SitemapServiceTests
     public void I18n_AllFilesHaveSameKeyCount()
     {
         var contentRoot = "C:\\EthicAI\\EthicAI\\CriptoVersus";
-        var files = new[] { "i18n.en-US.json", "i18n.pt-BR.json", "i18n.zh-CN.json", "i18n.es-ES.json", "i18n.fr-FR.json", "i18n.de-DE.json", "i18n.it-IT.json", "i18n.ja-JP.json" };
+        var files = new[] { "i18n.en-US.json", "i18n.pt-BR.json", "i18n.zh-CN.json", "i18n.es-ES.json", "i18n.fr-FR.json", "i18n.de-DE.json", "i18n.it-IT.json", "i18n.ja-JP.json", "i18n.hi-IN.json" };
 
         var counts = new Dictionary<string, int>();
         foreach (var file in files)

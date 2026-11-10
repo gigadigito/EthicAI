@@ -64,8 +64,28 @@ function testBuildsStableFallbackCandidates() {
         ]);
 }
 
+async function testHindiFallsBackToEnglishMedia() {
+    global.fetch = async (url) => ({
+        ok: String(url).includes("/media/audio/en/tv/goal-sting.mp3")
+    });
+
+    const resolved = await resolveLocalizedAudioPath("goal-sting.mp3", "hi", "tv", {
+        legacyPath: "/audio/tv/goal-sting.mp3",
+        version: "hi-fallback"
+    });
+
+    assert.equal(resolved, "/media/audio/en/tv/goal-sting.mp3?v=hi-fallback");
+}
+
+function testHindiFallbackChainMatchesMediaModel() {
+    assert.deepEqual(getCultureFallbackChain("hi"), ["en", "pt"]);
+    assert.deepEqual(getCultureFallbackChain("hi-IN"), ["en", "pt"]);
+}
+
 await testResolvesCurrentCultureFirst();
 await testFallsBackToEnglishThenPortuguese();
 await testFallsBackToLegacyPath();
+await testHindiFallsBackToEnglishMedia();
+testHindiFallbackChainMatchesMediaModel();
 testBuildsStableFallbackCandidates();
 console.log("mediaLocalization tests passed");

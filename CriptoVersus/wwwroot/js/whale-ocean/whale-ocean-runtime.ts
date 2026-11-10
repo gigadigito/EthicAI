@@ -7,12 +7,12 @@ import {
     visualDensity,
     VolumeEventDetector,
     WHALE_OCEAN_SPECIES,
+    WHALE_OCEAN_SIZE_CATEGORIES,
     DEFAULT_WHALE_OCEAN_VISUAL_BUDGET,
     animalKindForFinancialVolume,
     animalKindForEvent,
     isLargeAnimalKind,
-    isHighlightAnimalKind,
-    WHALE_OCEAN_VISUAL_SIZE_LIMITS,
+    sizeCategoryForKind,
     quoteCurrencyForSymbol,
     swimDirectionForSide,
     type WhaleOceanBatch,
@@ -20,7 +20,8 @@ import {
     type WhaleOceanFlowAnimalKind,
     type WhaleOceanEvent,
     type WhaleOceanSide,
-    type WhaleOceanVisualBudget
+    type WhaleOceanVisualBudget,
+    type WhaleOceanSizeCategory
 } from "./whale-ocean-model.js";
 import type { ArcRotateCamera, Engine, Mesh, Scene, Sprite, SpriteManager, StandardMaterial, Vector3 } from "babylonjs";
 
@@ -64,7 +65,7 @@ interface FishAgent {
     sprite: Sprite;
     kind: SpriteKind;
     allocatedNotional: number;
-    label: Mesh | null;
+    label: HTMLElement | null;
     labelText: string;
     debugId: string;
 }
@@ -96,7 +97,8 @@ interface Bubble {
 interface FlowActor {
     id: string;
     sprite: Sprite;
-    label: Mesh | null;
+    label: HTMLElement | null;
+    labelText: string;
     startedAt: number;
     duration: number;
     fromX: number;
@@ -109,8 +111,8 @@ interface FlowActor {
     phase: number;
     notional: number;
     quoteCurrency: string | null;
-    labelWidth: number;
-    labelHeight: number;
+    labelWidthPx: number;
+    labelHeightPx: number;
 }
 
 interface PendingFlow {
@@ -122,6 +124,31 @@ interface PendingFlow {
     firstReceivedAt: number;
     lastReceivedAt: number;
     batchCount: number;
+}
+
+/** Per-animal visual diagnostics row used by spawn logs, size warnings and tests. */
+export interface WhaleOceanVisualDiagnosticRow {
+    id: string;
+    symbol: string;
+    kind: WhaleOceanAnimalKind;
+    category: WhaleOceanSizeCategory;
+    finalScaleWidth: number;
+    finalScaleHeight: number;
+    worldPositionX: number;
+    worldPositionY: number;
+    worldPositionZ: number;
+    cameraDistance: number;
+    projectedBodyCssWidth: number;
+    projectedBodyCssHeight: number;
+    opacity: number;
+    visible: boolean;
+    inViewport: boolean;
+    minBodyCssWidth: number;
+    maxBodyCssWidth: number;
+    labelState: "none" | "hidden" | "visible";
+    labelCssX: number;
+    labelCssY: number;
+    labelText: string;
 }
 
 interface LiveSymbolState {
@@ -138,7 +165,15 @@ interface LiveSymbolState {
 
 const QUALITY_FPS: Record<Quality, number> = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS: Record<Quality, number> = { Low: 2, Medium: 3, High: 4 };
-const SPRITE_ASSET_VERSION = "20261110-whale-ocean-transit-v6";
+const SPRITE_ASSET_VERSION = "20261110-whale-ocean-readable-v7";
+const CAMERA_FOV = 0.8;
+const CAMERA_RADIUS = 27;
+const MIN_CSS_PIXELS_PER_WORLD_UNIT = 18;
+const MAX_CSS_PIXELS_PER_WORLD_UNIT = 40;
+const REFERENCE_CSS_PIXELS_PER_WORLD_UNIT = 700 / (2 * CAMERA_RADIUS * Math.tan(CAMERA_FOV / 2));
+const SCHOOL_TRANSIT_RESERVE = 4;
+const SCHOOL_OCCUPANCY_SHARE = 0.55;
+const MINIMUM_SIZE_WARNING_INTERVAL_MS = 5_000;
 export class WhaleOceanRuntime {
     private readonly canvas: HTMLCanvasElement;
     private readonly options: WhaleOceanRuntimeOptions;
@@ -152,7 +187,7 @@ export class WhaleOceanRuntime {
     private readonly bubbles: Bubble[] = [];
     private readonly flowActors: FlowActor[] = [];
     private readonly pendingFlows = new Map<string, PendingFlow>();
-    private readonly whales: Array<{ sprite: Sprite; label: Mesh | null; startedAt: number; duration: number; fromX: number; toX: number; size: number; territory: "left" | "right"; kind: WhaleOceanAnimalKind; side: WhaleOceanSide; notional: number; quoteCurrency: string | null; eventId: string }> = [];
+    private readonly whales: Array<{ sprite: Sprite; label: HTMLElement | null; labelText: string; startedAt: number; duration: number; fromX: number; toX: number; size: number; territory: "left" | "right"; kind: WhaleOceanAnimalKind; side: WhaleOceanSide; notional: number; quoteCurrency: string | null; eventId: string }> = [];
     private readonly pendingEvents: WhaleOceanEvent[] = [];
     private readonly lastBatchSequence = new Map<string, number>();
     private readonly seenEventIds = new Set<string>();
@@ -178,6 +213,10 @@ export class WhaleOceanRuntime {
     private lastReceiveAt = 0;
     private lastNoEventWarningAt = 0;
     private nextFlowId = 1;
+    private labelLayer: HTMLElement | null = null;
+    private labelLayerOwned = false;
+    private readonly undersizedWarnedIds = new Set<string>();
+    private lastSizeWarningAt = 0;
 
     public constructor(options: WhaleOceanRuntimeOptions) {
         this.options = options;
@@ -216,9 +255,10 @@ export class WhaleOceanRuntime {
         this.scene.fogDensity = this.quality === "Low" ? 0.018 : 0.012;
         this.scene.fogColor = this.B.Color3.FromHexString("#092b42");
 
-        this.camera = new this.B.ArcRotateCamera("whale-ocean-camera", -Math.PI / 2, Math.PI / 2, 27, new this.B.Vector3(0, 0, 0), this.scene);
-        this.camera.lowerRadiusLimit = 27;
-        this.camera.upperRadiusLimit = 27;
+        this.camera = new this.B.ArcRotateCamera("whale-ocean-camera", -Math.PI / 2, Math.PI / 2, CAMERA_RADIUS, new this.B.Vector3(0, 0, 0), this.scene);
+        this.camera.fov = CAMERA_FOV;
+        this.camera.lowerRadiusLimit = CAMERA_RADIUS;
+        this.camera.upperRadiusLimit = CAMERA_RADIUS;
         this.camera.lowerAlphaLimit = this.camera.alpha;
         this.camera.upperAlphaLimit = this.camera.alpha;
         this.camera.lowerBetaLimit = this.camera.beta;
@@ -233,6 +273,7 @@ export class WhaleOceanRuntime {
             this.buildSpriteDiagnostic();
             this.setStatus("DIAGNOSTIC_SPRITES");
         } else {
+            this.buildFishGroups();
             this.buildBubbles();
             this.updateHud();
             this.refreshDiagnostics(Date.now(), true);
@@ -276,7 +317,6 @@ export class WhaleOceanRuntime {
         const buyQuote = parseNumber(batch.takerBuyQuote);
         const sellQuote = parseNumber(batch.takerSellQuote);
         const totalQuote = buyQuote + sellQuote;
-        const baselineBefore = state.baseline;
         const now = Date.now();
         this.lastReceiveAt = now;
         state.recent.push({ at: now, buy: buyQuote, sell: sellQuote });
@@ -307,8 +347,8 @@ export class WhaleOceanRuntime {
             const event = this.detector.ingest(batch);
             if (event) this.spawnEvent(event);
             else {
-                if (buyQuote > 0) this.enqueueFlow(symbol, "buy", buyQuote, baselineBefore, now);
-                if (sellQuote > 0) this.enqueueFlow(symbol, "sell", sellQuote, baselineBefore, now);
+                if (buyQuote > 0) this.enqueueFlow(symbol, "buy", buyQuote, state.baseline, now);
+                if (sellQuote > 0) this.enqueueFlow(symbol, "sell", sellQuote, state.baseline, now);
             }
         }
         this.trySpawnPendingFlows(now);
@@ -316,7 +356,7 @@ export class WhaleOceanRuntime {
         this.updateHud();
         this.refreshDiagnostics(now, true);
         this.debugFilter(batch, "accepted");
-        this.debugSummary(now, true);
+        this.debugSummary(now);
     }
 
     public setPaused(paused: boolean): void {
@@ -354,6 +394,11 @@ export class WhaleOceanRuntime {
         if (this.visibilityHandler) document.removeEventListener("visibilitychange", this.visibilityHandler);
         this.engine?.stopRenderLoop();
         for (const manager of this.spriteManagers) manager.dispose();
+        if (this.labelLayer) {
+            this.labelLayer.replaceChildren();
+            if (this.labelLayerOwned) this.labelLayer.remove();
+            this.labelLayer = null;
+        }
         this.scene?.dispose();
         this.engine?.dispose();
         this.scene = null;
@@ -544,13 +589,30 @@ export class WhaleOceanRuntime {
         }
     }
 
+    /**
+     * CSS pixels per world unit at the z=0 stage plane. Derived from the
+     * camera projection so an animal's visible body matches its CSS-pixel
+     * target on any canvas size (desktop and mobile).
+     */
+    private cssPixelsPerWorldUnit(): number {
+        const camera = this.camera;
+        const clientHeight = this.canvas.clientHeight;
+        if (!camera || clientHeight <= 0) return REFERENCE_CSS_PIXELS_PER_WORLD_UNIT;
+        const worldHeight = 2 * Math.abs(camera.radius || CAMERA_RADIUS) * Math.tan((camera.fov || CAMERA_FOV) / 2);
+        if (worldHeight <= 0) return REFERENCE_CSS_PIXELS_PER_WORLD_UNIT;
+        return Math.max(MIN_CSS_PIXELS_PER_WORLD_UNIT, Math.min(MAX_CSS_PIXELS_PER_WORLD_UNIT, clientHeight / worldHeight));
+    }
+
+    /** Visible body length (atlas margins excluded) in world units. */
+    private bodyWorldLength(kind: SpriteKind): number {
+        return WHALE_OCEAN_SPECIES[kind].bodyLengthPx / this.cssPixelsPerWorldUnit();
+    }
+
     private spriteWidthFor(kind: SpriteKind, territory: "left" | "right"): number {
         const atlas = this.spriteAtlases.get(`${kind}:${territory}`);
         if (!atlas || atlas.visualWidthRatio <= 0)
             throw new Error(`Whale Ocean sprite metrics are unavailable for ${kind}:${territory}.`);
-        const limits = isHighlightAnimalKind(kind) ? WHALE_OCEAN_VISUAL_SIZE_LIMITS.highlight : WHALE_OCEAN_VISUAL_SIZE_LIMITS.school;
-        const length = Math.max(limits.minLength, Math.min(limits.maxLength, WHALE_OCEAN_SPECIES[kind].visualLength));
-        return length / atlas.visualWidthRatio;
+        return this.bodyWorldLength(kind) / atlas.visualWidthRatio;
     }
 
     private buildSpriteDiagnostic(): void {
@@ -659,20 +721,24 @@ export class WhaleOceanRuntime {
         }
         if (changed) {
             this.updateHud();
-            this.debugSummary(now, true);
+            this.debugSummary(now);
         }
     }
 
     private rebalancePopulation(): void {
-        const available = Math.max(0, this.budget.maxVisibleAnimals - this.flowActors.length - this.whales.length);
+        // Schools leave headroom so aggregated transit animals and large
+        // events can still enter when the window is busy; nothing is created
+        // just to fill the budget.
+        const available = Math.max(0, this.budget.maxVisibleAnimals - SCHOOL_TRANSIT_RESERVE - this.flowActors.length - this.whales.length);
         const groups = [...this.fishGroups].sort((a, b) => b.targetCount - a.targetCount);
         for (const group of groups) group.visibleCount = 0;
         const usedByTerritory: Record<"left" | "right", number> = { left: 0, right: 0 };
+        const schoolOccupancyCeiling = this.budget.maxOccupancyPerTerritory * SCHOOL_OCCUPANCY_SHARE;
         let remaining = available;
         for (const group of groups) {
             const desired = Math.min(group.agents.length, this.budget.maxSchoolAnimalsPerGroup, Math.max(0, Math.round(group.targetCount)));
             const occupancyCost = this.estimatedSchoolOccupancy(group);
-            const occupancyRoom = Math.max(0, this.budget.maxOccupancyPerTerritory - usedByTerritory[group.territory]);
+            const occupancyRoom = Math.max(0, schoolOccupancyCeiling - usedByTerritory[group.territory]);
             const occupancyCount = occupancyCost > 0 ? Math.floor(occupancyRoom / occupancyCost) : desired;
             group.visibleCount = Math.min(desired, remaining, Math.max(0, occupancyCount));
             usedByTerritory[group.territory] += group.visibleCount * occupancyCost;
@@ -680,9 +746,10 @@ export class WhaleOceanRuntime {
         }
     }
 
+    /** Occupancy cost in "small-fish units" (sardine ≈ 1), scaled by CSS-pixel body size. */
     private estimatedSchoolOccupancy(group: FishGroup): number {
-        const length = WHALE_OCEAN_SPECIES[group.schoolKind].visualLength;
-        return Math.max(0.8, Math.min(4.4, length * 0.7 + 0.35));
+        const bodyPx = WHALE_OCEAN_SPECIES[group.schoolKind].bodyLengthPx;
+        return Math.max(0.8, Math.min(4.4, bodyPx / 50 * 0.7 + 0.35));
     }
 
     private schoolAnchor(territory: "left" | "right", side: WhaleOceanSide, index: number): { x: number; y: number; z: number } {
@@ -707,20 +774,30 @@ export class WhaleOceanRuntime {
         this.frameAccumulator = 0;
         const seconds = now / 1_000;
         const wallClockNow = Date.now();
-        if (!this.options.diagnostic) this.expireFinancialWindow(wallClockNow);
+        if (!this.options.diagnostic) {
+            this.expireFinancialWindow(wallClockNow);
+            this.decayInactiveFish(wallClockNow);
+        }
         this.updateBubbles(seconds);
+        this.updateFish(seconds, elapsed / 16.67);
         this.updateFlowActors(now);
         this.updateWhales(now);
         this.promotePendingEvents();
         this.trySpawnPendingFlows(wallClockNow);
         this.refreshDiagnostics(wallClockNow);
         this.debugNoEventWarning(wallClockNow);
+        this.debugSizeWarnings(wallClockNow);
     }
 
     private updateFish(seconds: number, factor: number): void {
         this.rebalancePopulation();
         const activeAgents: Array<{ agent: FishAgent; group: FishGroup; index: number }> = [];
-        const largeByTerritory: Record<"left" | "right", number> = { left: 0, right: 0 };
+        // The two-large-animals-per-territory cap covers schools, transits and
+        // events together, so big bodies never stack in one territory.
+        const largeByTerritory: Record<"left" | "right", number> = {
+            left: this.transientLargeCount("left"),
+            right: this.transientLargeCount("right")
+        };
         for (const group of this.fishGroups) {
             const activeCount = Math.min(group.agents.length, Math.max(0, group.visibleCount));
             const allocations = this.allocateSchoolVolume(group, activeCount);
@@ -739,7 +816,7 @@ export class WhaleOceanRuntime {
             for (let index = activeCount; index < group.agents.length; index++) {
                 const inactive = group.agents[index];
                 inactive.sprite.isVisible = false;
-                inactive.label?.dispose(false, true);
+                this.removeLabel(inactive.label);
                 inactive.label = null;
                 inactive.labelText = "";
             }
@@ -832,11 +909,11 @@ export class WhaleOceanRuntime {
             sprite.isVisible = true;
             const currency = this.symbols.get(group.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(group.symbol);
             const labelText = `${group.side === "buy" ? "BUY →" : "SELL ←"} ${formatCompactVolume(agent.allocatedNotional)} ${currency ?? "QUOTE"}`;
-            this.ensureFishLabel(agent, labelText, group.side === "buy" ? "#36e7b0" : "#ff6b55", size);
+            this.ensureFishLabel(agent, labelText, group.side === "buy" ? "#36e7b0" : "#ff6b55");
             if (agent.label) {
-                const labelOffset = index % 2 === 0 ? size * 0.55 : -size * 0.55;
-                agent.label.position.set(agent.position.x, agent.position.y + labelOffset, agent.position.z - 0.04);
-                agent.label.visibility = sprite.color.a;
+                const below = index % 2 !== 0;
+                const labelOffset = below ? -size * 0.42 : size * 0.42;
+                this.placeScreenLabel(agent.label, agent.position.x, agent.position.y + labelOffset, agent.position.z, sprite.color.a, below);
             }
         }
     }
@@ -898,10 +975,10 @@ export class WhaleOceanRuntime {
         void previousNotional;
     }
 
-    private ensureFishLabel(agent: FishAgent, text: string, color: string, size: number): void {
+    private ensureFishLabel(agent: FishAgent, text: string, color: string): void {
         if (agent.label && agent.labelText === text) return;
-        agent.label?.dispose(false, true);
-        agent.label = this.createVolumeLabel(text, color, size, true);
+        this.removeLabel(agent.label);
+        agent.label = this.createVolumeLabel(text, color);
         agent.labelText = text;
     }
 
@@ -967,6 +1044,95 @@ export class WhaleOceanRuntime {
         console.groupEnd();
     }
 
+    /** Live per-animal visual diagnostics: spawn table, size warnings and tests. */
+    public visualDiagnostics(): WhaleOceanVisualDiagnosticRow[] {
+        const rows: WhaleOceanVisualDiagnosticRow[] = [];
+        for (const group of this.fishGroups) {
+            for (const agent of group.agents) {
+                if (!agent.sprite.isVisible) continue;
+                rows.push(this.buildDiagnosticRow(agent.debugId, group.symbol, agent.kind, group.territory, agent.sprite, agent.label, agent.labelText));
+            }
+        }
+        for (const actor of this.flowActors)
+            rows.push(this.buildDiagnosticRow(actor.id, actor.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, actor.kind, actor.territory, actor.sprite, actor.label, actor.labelText));
+        for (const event of this.whales)
+            rows.push(this.buildDiagnosticRow(event.eventId, event.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, event.kind, event.territory, event.sprite, event.label, event.labelText));
+        return rows;
+    }
+
+    private buildDiagnosticRow(id: string, symbol: string, kind: SpriteKind, territory: "left" | "right", sprite: Sprite, label: HTMLElement | null, labelText: string): WhaleOceanVisualDiagnosticRow {
+        const atlas = this.spriteAtlases.get(`${kind}:${territory}`);
+        const bodyWidthWorld = sprite.width * (atlas?.visualWidthRatio ?? 1);
+        const bodyHeightWorld = sprite.height * (atlas?.visualHeightRatio ?? 0.5);
+        const cssPerWorldAtDepth = this.cssPixelsPerWorldUnit() * CAMERA_RADIUS / Math.max(0.1, CAMERA_RADIUS + sprite.position.z);
+        const cameraPosition = this.camera?.position;
+        const cameraDistance = cameraPosition
+            ? Math.hypot(sprite.position.x - cameraPosition.x, sprite.position.y - cameraPosition.y, sprite.position.z - cameraPosition.z)
+            : CAMERA_RADIUS;
+        const projected = this.projectToCss(sprite.position.x, sprite.position.y, sprite.position.z);
+        const band = WHALE_OCEAN_SIZE_CATEGORIES[sizeCategoryForKind(kind)];
+        return {
+            id,
+            symbol,
+            kind,
+            category: sizeCategoryForKind(kind),
+            finalScaleWidth: round2(sprite.width),
+            finalScaleHeight: round2(sprite.height),
+            worldPositionX: round2(sprite.position.x),
+            worldPositionY: round2(sprite.position.y),
+            worldPositionZ: round2(sprite.position.z),
+            cameraDistance: round2(cameraDistance),
+            projectedBodyCssWidth: round2(bodyWidthWorld * cssPerWorldAtDepth),
+            projectedBodyCssHeight: round2(bodyHeightWorld * cssPerWorldAtDepth),
+            opacity: round2(sprite.color.a),
+            visible: sprite.isVisible && sprite.color.a > 0.01,
+            inViewport: projected !== null,
+            minBodyCssWidth: band.minPx,
+            maxBodyCssWidth: band.maxPx,
+            labelState: !label ? "none" : projected && sprite.color.a >= 0.05 ? "visible" : "hidden",
+            labelCssX: projected ? round2(projected.x) : -1,
+            labelCssY: projected ? round2(projected.y) : -1,
+            labelText
+        };
+    }
+
+    private projectToCss(worldX: number, worldY: number, worldZ: number): { x: number; y: number } | null {
+        const B = this.B;
+        const engine = this.engine;
+        const camera = this.camera;
+        const scene = this.scene;
+        if (!B || !engine || !camera || !scene) return null;
+        const renderWidth = engine.getRenderWidth();
+        const renderHeight = engine.getRenderHeight();
+        const clientWidth = this.canvas.clientWidth;
+        const clientHeight = this.canvas.clientHeight;
+        if (renderWidth <= 0 || renderHeight <= 0 || clientWidth <= 0 || clientHeight <= 0) return null;
+        const projected = B.Vector3.Project(
+            new B.Vector3(worldX, worldY, worldZ),
+            B.Matrix.Identity(),
+            scene.getTransformMatrix(),
+            camera.viewport.toGlobal(renderWidth, renderHeight)
+        );
+        if (!(projected.z > 0 && projected.z < 1)) return null;
+        const cssX = projected.x * (clientWidth / renderWidth);
+        const cssY = projected.y * (clientHeight / renderHeight);
+        if (cssX < -120 || cssX > clientWidth + 120 || cssY < -60 || cssY > clientHeight + 60) return null;
+        return { x: cssX, y: cssY };
+    }
+
+    /** Warns (rate-limited, once per animal) when a visible animal renders below its category minimum. */
+    private debugSizeWarnings(now: number): void {
+        if (this.options.debugWhaleOcean === false || now - this.lastSizeWarningAt < MINIMUM_SIZE_WARNING_INTERVAL_MS) return;
+        this.lastSizeWarningAt = now;
+        const fresh = this.visualDiagnostics().filter(row =>
+            row.visible && row.inViewport && row.opacity >= 0.6
+            && row.projectedBodyCssWidth > 0 && row.projectedBodyCssWidth < row.minBodyCssWidth
+            && !this.undersizedWarnedIds.has(row.id));
+        if (fresh.length === 0) return;
+        for (const row of fresh) this.undersizedWarnedIds.add(row.id);
+        console.warn("[WhaleOcean][WARN] animal abaixo do tamanho mínimo esperado", fresh);
+    }
+
     private debugSpawn(action: "created" | "aggregated", pending: PendingFlow, animalId: string | null, kind?: WhaleOceanAnimalKind, source = "money_flow_batch"): void {
         if (this.options.debugWhaleOcean === false) return;
         console.groupCollapsed(`[WhaleOcean][SPAWN] ${action}`);
@@ -982,6 +1148,13 @@ export class WhaleOceanRuntime {
             batchCount: pending.batchCount,
             source
         }]);
+        if (animalId) {
+            const rows = this.visualDiagnostics().filter(row => row.id === animalId);
+            if (rows.length > 0) {
+                console.info("Criação · escala, projeção e rótulo:");
+                console.table(rows);
+            }
+        }
         console.groupEnd();
     }
 
@@ -993,8 +1166,8 @@ export class WhaleOceanRuntime {
         console.groupEnd();
     }
 
-    private debugSummary(now: number, force = false): void {
-        if (this.options.debugWhaleOcean === false || (!force && now - this.lastDebugSummaryAt < 1_500)) return;
+    private debugSummary(now: number): void {
+        if (this.options.debugWhaleOcean === false || now - this.lastDebugSummaryAt < 5_000) return;
         this.lastDebugSummaryAt = now;
         const groups = ([this.options.leftSymbol, this.options.rightSymbol] as const).flatMap(symbol => {
             const state = this.symbols.get(symbol);
@@ -1033,6 +1206,8 @@ export class WhaleOceanRuntime {
             pendingFlows: this.pendingFlows.size
         }]);
         console.table(financial);
+        console.info("Visão visual por animal:");
+        console.table(this.visualDiagnostics());
         console.groupEnd();
     }
 
@@ -1041,9 +1216,9 @@ export class WhaleOceanRuntime {
             .filter(group => group.territory === territory)
             .reduce((sum, group) => sum + group.visibleCount * this.estimatedSchoolOccupancy(group), 0);
         const transient = this.flowActors.filter(actor => actor.territory === territory)
-            .reduce((sum, actor) => sum + Math.max(1.2, actor.size * 0.62 + actor.labelWidth * 0.36 + actor.labelHeight), 0);
+            .reduce((sum, actor) => sum + Math.max(1.2, WHALE_OCEAN_SPECIES[actor.kind].bodyLengthPx / 50 * 0.62 + actor.labelWidthPx / 50 * 0.36 + actor.labelHeightPx / 50), 0);
         const highlights = this.whales.filter(event => event.territory === territory)
-            .reduce((sum, event) => sum + Math.max(1, event.size * 0.7), 0);
+            .reduce((sum, event) => sum + Math.max(1, WHALE_OCEAN_SPECIES[event.kind].bodyLengthPx / 50 * 0.7), 0);
         return Number((schools + transient + highlights).toFixed(2));
     }
 
@@ -1157,7 +1332,7 @@ export class WhaleOceanRuntime {
         const territoryLimit = this.budget.maxVisibleAnimals <= 12 ? 2 : QUALITY_FLOW_ACTORS[this.quality];
         if (territoryActors >= territoryLimit) return false;
         const occupancy = this.territoryOccupancy(territory);
-        const projected = Math.max(1.4, WHALE_OCEAN_SPECIES[kind].visualLength * 0.7 + 0.9);
+        const projected = Math.max(1.4, WHALE_OCEAN_SPECIES[kind].bodyLengthPx / 50 * 0.7 + 0.9);
         return occupancy + projected <= this.budget.maxOccupancyPerTerritory;
     }
 
@@ -1173,9 +1348,9 @@ export class WhaleOceanRuntime {
         const spriteWidth = this.spriteWidthFor(kind, territory) * (1 + profile.intensity * 0.08);
         const quoteCurrency = state.quoteCurrency ?? quoteCurrencyForSymbol(pending.symbol);
         const text = `${formatCompactVolume(pending.totalNotional)} ${quoteCurrency ?? "QUOTE"}`;
-        const labelWidth = Math.max(1.6, Math.min(3.1, 0.95 + text.length * 0.095));
-        const labelHeight = 0.38;
-        const outerPadding = Math.max(spriteWidth * 0.65, labelWidth * 0.55) + 0.45;
+        const labelWidthPx = Math.min(230, 30 + text.length * 8.6);
+        const labelHeightPx = 24;
+        const outerPadding = Math.max(spriteWidth * 0.65, labelWidthPx / this.cssPixelsPerWorldUnit() * 0.55) + 0.45;
         const minX = territory === "left" ? -16.1 : 1.1;
         const maxX = territory === "left" ? -1.1 : 16.1;
         const fromX = movingRight ? minX - outerPadding : maxX + outerPadding;
@@ -1186,37 +1361,104 @@ export class WhaleOceanRuntime {
         sprite.invertU = !movingRight;
         sprite.position.set(fromX, lane + (this.random() - 0.5) * 1.15, (this.random() - 0.5) * 1.2);
         sprite.color.a = 0;
-        const label = this.createVolumeLabel(text, sideColor, spriteWidth, true);
+        sprite.isVisible = true;
+        const label = this.createVolumeLabel(text, sideColor);
         const id = `flow-${this.nextFlowId++}`;
-        this.flowActors.push({ id, sprite, label, startedAt: performance.now(), duration: Math.max(9_000, Math.min(15_000, 8_000 + Math.abs(toX - fromX) * 420)), fromX, toX, side: pending.side, territory, kind, size: spriteWidth, intensity: profile.intensity, phase: this.random() * Math.PI * 2, notional: pending.totalNotional, quoteCurrency, labelWidth, labelHeight });
+        this.flowActors.push({ id, sprite, label, labelText: text, startedAt: performance.now(), duration: Math.max(9_000, Math.min(15_000, 8_000 + Math.abs(toX - fromX) * 420)), fromX, toX, side: pending.side, territory, kind, size: spriteWidth, intensity: profile.intensity, phase: this.random() * Math.PI * 2, notional: pending.totalNotional, quoteCurrency, labelWidthPx, labelHeightPx });
         this.debugSpawn("created", pending, id);
     }
 
-    private canUseHighlight(territory: "left" | "right"): boolean {
-        const active = this.whales.filter(event => event.territory === territory).length
-            + this.flowActors.filter(actor => actor.territory === territory && isLargeAnimalKind(actor.kind)).length;
-        return active < this.budget.maxLargeHighlightsPerTerritory;
+    private transientLargeCount(territory: "left" | "right"): number {
+        return this.flowActors.filter(actor => actor.territory === territory && isLargeAnimalKind(actor.kind)).length
+            + this.whales.filter(event => event.territory === territory).length;
     }
 
-    private createVolumeLabel(text: string, color: string, size: number, compact = false): Mesh {
-        const B = this.B!;
-        const scene = this.scene!;
-        const texture = new B.DynamicTexture(`whale-ocean-volume-label-${this.random()}`, compact ? { width: 256, height: 56 } : { width: 320, height: 88 }, scene, true);
-        texture.hasAlpha = true;
-        texture.drawText(text, compact ? 8 : 16, compact ? 38 : 59, compact ? "bold 22px Arial" : "bold 34px Arial", "#f5ffff", "transparent", true);
-        const material = new B.StandardMaterial(`whale-ocean-volume-label-material-${this.random()}`, scene);
-        material.diffuseTexture = texture;
-        material.opacityTexture = texture;
-        material.emissiveColor = B.Color3.FromHexString(color).scale(0.4);
-        material.backFaceCulling = false;
-        material.useAlphaFromDiffuseTexture = true;
-        const label = B.MeshBuilder.CreatePlane(`whale-ocean-volume-label-${this.random()}`, {
-            width: compact ? Math.max(1.0, Math.min(2.3, 1.0 + size * 0.14)) : 2.2 + size * 1.7,
-            height: compact ? 0.3 : 0.58 + size * 0.32
-        }, scene);
-        label.material = material;
-        label.billboardMode = B.Mesh.BILLBOARDMODE_ALL;
+    private largeAnimalsInTerritory(territory: "left" | "right"): number {
+        const schools = this.fishGroups
+            .filter(group => group.territory === territory)
+            .reduce((sum, group) => {
+                let count = 0;
+                for (let index = 0; index < group.visibleCount && index < group.agents.length; index++)
+                    if (isLargeAnimalKind(group.agents[index].kind)) count++;
+                return sum + count;
+            }, 0);
+        return this.transientLargeCount(territory) + schools;
+    }
+
+    private canUseHighlight(territory: "left" | "right"): boolean {
+        return this.largeAnimalsInTerritory(territory) < this.budget.maxLargeHighlightsPerTerritory;
+    }
+
+    private ensureLabelLayer(): HTMLElement {
+        if (this.labelLayer && this.labelLayer.isConnected) return this.labelLayer;
+        const existing = this.root?.querySelector<HTMLElement>('[data-whale-ocean="labels"]');
+        if (existing) {
+            this.labelLayer = existing;
+            this.labelLayerOwned = false;
+            return existing;
+        }
+        const layer = document.createElement("div");
+        layer.className = "whale-ocean__labels";
+        layer.dataset.whaleOcean = "labels";
+        layer.setAttribute("aria-hidden", "true");
+        (this.canvas.parentElement ?? this.root ?? document.body).append(layer);
+        this.labelLayer = layer;
+        this.labelLayerOwned = true;
+        return layer;
+    }
+
+    /**
+     * Volume labels are fixed-size screen chips (15 CSS px) projected from the
+     * animal position, so camera distance, fog and fish materials can never
+     * darken or shrink the text.
+     */
+    private createVolumeLabel(text: string, color: string): HTMLElement {
+        const label = document.createElement("span");
+        label.className = "whale-ocean__volume-label";
+        label.textContent = text;
+        label.style.setProperty("--whale-ocean-label-accent", color);
+        this.ensureLabelLayer().append(label);
+        label.dataset.halfWidth = String(Math.ceil(label.offsetWidth / 2) || 60);
         return label;
+    }
+
+    private placeScreenLabel(label: HTMLElement, worldX: number, worldY: number, worldZ: number, alpha: number, below = false): void {
+        const B = this.B!;
+        const engine = this.engine;
+        const camera = this.camera;
+        const scene = this.scene;
+        if (!engine || !camera || !scene) return;
+        const renderWidth = engine.getRenderWidth();
+        const renderHeight = engine.getRenderHeight();
+        const clientWidth = this.canvas.clientWidth;
+        const clientHeight = this.canvas.clientHeight;
+        if (renderWidth <= 0 || renderHeight <= 0 || clientWidth <= 0 || clientHeight <= 0) return;
+        const projected = B.Vector3.Project(
+            new B.Vector3(worldX, worldY, worldZ),
+            B.Matrix.Identity(),
+            scene.getTransformMatrix(),
+            camera.viewport.toGlobal(renderWidth, renderHeight)
+        );
+        const cssX = projected.x * (clientWidth / renderWidth);
+        const cssY = projected.y * (clientHeight / renderHeight);
+        const inViewport = projected.z > 0 && projected.z < 1
+            && cssX > -120 && cssX < clientWidth + 120 && cssY > -60 && cssY < clientHeight + 60;
+        if (!inViewport || alpha < 0.05) {
+            label.style.display = "none";
+            return;
+        }
+        const halfWidth = Number(label.dataset.halfWidth ?? "60");
+        const clampedX = Math.max(halfWidth + 4, Math.min(clientWidth - halfWidth - 4, cssX));
+        const clampedY = below
+            ? Math.max(28, Math.min(clientHeight - 30, cssY))
+            : Math.max(30, Math.min(clientHeight - 28, cssY));
+        label.style.display = "";
+        label.style.opacity = "1";
+        label.style.transform = `translate(${clampedX.toFixed(1)}px, ${clampedY.toFixed(1)}px) translate(-50%, ${below ? "0" : "-100%"})`;
+    }
+
+    private removeLabel(label: HTMLElement | null): void {
+        label?.remove();
     }
 
     private updateFlowActors(now: number): void {
@@ -1242,15 +1484,15 @@ export class WhaleOceanRuntime {
             const fadeOut = Math.min(1, (1 - progress) / 0.16);
             actor.sprite.color.a = Math.min(fadeIn, fadeOut);
             if (actor.label) {
-                actor.label.position.set(actor.sprite.position.x, actor.sprite.position.y + actor.size * 0.62, actor.sprite.position.z - 0.04);
-                actor.label.visibility = actor.sprite.color.a;
+                this.placeScreenLabel(actor.label, actor.sprite.position.x, actor.sprite.position.y + actor.size * 0.62, actor.sprite.position.z, actor.sprite.color.a);
             }
         }
     }
 
     private disposeFlowActor(actor: FlowActor): void {
         actor.sprite.dispose();
-        actor.label?.dispose(false, true);
+        this.removeLabel(actor.label);
+        actor.label = null;
         this.debugExit({
             animalId: actor.id,
             symbol: actor.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol,
@@ -1294,9 +1536,11 @@ export class WhaleOceanRuntime {
         sprite.position.y = event.side === "buy" ? 2.9 + (this.random() - 0.5) * 0.55 : -2.9 + (this.random() - 0.5) * 0.55;
         sprite.position.z = 0.5;
         sprite.color.a = 0;
+        sprite.isVisible = true;
         const quoteCurrency = this.symbols.get(event.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(event.symbol);
-        const label = this.createVolumeLabel(`${formatCompactVolume(event.notionalUsdt)} ${quoteCurrency ?? "QUOTE"}`, baseColor, event.kind === "whale" ? 0.8 : 0.5);
-        this.whales.push({ sprite, label, startedAt: performance.now(), duration: 13_000, fromX, toX, size, territory, kind, side: event.side, notional: event.notionalUsdt, quoteCurrency, eventId: event.id });
+        const labelText = `${formatCompactVolume(event.notionalUsdt)} ${quoteCurrency ?? "QUOTE"}`;
+        const label = this.createVolumeLabel(labelText, baseColor);
+        this.whales.push({ sprite, label, labelText, startedAt: performance.now(), duration: 13_000, fromX, toX, size, territory, kind, side: event.side, notional: event.notionalUsdt, quoteCurrency, eventId: event.id });
         this.debugSpawn("created", { symbol: event.symbol, side: event.side, totalNotional: event.notionalUsdt, peakNotional: event.notionalUsdt, baseline: 0, firstReceivedAt: Date.now(), lastReceivedAt: Date.now(), batchCount: 1 }, event.id, kind, "classified_event");
         this.rebalancePopulation();
     }
@@ -1326,7 +1570,8 @@ export class WhaleOceanRuntime {
             const progress = (now - event.startedAt) / event.duration;
             if (progress >= 1) {
                 event.sprite.dispose();
-                event.label?.dispose(false, true);
+                this.removeLabel(event.label);
+                event.label = null;
                 this.debugExit({ animalId: event.eventId, symbol: event.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, side: event.side, volume: event.notional, direction: swimDirectionForSide(event.side), kind: event.kind, source: "classified_event", exitX: event.toX, removalReason: "completed_full_transit" });
                 this.whales.splice(index, 1);
                 continue;
@@ -1342,8 +1587,7 @@ export class WhaleOceanRuntime {
             const fadeIn = Math.min(1, progress / 0.14);
             const fadeOut = Math.min(1, (1 - progress) / 0.18);
             event.sprite.color.a = Math.min(fadeIn, fadeOut);
-            event.label?.position.set(event.sprite.position.x, event.sprite.position.y + event.size * 0.56, event.sprite.position.z - 0.05);
-            if (event.label) event.label.visibility = event.sprite.color.a;
+            if (event.label) this.placeScreenLabel(event.label, event.sprite.position.x, event.sprite.position.y + event.size * 0.56, event.sprite.position.z, event.sprite.color.a);
         }
     }
 
@@ -1460,6 +1704,10 @@ async function waitForSpriteTexture(texture: { isReady(): boolean }): Promise<vo
 function parseNumber(value: string): number {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function round2(value: number): number {
+    return Math.round(value * 100) / 100;
 }
 
 function formatPrice(value: number | null | undefined): string {

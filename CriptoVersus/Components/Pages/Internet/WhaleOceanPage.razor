@@ -7,6 +7,7 @@
 @page "/de/tv/whale-ocean/{MatchId:int}/{Slug}"
 @page "/it/tv/whale-ocean/{MatchId:int}/{Slug}"
 @page "/ja/tv/whale-ocean/{MatchId:int}/{Slug}"
+@page "/hi/tv/whale-ocean/{MatchId:int}/{Slug}"
 @using DTOs
 @using Microsoft.JSInterop
 @using CriptoVersus.Web.Services
@@ -50,6 +51,7 @@
     {
         <section class="whale-ocean__stage" aria-label="Whale Ocean 3D visualization">
             <canvas @ref="_canvas" class="whale-ocean__canvas"></canvas>
+            <div class="whale-ocean__labels" data-whale-ocean="labels" aria-hidden="true"></div>
             <div class="whale-ocean__topbar">
                 <div class="whale-ocean__status"><i></i><span data-whale-ocean="status">BOOTSTRAP_PENDING</span></div>
                 <div class="whale-ocean__state-note">No simulated market data · DEMO mode is off</div>
@@ -131,7 +133,7 @@
         {
             var leftPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamA, _lifetime.Token);
             var rightPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamB, _lifetime.Token);
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261110-whale-ocean-transit-v6");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261110-whale-ocean-readable-v7");
             await _module.InvokeVoidAsync("initialize", new
             {
                 canvas = _canvas,

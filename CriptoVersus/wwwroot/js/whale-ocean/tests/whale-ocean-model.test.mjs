@@ -7,7 +7,9 @@ import {
     animalKindForVisualTier,
     computePressure,
     DEFAULT_WHALE_OCEAN_VISUAL_BUDGET,
-    WHALE_OCEAN_VISUAL_SIZE_LIMITS,
+    WHALE_OCEAN_SIZE_CATEGORIES,
+    WHALE_OCEAN_SPECIES,
+    sizeCategoryForKind,
     formatCompactVolume,
     quoteCurrencyForSymbol,
     quoteNotional,
@@ -75,10 +77,33 @@ test("uses a shared, configurable visual budget", () => {
     assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxVisibleAnimals, 24);
     assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxLargeHighlightsPerTerritory, 2);
     assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.windowMs, 30_000);
-    assert.deepEqual(WHALE_OCEAN_VISUAL_SIZE_LIMITS, {
-        school: { minLength: 1.08, maxLength: 2.72 },
-        highlight: { minLength: 4.35, maxLength: 5.8 }
+});
+
+test("keeps every species body inside its CSS-pixel size band", () => {
+    assert.deepEqual(WHALE_OCEAN_SIZE_CATEGORIES, {
+        small: { minPx: 45, maxPx: 65 },
+        medium: { minPx: 70, maxPx: 95 },
+        large: { minPx: 100, maxPx: 135 },
+        shark: { minPx: 145, maxPx: 185 },
+        whale: { minPx: 190, maxPx: 240 }
     });
+    assert.equal(sizeCategoryForKind("sardine"), "small");
+    assert.equal(sizeCategoryForKind("mackerel"), "small");
+    assert.equal(sizeCategoryForKind("snook"), "medium");
+    assert.equal(sizeCategoryForKind("barracuda"), "medium");
+    assert.equal(sizeCategoryForKind("tuna"), "large");
+    assert.equal(sizeCategoryForKind("swordfish"), "large");
+    assert.equal(sizeCategoryForKind("shark"), "shark");
+    assert.equal(sizeCategoryForKind("whale"), "whale");
+
+    for (const species of Object.values(WHALE_OCEAN_SPECIES)) {
+        const band = WHALE_OCEAN_SIZE_CATEGORIES[sizeCategoryForKind(species.kind)];
+        assert.ok(species.bodyLengthPx >= band.minPx && species.bodyLengthPx <= band.maxPx,
+            `${species.kind} body ${species.bodyLengthPx}px must stay within [${band.minPx}, ${band.maxPx}]`);
+    }
+    const levels = Object.values(WHALE_OCEAN_SPECIES).sort((a, b) => a.financialLevel - b.financialLevel);
+    for (let index = 1; index < levels.length; index++)
+        assert.ok(levels[index].bodyLengthPx > levels[index - 1].bodyLengthPx, "bigger volume tiers keep bigger bodies");
 });
 
 test("density follows volume and does not create fish for an empty side", () => {

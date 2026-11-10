@@ -11,6 +11,7 @@ import './dialogue-phrases-pt.js';
 import './dialogue-phrases-en.js';
 import './dialogue-phrases-es-fr-de.js';
 import './dialogue-phrases-it-ja-zh.js';
+import './dialogue-phrases-hi.js';
 
 // Re-exported so consumers (and tests) share one catalog module instance even
 // when the published runtime rewrites relative imports with cache-busting tags.

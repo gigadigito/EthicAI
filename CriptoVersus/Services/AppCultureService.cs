@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Net.Http.Headers;
 using System.Globalization;
@@ -68,7 +68,8 @@ public sealed class AppCultureService
             ["SM"] = "it",
             ["VA"] = "it",
             ["JP"] = "ja",
-            ["CN"] = TertiaryRouteCulture
+            ["CN"] = TertiaryRouteCulture,
+            ["IN"] = "hi"
         };
 
     private readonly SupportedLanguageCatalog _languages;

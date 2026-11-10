@@ -6,7 +6,7 @@
 // Saida: processo sai com codigo != 0 quando ha problema.
 import { readFileSync } from "node:fs";
 
-const cultures = ["en-US", "pt-BR", "zh-CN", "es-ES", "fr-FR", "de-DE", "it-IT", "ja-JP"];
+const cultures = ["en-US", "pt-BR", "zh-CN", "es-ES", "fr-FR", "de-DE", "it-IT", "ja-JP", "hi-IN"];
 const fallbackCulture = "en-US";
 
 // Chaves consumidas por Components/Pages/Internet/PriceCrossoverSocial.razor

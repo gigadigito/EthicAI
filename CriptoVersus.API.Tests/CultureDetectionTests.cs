@@ -51,6 +51,9 @@ public sealed class CultureDetectionTests
     [InlineData("es-ES", "es")]
     [InlineData("it-IT", "it")]
     [InlineData("ja-JP", "ja")]
+    [InlineData("hi-IN", "hi")]
+    [InlineData("hi", "hi")]
+    [InlineData("hi-IN,hi;q=0.9", "hi")]
     [InlineData("en-US,en;q=0.9", "en")]
     [InlineData("xx-YY,xx;q=0.9", "en")]
     public void DetectPreferredRouteCulture_MatchesBrowserLanguage(string acceptLanguage, string expected)
@@ -121,6 +124,7 @@ public sealed class CultureDetectionTests
         Assert.Equal("fr", _appCulture.DetectPreferredRouteCulture(BuildContext(country: "FR")));
         Assert.Equal("es", _appCulture.DetectPreferredRouteCulture(BuildContext(country: "MX")));
         Assert.Equal("ja", _appCulture.DetectPreferredRouteCulture(BuildContext(country: "JP")));
+        Assert.Equal("hi", _appCulture.DetectPreferredRouteCulture(BuildContext(country: "IN")));
         Assert.Equal("en", _appCulture.DetectPreferredRouteCulture(BuildContext(country: "US")));
     }
 
@@ -147,6 +151,8 @@ public sealed class CultureDetectionTests
     [InlineData("de", "de")]
     [InlineData("de-AT", "de")]
     [InlineData("zh-TW", "zh")]
+    [InlineData("hi-IN", "hi")]
+    [InlineData("hi", "hi")]
     [InlineData("xx-YY", null)]
     public void MatchLanguageTag_UsesSupportedVariants(string tag, string? expected)
     {
@@ -199,6 +205,7 @@ public sealed class CultureDetectionTests
     [InlineData("/", "pt-BR,pt;q=0.9", "/pt")]
     [InlineData("/", "de-DE,de;q=0.9", "/de")]
     [InlineData("/", "es-MX,es;q=0.9", "/es")]
+    [InlineData("/", "hi-IN,hi;q=0.9", "/hi")]
     [InlineData("/", "xx-YY", "/en")]
     public async Task RootRedirect_CarriesDetectedCulture(string path, string acceptLanguage, string expected)
     {

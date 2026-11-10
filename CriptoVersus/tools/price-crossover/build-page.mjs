@@ -101,7 +101,7 @@ function formatTemplate(template, args) {
 }
 
 function normalizeCulture(cultureName) {
-    const map = { en: "en-US", pt: "pt-BR", zh: "zh-CN", es: "es-ES", fr: "fr-FR", de: "de-DE", it: "it-IT", ja: "ja-JP" };
+    const map = { en: "en-US", pt: "pt-BR", zh: "zh-CN", es: "es-ES", fr: "fr-FR", de: "de-DE", it: "it-IT", ja: "ja-JP", hi: "hi-IN" };
     return map[cultureName] ?? cultureName;
 }
 

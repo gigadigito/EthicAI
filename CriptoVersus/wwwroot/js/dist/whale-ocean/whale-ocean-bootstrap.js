@@ -42,6 +42,9 @@ export async function initializeDiagnostic(canvas, mode) {
 export function receive(matchId, batch) {
     instances.get(matchId)?.receive(batch);
 }
+export function getVisualDiagnostics(matchId) {
+    return instances.get(matchId)?.visualDiagnostics() ?? [];
+}
 export function setPaused(matchId, paused) {
     instances.get(matchId)?.setPaused(paused);
 }

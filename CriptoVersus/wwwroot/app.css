@@ -1094,3 +1094,31 @@ a:hover,
         font-size: .8rem;
     }
 }
+
+/* Whale Ocean screen-space volume labels. These elements are created or
+   positioned by the JS runtime, so they cannot rely on component-scoped CSS. */
+.whale-ocean__labels {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.whale-ocean__volume-label {
+    position: absolute;
+    left: 0;
+    top: 0;
+    max-width: 220px;
+    padding: 2px 7px;
+    border: 1px solid var(--whale-ocean-label-accent, #7fd8ff);
+    border-radius: 6px;
+    background: #04111ee8;
+    color: #f5ffff;
+    font: 700 15px/1.25 system-ui, sans-serif;
+    letter-spacing: .01em;
+    white-space: nowrap;
+    opacity: 1;
+    text-shadow: 0 1px 2px #000c;
+    will-change: transform;
+}

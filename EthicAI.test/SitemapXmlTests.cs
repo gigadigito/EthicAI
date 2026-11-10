@@ -17,8 +17,8 @@ public sealed class SitemapXmlTests
     private static readonly XNamespace SitemapNs = "http://www.sitemaps.org/schemas/sitemap/0.9";
     private static readonly XNamespace XhtmlNs = "http://www.w3.org/1999/xhtml";
 
-    private static readonly string[] Cultures = ["en", "pt", "zh", "es", "fr", "de", "it", "ja"];
-    private static readonly string[] ExpectedHrefLangs = ["en-US", "pt-BR", "zh-CN", "es-ES", "fr-FR", "de-DE", "it-IT", "ja-JP"];
+    private static readonly string[] Cultures = ["en", "pt", "zh", "es", "fr", "de", "it", "ja", "hi"];
+    private static readonly string[] ExpectedHrefLangs = ["en-US", "pt-BR", "zh-CN", "es-ES", "fr-FR", "de-DE", "it-IT", "ja-JP", "hi-IN"];
     private const string PublicBaseUrl = "https://www.criptoversus.com";
 
     [Fact]
@@ -94,6 +94,7 @@ public sealed class SitemapXmlTests
     [InlineData("zh")]
     [InlineData("es")]
     [InlineData("ja")]
+    [InlineData("hi")]
     public async Task AllSitemaps_DeclareConsistentHrefLangClusters(string culture)
     {
         var service = CreateService();
@@ -145,6 +146,7 @@ public sealed class SitemapXmlTests
     [InlineData("de")]
     [InlineData("it")]
     [InlineData("ja")]
+    [InlineData("hi")]
     public async Task MatchSitemaps_ContainMatchTvAndCandleBattleUrls(string culture)
     {
         var service = CreateService();
@@ -229,7 +231,7 @@ public sealed class SitemapXmlTests
             .Select(link => (string)link.Attribute("href")!)
             .ToArray();
 
-        Assert.Equal(8, hrefs.Count(href => href.Contains("/candle/42/btc-vs-eth", StringComparison.OrdinalIgnoreCase)));
+        Assert.Equal(9, hrefs.Count(href => href.Contains("/candle/42/btc-vs-eth", StringComparison.OrdinalIgnoreCase)));
         Assert.All(hrefs, href => Assert.DoesNotContain("/match/", href, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -257,6 +259,7 @@ public sealed class SitemapXmlTests
     [InlineData("en")]
     [InlineData("pt")]
     [InlineData("ja")]
+    [InlineData("hi")]
     public async Task AllSitemaps_AreValidSitemapXmlWithoutEnvironmentUrls(string culture)
     {
         var service = CreateService();

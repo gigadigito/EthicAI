@@ -30,7 +30,7 @@ public static class PriceCrossoverSocialPublicUrl
     /// Espelho de <c>SupportedLanguageCatalog</c> (Web), incluindo o formato de prefixo de caminho.
     /// </summary>
     public static readonly IReadOnlyCollection<string> SupportedRouteCultures =
-        ["en", "pt", "zh", "es", "fr", "de", "it", "ja"];
+        ["en", "pt", "zh", "es", "fr", "de", "it", "ja", "hi"];
 
     /// <summary>
     /// Normaliza o idioma pedido para a cultura de rota da pagina.
