@@ -1,8 +1,8 @@
 import { acquireBabylon, releaseBabylon } from "../futurebol/futurebol-babylon-loader.js";
-import { computePressure, formatCompactVolume, normalizeActivity, visualProfile, visualDensity, VolumeEventDetector, WHALE_OCEAN_SPECIES, animalKindForFinancialVolume, animalKindForEvent } from "./whale-ocean-model.js";
+import { computePressure, formatCompactVolume, normalizeActivity, visualProfile, visualDensity, VolumeEventDetector, WHALE_OCEAN_SPECIES, DEFAULT_WHALE_OCEAN_VISUAL_BUDGET, animalKindForFinancialVolume, animalKindForEvent, isLargeAnimalKind, isHighlightAnimalKind, WHALE_OCEAN_VISUAL_SIZE_LIMITS } from "./whale-ocean-model.js";
 const QUALITY_FPS = { Low: 30, Medium: 45, High: 60 };
-const QUALITY_FISH = { Low: 45, Medium: 130, High: 275 };
-const QUALITY_FLOW_ACTORS = { Low: 5, Medium: 10, High: 16 };
+const QUALITY_FLOW_ACTORS = { Low: 2, Medium: 4, High: 6 };
+const SPRITE_ASSET_VERSION = "20261110-whale-ocean-budget-v4";
 export class WhaleOceanRuntime {
     constructor(options) {
         this.detector = new VolumeEventDetector();
@@ -13,6 +13,9 @@ export class WhaleOceanRuntime {
         this.bubbles = [];
         this.flowActors = [];
         this.whales = [];
+        this.pendingEvents = [];
+        this.lastBatchSequence = new Map();
+        this.seenEventIds = new Set();
         this.B = null;
         this.engine = null;
         this.scene = null;
@@ -31,6 +34,16 @@ export class WhaleOceanRuntime {
         this.randomState = 0x51f15e;
         this.lastDiagnosticsAt = 0;
         this.options = options;
+        const requestedBudget = options.visualBudget ?? {};
+        this.budget = {
+            ...DEFAULT_WHALE_OCEAN_VISUAL_BUDGET,
+            ...requestedBudget,
+            maxVisibleAnimals: Math.max(8, Math.min(48, Math.round(requestedBudget.maxVisibleAnimals ?? DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxVisibleAnimals))),
+            maxLargeHighlightsPerTerritory: Math.max(1, Math.min(2, Math.round(requestedBudget.maxLargeHighlightsPerTerritory ?? DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxLargeHighlightsPerTerritory))),
+            maxSchoolAnimalsPerGroup: Math.max(2, Math.min(16, Math.round(requestedBudget.maxSchoolAnimalsPerGroup ?? DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxSchoolAnimalsPerGroup))),
+            maxOccupancyPerTerritory: Math.max(12, Math.min(40, requestedBudget.maxOccupancyPerTerritory ?? DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxOccupancyPerTerritory)),
+            windowMs: Math.max(5000, Math.min(120000, Math.round(requestedBudget.windowMs ?? DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.windowMs)))
+        };
         this.canvas = options.canvas;
         this.root = this.canvas.closest(".whale-ocean");
         this.quality = options.quality ?? "Medium";
@@ -98,13 +111,17 @@ export class WhaleOceanRuntime {
         const state = this.symbols.get(symbol);
         if (!state)
             return;
+        const lastSequence = this.lastBatchSequence.get(symbol) ?? 0;
+        if (!Number.isFinite(batch.sequence) || batch.sequence <= lastSequence)
+            return;
+        this.lastBatchSequence.set(symbol, batch.sequence);
         const buyQuote = parseNumber(batch.takerBuyQuote);
         const sellQuote = parseNumber(batch.takerSellQuote);
         const totalQuote = buyQuote + sellQuote;
         const baselineBefore = state.baseline;
         const now = Date.now();
         state.recent.push({ at: now, buy: buyQuote, sell: sellQuote });
-        while (state.recent.length > 0 && state.recent[0].at < now - 30000)
+        while (state.recent.length > 0 && state.recent[0].at < now - this.budget.windowMs)
             state.recent.shift();
         state.buyQuote = state.recent.reduce((sum, item) => sum + item.buy, 0);
         state.sellQuote = state.recent.reduce((sum, item) => sum + item.sell, 0);
@@ -139,6 +156,7 @@ export class WhaleOceanRuntime {
                     this.spawnFlowActor(symbol, "sell", sellQuote, baselineBefore, now);
             }
         }
+        this.rebalancePopulation();
         this.updateHud();
         this.refreshDiagnostics(now, true);
     }
@@ -165,14 +183,12 @@ export class WhaleOceanRuntime {
             return;
         this.quality = quality;
         this.engine?.setHardwareScalingLevel(quality === "Low" ? 1.6 : quality === "Medium" ? 1.25 : 1);
-        for (const group of this.fishGroups) {
-            group.targetCount = Math.min(group.targetCount, QUALITY_FISH[quality]);
-        }
         while (this.flowActors.length > QUALITY_FLOW_ACTORS[quality]) {
             const oldest = this.flowActors.shift();
             if (oldest)
                 this.disposeFlowActor(oldest);
         }
+        this.rebalancePopulation();
         this.write("quality", quality);
     }
     async dispose() {
@@ -256,7 +272,7 @@ export class WhaleOceanRuntime {
     async buildSpriteLibrary() {
         const B = this.B;
         const scene = this.scene;
-        const response = await fetch("/games/whale-ocean/sprites/manifest.json", { cache: "force-cache" });
+        const response = await fetch(`/games/whale-ocean/sprites/manifest.json?v=${SPRITE_ASSET_VERSION}`, { cache: "no-cache" });
         if (!response.ok)
             throw new Error(`Whale Ocean sprite manifest returned ${response.status}.`);
         const manifest = await response.json();
@@ -265,9 +281,9 @@ export class WhaleOceanRuntime {
             throw new Error("Whale Ocean sprite manifest has an unsupported atlas layout.");
         const atlasPromises = Object.entries(manifest.animations).map(async ([name, definition]) => {
             const territory = name.endsWith("_lima") ? "left" : "right";
-            const atlasUrl = `/games/whale-ocean/sprites/${definition.atlas}`;
+            const atlasUrl = `/games/whale-ocean/sprites/${definition.atlas}?v=${SPRITE_ASSET_VERSION}`;
             const bounds = await measureAtlasBounds(atlasUrl, manifest.frameWidth, manifest.frameHeight, manifest.framesPerAnimation);
-            const manager = new B.SpriteManager(`whale-ocean-sprites-${name}`, atlasUrl, QUALITY_FISH.High * 2 + 32, { width: manifest.frameWidth, height: manifest.frameHeight }, scene, 0.01, B.Texture.NEAREST_SAMPLINGMODE);
+            const manager = new B.SpriteManager(`whale-ocean-sprites-${name}`, atlasUrl, this.budget.maxVisibleAnimals + 16, { width: manifest.frameWidth, height: manifest.frameHeight }, scene, 0.01, B.Texture.NEAREST_SAMPLINGMODE);
             manager.isPickable = false;
             manager.disableDepthWrite = true;
             manager.fogEnabled = false;
@@ -302,16 +318,16 @@ export class WhaleOceanRuntime {
     buildFishGroups() {
         const left = this.options.leftSymbol;
         const right = this.options.rightSymbol;
-        this.createFishGroup(left, "left", "buy", -7);
-        this.createFishGroup(left, "left", "sell", -7);
-        this.createFishGroup(right, "right", "buy", 7);
-        this.createFishGroup(right, "right", "sell", 7);
+        this.createFishGroup(left, "left", "buy");
+        this.createFishGroup(left, "left", "sell");
+        this.createFishGroup(right, "right", "buy");
+        this.createFishGroup(right, "right", "sell");
     }
-    createFishGroup(symbol, territory, side, centerX) {
+    createFishGroup(symbol, territory, side) {
         const B = this.B;
-        // Keep the highest-capacity pool so changing quality upward can restore
-        // density without allocating during an active render loop.
-        const capacity = QUALITY_FISH.High;
+        // Pools are deliberately small. The visible budget is shared by all four
+        // symbol/direction groups and is further reduced by transient highlights.
+        const capacity = this.budget.maxSchoolAnimalsPerGroup;
         const agents = [];
         for (let index = 0; index < capacity; index++) {
             const angle = this.random() * Math.PI * 2;
@@ -319,8 +335,9 @@ export class WhaleOceanRuntime {
             const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-fish-${territory}-${side}-${index}`, this.random());
             sprite.width = this.spriteWidthFor(kind, territory);
             sprite.height = sprite.width * 0.5;
+            const anchor = this.schoolAnchor(territory, side, index);
             agents.push({
-                position: new B.Vector3(centerX + (this.random() - 0.5) * 9, (this.random() - 0.5) * 6, (this.random() - 0.5) * 2.6),
+                position: new B.Vector3(anchor.x + (this.random() - 0.5) * 0.55, anchor.y + (this.random() - 0.5) * 0.4, anchor.z + (this.random() - 0.5) * 0.3),
                 velocity: new B.Vector3(Math.cos(angle) * 0.012, (this.random() - 0.5) * 0.01, Math.sin(angle) * 0.009),
                 phase: this.random() * Math.PI * 2,
                 seed: this.random(),
@@ -353,7 +370,9 @@ export class WhaleOceanRuntime {
         const atlas = this.spriteAtlases.get(`${kind}:${territory}`);
         if (!atlas || atlas.visualWidthRatio <= 0)
             throw new Error(`Whale Ocean sprite metrics are unavailable for ${kind}:${territory}.`);
-        return WHALE_OCEAN_SPECIES[kind].visualLength / atlas.visualWidthRatio;
+        const limits = isHighlightAnimalKind(kind) ? WHALE_OCEAN_VISUAL_SIZE_LIMITS.highlight : WHALE_OCEAN_VISUAL_SIZE_LIMITS.school;
+        const length = Math.max(limits.minLength, Math.min(limits.maxLength, WHALE_OCEAN_SPECIES[kind].visualLength));
+        return length / atlas.visualWidthRatio;
     }
     buildSpriteDiagnostic() {
         const kinds = Object.keys(WHALE_OCEAN_SPECIES);
@@ -374,7 +393,7 @@ export class WhaleOceanRuntime {
     buildShowcaseDiagnostic() {
         const showcaseSpecies = ["sardine", "grouper", "tuna", "swordfish"];
         for (const [index, group] of this.fishGroups.entries()) {
-            group.targetCount = 22;
+            group.targetCount = 6;
             group.activity = 0.75;
             group.flowBias = group.territory === "left" ? 0.008 : -0.008;
             group.schoolKind = showcaseSpecies[index];
@@ -399,6 +418,7 @@ export class WhaleOceanRuntime {
             sequence: 2,
             eventTimeUtc: new Date().toISOString()
         });
+        this.rebalancePopulation();
     }
     updateGroup(symbol, side, quote, activeQuote, tradeCount, origin, now) {
         const state = this.symbols.get(symbol);
@@ -407,17 +427,18 @@ export class WhaleOceanRuntime {
         for (const group of this.fishGroups) {
             if (group.symbol !== symbol || group.side !== side)
                 continue;
+            group.recentLots = group.recentLots.filter(lot => lot.at >= now - this.budget.windowMs);
             if (quote <= 0) {
                 group.activity *= 0.86;
                 group.flowBias *= 0.8;
-                group.targetCount *= 0.82;
+                group.targetCount *= 0.78;
+                if (group.targetCount < 0.5)
+                    group.targetCount = 0;
                 continue;
             }
             const kind = animalKindForFinancialVolume(quote, group.baseline, group.schoolKind);
             group.schoolKind = kind;
             group.recentLots.push({ at: now, quote, tradeCount, origin, kind });
-            while (group.recentLots.length > 0 && group.recentLots[0].at < now - 30000)
-                group.recentLots.shift();
             group.lastOrigin = origin;
             if (origin === "LIVE")
                 group.lastLiveAt = now;
@@ -428,19 +449,55 @@ export class WhaleOceanRuntime {
             const territoryDirection = group.territory === "left" ? 1 : -1;
             const sideDirection = group.side === "buy" ? 1 : -1;
             group.flowBias = territoryDirection * sideDirection * (0.003 + pressureStrength * 0.009);
-            group.targetCount = visualDensity(quote, group.baseline, pressureStrength, this.quality);
+            const windowQuote = group.recentLots.reduce((sum, lot) => sum + lot.quote, 0);
+            group.targetCount = visualDensity(windowQuote, group.baseline, pressureStrength, this.quality);
             group.lastActiveAt = now;
         }
     }
     decayInactiveFish(now) {
         for (const group of this.fishGroups) {
-            group.recentLots = group.recentLots.filter(lot => lot.at >= now - 30000);
-            if (group.lastActiveAt === 0 || now - group.lastActiveAt < 30000)
+            group.recentLots = group.recentLots.filter(lot => lot.at >= now - this.budget.windowMs);
+            if (group.recentLots.length > 0)
                 continue;
-            group.activity *= 0.94;
-            group.flowBias *= 0.92;
-            group.targetCount *= 0.94;
+            group.activity *= 0.90;
+            group.flowBias *= 0.88;
+            group.targetCount *= 0.80;
+            if (group.targetCount < 0.5)
+                group.targetCount = 0;
         }
+        this.rebalancePopulation();
+    }
+    rebalancePopulation() {
+        const available = Math.max(0, this.budget.maxVisibleAnimals - this.flowActors.length - this.whales.length);
+        const groups = [...this.fishGroups].sort((a, b) => b.targetCount - a.targetCount);
+        for (const group of groups)
+            group.visibleCount = 0;
+        const usedByTerritory = { left: 0, right: 0 };
+        let remaining = available;
+        for (const group of groups) {
+            const desired = Math.min(group.agents.length, this.budget.maxSchoolAnimalsPerGroup, Math.max(0, Math.round(group.targetCount)));
+            const occupancyCost = this.estimatedSchoolOccupancy(group);
+            const occupancyRoom = Math.max(0, this.budget.maxOccupancyPerTerritory - usedByTerritory[group.territory]);
+            const occupancyCount = occupancyCost > 0 ? Math.floor(occupancyRoom / occupancyCost) : desired;
+            group.visibleCount = Math.min(desired, remaining, Math.max(0, occupancyCount));
+            usedByTerritory[group.territory] += group.visibleCount * occupancyCost;
+            remaining -= group.visibleCount;
+        }
+    }
+    estimatedSchoolOccupancy(group) {
+        const length = WHALE_OCEAN_SPECIES[group.schoolKind].visualLength;
+        return Math.max(0.8, Math.min(4.4, length * 0.7 + 0.35));
+    }
+    schoolAnchor(territory, side, index) {
+        const centerX = territory === "left" ? -8.3 : 8.3;
+        const centerY = side === "buy" ? 2.15 : -2.15;
+        const angle = index * 2.399963;
+        const radius = 0.35 + Math.sqrt(index + 0.5) * 0.72;
+        return {
+            x: centerX + Math.cos(angle) * radius * 1.25,
+            y: centerY + Math.sin(angle) * radius * 0.55,
+            z: Math.sin(angle * 0.7) * 0.45
+        };
     }
     frame() {
         if (this.paused || this.disposed || !this.scene)
@@ -459,116 +516,135 @@ export class WhaleOceanRuntime {
         this.updateBubbles(seconds);
         this.updateFlowActors(now);
         this.updateWhales(now);
+        this.promotePendingEvents();
         this.refreshDiagnostics(Date.now());
     }
     updateFish(seconds, factor) {
+        this.rebalancePopulation();
+        const activeAgents = [];
+        const largeByTerritory = { left: 0, right: 0 };
         for (const group of this.fishGroups) {
-            const activeCount = Math.min(group.agents.length, Math.max(0, Math.round(group.targetCount)));
-            group.visibleCount = activeCount;
+            const activeCount = Math.min(group.agents.length, Math.max(0, group.visibleCount));
             const allocations = this.allocateSchoolVolume(group, activeCount);
             for (let index = 0; index < activeCount; index++) {
                 const agent = group.agents[index];
-                const allocation = allocations[index];
-                this.assignAgentSpecies(agent, allocation.kind, group.territory, group.symbol, group.side, allocation.notionalUsdt);
-            }
-            const grid = new Map();
-            for (let index = 0; index < activeCount; index++) {
-                const agent = group.agents[index];
-                const key = `${Math.floor(agent.position.x / 2.5)}:${Math.floor(agent.position.y / 2.5)}:${Math.floor(agent.position.z / 2.5)}`;
-                const cell = grid.get(key);
-                if (cell)
-                    cell.push(index);
-                else
-                    grid.set(key, [index]);
-            }
-            for (let index = 0; index < group.agents.length; index++) {
-                const agent = group.agents[index];
-                const sprite = agent.sprite;
-                if (index >= activeCount) {
-                    sprite.isVisible = false;
-                    continue;
+                const allocation = allocations[index] ?? { kind: group.schoolKind, notionalUsdt: 0 };
+                let visualKind = allocation.kind;
+                if (isLargeAnimalKind(visualKind)) {
+                    if (largeByTerritory[group.territory] >= this.budget.maxLargeHighlightsPerTerritory)
+                        visualKind = visualKind === "swordfish" ? "barracuda" : "grouper";
+                    else
+                        largeByTerritory[group.territory]++;
                 }
-                let separationX = 0;
-                let separationY = 0;
-                let separationZ = 0;
-                let alignmentX = 0;
-                let alignmentY = 0;
-                let alignmentZ = 0;
-                let cohesionX = 0;
-                let cohesionY = 0;
-                let cohesionZ = 0;
-                let neighbors = 0;
-                const cellX = Math.floor(agent.position.x / 2.5);
-                const cellY = Math.floor(agent.position.y / 2.5);
-                const cellZ = Math.floor(agent.position.z / 2.5);
-                for (let dx = -1; dx <= 1; dx++)
-                    for (let dy = -1; dy <= 1; dy++)
-                        for (let dz = -1; dz <= 1; dz++) {
-                            const nearby = grid.get(`${cellX + dx}:${cellY + dy}:${cellZ + dz}`);
-                            if (!nearby)
+                this.assignAgentSpecies(agent, visualKind, group.territory, group.symbol, group.side, allocation.notionalUsdt);
+                activeAgents.push({ agent, group, index });
+            }
+            for (let index = activeCount; index < group.agents.length; index++)
+                group.agents[index].sprite.isVisible = false;
+        }
+        const grid = new Map();
+        for (const item of activeAgents) {
+            const { agent } = item;
+            const key = `${Math.floor(agent.position.x / 2.1)}:${Math.floor(agent.position.y / 1.8)}:${Math.floor(agent.position.z / 2.2)}`;
+            const cell = grid.get(key);
+            if (cell)
+                cell.push(item);
+            else
+                grid.set(key, [item]);
+        }
+        for (const { agent, group, index } of activeAgents) {
+            const sprite = agent.sprite;
+            let separationX = 0;
+            let separationY = 0;
+            let separationZ = 0;
+            let alignmentX = 0;
+            let alignmentY = 0;
+            let alignmentZ = 0;
+            let neighbors = 0;
+            const cellX = Math.floor(agent.position.x / 2.1);
+            const cellY = Math.floor(agent.position.y / 1.8);
+            const cellZ = Math.floor(agent.position.z / 2.2);
+            for (let dx = -1; dx <= 1; dx++)
+                for (let dy = -1; dy <= 1; dy++)
+                    for (let dz = -1; dz <= 1; dz++) {
+                        const nearby = grid.get(`${cellX + dx}:${cellY + dy}:${cellZ + dz}`);
+                        if (!nearby)
+                            continue;
+                        for (const otherItem of nearby) {
+                            const other = otherItem.agent;
+                            if (other === agent)
                                 continue;
-                            for (const neighborIndex of nearby) {
-                                if (neighborIndex === index)
-                                    continue;
-                                const other = group.agents[neighborIndex];
-                                const deltaX = other.position.x - agent.position.x;
-                                const deltaY = other.position.y - agent.position.y;
-                                const deltaZ = other.position.z - agent.position.z;
-                                const distance = Math.hypot(deltaX, deltaY, deltaZ);
-                                if (distance <= 0 || distance > 3.2)
-                                    continue;
-                                neighbors++;
-                                const inverseDistance = 1 / distance;
-                                separationX -= deltaX * inverseDistance;
-                                separationY -= deltaY * inverseDistance;
-                                separationZ -= deltaZ * inverseDistance;
-                                alignmentX += other.velocity.x;
-                                alignmentY += other.velocity.y;
-                                alignmentZ += other.velocity.z;
-                                cohesionX += other.position.x;
-                                cohesionY += other.position.y;
-                                cohesionZ += other.position.z;
-                            }
+                            const deltaX = other.position.x - agent.position.x;
+                            const deltaY = other.position.y - agent.position.y;
+                            const deltaZ = other.position.z - agent.position.z;
+                            const distance = Math.hypot(deltaX, deltaY, deltaZ);
+                            const minimumDistance = (this.spriteWidthFor(agent.kind, group.territory) + this.spriteWidthFor(other.kind, otherItem.group.territory)) * 0.24 + 0.32;
+                            if (distance <= 0 || distance > Math.max(3.5, minimumDistance * 1.6))
+                                continue;
+                            neighbors++;
+                            const inverseDistance = 1 / distance;
+                            const separation = Math.max(0, minimumDistance - distance) * inverseDistance;
+                            separationX -= deltaX * (inverseDistance + separation * 2.2);
+                            separationY -= deltaY * (inverseDistance + separation * 2.2);
+                            separationZ -= deltaZ * (inverseDistance + separation * 2.2);
+                            alignmentX += other.velocity.x;
+                            alignmentY += other.velocity.y;
+                            alignmentZ += other.velocity.z;
                         }
-                if (neighbors > 0) {
-                    const reciprocal = 1 / neighbors;
-                    alignmentX = alignmentX * reciprocal - agent.velocity.x;
-                    alignmentY = alignmentY * reciprocal - agent.velocity.y;
-                    alignmentZ = alignmentZ * reciprocal - agent.velocity.z;
-                    cohesionX = cohesionX * reciprocal - agent.position.x;
-                    cohesionY = cohesionY * reciprocal - agent.position.y;
-                    cohesionZ = cohesionZ * reciprocal - agent.position.z;
-                }
-                const wave = Math.sin(seconds * 0.7 + agent.phase) * 0.004;
-                agent.velocity.x += (separationX * 0.0007 + alignmentX * 0.012 + cohesionX * 0.0005 + group.flowBias + Math.sin(seconds * 0.3 + agent.phase) * 0.0005) * factor;
-                agent.velocity.y += (separationY * 0.0007 + alignmentY * 0.012 + cohesionY * 0.0005 + wave) * factor;
-                agent.velocity.z += Math.cos(seconds * 0.43 + agent.phase) * 0.0005 * factor;
-                const speed = Math.max(0.006, Math.min(0.055, agent.velocity.length()));
-                agent.velocity.scaleInPlace(0.996);
-                agent.velocity.normalize().scaleInPlace(speed);
-                agent.position.x += agent.velocity.x * factor;
-                agent.position.y += agent.velocity.y * factor;
-                agent.position.z += agent.velocity.z * factor;
-                const minX = group.territory === "left" ? -17 : 1;
-                const maxX = group.territory === "left" ? -1 : 17;
-                if (agent.position.x < minX)
-                    agent.position.x = maxX;
-                if (agent.position.x > maxX)
-                    agent.position.x = minX;
-                if (agent.position.y < -4.6 || agent.position.y > 4.5)
-                    agent.velocity.y *= -1;
-                if (agent.position.z < -2.5 || agent.position.z > 2.4)
-                    agent.velocity.z *= -1;
-                sprite.position.x = agent.position.x;
-                sprite.position.y = agent.position.y;
-                sprite.position.z = agent.position.z;
-                sprite.invertU = agent.velocity.x < 0;
-                const size = this.spriteWidthFor(agent.kind, group.territory) * (1 + group.activity * 0.18 + agent.seed * 0.07);
-                sprite.width = size;
-                sprite.height = size * 0.5;
-                sprite.color.a = Math.min(1, 0.72 + group.activity * 0.28);
-                sprite.isVisible = true;
+                    }
+            if (neighbors > 0) {
+                const reciprocal = 1 / neighbors;
+                alignmentX = alignmentX * reciprocal - agent.velocity.x;
+                alignmentY = alignmentY * reciprocal - agent.velocity.y;
+                alignmentZ = alignmentZ * reciprocal - agent.velocity.z;
             }
+            const anchor = this.schoolAnchor(group.territory, group.side, index);
+            const wave = Math.sin(seconds * 0.7 + agent.phase) * 0.003;
+            agent.velocity.x += (separationX * 0.0009 + alignmentX * 0.012 + (anchor.x - agent.position.x) * 0.0009 + group.flowBias + Math.sin(seconds * 0.3 + agent.phase) * 0.0005) * factor;
+            agent.velocity.y += (separationY * 0.0009 + alignmentY * 0.012 + (anchor.y - agent.position.y) * 0.0012 + wave) * factor;
+            agent.velocity.z += (separationZ * 0.0006 + alignmentZ * 0.01 + (anchor.z - agent.position.z) * 0.001) * factor;
+            const speed = Math.max(0.006, Math.min(0.055, agent.velocity.length()));
+            agent.velocity.scaleInPlace(0.996);
+            agent.velocity.normalize().scaleInPlace(speed);
+            agent.position.x += agent.velocity.x * factor;
+            agent.position.y += agent.velocity.y * factor;
+            agent.position.z += agent.velocity.z * factor;
+            const size = this.spriteWidthFor(agent.kind, group.territory) * (1 + group.activity * 0.12 + agent.seed * 0.05);
+            const edgePadding = Math.max(0.6, size * 0.45);
+            const minX = group.territory === "left" ? -16.1 + edgePadding : 1.1 + edgePadding;
+            const maxX = group.territory === "left" ? -1.1 - edgePadding : 16.1 - edgePadding;
+            if (agent.position.x < minX) {
+                agent.position.x = minX;
+                agent.velocity.x = Math.abs(agent.velocity.x);
+            }
+            if (agent.position.x > maxX) {
+                agent.position.x = maxX;
+                agent.velocity.x = -Math.abs(agent.velocity.x);
+            }
+            if (agent.position.y < -4.15 + edgePadding * 0.35) {
+                agent.position.y = -4.15 + edgePadding * 0.35;
+                agent.velocity.y = Math.abs(agent.velocity.y);
+            }
+            if (agent.position.y > 4.15 - edgePadding * 0.35) {
+                agent.position.y = 4.15 - edgePadding * 0.35;
+                agent.velocity.y = -Math.abs(agent.velocity.y);
+            }
+            if (agent.position.z < -2.1) {
+                agent.position.z = -2.1;
+                agent.velocity.z = Math.abs(agent.velocity.z);
+            }
+            if (agent.position.z > 2.1) {
+                agent.position.z = 2.1;
+                agent.velocity.z = -Math.abs(agent.velocity.z);
+            }
+            sprite.position.x = agent.position.x;
+            sprite.position.y = agent.position.y;
+            sprite.position.z = agent.position.z;
+            sprite.invertU = agent.velocity.x < 0;
+            sprite.width = size;
+            sprite.height = size * 0.5;
+            sprite.color.a = Math.min(1, 0.74 + group.activity * 0.26);
+            sprite.isVisible = true;
         }
     }
     /** Distributes each 30-second aggregate exactly once among visible school fish. */
@@ -635,11 +711,11 @@ export class WhaleOceanRuntime {
             return;
         this.lastDiagnosticsAt = now;
         const heading = document.createElement("strong");
-        heading.textContent = "DEV · MONEY FLOW (janela móvel de 30 s)";
+        heading.textContent = `DEV · MONEY FLOW (janela móvel de ${Math.round(this.budget.windowMs / 1000)} s)`;
         const note = document.createElement("small");
-        note.textContent = "Recebido pelo cliente; não altera a densidade visual.";
+        note.textContent = `Recebido pelo cliente; teto ${this.budget.maxVisibleAnimals} animais · sem DEMO.`;
         const rows = this.fishGroups.map(group => {
-            group.recentLots = group.recentLots.filter(lot => lot.at >= now - 30000);
+            group.recentLots = group.recentLots.filter(lot => lot.at >= now - this.budget.windowMs);
             const liveLots = group.recentLots.filter(lot => lot.origin === "LIVE");
             const replayLots = group.recentLots.filter(lot => lot.origin === "REPLAY");
             const volume = group.recentLots.reduce((sum, lot) => sum + lot.quote, 0);
@@ -650,7 +726,7 @@ export class WhaleOceanRuntime {
             const symbol = document.createElement("span");
             symbol.textContent = `${group.territory === "left" ? "A" : "B"} · ${group.symbol} · ${group.side.toUpperCase()}`;
             const received = document.createElement("span");
-            received.textContent = `30s ${formatCompactVolume(volume)} · lotes L${liveLots.length}/R${replayLots.length} · trades ${tradeCount}`;
+            received.textContent = `${Math.round(this.budget.windowMs / 1000)}s ${formatCompactVolume(volume)} · lotes L${liveLots.length}/R${replayLots.length} · trades ${tradeCount}`;
             const population = document.createElement("span");
             population.textContent = `alvo ${Math.round(group.targetCount)} · visíveis ${group.visibleCount}`;
             const latest = document.createElement("span");
@@ -677,7 +753,11 @@ export class WhaleOceanRuntime {
         if (!state)
             return;
         const profile = visualProfile(notional, baseline);
-        if (profile.tier === "micro")
+        if (profile.tier === "micro" || profile.tier === "small")
+            return;
+        const territory = this.options.leftSymbol === symbol ? "left" : "right";
+        const kind = profile.kind;
+        if (isLargeAnimalKind(kind) && !this.canUseHighlight(territory))
             return;
         const minimumGap = this.quality === "Low" ? 1200 : this.quality === "Medium" ? 700 : 450;
         if (now - state.lastActorAt[side] < minimumGap)
@@ -688,10 +768,8 @@ export class WhaleOceanRuntime {
             if (oldest)
                 this.disposeFlowActor(oldest);
         }
-        const territory = this.options.leftSymbol === symbol ? "left" : "right";
         const movingRight = territory === "left" ? side === "buy" : side === "sell";
         const sideColor = side === "buy" ? "#36e7b0" : "#ff6b55";
-        const kind = profile.kind;
         const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-flow-${symbol}-${now}`, this.random());
         const spriteWidth = this.spriteWidthFor(kind, territory) * (1 + profile.intensity * 0.12);
         sprite.width = spriteWidth;
@@ -702,11 +780,11 @@ export class WhaleOceanRuntime {
         const fromX = movingRight ? outer : inner;
         const toX = movingRight ? inner : outer;
         sprite.position.x = fromX;
-        sprite.position.y = -0.4 + (this.random() - 0.5) * 4.8;
+        sprite.position.y = side === "buy" ? 2.7 + (this.random() - 0.5) * 0.6 : -2.7 + (this.random() - 0.5) * 0.6;
         sprite.position.z = (this.random() - 0.5) * 1.2;
         sprite.color.a = 0;
         const label = profile.showLabel
-            ? this.createVolumeLabel(`${side === "buy" ? "BUY" : "SELL"} · ${formatCompactVolume(notional)}`, sideColor, profile.size)
+            ? this.createVolumeLabel(`${side === "buy" ? "BUY" : "SELL"} ${formatCompactVolume(notional)} USDT`, sideColor, profile.size)
             : null;
         this.flowActors.push({
             sprite,
@@ -716,10 +794,18 @@ export class WhaleOceanRuntime {
             fromX,
             toX,
             side,
+            territory,
+            kind,
             size: spriteWidth,
             intensity: profile.intensity,
             phase: this.random() * Math.PI * 2
         });
+        this.rebalancePopulation();
+    }
+    canUseHighlight(territory) {
+        const active = this.whales.filter(event => event.territory === territory).length
+            + this.flowActors.filter(actor => actor.territory === territory && isHighlightAnimalKind(actor.kind)).length;
+        return active < this.budget.maxLargeHighlightsPerTerritory;
     }
     createVolumeLabel(text, color, size) {
         const B = this.B;
@@ -734,8 +820,8 @@ export class WhaleOceanRuntime {
         material.backFaceCulling = false;
         material.useAlphaFromDiffuseTexture = true;
         const label = B.MeshBuilder.CreatePlane(`whale-ocean-volume-label-${this.random()}`, {
-            width: 2.5 + size * 2.5,
-            height: 0.68 + size * 0.4
+            width: 2.2 + size * 1.7,
+            height: 0.58 + size * 0.32
         }, scene);
         label.material = material;
         label.billboardMode = B.Mesh.BILLBOARDMODE_ALL;
@@ -773,15 +859,21 @@ export class WhaleOceanRuntime {
         actor.sprite.dispose();
         actor.label?.dispose(false, true);
     }
-    spawnEvent(event) {
-        while (this.whales.length >= 6) {
-            const oldest = this.whales.shift();
-            if (oldest) {
-                oldest.sprite.dispose();
-                oldest.label?.dispose(false, true);
-            }
-        }
+    spawnEvent(event, allowPreviouslySeen = false) {
+        const alreadySeen = this.seenEventIds.has(event.id);
+        if (alreadySeen && !allowPreviouslySeen)
+            return;
+        if (!alreadySeen)
+            this.seenEventIds.add(event.id);
         const territory = this.options.leftSymbol === event.symbol ? "left" : "right";
+        if (!alreadySeen)
+            this.addAlert(event);
+        if (this.flowActors.length + this.whales.length >= this.budget.maxVisibleAnimals || !this.canUseHighlight(territory)) {
+            this.pendingEvents.push(event);
+            while (this.pendingEvents.length > 8)
+                this.pendingEvents.shift();
+            return;
+        }
         const baseColor = event.side === "buy"
             ? (territory === "left" ? this.options.leftColor : this.options.rightColor)
             : (territory === "left" ? "#a85e27" : "#0b8e94");
@@ -797,12 +889,26 @@ export class WhaleOceanRuntime {
         sprite.height = size * 0.5;
         sprite.invertU = !movingRight;
         sprite.position.x = fromX;
-        sprite.position.y = -3.2;
+        sprite.position.y = event.side === "buy" ? 3.15 : -3.15;
         sprite.position.z = 0.5;
         sprite.color.a = 0;
-        const label = this.createVolumeLabel(`${event.side === "buy" ? "BUY" : "SELL"} · ${formatCompactVolume(event.notionalUsdt)}`, baseColor, event.kind === "whale" ? 0.8 : 0.5);
-        this.whales.push({ sprite, label, startedAt: performance.now(), duration: event.kind === "whale" ? 11000 : 8000, fromX, toX, size });
-        this.addAlert(event);
+        const label = this.createVolumeLabel(`${event.side === "buy" ? "BUY" : "SELL"} ${formatCompactVolume(event.notionalUsdt)} USDT`, baseColor, event.kind === "whale" ? 0.8 : 0.5);
+        this.whales.push({ sprite, label, startedAt: performance.now(), duration: event.kind === "whale" ? 11000 : 8000, fromX, toX, size, territory, kind, side: event.side });
+        this.rebalancePopulation();
+    }
+    promotePendingEvents() {
+        if (this.pendingEvents.length === 0)
+            return;
+        for (let index = 0; index < this.pendingEvents.length;) {
+            const event = this.pendingEvents[index];
+            const territory = this.options.leftSymbol === event.symbol ? "left" : "right";
+            if (this.flowActors.length + this.whales.length >= this.budget.maxVisibleAnimals || !this.canUseHighlight(territory)) {
+                index++;
+                continue;
+            }
+            this.pendingEvents.splice(index, 1);
+            this.spawnEvent(event, true);
+        }
     }
     updateWhales(now) {
         for (let index = this.whales.length - 1; index >= 0; index--) {
@@ -815,7 +921,8 @@ export class WhaleOceanRuntime {
                 continue;
             }
             event.sprite.position.x = event.fromX + (event.toX - event.fromX) * progress;
-            event.sprite.position.y = -3.2 + Math.sin(progress * Math.PI * 2) * 1.2;
+            const lane = event.side === "buy" ? 3.15 : -3.15;
+            event.sprite.position.y = lane + Math.sin(progress * Math.PI * 2) * 0.55;
             event.sprite.position.z = Math.sin(progress * Math.PI * 3) * 0.6;
             event.sprite.invertU = event.toX < event.fromX;
             const pulse = 1 + Math.sin(progress * Math.PI) * 0.12;

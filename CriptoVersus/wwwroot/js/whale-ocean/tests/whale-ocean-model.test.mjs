@@ -6,6 +6,8 @@ import {
     animalKindForEvent,
     animalKindForVisualTier,
     computePressure,
+    DEFAULT_WHALE_OCEAN_VISUAL_BUDGET,
+    WHALE_OCEAN_VISUAL_SIZE_LIMITS,
     formatCompactVolume,
     quoteNotional,
     takerSideFromBuyerIsMaker,
@@ -51,14 +53,25 @@ test("returns no pressure when a window has no trades", () => {
 });
 
 test("keeps visual entity counts within the quality budget", () => {
-    assert.equal(clampVisualEntityCount(999, "Low"), 180);
-    assert.equal(clampVisualEntityCount(999, "Medium"), 520);
-    assert.equal(clampVisualEntityCount(9_999, "High"), 1_100);
+    assert.equal(clampVisualEntityCount(999, "Low"), 28);
+    assert.equal(clampVisualEntityCount(999, "Medium"), 40);
+    assert.equal(clampVisualEntityCount(9_999, "High"), 48);
+});
+
+test("uses a shared, configurable visual budget", () => {
+    assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxVisibleAnimals, 48);
+    assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxLargeHighlightsPerTerritory, 2);
+    assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.windowMs, 30_000);
+    assert.deepEqual(WHALE_OCEAN_VISUAL_SIZE_LIMITS, {
+        school: { minLength: 0.92, maxLength: 3.35 },
+        highlight: { minLength: 4.8, maxLength: 6.4 }
+    });
 });
 
 test("density follows volume and does not create fish for an empty side", () => {
     assert.equal(visualDensity(0, 100, 0.5, "Medium"), 0);
     assert.ok(visualDensity(800, 100, 0.8, "Medium") > visualDensity(120, 100, 0.5, "Medium"));
+    assert.ok(visualDensity(800, 100, 0.8, "High") <= 12);
 });
 
 test("profiles readable flow fish by relative volume", () => {

@@ -2,7 +2,16 @@ import { WhaleOceanRuntime } from "./whale-ocean-runtime.js";
 const instances = new Map();
 export async function initialize(options) {
     await dispose(options.matchId);
-    const runtime = new WhaleOceanRuntime(options);
+    const mobile = typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches;
+    const runtime = new WhaleOceanRuntime({
+        ...options,
+        visualBudget: {
+            maxVisibleAnimals: mobile ? 36 : 48,
+            maxSchoolAnimalsPerGroup: mobile ? 9 : 12,
+            maxOccupancyPerTerritory: mobile ? 21 : 28,
+            ...options.visualBudget
+        }
+    });
     instances.set(options.matchId, runtime);
     try {
         await runtime.initialize();

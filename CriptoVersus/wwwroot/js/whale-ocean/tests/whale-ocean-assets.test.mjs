@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import { access } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import { inflateSync } from "node:zlib";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const spriteRoot = fileURLToPath(new URL("../../../games/whale-ocean/sprites/", import.meta.url));
+const runtimeRoot = fileURLToPath(new URL("../../dist/whale-ocean/", import.meta.url));
+const LEGACY_ATLAS_PATTERN = /atlas_(?:peixe_[pmg]|tubarao|baleia)_(?:lima|ciano)\.png/;
+const EXPECTED_KINDS = ["barracuda", "bluefish", "grouper", "mackerel", "sardine", "shark", "snook", "swordfish", "tuna", "whale"];
 
 test("ships the documented Whale Ocean atlas set", async () => {
     const manifest = JSON.parse(await readFile(`${spriteRoot}/manifest.json`, "utf8"));
@@ -17,7 +19,13 @@ test("ships the documented Whale Ocean atlas set", async () => {
     assert.equal(manifest.atlas.rows, 3);
     assert.equal(entries.length, 20);
     const kinds = new Set(entries.map(([, definition]) => definition.kind));
-    assert.deepEqual([...kinds].sort(), ["barracuda", "bluefish", "grouper", "mackerel", "sardine", "shark", "snook", "swordfish", "tuna", "whale"]);
+    assert.deepEqual([...kinds].sort(), EXPECTED_KINDS);
+    assert.doesNotMatch(JSON.stringify(manifest), LEGACY_ATLAS_PATTERN);
+    for (const kind of EXPECTED_KINDS) for (const variant of ["lima", "ciano"]) {
+        const definition = manifest.animations[`${kind}_${variant}`];
+        assert.ok(definition, `${kind} requires the ${variant} variant`);
+        assert.equal(definition.atlas, `atlas_${kind}_${variant}.png`);
+    }
 
     for (const [, definition] of entries) {
         assert.equal(definition.frameCount, 12);
@@ -31,6 +39,24 @@ test("ships the documented Whale Ocean atlas set", async () => {
         for (let frame = 0; frame < 12; frame++)
             assert.ok(alphaPixelCount(decoded, frame) > 0, `frame ${frame} must contain a visible animal`);
     }
+});
+
+test("production Whale Ocean execution cannot resolve legacy atlas paths", async () => {
+    const publicFiles = await readdir(spriteRoot);
+    assert.equal(publicFiles.filter(file => LEGACY_ATLAS_PATTERN.test(file)).length, 0);
+
+    const [bootstrap, runtime, model] = await Promise.all([
+        readFile(`${runtimeRoot}/whale-ocean-bootstrap.js`, "utf8"),
+        readFile(`${runtimeRoot}/whale-ocean-runtime.js`, "utf8"),
+        readFile(`${runtimeRoot}/whale-ocean-model.js`, "utf8")
+    ]);
+    const executable = `${bootstrap}\n${runtime}\n${model}`;
+    assert.doesNotMatch(executable, LEGACY_ATLAS_PATTERN);
+    for (const kind of EXPECTED_KINDS)
+        assert.match(executable, new RegExp(`(?:kind: \\"${kind}\\"|\\"${kind}\\")`));
+    assert.match(runtime, /Missing Whale Ocean sprite atlas/, "missing new assets must fail explicitly");
+    assert.match(runtime, /20261110-whale-ocean-budget-v4/, "manifest and atlas URLs must invalidate the old sprite cache");
+    assert.match(runtime, /animalKindForEvent/, "shark and whale event actors use the current catalog");
 });
 
 function decodePng(buffer) {

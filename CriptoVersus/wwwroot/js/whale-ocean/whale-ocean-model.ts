@@ -4,6 +4,27 @@ export type WhaleOceanVisualTier = "micro" | "small" | "medium" | "large" | "wha
 export type WhaleOceanFlowAnimalKind = "sardine" | "bluefish" | "mackerel" | "snook" | "grouper" | "barracuda" | "tuna" | "swordfish";
 export type WhaleOceanAnimalKind = WhaleOceanFlowAnimalKind | "shark" | "whale";
 
+export interface WhaleOceanVisualBudget {
+    maxVisibleAnimals: number;
+    maxLargeHighlightsPerTerritory: number;
+    maxSchoolAnimalsPerGroup: number;
+    maxOccupancyPerTerritory: number;
+    windowMs: number;
+}
+
+export const DEFAULT_WHALE_OCEAN_VISUAL_BUDGET: Readonly<WhaleOceanVisualBudget> = {
+    maxVisibleAnimals: 48,
+    maxLargeHighlightsPerTerritory: 2,
+    maxSchoolAnimalsPerGroup: 12,
+    maxOccupancyPerTerritory: 28,
+    windowMs: 30_000
+};
+
+export const WHALE_OCEAN_VISUAL_SIZE_LIMITS = {
+    school: { minLength: 0.92, maxLength: 3.35 },
+    highlight: { minLength: 4.8, maxLength: 6.4 }
+} as const;
+
 export interface WhaleOceanSpecies {
     kind: WhaleOceanAnimalKind;
     name: string;
@@ -14,16 +35,16 @@ export interface WhaleOceanSpecies {
 }
 
 export const WHALE_OCEAN_SPECIES: Readonly<Record<WhaleOceanAnimalKind, WhaleOceanSpecies>> = {
-    sardine: { kind: "sardine", name: "Sardinha", financialLevel: 1, visualLength: 0.76, swimSpeed: 1.18, fps: 12 },
-    bluefish: { kind: "bluefish", name: "Peixe-azul", financialLevel: 2, visualLength: 1.02, swimSpeed: 1.12, fps: 12 },
-    mackerel: { kind: "mackerel", name: "Cavala", financialLevel: 3, visualLength: 1.32, swimSpeed: 1.08, fps: 12 },
-    snook: { kind: "snook", name: "Robalo", financialLevel: 4, visualLength: 1.74, swimSpeed: 1.02, fps: 12 },
-    grouper: { kind: "grouper", name: "Garoupa", financialLevel: 5, visualLength: 2.25, swimSpeed: 0.96, fps: 12 },
-    barracuda: { kind: "barracuda", name: "Barracuda", financialLevel: 6, visualLength: 2.9, swimSpeed: 1.08, fps: 12 },
-    tuna: { kind: "tuna", name: "Atum", financialLevel: 7, visualLength: 3.8, swimSpeed: 1.0, fps: 12 },
-    swordfish: { kind: "swordfish", name: "Peixe-espada", financialLevel: 8, visualLength: 5.05, swimSpeed: 1.03, fps: 12 },
-    shark: { kind: "shark", name: "Tubarão", financialLevel: 9, visualLength: 6.7, swimSpeed: 0.92, fps: 12 },
-    whale: { kind: "whale", name: "Baleia", financialLevel: 10, visualLength: 10.6, swimSpeed: 0.76, fps: 12 }
+    sardine: { kind: "sardine", name: "Sardinha", financialLevel: 1, visualLength: 0.92, swimSpeed: 1.18, fps: 12 },
+    bluefish: { kind: "bluefish", name: "Peixe-azul", financialLevel: 2, visualLength: 1.08, swimSpeed: 1.12, fps: 12 },
+    mackerel: { kind: "mackerel", name: "Cavala", financialLevel: 3, visualLength: 1.28, swimSpeed: 1.08, fps: 12 },
+    snook: { kind: "snook", name: "Robalo", financialLevel: 4, visualLength: 1.52, swimSpeed: 1.02, fps: 12 },
+    grouper: { kind: "grouper", name: "Garoupa", financialLevel: 5, visualLength: 1.86, swimSpeed: 0.96, fps: 12 },
+    barracuda: { kind: "barracuda", name: "Barracuda", financialLevel: 6, visualLength: 2.24, swimSpeed: 1.08, fps: 12 },
+    tuna: { kind: "tuna", name: "Atum", financialLevel: 7, visualLength: 2.72, swimSpeed: 1.0, fps: 12 },
+    swordfish: { kind: "swordfish", name: "Peixe-espada", financialLevel: 8, visualLength: 3.35, swimSpeed: 1.03, fps: 12 },
+    shark: { kind: "shark", name: "Tubarão", financialLevel: 9, visualLength: 4.8, swimSpeed: 0.92, fps: 12 },
+    whale: { kind: "whale", name: "Baleia", financialLevel: 10, visualLength: 6.4, swimSpeed: 0.76, fps: 12 }
 };
 
 export const WHALE_OCEAN_FLOW_SPECIES: readonly WhaleOceanFlowAnimalKind[] = [
@@ -87,6 +108,14 @@ export function animalKindForEvent(kind: WhaleOceanEventKind): WhaleOceanAnimalK
     return kind === "whale" ? "whale" : "shark";
 }
 
+export function isLargeAnimalKind(kind: WhaleOceanAnimalKind): boolean {
+    return kind === "tuna" || kind === "swordfish" || kind === "shark" || kind === "whale";
+}
+
+export function isHighlightAnimalKind(kind: WhaleOceanAnimalKind): boolean {
+    return kind === "shark" || kind === "whale";
+}
+
 /**
  * Maps an aggregated Money Flow lot to one of the eight non-exceptional species.
  * The comparison is symbol-local and has a seven-percent hysteresis band so a
@@ -141,7 +170,8 @@ export function visualDensity(
 ): number {
     if (!Number.isFinite(quote) || quote <= 0) return 0;
     const pressureStrength = pressure ?? 0;
-    return clampVisualEntityCount(18 + normalizeActivity(quote, baseline) * 80 + pressureStrength * 55, quality);
+    const qualityLimit = { Low: 7, Medium: 10, High: 12 }[quality];
+    return Math.max(1, Math.min(qualityLimit, Math.round(1 + normalizeActivity(quote, baseline) * 6 + pressureStrength * 2)));
 }
 
 /** Presentation profile for a bounded, individually readable flow fish. */
@@ -188,7 +218,7 @@ function trimCompact(value: number): string {
 }
 
 export function clampVisualEntityCount(value: number, quality: "Low" | "Medium" | "High"): number {
-    const limits = { Low: 180, Medium: 520, High: 1_100 };
+    const limits = { Low: 28, Medium: 40, High: 48 };
     return Math.max(0, Math.min(limits[quality], Math.round(Number.isFinite(value) ? value : 0)));
 }
 
