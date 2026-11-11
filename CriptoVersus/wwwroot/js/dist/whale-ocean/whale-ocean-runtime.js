@@ -1,4 +1,5 @@
 import { acquireBabylon, releaseBabylon } from "../futurebol/futurebol-babylon-loader.js";
+import { createOceanEnvironment } from "./ocean-environment.js";
 import { computePressure, formatCompactVolume, normalizeActivity, visualProfile, visualDensity, VolumeEventDetector, WHALE_OCEAN_SPECIES, WHALE_OCEAN_SIZE_CATEGORIES, DEFAULT_WHALE_OCEAN_VISUAL_BUDGET, animalKindForFinancialVolume, animalKindForEvent, isLargeAnimalKind, sizeCategoryForKind, quoteCurrencyForSymbol, swimDirectionForSide } from "./whale-ocean-model.js";
 const QUALITY_FPS = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS = { Low: 2, Medium: 3, High: 4 };
@@ -29,6 +30,7 @@ export class WhaleOceanRuntime {
         this.engine = null;
         this.scene = null;
         this.camera = null;
+        this.environment = null;
         this.renderObserver = null;
         this.resizeHandler = null;
         this.visibilityHandler = null;
@@ -95,7 +97,12 @@ export class WhaleOceanRuntime {
         this.camera.detachControl();
         this.camera.minZ = 0.1;
         this.camera.maxZ = 100;
-        this.buildEnvironment();
+        this.environment = createOceanEnvironment({
+            babylon: this.B,
+            scene: this.scene,
+            camera: this.camera,
+            engine: this.engine
+        });
         await this.buildSpriteLibrary();
         if (this.options.diagnostic === "sprites") {
             this.buildSpriteDiagnostic();
@@ -116,7 +123,10 @@ export class WhaleOceanRuntime {
             if (!this.paused && this.scene)
                 this.scene.render();
         });
-        this.resizeHandler = () => this.engine?.resize();
+        this.resizeHandler = () => {
+            this.engine?.resize();
+            this.environment?.resize();
+        };
         window.addEventListener("resize", this.resizeHandler, { passive: true });
         this.visibilityHandler = () => this.setPaused(document.hidden);
         document.addEventListener("visibilitychange", this.visibilityHandler);
@@ -229,6 +239,8 @@ export class WhaleOceanRuntime {
         if (this.visibilityHandler)
             document.removeEventListener("visibilitychange", this.visibilityHandler);
         this.engine?.stopRenderLoop();
+        this.environment?.dispose();
+        this.environment = null;
         for (const manager of this.spriteManagers)
             manager.dispose();
         if (this.labelLayer) {
@@ -243,64 +255,6 @@ export class WhaleOceanRuntime {
         this.engine = null;
         this.camera = null;
         releaseBabylon();
-    }
-    buildEnvironment() {
-        const B = this.B;
-        const scene = this.scene;
-        const water = new B.StandardMaterial("whale-ocean-water", scene);
-        water.diffuseColor = B.Color3.FromHexString("#082a43");
-        water.emissiveColor = B.Color3.FromHexString("#03111e");
-        water.alpha = 0.88;
-        const background = B.MeshBuilder.CreatePlane("whale-ocean-background", { width: 38, height: 18 }, scene);
-        background.position.z = 4.5;
-        background.material = water;
-        water.backFaceCulling = false;
-        background.isPickable = false;
-        const floorMaterial = new B.StandardMaterial("whale-ocean-floor", scene);
-        floorMaterial.diffuseColor = B.Color3.FromHexString("#061521");
-        floorMaterial.emissiveColor = B.Color3.FromHexString("#020911");
-        const floor = B.MeshBuilder.CreateGround("whale-ocean-floor", { width: 38, height: 15 }, scene);
-        floor.position.y = -5.5;
-        floor.position.z = 1;
-        floor.material = floorMaterial;
-        const rayMaterial = new B.StandardMaterial("whale-ocean-rays", scene);
-        rayMaterial.diffuseColor = B.Color3.FromHexString("#78e7ff");
-        rayMaterial.emissiveColor = B.Color3.FromHexString("#245b75");
-        rayMaterial.alpha = this.quality === "Low" ? 0.025 : 0.055;
-        for (let index = 0; index < (this.quality === "Low" ? 3 : 6); index++) {
-            const ray = B.MeshBuilder.CreatePlane(`whale-ocean-ray-${index}`, { width: 2.5, height: 15 }, scene);
-            ray.position.set(-11 + index * 4.5, 4, 2 + index * 0.2);
-            ray.rotation.z = -0.12 + index * 0.045;
-            ray.material = rayMaterial;
-        }
-        const dividerMaterial = new B.StandardMaterial("whale-ocean-divider", scene);
-        dividerMaterial.diffuseColor = B.Color3.FromHexString("#24cbd3");
-        dividerMaterial.emissiveColor = B.Color3.FromHexString("#0e5961");
-        dividerMaterial.alpha = 0.12;
-        const divider = B.MeshBuilder.CreatePlane("whale-ocean-natural-divider", { width: 0.12, height: 9 }, scene);
-        divider.position.set(0, -0.2, 0.8);
-        divider.material = dividerMaterial;
-        this.addReef("left", -12, this.options.leftColor);
-        this.addReef("right", 12, this.options.rightColor);
-        this.addReef("left", -5, "#266e79");
-        this.addReef("right", 5, "#266e79");
-    }
-    addReef(territory, x, color) {
-        const B = this.B;
-        const scene = this.scene;
-        const material = new B.StandardMaterial(`whale-ocean-reef-${x}`, scene);
-        material.diffuseColor = B.Color3.FromHexString(color);
-        material.emissiveColor = B.Color3.FromHexString(color).scale(0.18);
-        const rock = B.MeshBuilder.CreateSphere(`whale-ocean-rock-${x}`, { diameter: 2.6, segments: 5 }, scene);
-        rock.scaling.set(1.7, 0.7, 0.75);
-        rock.position.set(x, -4.5, 1.4);
-        rock.material = material;
-        for (let index = 0; index < 5; index++) {
-            const weed = B.MeshBuilder.CreateCylinder(`whale-ocean-weed-${territory}-${x}-${index}`, { height: 2 + index * 0.25, diameter: 0.1, tessellation: 5 }, scene);
-            weed.position.set(x - 1.4 + index * 0.7, -3.4 + index * 0.08, 0.8 + index * 0.15);
-            weed.rotation.z = (index % 2 === 0 ? 1 : -1) * 0.12;
-            weed.material = material;
-        }
     }
     async buildSpriteLibrary() {
         const B = this.B;
@@ -583,6 +537,7 @@ export class WhaleOceanRuntime {
         const now = performance.now();
         const elapsed = Math.min(80, now - this.lastFrame || 16);
         this.lastFrame = now;
+        this.environment?.update(elapsed / 1000);
         this.frameAccumulator += elapsed;
         if (this.frameAccumulator < 1000 / QUALITY_FPS[this.quality])
             return;

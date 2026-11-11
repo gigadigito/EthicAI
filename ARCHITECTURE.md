@@ -1260,3 +1260,5 @@ Update `ARCHITECTURE.md` when a change modifies any of these:
 
 Never place passwords, tokens, connection strings, private keys, production wallet identifiers, or private endpoint credentials in this document.
 
+Whale Ocean environment ownership: `CriptoVersus/wwwroot/js/whale-ocean/ocean-environment.ts` receives the existing Babylon engine, scene and camera, owns the reference `seaV3`, `sandV3` and `oceanLightV3` shaders, `OceanSunRays` post-process and `OceanSediments`, and is updated and disposed by the existing Whale Ocean runtime. The module does not create a second engine, scene, camera or render loop.
+
