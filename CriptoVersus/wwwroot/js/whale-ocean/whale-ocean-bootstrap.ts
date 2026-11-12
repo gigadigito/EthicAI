@@ -59,6 +59,10 @@ export function setConnectionState(matchId: number, connected: boolean): void {
     instances.get(matchId)?.setConnectionState(connected);
 }
 
+export function setMatchFinished(matchId: number, finished: boolean): void {
+    instances.get(matchId)?.setMatchFinished(finished);
+}
+
 export function completeReplay(matchId: number): void {
     instances.get(matchId)?.completeReplay();
 }

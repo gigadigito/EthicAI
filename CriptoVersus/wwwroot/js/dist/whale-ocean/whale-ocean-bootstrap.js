@@ -51,6 +51,9 @@ export function setPaused(matchId, paused) {
 export function setConnectionState(matchId, connected) {
     instances.get(matchId)?.setConnectionState(connected);
 }
+export function setMatchFinished(matchId, finished) {
+    instances.get(matchId)?.setMatchFinished(finished);
+}
 export function completeReplay(matchId) {
     instances.get(matchId)?.completeReplay();
 }

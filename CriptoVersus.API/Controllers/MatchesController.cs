@@ -629,8 +629,8 @@ namespace CriptoVersus.API.Controllers
                 CandleBattleLeftWins = match.ScoreState?.LastCandleBattleLeftWins ?? 0,
                 CandleBattleRightWins = match.ScoreState?.LastCandleBattleRightWins ?? 0,
                 Status = match.Status.ToString(),
-                StartTime = match.StartTime,
-                EndTime = match.EndTime,
+                StartTime = AsUtc(match.StartTime),
+                EndTime = AsUtc(match.EndTime),
                 ElapsedMinutes = elapsed,
                 RemainingMinutes = finished ? 0 : Math.Max(0, matchDurationMinutes - elapsed),
                 IsFinished = finished,
@@ -663,6 +663,9 @@ namespace CriptoVersus.API.Controllers
                 Participants = participantsByMatch.TryGetValue(match.MatchId, out var participantsForMatch) ? participantsForMatch : []
             };
         }
+
+        private static DateTime? AsUtc(DateTime? value)
+            => value.HasValue ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc) : null;
 
         private decimal GetDecimal(string key, decimal fallback)
             => decimal.TryParse(_configuration[key], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var value)

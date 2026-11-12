@@ -3019,6 +3019,9 @@
     "direction": "流向",
     "sell": "卖出",
     "buy": "买入",
-    "windowVolume": "30秒成交量"
+    "windowVolume": "30秒成交量",
+    "live": "直播中",
+    "finalized": "已结束",
+    "endedAt": "结束于 {0} {1} UTC"
   }
 }

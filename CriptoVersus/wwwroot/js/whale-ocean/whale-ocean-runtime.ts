@@ -55,6 +55,7 @@ export interface WhaleOceanRuntimeOptions {
     diagnostic?: "sprites" | "showcase";
     developmentDiagnostics?: boolean;
     debugWhaleOcean?: boolean;
+    matchFinished?: boolean;
     visualBudget?: Partial<WhaleOceanVisualBudget>;
 }
 
@@ -182,7 +183,7 @@ interface LiveSymbolState {
 
 const QUALITY_FPS: Record<Quality, number> = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS: Record<Quality, number> = { Low: 2, Medium: 3, High: 4 };
-const SPRITE_ASSET_VERSION = "20261112-whale-ocean-territory-v8";
+const SPRITE_ASSET_VERSION = "20261112-whale-ocean-status-v1";
 const CAMERA_FOV = 0.8;
 const CAMERA_RADIUS = 27;
 const MIN_CSS_PIXELS_PER_WORLD_UNIT = 18;
@@ -218,6 +219,7 @@ export class WhaleOceanRuntime {
     private visibilityHandler: (() => void) | null = null;
     private paused = false;
     private connected = false;
+    private matchFinished: boolean;
     private replaying = false;
     private replayComplete = false;
     private disposed = false;
@@ -251,6 +253,7 @@ export class WhaleOceanRuntime {
         this.canvas = options.canvas;
         this.root = this.canvas.closest<HTMLElement>(".whale-ocean");
         this.quality = options.quality ?? "Medium";
+        this.matchFinished = options.matchFinished ?? false;
         this.symbols.set(options.leftSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.leftPrice, quoteCurrency: quoteCurrencyForSymbol(options.leftSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
         this.symbols.set(options.rightSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.rightPrice, quoteCurrency: quoteCurrencyForSymbol(options.rightSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
     }
@@ -325,7 +328,7 @@ export class WhaleOceanRuntime {
 
     public receive(batch: WhaleOceanBatch): void {
         this.debugReceive(batch);
-        if (this.disposed || batch.matchId !== this.options.matchId) return;
+        if (this.disposed || this.matchFinished || batch.matchId !== this.options.matchId) return;
         const symbol = batch.symbol.trim().toUpperCase();
         const state = this.symbols.get(symbol);
         if (!state) {
@@ -396,6 +399,10 @@ export class WhaleOceanRuntime {
 
     public setConnectionState(connected: boolean): void {
         this.connected = connected;
+        if (this.matchFinished) {
+            this.setStatus("FINALIZED");
+            return;
+        }
         if (!connected) this.setStatus("BOOTSTRAP_PENDING");
         else if (!this.paused && !this.replaying) this.setStatus("LIVE");
     }
@@ -403,7 +410,26 @@ export class WhaleOceanRuntime {
     public completeReplay(): void {
         this.replayComplete = true;
         this.replaying = false;
+        if (this.matchFinished) {
+            this.setStatus("FINALIZED");
+            return;
+        }
         if (!this.paused) this.setStatus(this.connected ? "LIVE" : "BOOTSTRAP_PENDING");
+    }
+
+    public setMatchFinished(finished: boolean): void {
+        this.matchFinished = finished;
+        if (finished) {
+            // Preserve actors already on screen, but never release buffered input
+            // into new actors after the official match end.
+            this.pendingFlows.clear();
+            this.pendingEvents.length = 0;
+            this.setStatus("FINALIZED");
+            return;
+        }
+
+        if (!this.paused && !this.replaying)
+            this.setStatus(this.connected ? "LIVE" : "BOOTSTRAP_PENDING");
     }
 
     public async setQuality(quality: Quality): Promise<void> {
@@ -1750,7 +1776,7 @@ export class WhaleOceanRuntime {
     }
 
     private setStatus(status: string): void {
-        this.write("status", status);
+        this.write("renderer-status", status);
         this.root?.setAttribute("data-ocean-state", status);
     }
 

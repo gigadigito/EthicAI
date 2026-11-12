@@ -3018,6 +3018,9 @@
     "direction": "Flow direction",
     "sell": "SELL",
     "buy": "BUY",
-    "windowVolume": "30s volume"
+    "windowVolume": "30s volume",
+    "live": "LIVE",
+    "finalized": "FINALIZED",
+    "endedAt": "Ended on {0} at {1} UTC"
   }
 }

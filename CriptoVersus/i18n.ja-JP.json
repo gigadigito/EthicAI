@@ -3017,6 +3017,9 @@
     "direction": "フローの方向",
     "sell": "売り",
     "buy": "買い",
-    "windowVolume": "30秒間の出来高"
+    "windowVolume": "30秒間の出来高",
+    "live": "ライブ",
+    "finalized": "終了",
+    "endedAt": "終了日時 {0} {1} UTC"
   }
 }

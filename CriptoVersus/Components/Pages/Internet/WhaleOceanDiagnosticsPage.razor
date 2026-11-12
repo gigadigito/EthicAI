@@ -28,7 +28,7 @@ else
         </header>
         <section class="whale-ocean-diagnostic__stage" aria-label="Whale Ocean development scene">
             <canvas @ref="_canvas" class="whale-ocean__canvas"></canvas>
-            <div class="whale-ocean-diagnostic__status" data-whale-ocean="status">INITIALIZING</div>
+            <div class="whale-ocean-diagnostic__status" data-whale-ocean="renderer-status">INITIALIZING</div>
             <div class="whale-ocean__alerts" data-whale-ocean="alerts" aria-live="polite"></div>
         </section>
     </main>
@@ -45,7 +45,7 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || !HostEnvironment.IsDevelopment()) return;
-        _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261112-whale-ocean-territory-v8");
+        _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261112-whale-ocean-status-v1");
         await _module.InvokeVoidAsync("initializeDiagnostic", _canvas, IsShowcase ? "showcase" : "sprites");
     }
 

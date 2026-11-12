@@ -9,13 +9,13 @@
 <style>body{margin:0;background:#020a14}</style>
 </head>
 <body>
-<main class="whale-ocean" data-ocean-state="BOOTSTRAP_PENDING">
+<main class="whale-ocean" data-ocean-state="BOOTSTRAP_PENDING" data-match-state="LIVE">
     <section class="whale-ocean__stage" aria-label="Whale Ocean 3D visualization">
         <canvas class="whale-ocean__canvas"></canvas>
         <div class="whale-ocean__divider" data-whale-ocean="territory-divider" aria-hidden="true"></div>
         <div class="whale-ocean__labels" data-whale-ocean="labels" aria-hidden="true"></div>
         <div class="whale-ocean__topbar">
-            <div class="whale-ocean__status"><i></i><span data-whale-ocean="status">BOOTSTRAP_PENDING</span></div>
+            <div class="whale-ocean__status"><div class="whale-ocean__status-main"><i></i><span>LIVE</span></div><span class="whale-ocean__renderer-status" data-whale-ocean="renderer-status" aria-hidden="true"></span></div>
             <div class="whale-ocean__state-note">No simulated market data · DEMO mode is off</div>
         </div>
         <div class="whale-ocean__direction whale-ocean__direction--left"><span class="sell">← SELL</span><strong>INITUSDT</strong><span class="buy">BUY →</span></div>

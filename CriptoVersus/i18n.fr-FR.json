@@ -3017,6 +3017,9 @@
     "direction": "Direction du flux",
     "sell": "VENTE",
     "buy": "ACHAT",
-    "windowVolume": "volume 30 s"
+    "windowVolume": "volume 30 s",
+    "live": "EN DIRECT",
+    "finalized": "TERMINÉE",
+    "endedAt": "Terminée le {0} à {1} UTC"
   }
 }

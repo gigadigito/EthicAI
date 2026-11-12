@@ -3017,6 +3017,9 @@
     "direction": "फ़्लो दिशा",
     "sell": "बिक्री",
     "buy": "खरीद",
-    "windowVolume": "30s वॉल्यूम"
+    "windowVolume": "30s वॉल्यूम",
+    "live": "लाइव",
+    "finalized": "समाप्त",
+    "endedAt": "समाप्ति {0} को {1} UTC"
   }
 }

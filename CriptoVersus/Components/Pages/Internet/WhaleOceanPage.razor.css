@@ -114,8 +114,9 @@
 
 .whale-ocean__status {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: .45rem;
+    gap: .15rem;
     padding: .45rem .7rem;
     border: 1px solid #2f8294;
     border-radius: 99px;
@@ -123,6 +124,12 @@
     font-size: .7rem;
     font-weight: 900;
     letter-spacing: .1em;
+}
+
+.whale-ocean__status-main {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
 }
 
 .whale-ocean__status i {
@@ -135,6 +142,32 @@
 
 .whale-ocean[data-ocean-state=LIVE] .whale-ocean__status i {
     background: #57f39d;
+}
+
+.whale-ocean[data-match-state=LIVE] .whale-ocean__status i {
+    background: #57f39d;
+}
+
+.whale-ocean[data-match-state=FINALIZED] .whale-ocean__status {
+    border-color: #927b43;
+    color: #e6d39a;
+}
+
+.whale-ocean[data-match-state=FINALIZED] .whale-ocean__status i {
+    background: #c9a44b;
+    box-shadow: none;
+}
+
+.whale-ocean__status-ended {
+    color: #b7a878;
+    font-size: .66rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: none;
+}
+
+.whale-ocean__renderer-status {
+    display: none;
 }
 
 .whale-ocean[data-ocean-state=PAUSED] .whale-ocean__status i {

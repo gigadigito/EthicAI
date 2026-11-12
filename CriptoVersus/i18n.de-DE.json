@@ -3017,6 +3017,9 @@
     "direction": "Flussrichtung",
     "sell": "VERKAUF",
     "buy": "KAUF",
-    "windowVolume": "30-s-Volumen"
+    "windowVolume": "30-s-Volumen",
+    "live": "LIVE",
+    "finalized": "BEENDET",
+    "endedAt": "Beendet am {0} um {1} UTC"
   }
 }
