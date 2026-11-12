@@ -12,6 +12,7 @@
 <main class="whale-ocean" data-ocean-state="BOOTSTRAP_PENDING">
     <section class="whale-ocean__stage" aria-label="Whale Ocean 3D visualization">
         <canvas class="whale-ocean__canvas"></canvas>
+        <div class="whale-ocean__divider" data-whale-ocean="territory-divider" aria-hidden="true"></div>
         <div class="whale-ocean__labels" data-whale-ocean="labels" aria-hidden="true"></div>
         <div class="whale-ocean__topbar">
             <div class="whale-ocean__status"><i></i><span data-whale-ocean="status">BOOTSTRAP_PENDING</span></div>
@@ -20,14 +21,24 @@
         <div class="whale-ocean__direction whale-ocean__direction--left"><span class="sell">← SELL</span><strong>INITUSDT</strong><span class="buy">BUY →</span></div>
         <div class="whale-ocean__direction whale-ocean__direction--right"><span class="sell">← SELL</span><strong>ONEUSDT</strong><span class="buy">BUY →</span></div>
         <div class="whale-ocean__territory whale-ocean__territory--left">
-            <strong>INITUSDT</strong><small data-whale-ocean="left-price">—</small>
+            <div class="whale-ocean__coin">
+                <img class="whale-ocean__coin-logo" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Ccircle%20cx='16'%20cy='16'%20r='15'%20fill='%23ff9100'/%3E%3Ctext%20x='16'%20y='21'%20text-anchor='middle'%20font-family='sans-serif'%20font-size='12'%20fill='%23fff'%3EIN%3C/text%3E%3C/svg%3E" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+                <span class="whale-ocean__coin-fallback">INI</span>
+                <strong>INITUSDT</strong>
+            </div>
+            <small data-whale-ocean="left-price">—</small>
             <div><span>BUY</span><b data-whale-ocean="left-buy">—</b></div>
             <div><span>SELL</span><b data-whale-ocean="left-sell">—</b></div>
             <em data-whale-ocean="left-change">+0.00%</em>
             <small>30s volume <span data-whale-ocean="left-volume">—</span> <span data-whale-ocean="left-currency">QUOTE</span></small>
         </div>
         <div class="whale-ocean__territory whale-ocean__territory--right">
-            <strong>ONEUSDT</strong><small data-whale-ocean="right-price">—</small>
+            <div class="whale-ocean__coin">
+                <img class="whale-ocean__coin-logo" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Ccircle%20cx='16'%20cy='16'%20r='15'%20fill='%2318d8d2'/%3E%3Ctext%20x='16'%20y='21'%20text-anchor='middle'%20font-family='sans-serif'%20font-size='12'%20fill='%23fff'%3EON%3C/text%3E%3C/svg%3E" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+                <span class="whale-ocean__coin-fallback">ONE</span>
+                <strong>ONEUSDT</strong>
+            </div>
+            <small data-whale-ocean="right-price">—</small>
             <div><span>BUY</span><b data-whale-ocean="right-buy">—</b></div>
             <div><span>SELL</span><b data-whale-ocean="right-sell">—</b></div>
             <em data-whale-ocean="right-change">+0.00%</em>

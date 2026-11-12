@@ -1,0 +1,37 @@
+<div class="@CssClass home-match-actions">
+    <a class="arena-cta-button home-hot-hero__cta home-match-actions__link home-match-actions__link--candle"
+       href="@CandleUrl"
+       aria-label="@CandleAriaLabel">
+        <i class="bi bi-tv" aria-hidden="true"></i>
+        <span>@CandleText</span>
+    </a>
+    <a class="arena-cta-link home-hot-hero__cta-link home-hot-hero__cta--primary home-match-actions__link home-match-actions__link--match"
+       href="@MatchUrl"
+       aria-label="@MatchAriaLabel">
+        <i class="bi bi-controller" aria-hidden="true"></i>
+        <span>@MatchText</span>
+    </a>
+    <a class="arena-cta-link home-match-actions__link home-match-actions__link--whale"
+       href="@WhaleUrl"
+       aria-label="@WhaleAriaLabel">
+        <svg class="home-match-actions__whale-icon" viewBox="0 0 32 20" role="img" aria-hidden="true" focusable="false">
+            <path d="M2.4 11.7c2.1-1.3 4.2-2 6.3-2 2.5 0 4.2.9 5.8 1.8 1.5.8 3 1.6 5.3 1.6 2.7 0 5.5-1.2 8.2-3.6l1.6 3.2-2.4 1.6 2.2 1.5c-3.3 2.3-6.6 3.4-9.7 3.4-3.5 0-6.1-1.2-8.4-2.4-1.8-.9-3.4-1.7-5.2-1.7-1.1 0-2.2.3-3.3.8l1.6-2.7-2-1.5Z" />
+            <path d="M20.5 9.5c1.1-2.7 3-4.5 5.5-5.2-.2 1.6.2 2.9 1.1 3.9-2.2-.1-4.4.4-6.6 1.3Z" />
+            <circle cx="23.7" cy="10.6" r=".8" />
+        </svg>
+        <span>@WhaleText</span>
+    </a>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string CandleUrl { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string MatchUrl { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string WhaleUrl { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string CandleText { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string MatchText { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string WhaleText { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string CandleAriaLabel { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string MatchAriaLabel { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string WhaleAriaLabel { get; set; } = string.Empty;
+    [Parameter] public string CssClass { get; set; } = string.Empty;
+}

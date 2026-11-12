@@ -182,7 +182,7 @@ interface LiveSymbolState {
 
 const QUALITY_FPS: Record<Quality, number> = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS: Record<Quality, number> = { Low: 2, Medium: 3, High: 4 };
-const SPRITE_ASSET_VERSION = "20261110-whale-ocean-readable-v7";
+const SPRITE_ASSET_VERSION = "20261112-whale-ocean-territory-v8";
 const CAMERA_FOV = 0.8;
 const CAMERA_RADIUS = 27;
 const MIN_CSS_PIXELS_PER_WORLD_UNIT = 18;
@@ -314,10 +314,12 @@ export class WhaleOceanRuntime {
             this.engine?.resize();
             this.environment?.resize();
             this.resizeArena();
+            this.updateTerritoryDivider();
         };
         window.addEventListener("resize", this.resizeHandler, { passive: true });
         this.visibilityHandler = () => this.setPaused(document.hidden);
         document.addEventListener("visibilitychange", this.visibilityHandler);
+        this.updateTerritoryDivider();
         if (!this.options.diagnostic) this.setStatus("BOOTSTRAP_PENDING");
     }
 
@@ -1733,6 +1735,18 @@ export class WhaleOceanRuntime {
 
     private hasLiveData(): boolean {
         return [...this.symbols.values()].some(state => state.updatedAt > 0);
+    }
+
+    // Territory divider is presentation-only: it must never affect actors or fish.
+    private updateTerritoryDivider(): void {
+        const divider = this.root?.querySelector<HTMLElement>('[data-whale-ocean="territory-divider"]');
+        if (!divider) return;
+        const stage = divider.parentElement;
+        const reference = stage ?? this.canvas;
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const referenceRect = reference.getBoundingClientRect();
+        const centerX = canvasRect.left - referenceRect.left + canvasRect.width / 2;
+        divider.style.setProperty("--whale-ocean-divider-x", `${Math.round(centerX * 100) / 100}px`);
     }
 
     private setStatus(status: string): void {

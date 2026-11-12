@@ -51,6 +51,7 @@
     {
         <section class="whale-ocean__stage" aria-label="Whale Ocean 3D visualization">
             <canvas @ref="_canvas" class="whale-ocean__canvas"></canvas>
+            <div class="whale-ocean__divider" data-whale-ocean="territory-divider" aria-hidden="true"></div>
             <div class="whale-ocean__labels" data-whale-ocean="labels" aria-hidden="true"></div>
             <div class="whale-ocean__topbar">
                 <div class="whale-ocean__status"><i></i><span data-whale-ocean="status">BOOTSTRAP_PENDING</span></div>
@@ -59,14 +60,30 @@
             <div class="whale-ocean__direction whale-ocean__direction--left" aria-label="@Localization.T("whaleOcean.direction", _culture)"><span class="sell">← @Localization.T("whaleOcean.sell", _culture)</span><strong>@_match.TeamA</strong><span class="buy">@Localization.T("whaleOcean.buy", _culture) →</span></div>
             <div class="whale-ocean__direction whale-ocean__direction--right" aria-label="@Localization.T("whaleOcean.direction", _culture)"><span class="sell">← @Localization.T("whaleOcean.sell", _culture)</span><strong>@_match.TeamB</strong><span class="buy">@Localization.T("whaleOcean.buy", _culture) →</span></div>
             <div class="whale-ocean__territory whale-ocean__territory--left">
-                <strong>@_match.TeamA</strong><small data-whale-ocean="left-price">—</small>
+                <div class="whale-ocean__coin">
+                    @if (!string.IsNullOrEmpty(LeftLogoUrl))
+                    {
+                        <img class="whale-ocean__coin-logo" src="@LeftLogoUrl" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+                    }
+                    <span class="whale-ocean__coin-fallback" style="@(string.IsNullOrEmpty(LeftLogoUrl) ? "display:grid" : null)">@LeftCoinInitials</span>
+                    <strong>@_match.TeamA</strong>
+                </div>
+                <small data-whale-ocean="left-price">—</small>
                 <div><span>BUY</span><b data-whale-ocean="left-buy">—</b></div>
                 <div><span>SELL</span><b data-whale-ocean="left-sell">—</b></div>
                 <em data-whale-ocean="left-change">@FormatPercent(_match.PctA)</em>
                 <small>@Localization.T("whaleOcean.windowVolume", _culture) <span data-whale-ocean="left-volume">—</span> <span data-whale-ocean="left-currency">QUOTE</span></small>
             </div>
             <div class="whale-ocean__territory whale-ocean__territory--right">
-                <strong>@_match.TeamB</strong><small data-whale-ocean="right-price">—</small>
+                <div class="whale-ocean__coin">
+                    @if (!string.IsNullOrEmpty(RightLogoUrl))
+                    {
+                        <img class="whale-ocean__coin-logo" src="@RightLogoUrl" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+                    }
+                    <span class="whale-ocean__coin-fallback" style="@(string.IsNullOrEmpty(RightLogoUrl) ? "display:grid" : null)">@RightCoinInitials</span>
+                    <strong>@_match.TeamB</strong>
+                </div>
+                <small data-whale-ocean="right-price">—</small>
                 <div><span>BUY</span><b data-whale-ocean="right-buy">—</b></div>
                 <div><span>SELL</span><b data-whale-ocean="right-sell">—</b></div>
                 <em data-whale-ocean="right-change">@FormatPercent(_match.PctB)</em>
@@ -133,7 +150,7 @@
         {
             var leftPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamA, _lifetime.Token);
             var rightPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamB, _lifetime.Token);
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261110-whale-ocean-readable-v7");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261112-whale-ocean-territory-v8");
             await _module.InvokeVoidAsync("initialize", new
             {
                 canvas = _canvas,
@@ -214,6 +231,20 @@
 
     private static string FormatPercent(decimal? value)
         => value.HasValue ? $"{(value.Value >= 0 ? "+" : string.Empty)}{value.Value:0.00}%" : "—";
+
+    private string LeftLogoUrl => _match is null ? string.Empty : Api.BuildBinanceIconUrl(_match.TeamA);
+    private string RightLogoUrl => _match is null ? string.Empty : Api.BuildBinanceIconUrl(_match.TeamB);
+    private string LeftCoinInitials => CoinInitials(_match?.TeamA);
+    private string RightCoinInitials => CoinInitials(_match?.TeamB);
+
+    private static string CoinInitials(string? symbol)
+    {
+        var baseSymbol = EnvironmentIsolationGuard.NormalizeBinanceIconSymbol(symbol);
+        var letters = new string(baseSymbol.Where(char.IsLetter).Take(3).ToArray()).ToUpperInvariant();
+        return string.IsNullOrEmpty(letters)
+            ? new string(baseSymbol.Where(char.IsLetterOrDigit).Take(3).ToArray()).ToUpperInvariant()
+            : letters;
+    }
 
     private bool DebugWhaleOceanEnabled()
         => !Nav.ToAbsoluteUri(Nav.Uri).Query

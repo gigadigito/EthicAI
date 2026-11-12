@@ -1257,6 +1257,8 @@
       "openBattle": "Open battle",
       "match": "Match",
       "matchAria": "Open match {0} versus {1}, match {2}",
+      "whale": "Whale",
+      "whaleAria": "Open Whale Ocean for {0} versus {1}, match {2}",
       "hotMatch": "HOT MATCH",
       "trending": "TRENDING",
       "momentum": "MOMENTUM",

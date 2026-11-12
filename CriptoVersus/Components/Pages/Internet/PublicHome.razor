@@ -218,20 +218,16 @@
                         </article>
                     </div>
 
-                    <div class="home-hot-hero__cta-group">
-                        <a class="arena-cta-button home-hot-hero__cta home-hot-hero__cta--secondary"
-                           href="@GetCandleTvUrl(hero)"
-                           aria-label="@ArenaText("candleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            <i class="bi bi-tv" aria-hidden="true"></i>
-                            <span>@ArenaText("candle")</span>
-                        </a>
-                        <a class="arena-cta-link home-hot-hero__cta-link home-hot-hero__cta--primary"
-                           href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
-                           aria-label="@ArenaText("matchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            <i class="bi bi-controller" aria-hidden="true"></i>
-                            <span>@ArenaText("match")</span>
-                        </a>
-                    </div>
+                    <HomeMatchActions CssClass="home-hot-hero__cta-group"
+                                      CandleUrl="@GetCandleTvUrl(hero)"
+                                      MatchUrl="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
+                                      WhaleUrl="@GetWhaleOceanUrl(hero)"
+                                      CandleText="@ArenaText("candle")"
+                                      MatchText="@ArenaText("match")"
+                                      WhaleText="@ArenaText("whale")"
+                                      CandleAriaLabel="@ArenaText("candleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)"
+                                      MatchAriaLabel="@ArenaText("matchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)"
+                                      WhaleAriaLabel="@ArenaText("whaleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)" />
                 </article>
             }
             else if (HeroFallbackMatch is not null)
@@ -310,20 +306,16 @@
                         </article>
                     </div>
 
-                    <div class="home-hot-hero__cta-group">
-                        <a class="arena-cta-button home-hot-hero__cta home-hot-hero__cta--secondary"
-                           href="@GetCandleTvUrl(hero)"
-                           aria-label="@ArenaText("candleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            <i class="bi bi-tv" aria-hidden="true"></i>
-                            <span>@ArenaText("candle")</span>
-                        </a>
-                        <a class="arena-cta-link home-hot-hero__cta-link home-hot-hero__cta--primary"
-                           href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
-                           aria-label="@ArenaText("matchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            <i class="bi bi-controller" aria-hidden="true"></i>
-                            <span>@ArenaText("match")</span>
-                        </a>
-                    </div>
+                    <HomeMatchActions CssClass="home-hot-hero__cta-group"
+                                      CandleUrl="@GetCandleTvUrl(hero)"
+                                      MatchUrl="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
+                                      WhaleUrl="@GetWhaleOceanUrl(hero)"
+                                      CandleText="@ArenaText("candle")"
+                                      MatchText="@ArenaText("match")"
+                                      WhaleText="@ArenaText("whale")"
+                                      CandleAriaLabel="@ArenaText("candleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)"
+                                      MatchAriaLabel="@ArenaText("matchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)"
+                                      WhaleAriaLabel="@ArenaText("whaleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)" />
                 </article>
             }
 
@@ -440,20 +432,16 @@
 
                         <div class="arena-match-card__footer">
                             <span class="arena-status-subtext">@GetMatchClockLabel(match)</span>
-                            <div class="arena-match-card__actions">
-                                <a class="arena-cta-button"
-                                   href="@GetCandleTvUrl(match)"
-                                   aria-label="@ArenaText("candleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                    <i class="bi bi-tv" aria-hidden="true"></i>
-                                    <span>@ArenaText("candle")</span>
-                                </a>
-                                <a class="arena-cta-link"
-                                   href="@GetPublicMatchUrl(match)"
-                                   aria-label="@ArenaText("matchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                    <i class="bi bi-controller" aria-hidden="true"></i>
-                                    <span>@ArenaText("match")</span>
-                                </a>
-                            </div>
+                            <HomeMatchActions CssClass="arena-match-card__actions"
+                                              CandleUrl="@GetCandleTvUrl(match)"
+                                              MatchUrl="@GetPublicMatchUrl(match)"
+                                              WhaleUrl="@GetWhaleOceanUrl(match)"
+                                              CandleText="@ArenaText("candle")"
+                                              MatchText="@ArenaText("match")"
+                                              WhaleText="@ArenaText("whale")"
+                                              CandleAriaLabel="@ArenaText("candleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"
+                                              MatchAriaLabel="@ArenaText("matchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"
+                                              WhaleAriaLabel="@ArenaText("whaleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)" />
                         </div>
                     </article>
                 }
@@ -525,20 +513,16 @@
 
                     <div class="arena-match-card__footer">
                         <span class="arena-status-subtext">@T("featuredMatchScoreSummary", match.MatchId, match.ScoreA, match.ScoreB)</span>
-                        <div class="arena-match-card__actions">
-                            <a class="arena-cta-button"
-                               href="@GetCandleTvUrl(match)"
-                               aria-label="@ArenaText("candleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                <i class="bi bi-tv" aria-hidden="true"></i>
-                                <span>@ArenaText("candle")</span>
-                            </a>
-                            <a class="arena-cta-link"
-                               href="@GetPublicMatchUrl(match)"
-                               aria-label="@ArenaText("matchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                <i class="bi bi-controller" aria-hidden="true"></i>
-                                <span>@ArenaText("match")</span>
-                            </a>
-                        </div>
+                        <HomeMatchActions CssClass="arena-match-card__actions"
+                                          CandleUrl="@GetCandleTvUrl(match)"
+                                          MatchUrl="@GetPublicMatchUrl(match)"
+                                          WhaleUrl="@GetWhaleOceanUrl(match)"
+                                          CandleText="@ArenaText("candle")"
+                                          MatchText="@ArenaText("match")"
+                                          WhaleText="@ArenaText("whale")"
+                                          CandleAriaLabel="@ArenaText("candleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"
+                                          MatchAriaLabel="@ArenaText("matchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"
+                                          WhaleAriaLabel="@ArenaText("whaleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)" />
                     </div>
                 </article>
             }
@@ -851,6 +835,27 @@
     {
         var slug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
         return RouteLocalization.BuildCandleBattlesPath(
+            CurrentCulture,
+            match.MatchId,
+            string.IsNullOrWhiteSpace(slug) ? $"match-{match.MatchId}" : slug);
+    }
+
+    private string GetWhaleOceanUrl(HotMatchDto match)
+    {
+        var slug = !string.IsNullOrWhiteSpace(match.Slug)
+            ? match.Slug
+            : MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
+
+        return RouteLocalization.BuildWhaleOceanPath(
+            CurrentCulture,
+            match.MatchId,
+            string.IsNullOrWhiteSpace(slug) ? $"match-{match.MatchId}" : slug);
+    }
+
+    private string GetWhaleOceanUrl(MatchDto match)
+    {
+        var slug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
+        return RouteLocalization.BuildWhaleOceanPath(
             CurrentCulture,
             match.MatchId,
             string.IsNullOrWhiteSpace(slug) ? $"match-{match.MatchId}" : slug);
@@ -4134,7 +4139,7 @@
 
     .public-home-arena .arena-match-card__actions {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         align-items: stretch;
         width: 100%;
         gap: .5rem;
@@ -4163,5 +4168,43 @@
 
     .public-home-arena :focus-visible {
         outline-color: #c1f20f;
+    }
+
+    .public-home-arena .home-match-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: stretch;
+        width: 100%;
+        gap: .5rem;
+    }
+
+    .public-home-arena .home-match-actions > a {
+        width: 100%;
+        min-width: 0;
+        flex: none;
+    }
+
+    .public-home-arena .home-match-actions__link--whale,
+    .public-home-arena .home-match-actions__link--whale:visited {
+        color: #fff;
+        background: #075b59;
+        border-color: #075b59;
+        box-shadow: none;
+    }
+
+    .public-home-arena .home-match-actions__link--whale:hover,
+    .public-home-arena .home-match-actions__link--whale:focus-visible,
+    .public-home-arena .home-match-actions__link--whale:active {
+        color: #fff;
+        background: #087873;
+        border-color: #087873;
+        box-shadow: 0 0 0 2px rgba(8, 120, 115, .22);
+    }
+
+    .public-home-arena .home-match-actions__whale-icon {
+        width: 1.15rem;
+        height: .85rem;
+        flex: 0 0 auto;
+        fill: currentColor;
     }
 </style>

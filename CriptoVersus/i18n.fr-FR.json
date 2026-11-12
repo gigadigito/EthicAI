@@ -1257,6 +1257,8 @@
       "openBattle": "Ouvrir la bataille",
       "match": "Match",
       "matchAria": "Ouvrir le match {0} contre {1}, match {2}",
+      "whale": "Whale",
+      "whaleAria": "Ouvrir Whale Ocean pour {0} contre {1}, match {2}",
       "hotMatch": "MATCH CHAUD",
       "trending": "TENDANCE",
       "momentum": "MOMENTUM",

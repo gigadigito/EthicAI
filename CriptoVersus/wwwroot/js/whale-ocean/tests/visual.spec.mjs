@@ -84,6 +84,81 @@ test('bundle version on the published page matches the built runtime', async () 
     }
 });
 
+const dividerMetrics = page => page.evaluate(() => {
+    const divider = document.querySelector('[data-whale-ocean="territory-divider"]');
+    const canvas = document.querySelector('.whale-ocean__canvas');
+    const style = getComputedStyle(divider);
+    const dRect = divider.getBoundingClientRect();
+    const cRect = canvas.getBoundingClientRect();
+    return {
+        centerDelta: Math.abs((dRect.left + dRect.width / 2) - (cRect.left + cRect.width / 2)),
+        width: dRect.width,
+        topGap: dRect.top - cRect.top,
+        bottomGap: cRect.bottom - dRect.bottom,
+        pointerEvents: style.pointerEvents,
+        background: style.backgroundImage,
+        zIndex: Number(style.zIndex)
+    };
+});
+
+function assertDivider(metrics, label) {
+    expect(metrics.centerDelta, `${label}: divider centered on the canvas area`).toBeLessThanOrEqual(1.5);
+    expect(metrics.width, `${label}: divider width`).toBeGreaterThanOrEqual(1);
+    expect(metrics.width, `${label}: divider width`).toBeLessThanOrEqual(3);
+    expect(metrics.topGap, `${label}: divider starts at the top of the ocean`).toBeGreaterThanOrEqual(-1);
+    expect(metrics.bottomGap, `${label}: divider reaches the bottom of the ocean`).toBeGreaterThanOrEqual(-1);
+    expect(metrics.pointerEvents, `${label}: divider never intercepts pointer events`).toBe('none');
+    expect(metrics.background, `${label}: divider keeps its dashed gradient`).toContain('repeating-linear-gradient');
+    expect(metrics.zIndex, `${label}: divider stays below the HUD cards`).toBeLessThan(3);
+}
+
+test('territory divider stays centered and coin logos stay in their cards', async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
+    const browserErrors = [];
+    page.on('pageerror', error => browserErrors.push(String(error)));
+    page.on('console', message => {
+        if (message.type() === 'error') browserErrors.push(message.text());
+    });
+    for (const viewport of [{ width: 1920, height: 1080 }, { width: 3440, height: 1440 }, { width: 390, height: 844 }]) {
+        await page.setViewportSize(viewport);
+        await page.goto(url);
+        await page.waitForFunction(() => window.woReady === true);
+        await assertDivider(await dividerMetrics(page), `${viewport.width}x${viewport.height}`);
+        await page.screenshot({ path: testInfo.outputPath(`whale-ocean-divider-${viewport.width}x${viewport.height}.png`) });
+    }
+
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.waitForTimeout(250);
+    assertDivider(await dividerMetrics(page), 'after window resize');
+    await page.setViewportSize({ width: 3440, height: 1440 });
+    await page.waitForTimeout(250);
+    assertDivider(await dividerMetrics(page), 'after ultrawide resize');
+
+    const logos = await page.$$eval('.whale-ocean__territory .whale-ocean__coin', coins => coins.map(coin => {
+        const image = coin.querySelector('.whale-ocean__coin-logo');
+        const fallback = coin.querySelector('.whale-ocean__coin-fallback');
+        const imageStyle = image ? getComputedStyle(image) : null;
+        return {
+            hasImage: Boolean(image),
+            imageDisplay: imageStyle?.display ?? 'none',
+            objectFit: imageStyle?.objectFit ?? '',
+            width: image?.getBoundingClientRect().width ?? 0,
+            fallbackDisplay: fallback ? getComputedStyle(fallback).display : 'missing',
+            symbol: coin.querySelector('strong')?.textContent ?? ''
+        };
+    }));
+    expect(logos.length).toBe(2);
+    for (const logo of logos) {
+        expect(logo.hasImage, `logo image for ${logo.symbol}`).toBe(true);
+        expect(logo.imageDisplay, `logo image visible for ${logo.symbol}`).not.toBe('none');
+        expect(logo.objectFit, `logo aspect ratio preserved for ${logo.symbol}`).toBe('contain');
+        expect(logo.width, `logo size for ${logo.symbol}`).toBeGreaterThan(16);
+        expect(logo.width, `logo size for ${logo.symbol}`).toBeLessThanOrEqual(32);
+        expect(logo.symbol, 'coin row keeps the asset symbol').toMatch(/USDT$/);
+    }
+    expect(browserErrors, 'no browser console errors while rendering the ocean, the divider and the coin logos').toEqual([]);
+});
+
 test('desktop: readable animals, legible volumes and full traversals', async ({ page }, testInfo) => {
     test.setTimeout(180_000);
     await page.setViewportSize({ width: 1400, height: 820 });

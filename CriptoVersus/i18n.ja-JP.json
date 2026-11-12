@@ -1257,6 +1257,8 @@
       "openBattle": "バトルを開く",
       "match": "Match",
       "matchAria": "マッチ {0} versus {1}、マッチ {2}を開く",
+      "whale": "Whale",
+      "whaleAria": "{0} versus {1} の Whale Ocean、マッチ {2}を開く",
       "hotMatch": "HOT MATCH",
       "trending": "TRENDING",
       "momentum": "MOMENTUM",
