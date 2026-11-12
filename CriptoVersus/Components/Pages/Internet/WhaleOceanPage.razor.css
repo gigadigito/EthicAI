@@ -233,10 +233,10 @@
 .whale-ocean__coin-logo,
 .whale-ocean__coin-fallback {
     flex: 0 0 auto;
-    width: 52px;
-    height: 52px;
-    max-width: 52px;
-    max-height: 52px;
+    width: 64px;
+    height: 64px;
+    max-width: 64px;
+    max-height: 64px;
     box-sizing: border-box;
 }
 

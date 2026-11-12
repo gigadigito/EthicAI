@@ -158,7 +158,7 @@ test('territory divider stays centered and coin logos stay in their cards', asyn
         expect(logo.symbol, 'coin row keeps the asset symbol').toMatch(/USDT$/);
         }
     };
-    assertLogos(await readLogos(), 56, 'desktop');
+    assertLogos(await readLogos(), 64, 'desktop');
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(250);
@@ -167,7 +167,7 @@ test('territory divider stays centered and coin logos stay in their cards', asyn
     await page.setViewportSize({ width: 3440, height: 1440 });
     await page.waitForTimeout(250);
     for (const logo of await readLogos()) {
-        expect(logo.width, `ultrawide logo size for ${logo.symbol}`).toBeLessThanOrEqual(56);
+        expect(logo.width, `ultrawide logo size for ${logo.symbol}`).toBeLessThanOrEqual(64);
     }
     expect(browserErrors, 'no browser console errors while rendering the ocean, the divider and the coin logos').toEqual([]);
 });
