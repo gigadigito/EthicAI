@@ -134,7 +134,7 @@ test('territory divider stays centered and coin logos stay in their cards', asyn
     await page.waitForTimeout(250);
     assertDivider(await dividerMetrics(page), 'after ultrawide resize');
 
-    const logos = await page.$$eval('.whale-ocean__territory .whale-ocean__coin', coins => coins.map(coin => {
+    const readLogos = () => page.$$eval('.whale-ocean__territory .whale-ocean__coin', coins => coins.map(coin => {
         const image = coin.querySelector('.whale-ocean__coin-logo');
         const fallback = coin.querySelector('.whale-ocean__coin-fallback');
         const imageStyle = image ? getComputedStyle(image) : null;
@@ -147,14 +147,27 @@ test('territory divider stays centered and coin logos stay in their cards', asyn
             symbol: coin.querySelector('strong')?.textContent ?? ''
         };
     }));
-    expect(logos.length).toBe(2);
-    for (const logo of logos) {
+    const assertLogos = (logos, maximumWidth, label) => {
+        expect(logos.length, `${label}: two coin cards`).toBe(2);
+        for (const logo of logos) {
         expect(logo.hasImage, `logo image for ${logo.symbol}`).toBe(true);
         expect(logo.imageDisplay, `logo image visible for ${logo.symbol}`).not.toBe('none');
         expect(logo.objectFit, `logo aspect ratio preserved for ${logo.symbol}`).toBe('contain');
         expect(logo.width, `logo size for ${logo.symbol}`).toBeGreaterThan(16);
-        expect(logo.width, `logo size for ${logo.symbol}`).toBeLessThanOrEqual(32);
+        expect(logo.width, `logo size for ${logo.symbol}`).toBeLessThanOrEqual(maximumWidth);
         expect(logo.symbol, 'coin row keeps the asset symbol').toMatch(/USDT$/);
+        }
+    };
+    assertLogos(await readLogos(), 56, 'desktop');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(250);
+    assertLogos(await readLogos(), 40, 'mobile');
+
+    await page.setViewportSize({ width: 3440, height: 1440 });
+    await page.waitForTimeout(250);
+    for (const logo of await readLogos()) {
+        expect(logo.width, `ultrawide logo size for ${logo.symbol}`).toBeLessThanOrEqual(56);
     }
     expect(browserErrors, 'no browser console errors while rendering the ocean, the divider and the coin logos').toEqual([]);
 });
