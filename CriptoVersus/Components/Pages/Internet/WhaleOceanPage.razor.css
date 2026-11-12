@@ -140,12 +140,22 @@
     box-shadow: 0 0 10px currentColor;
 }
 
-.whale-ocean[data-ocean-state=LIVE] .whale-ocean__status i {
+.whale-ocean[data-match-state=LIVE][data-flow-state=LIVE] .whale-ocean__status i {
     background: #57f39d;
 }
 
-.whale-ocean[data-match-state=LIVE] .whale-ocean__status i {
-    background: #57f39d;
+.whale-ocean[data-match-state=LIVE][data-flow-state=PAUSED] .whale-ocean__status i {
+    background: #ff9d66;
+}
+
+.whale-ocean[data-match-state=UNAVAILABLE] .whale-ocean__status {
+    border-color: #a86b52;
+    color: #ffc3a8;
+}
+
+.whale-ocean[data-match-state=UNAVAILABLE] .whale-ocean__status i {
+    background: #ff9d66;
+    box-shadow: none;
 }
 
 .whale-ocean[data-match-state=FINALIZED] .whale-ocean__status {
@@ -168,10 +178,6 @@
 
 .whale-ocean__renderer-status {
     display: none;
-}
-
-.whale-ocean[data-ocean-state=PAUSED] .whale-ocean__status i {
-    background: #ff9d66;
 }
 
 .whale-ocean__state-note {
@@ -359,10 +365,12 @@
     bottom: 1rem;
     left: 50%;
     display: flex;
+    flex-wrap: wrap;
     max-width: calc(100% - 2rem);
     align-items: center;
     justify-content: center;
     gap: 1rem;
+    row-gap: .35rem;
     box-sizing: border-box;
     padding: .5rem .75rem;
     transform: translateX(-50%);
@@ -438,6 +446,54 @@
     opacity: .55;
     background: repeating-linear-gradient(180deg, #cfeeff 0 10px, transparent 10px 18px);
     box-shadow: 0 0 12px #9fd8ff3d;
+}
+
+/* Created only by the development query ?debugWhaleOcean=1. */
+.whale-ocean__geometry-debug {
+    position: absolute;
+    z-index: 4;
+    pointer-events: none;
+    overflow: hidden;
+    outline: 1px solid #ffe08a66;
+}
+
+.whale-ocean__geometry-marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #ffe08a99;
+}
+
+.whale-ocean__geometry-marker > span {
+    position: absolute;
+    top: .25rem;
+    left: .25rem;
+    padding: .14rem .22rem;
+    color: #ffe08a;
+    background: #061321dd;
+    font: 600 .58rem/1 ui-monospace,SFMono-Regular,Consolas,monospace;
+    white-space: nowrap;
+}
+
+.whale-ocean__geometry-marker--divider { background: #ffffffdd; }
+.whale-ocean__geometry-marker--boundary { background: #70cfff99; }
+.whale-ocean__geometry-marker--exit { background: #ff9f43aa; }
+
+.whale-ocean__geometry-fish {
+    position: absolute;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    margin: -3px 0 0 -3px;
+    border-radius: 50%;
+    background: #ff9100;
+    box-shadow: 0 0 0 2px #031525, 0 0 8px #ff9100;
+}
+
+.whale-ocean__geometry-fish--right {
+    background: #18d8d2;
+    box-shadow: 0 0 0 2px #031525, 0 0 8px #18d8d2;
 }
 
 @media (max-width: 700px) {

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const url = '/js/whale-ocean/tests/visual.html';
 const largeKinds = new Set(['tuna', 'swordfish', 'shark', 'whale']);
-const territoryBounds = { INITUSDT: { min: -16.1, max: -1.1 }, ONEUSDT: { min: 1.1, max: 16.1 } };
+const symbols = ['INITUSDT', 'ONEUSDT'];
 
 const batch = (symbol, sequence, buy, sell) => ({
     matchId: 7,
@@ -67,7 +67,7 @@ function assertSizeBands(rows) {
 
 function assertBudget(rows, maxAnimals) {
     expect(rows.length).toBeLessThanOrEqual(maxAnimals);
-    for (const symbol of Object.keys(territoryBounds)) {
+    for (const symbol of symbols) {
         const large = rows.filter(row => row.symbol === symbol && largeKinds.has(row.kind));
         expect(large.length, `${symbol} keeps at most two large animals`).toBeLessThanOrEqual(2);
     }
@@ -101,6 +101,18 @@ const dividerMetrics = page => page.evaluate(() => {
     };
 });
 
+const geometryMetrics = page => page.evaluate(() => window.wo.geometry());
+
+function assertGeometry(geometry, label) {
+    expect(geometry.visibleWorld.center, `${label}: frustum center is finite`).toBeFinite();
+    expect(geometry.territories.left.screen.minX).toBe(0);
+    expect(geometry.territories.left.screen.maxX).toBeCloseTo(geometry.viewportCss.width / 2, 3);
+    expect(geometry.territories.right.screen.minX).toBeCloseTo(geometry.viewportCss.width / 2, 3);
+    expect(geometry.territories.right.screen.maxX).toBeCloseTo(geometry.viewportCss.width, 3);
+    expect(geometry.territories.left.world.maxX).toBeCloseTo(geometry.visibleWorld.center, 2);
+    expect(geometry.territories.right.world.minX).toBeCloseTo(geometry.visibleWorld.center, 2);
+}
+
 function assertDivider(metrics, label) {
     expect(metrics.centerDelta, `${label}: divider centered on the canvas area`).toBeLessThanOrEqual(1.5);
     expect(metrics.width, `${label}: divider width`).toBeGreaterThanOrEqual(1);
@@ -119,11 +131,12 @@ test('territory divider stays centered and coin logos stay in their cards', asyn
     page.on('console', message => {
         if (message.type() === 'error') browserErrors.push(message.text());
     });
-    for (const viewport of [{ width: 1920, height: 1080 }, { width: 3440, height: 1440 }, { width: 390, height: 844 }]) {
+    for (const viewport of [{ width: 1920, height: 1080 }, { width: 3440, height: 1440 }, { width: 5120, height: 1440 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport);
         await page.goto(url);
         await page.waitForFunction(() => window.woReady === true);
         await assertDivider(await dividerMetrics(page), `${viewport.width}x${viewport.height}`);
+        assertGeometry(await geometryMetrics(page), `${viewport.width}x${viewport.height}`);
         await page.screenshot({ path: testInfo.outputPath(`whale-ocean-divider-${viewport.width}x${viewport.height}.png`) });
     }
 
@@ -133,6 +146,7 @@ test('territory divider stays centered and coin logos stay in their cards', asyn
     await page.setViewportSize({ width: 3440, height: 1440 });
     await page.waitForTimeout(250);
     assertDivider(await dividerMetrics(page), 'after ultrawide resize');
+    assertGeometry(await geometryMetrics(page), 'after ultrawide resize');
 
     const readLogos = () => page.$$eval('.whale-ocean__territory .whale-ocean__coin', coins => coins.map(coin => {
         const image = coin.querySelector('.whale-ocean__coin-logo');
@@ -199,6 +213,8 @@ test('desktop: readable animals, legible volumes and full traversals', async ({ 
             if (row.visible && row.inViewport && row.opacity >= 0.55) seenCategories.add(row.category);
     };
 
+    const geometry = await geometryMetrics(page);
+    const leftTerritory = geometry.territories.left.world;
     const before = new Set((await diagnostics(page)).map(row => row.id));
     await feed(page, 'INITUSDT', ++sequenceA, 1_600, 0);
     await feed(page, 'INITUSDT', ++sequenceA, 0, 1_600);
@@ -213,22 +229,22 @@ test('desktop: readable animals, legible volumes and full traversals', async ({ 
             samples.set(row.id, list);
         }
         const complete = [...samples.values()].filter(xs => xs.length >= 25
-            && Math.min(...xs) < territoryBounds.INITUSDT.min
-            && Math.max(...xs) > territoryBounds.INITUSDT.max);
+            && Math.min(...xs) < leftTerritory.minX
+            && Math.max(...xs) > leftTerritory.minX + (leftTerritory.maxX - leftTerritory.minX) * 0.75);
         const directions = new Set(complete.map(xs => xs[xs.length - 1] > xs[0] ? 'buy' : 'sell'));
         if (directions.has('buy') && directions.has('sell')) break;
         await page.waitForTimeout(250);
     }
 
     const traversals = [...samples.entries()].filter(([, xs]) => xs.length >= 25
-        && Math.min(...xs) < territoryBounds.INITUSDT.min
-        && Math.max(...xs) > territoryBounds.INITUSDT.max);
+        && Math.min(...xs) < leftTerritory.minX
+        && Math.max(...xs) > leftTerritory.minX + (leftTerritory.maxX - leftTerritory.minX) * 0.75);
     expect(traversals.length, 'at least one full transit is observable').toBeGreaterThan(0);
     let sawBuy = false;
     let sawSell = false;
     for (const [id, xs] of traversals) {
-        expect(Math.min(...xs), `${id} enters outside the territory bounds`).toBeLessThan(territoryBounds.INITUSDT.min);
-        expect(Math.max(...xs), `${id} exits outside the territory bounds`).toBeGreaterThan(territoryBounds.INITUSDT.max);
+        expect(Math.min(...xs), `${id} enters outside the territory bounds`).toBeLessThan(leftTerritory.minX);
+        expect(Math.max(...xs), `${id} reaches the final quarter of its territory`).toBeGreaterThan(leftTerritory.minX + (leftTerritory.maxX - leftTerritory.minX) * 0.75);
         const increasing = xs[xs.length - 1] > xs[0];
         for (let index = 1; index < xs.length; index++) {
             if (increasing)

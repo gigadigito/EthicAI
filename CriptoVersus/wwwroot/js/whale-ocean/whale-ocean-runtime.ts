@@ -1,5 +1,14 @@
 import { acquireBabylon, releaseBabylon } from "../futurebol/futurebol-babylon-loader.js";
 import { createOceanEnvironment, type OceanEnvironment } from "./ocean-environment.js";
+import { flowStatusForConnection, guardWhaleOceanFlowStatus, type WhaleOceanFlowStatus } from "./whale-ocean-flow-state.js";
+import {
+    cssPixelToRenderPixel,
+    getTeamHorizontalBounds as calculateTeamHorizontalBounds,
+    getTransitPath as calculateTransitPath,
+    type WhaleOceanTeamBounds,
+    type WhaleOceanTransitPath,
+    type WhaleOceanVisibleBounds
+} from "./whale-ocean-geometry.js";
 import {
     computePressure,
     formatCompactVolume,
@@ -38,6 +47,8 @@ interface SpriteAtlas {
     territory: "left" | "right";
     visualWidthRatio: number;
     visualHeightRatio: number;
+    visualMinXRatio: number;
+    visualMaxXRatio: number;
 }
 
 export interface WhaleOceanRuntimeOptions {
@@ -52,10 +63,15 @@ export interface WhaleOceanRuntimeOptions {
     leftColor: string;
     rightColor: string;
     quality?: Quality;
+    labels?: Record<string, string>;
     diagnostic?: "sprites" | "showcase";
     developmentDiagnostics?: boolean;
     debugWhaleOcean?: boolean;
     matchFinished?: boolean;
+    officialStatus?: string;
+    officialRawStatus?: string | null;
+    officialStartTimeUtc?: string | null;
+    officialEndTimeUtc?: string | null;
     visualBudget?: Partial<WhaleOceanVisualBudget>;
 }
 
@@ -128,21 +144,9 @@ interface PendingFlow {
     batchCount: number;
 }
 
-interface VisibleHorizontalBounds {
-    left: number;
-    center: number;
-    right: number;
-}
-
-interface TeamHorizontalBounds extends VisibleHorizontalBounds {
-    minX: number;
-    maxX: number;
-}
-
-interface TransitPath {
-    fromX: number;
-    toX: number;
-}
+type VisibleHorizontalBounds = WhaleOceanVisibleBounds;
+type TeamHorizontalBounds = WhaleOceanTeamBounds;
+type TransitPath = WhaleOceanTransitPath;
 
 /** Per-animal visual diagnostics row used by spawn logs, size warnings and tests. */
 export interface WhaleOceanVisualDiagnosticRow {
@@ -169,6 +173,18 @@ export interface WhaleOceanVisualDiagnosticRow {
     labelText: string;
 }
 
+export interface WhaleOceanGeometryDiagnostic {
+    viewportCss: { width: number; height: number };
+    renderViewport: { width: number; height: number };
+    cameraCenterWorldX: number;
+    visibleWorld: VisibleHorizontalBounds;
+    territories: {
+        left: { world: { minX: number; maxX: number }; screen: { minX: number; maxX: number } };
+        right: { world: { minX: number; maxX: number }; screen: { minX: number; maxX: number } };
+    };
+    animals: Array<{ id: string; territory: "left" | "right"; worldX: number; screenX: number | null }>;
+}
+
 interface LiveSymbolState {
     buyQuote: number;
     sellQuote: number;
@@ -183,11 +199,9 @@ interface LiveSymbolState {
 
 const QUALITY_FPS: Record<Quality, number> = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS: Record<Quality, number> = { Low: 2, Medium: 3, High: 4 };
-const SPRITE_ASSET_VERSION = "20261112-whale-ocean-status-v1";
+const SPRITE_ASSET_VERSION = "20261112-whale-ocean-territory-v8";
 const CAMERA_FOV = 0.8;
 const CAMERA_RADIUS = 27;
-const MIN_CSS_PIXELS_PER_WORLD_UNIT = 18;
-const MAX_CSS_PIXELS_PER_WORLD_UNIT = 40;
 const REFERENCE_CSS_PIXELS_PER_WORLD_UNIT = 700 / (2 * CAMERA_RADIUS * Math.tan(CAMERA_FOV / 2));
 const SCHOOL_TRANSIT_RESERVE = 4;
 const SCHOOL_OCCUPANCY_SHARE = 0.55;
@@ -220,10 +234,16 @@ export class WhaleOceanRuntime {
     private paused = false;
     private connected = false;
     private matchFinished: boolean;
+    private flowStatus: WhaleOceanFlowStatus;
+    private officialStatus: string;
+    private officialRawStatus: string | null;
+    private officialStartTimeUtc: string | null;
+    private officialEndTimeUtc: string | null;
     private replaying = false;
     private replayComplete = false;
     private disposed = false;
     private quality: Quality;
+    private labels: Record<string, string>;
     private lastFrame = 0;
     private frameAccumulator = 0;
     private alertCount = 0;
@@ -237,6 +257,7 @@ export class WhaleOceanRuntime {
     private labelLayerOwned = false;
     private readonly undersizedWarnedIds = new Set<string>();
     private lastSizeWarningAt = 0;
+    private geometryDebugOverlay: HTMLElement | null = null;
 
     public constructor(options: WhaleOceanRuntimeOptions) {
         this.options = options;
@@ -253,7 +274,13 @@ export class WhaleOceanRuntime {
         this.canvas = options.canvas;
         this.root = this.canvas.closest<HTMLElement>(".whale-ocean");
         this.quality = options.quality ?? "Medium";
+        this.labels = options.labels ?? {};
         this.matchFinished = options.matchFinished ?? false;
+        this.flowStatus = this.matchFinished ? "FINALIZED" : "BOOTSTRAP_PENDING";
+        this.officialStatus = options.officialStatus ?? (this.matchFinished ? "FINALIZED" : "LIVE");
+        this.officialRawStatus = options.officialRawStatus ?? null;
+        this.officialStartTimeUtc = options.officialStartTimeUtc ?? null;
+        this.officialEndTimeUtc = options.officialEndTimeUtc ?? null;
         this.symbols.set(options.leftSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.leftPrice, quoteCurrency: quoteCurrencyForSymbol(options.leftSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
         this.symbols.set(options.rightSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.rightPrice, quoteCurrency: quoteCurrencyForSymbol(options.rightSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
     }
@@ -297,7 +324,7 @@ export class WhaleOceanRuntime {
         await this.buildSpriteLibrary();
         if (this.options.diagnostic === "sprites") {
             this.buildSpriteDiagnostic();
-            this.setStatus("DIAGNOSTIC_SPRITES");
+            this.setFlowStatus("DIAGNOSTIC_SPRITES", "sprite diagnostic initialized");
         } else {
             this.buildFishGroups();
             this.buildBubbles();
@@ -305,7 +332,7 @@ export class WhaleOceanRuntime {
             this.refreshDiagnostics(Date.now(), true);
             if (this.options.diagnostic === "showcase") {
                 this.buildShowcaseDiagnostic();
-                this.setStatus("DIAGNOSTIC_SHOWCASE");
+                this.setFlowStatus("DIAGNOSTIC_SHOWCASE", "showcase diagnostic initialized");
             }
         }
 
@@ -318,12 +345,14 @@ export class WhaleOceanRuntime {
             this.environment?.resize();
             this.resizeArena();
             this.updateTerritoryDivider();
+            this.updateGeometryDebugOverlay();
         };
         window.addEventListener("resize", this.resizeHandler, { passive: true });
         this.visibilityHandler = () => this.setPaused(document.hidden);
         document.addEventListener("visibilitychange", this.visibilityHandler);
         this.updateTerritoryDivider();
-        if (!this.options.diagnostic) this.setStatus("BOOTSTRAP_PENDING");
+        this.updateGeometryDebugOverlay();
+        if (!this.options.diagnostic) this.setFlowStatus(this.matchFinished ? "FINALIZED" : "BOOTSTRAP_PENDING", "renderer initialized");
     }
 
     public receive(batch: WhaleOceanBatch): void {
@@ -371,11 +400,11 @@ export class WhaleOceanRuntime {
         if (batch.isReplay) {
             if (!this.replayComplete) {
                 this.replaying = true;
-                this.setStatus("REPLAY");
+                this.setFlowStatus("REPLAY", "replay batch received");
             }
         } else {
             this.replaying = false;
-            this.setStatus("LIVE");
+            this.setFlowStatus("LIVE", "live batch received");
             const event = this.detector.ingest(batch);
             if (event) this.spawnEvent(event);
             else {
@@ -393,43 +422,53 @@ export class WhaleOceanRuntime {
 
     public setPaused(paused: boolean): void {
         this.paused = paused;
-        this.setStatus(paused ? "PAUSED" : this.replaying ? "REPLAY" : this.connected ? "LIVE" : "BOOTSTRAP_PENDING");
+        this.setFlowStatus(paused ? "PAUSED" : this.replaying ? "REPLAY" : flowStatusForConnection(this.connected, this.hasLiveData()), paused ? "pause requested" : "pause released");
         this.write("pause", paused ? "PAUSED" : "LIVE");
     }
 
     public setConnectionState(connected: boolean): void {
         this.connected = connected;
-        if (this.matchFinished) {
-            this.setStatus("FINALIZED");
-            return;
-        }
-        if (!connected) this.setStatus("BOOTSTRAP_PENDING");
-        else if (!this.paused && !this.replaying) this.setStatus("LIVE");
+        if (!this.paused && !this.replaying)
+            this.setFlowStatus(flowStatusForConnection(connected, this.hasLiveData()), connected ? "SignalR connected; awaiting Money Flow data" : "SignalR disconnected");
     }
 
     public completeReplay(): void {
         this.replayComplete = true;
         this.replaying = false;
-        if (this.matchFinished) {
-            this.setStatus("FINALIZED");
-            return;
-        }
-        if (!this.paused) this.setStatus(this.connected ? "LIVE" : "BOOTSTRAP_PENDING");
+        if (!this.paused) this.setFlowStatus(flowStatusForConnection(this.connected, this.hasLiveData()), "replay completed");
     }
 
     public setMatchFinished(finished: boolean): void {
+        if (this.matchFinished && !finished) {
+            this.logMatchState("official finalization is sticky; reopen request ignored", "FINALIZED -> LIVE", true);
+            return;
+        }
+
         this.matchFinished = finished;
         if (finished) {
             // Preserve actors already on screen, but never release buffered input
             // into new actors after the official match end.
             this.pendingFlows.clear();
             this.pendingEvents.length = 0;
-            this.setStatus("FINALIZED");
+            this.setFlowStatus("FINALIZED", "official match finalized");
             return;
         }
 
         if (!this.paused && !this.replaying)
-            this.setStatus(this.connected ? "LIVE" : "BOOTSTRAP_PENDING");
+            this.setFlowStatus(flowStatusForConnection(this.connected, this.hasLiveData()), "official match is active");
+    }
+
+    public setOfficialMatchState(
+        finished: boolean,
+        rawStatus: string | null,
+        startTimeUtc: string | null,
+        endTimeUtc: string | null
+    ): void {
+        this.officialStatus = finished ? "FINALIZED" : "LIVE";
+        this.officialRawStatus = rawStatus;
+        this.officialStartTimeUtc = startTimeUtc;
+        this.officialEndTimeUtc = endTimeUtc;
+        this.setMatchFinished(finished);
     }
 
     public async setQuality(quality: Quality): Promise<void> {
@@ -461,6 +500,8 @@ export class WhaleOceanRuntime {
         this.scene = null;
         this.engine = null;
         this.camera = null;
+        this.geometryDebugOverlay?.remove();
+        this.geometryDebugOverlay = null;
         releaseBabylon();
     }
 
@@ -505,7 +546,9 @@ export class WhaleOceanRuntime {
                 kind: definition.kind,
                 territory,
                 visualWidthRatio: bounds.widthRatio,
-                visualHeightRatio: bounds.heightRatio
+                visualHeightRatio: bounds.heightRatio,
+                visualMinXRatio: bounds.minXRatio,
+                visualMaxXRatio: bounds.maxXRatio
             });
         });
         await Promise.all(atlasPromises);
@@ -588,17 +631,29 @@ export class WhaleOceanRuntime {
      * target on any canvas size (desktop and mobile).
      */
     private cssPixelsPerWorldUnit(): number {
-        const camera = this.camera;
-        const clientHeight = this.canvas.clientHeight;
-        if (!camera || clientHeight <= 0) return REFERENCE_CSS_PIXELS_PER_WORLD_UNIT;
-        const worldHeight = 2 * Math.abs(camera.radius || CAMERA_RADIUS) * Math.tan((camera.fov || CAMERA_FOV) / 2);
-        if (worldHeight <= 0) return REFERENCE_CSS_PIXELS_PER_WORLD_UNIT;
-        return Math.max(MIN_CSS_PIXELS_PER_WORLD_UNIT, Math.min(MAX_CSS_PIXELS_PER_WORLD_UNIT, clientHeight / worldHeight));
+        const center = this.projectToCss(0, 0, 0);
+        const oneWorldUnit = this.projectToCss(1, 0, 0);
+        const projectedScale = center && oneWorldUnit ? Math.abs(oneWorldUnit.x - center.x) : 0;
+        if (Number.isFinite(projectedScale) && projectedScale > 0) return projectedScale;
+        return REFERENCE_CSS_PIXELS_PER_WORLD_UNIT;
     }
 
     /** Visible body length (atlas margins excluded) in world units. */
     private bodyWorldLength(kind: SpriteKind): number {
         return WHALE_OCEAN_SPECIES[kind].bodyLengthPx / this.cssPixelsPerWorldUnit();
+    }
+
+    /** The transparent atlas frame is not a territory boundary. */
+    private visibleBodyHalfWidth(kind: SpriteKind, territory: "left" | "right", spriteWidth: number): number {
+        const atlas = this.spriteAtlases.get(`${kind}:${territory}`);
+        if (!atlas) return Math.max(0, spriteWidth / 2);
+        const left = atlas.visualMinXRatio;
+        const right = 1 - atlas.visualMaxXRatio;
+        return Math.max(0, spriteWidth * Math.max(left, right));
+    }
+
+    private spriteHalfWidth(spriteWidth: number): number {
+        return Math.max(0, spriteWidth / 2);
     }
 
     private spriteWidthFor(kind: SpriteKind, territory: "left" | "right"): number {
@@ -780,6 +835,7 @@ export class WhaleOceanRuntime {
         this.updateFish(seconds, elapsed / 16.67);
         this.updateFlowActors(now);
         this.updateWhales(now);
+        this.updateGeometryDebugOverlay();
         this.promotePendingEvents();
         this.trySpawnPendingFlows(wallClockNow);
         this.refreshDiagnostics(wallClockNow);
@@ -882,7 +938,7 @@ export class WhaleOceanRuntime {
             agent.position.y += agent.velocity.y * factor;
             agent.position.z += agent.velocity.z * factor;
             const size = this.spriteWidthFor(agent.kind, group.territory) * (1 + group.activity * 0.12 + agent.seed * 0.05);
-            const edgePadding = Math.max(0.6, size * 0.45);
+            const edgePadding = this.visibleBodyHalfWidth(agent.kind, group.territory, size);
             const teamBounds = this.getTeamHorizontalBounds(group.territory, agent.position.z, edgePadding);
             const minX = teamBounds.minX;
             const maxX = teamBounds.maxX;
@@ -907,7 +963,7 @@ export class WhaleOceanRuntime {
             sprite.color.a = Math.min(1, 0.74 + group.activity * 0.26) * Math.max(0.18, edgeFade);
             sprite.isVisible = true;
             const currency = this.symbols.get(group.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(group.symbol);
-            const labelText = `${group.side === "buy" ? "BUY →" : "SELL ←"} ${formatCompactVolume(agent.allocatedNotional)} ${currency ?? "QUOTE"}`;
+            const labelText = `${group.side === "buy" ? `${this.text("buy", "BUY")} →` : `${this.text("sell", "SELL")} ←`} ${formatCompactVolume(agent.allocatedNotional)} ${currency ?? "QUOTE"}`;
             this.ensureFishLabel(agent, labelText, group.side === "buy" ? "#36e7b0" : "#ff6b55");
             if (agent.label) {
                 const below = index % 2 !== 0;
@@ -922,14 +978,29 @@ export class WhaleOceanRuntime {
         const engine = this.engine;
         const camera = this.camera;
         const scene = this.scene;
-        if (!B || !engine || !camera || !scene) return { left: -16.1, center: 0, right: 16.1 };
+        const fallback = (): VisibleHorizontalBounds => {
+            if (!camera || !this.canvas.clientWidth || !this.canvas.clientHeight)
+                return { left: 0, center: 0, right: 0 };
+            const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+            const distance = Math.max(1, Math.abs(depth - camera.globalPosition.z));
+            const halfWidth = distance * Math.tan((camera.fov || CAMERA_FOV) / 2) * aspect;
+            const center = camera.target.x;
+            return { left: center - halfWidth, center, right: center + halfWidth };
+        };
+        if (!B || !engine || !camera || !scene) return fallback();
 
         const renderWidth = engine.getRenderWidth();
         const renderHeight = engine.getRenderHeight();
-        if (renderWidth <= 0 || renderHeight <= 0) return { left: -16.1, center: 0, right: 16.1 };
+        const clientWidth = this.canvas.clientWidth;
+        const clientHeight = this.canvas.clientHeight;
+        if (renderWidth <= 0 || renderHeight <= 0 || clientWidth <= 0 || clientHeight <= 0) return fallback();
 
-        const rayXAtDepth = (screenX: number): number | null => {
-            const ray = scene.createPickingRay(screenX, renderHeight / 2, B.Matrix.Identity(), camera, false);
+        // Babylon consumes render pixels. The divider and the canvas layout use
+        // CSS pixels, so convert both through the same viewport dimensions.
+        const rayXAtDepth = (screenCssX: number): number | null => {
+            const screenX = cssPixelToRenderPixel(screenCssX, clientWidth, renderWidth);
+            const screenY = cssPixelToRenderPixel(clientHeight / 2, clientHeight, renderHeight);
+            const ray = scene.createPickingRay(screenX, screenY, B.Matrix.Identity(), camera, false);
             if (Math.abs(ray.direction.z) < 0.0001) return null;
             const distance = (depth - ray.origin.z) / ray.direction.z;
             if (!Number.isFinite(distance) || distance < 0) return null;
@@ -938,45 +1009,25 @@ export class WhaleOceanRuntime {
         };
 
         const left = rayXAtDepth(0);
-        const center = rayXAtDepth(renderWidth / 2);
-        const right = rayXAtDepth(renderWidth);
+        const center = rayXAtDepth(clientWidth / 2);
+        const right = rayXAtDepth(clientWidth);
         if (left !== null && center !== null && right !== null && left < center && center < right)
             return { left, center, right };
-
-        const aspect = renderWidth / renderHeight;
-        const distance = Math.max(1, Math.abs(depth - camera.globalPosition.z));
-        const halfWidth = distance * Math.tan((camera.fov || CAMERA_FOV) / 2) * aspect;
-        return { left: -halfWidth, center: 0, right: halfWidth };
+        return fallback();
     }
 
     private getTeamHorizontalBounds(territory: "left" | "right", depth: number, padding: number): TeamHorizontalBounds {
         const visible = this.getVisibleHorizontalBounds(depth);
-        const teamLeft = territory === "left" ? visible.left : visible.center;
-        const teamRight = territory === "left" ? visible.center : visible.right;
-        const safePadding = Math.min(Math.max(0, padding), Math.abs(teamRight - teamLeft) * 0.45);
-        return {
-            ...visible,
-            minX: teamLeft + safePadding,
-            maxX: teamRight - safePadding
-        };
+        return calculateTeamHorizontalBounds(visible, territory, padding);
     }
 
     private getTransitPath(territory: "left" | "right", side: WhaleOceanSide, depth: number, outerPadding: number, spritePadding: number): TransitPath {
         const visible = this.getVisibleHorizontalBounds(depth);
-        const teamLeft = territory === "left" ? visible.left : visible.center;
-        const teamRight = territory === "left" ? visible.center : visible.right;
-        const safePadding = Math.min(Math.max(0, spritePadding), Math.abs(teamRight - teamLeft) * 0.45);
-        const direction = side === "buy" ? 1 : -1;
-        const entryBoundary = direction > 0 ? teamLeft : teamRight;
-        const exitBoundary = direction > 0 ? teamRight : teamLeft;
-        return {
-            fromX: entryBoundary - direction * Math.max(0, outerPadding),
-            toX: exitBoundary - direction * safePadding
-        };
+        return calculateTransitPath(visible, territory, side, outerPadding, spritePadding);
     }
 
     private flowOuterPadding(actor: FlowActor): number {
-        return Math.max(actor.size * 0.65, actor.labelWidthPx / this.cssPixelsPerWorldUnit() * 0.55) + 0.45;
+        return this.spriteHalfWidth(actor.size);
     }
 
     private resizeArena(): void {
@@ -984,7 +1035,8 @@ export class WhaleOceanRuntime {
         const now = performance.now();
         for (const group of this.fishGroups) {
             for (const agent of group.agents) {
-                const padding = Math.max(0.6, this.spriteWidthFor(agent.kind, group.territory) * 0.45);
+                const size = agent.sprite.width || this.spriteWidthFor(agent.kind, group.territory);
+                const padding = this.visibleBodyHalfWidth(agent.kind, group.territory, size);
                 const bounds = this.getTeamHorizontalBounds(group.territory, agent.position.z, padding);
                 agent.position.x = Math.max(bounds.minX, Math.min(bounds.maxX, agent.position.x));
                 agent.sprite.position.x = agent.position.x;
@@ -992,7 +1044,8 @@ export class WhaleOceanRuntime {
         }
         for (const actor of this.flowActors) {
             const progress = Math.max(0, Math.min(1, (now - actor.startedAt) / actor.duration));
-            const path = this.getTransitPath(actor.territory, actor.side, actor.sprite.position.z, this.flowOuterPadding(actor), actor.size * 0.55);
+            const bodyHalfWidth = this.visibleBodyHalfWidth(actor.kind, actor.territory, actor.size);
+            const path = this.getTransitPath(actor.territory, actor.side, actor.sprite.position.z, this.flowOuterPadding(actor), bodyHalfWidth);
             actor.fromX = path.fromX;
             actor.toX = path.toX;
             const eased = progress * progress * (3 - 2 * progress);
@@ -1000,7 +1053,8 @@ export class WhaleOceanRuntime {
         }
         for (const event of this.whales) {
             const progress = Math.max(0, Math.min(1, (now - event.startedAt) / event.duration));
-            const path = this.getTransitPath(event.territory, event.side, event.sprite.position.z, Math.max(event.size * 0.72, 1.5) + 0.8, event.size * 0.55);
+            const bodyHalfWidth = this.visibleBodyHalfWidth(event.kind, event.territory, event.size);
+            const path = this.getTransitPath(event.territory, event.side, event.sprite.position.z, this.spriteHalfWidth(event.size), bodyHalfWidth);
             event.fromX = path.fromX;
             event.toX = path.toX;
             event.sprite.position.x = event.fromX + (event.toX - event.fromX) * progress;
@@ -1013,15 +1067,23 @@ export class WhaleOceanRuntime {
         const width = this.engine.getRenderWidth();
         const height = this.engine.getRenderHeight();
         const visible = this.getVisibleHorizontalBounds(0);
+        const geometry = this.geometryDiagnostics();
         console.groupCollapsed("[WhaleOcean][RESIZE] arena recalculated");
         console.table([{
-            viewportWidth: width,
-            viewportHeight: height,
+            viewportCssWidth: geometry.viewportCss.width,
+            viewportCssHeight: geometry.viewportCss.height,
+            renderWidth: width,
+            renderHeight: height,
             aspectRatio: Number((width / Math.max(1, height)).toFixed(3)),
+            cameraCenterWorldX: geometry.cameraCenterWorldX,
             leftEdge: Number(visible.left.toFixed(3)),
             center: Number(visible.center.toFixed(3)),
             rightEdge: Number(visible.right.toFixed(3))
         }]);
+        console.table([
+            { territory: "left", worldMin: geometry.territories.left.world.minX, worldMax: geometry.territories.left.world.maxX, screenMinPx: geometry.territories.left.screen.minX, screenMaxPx: geometry.territories.left.screen.maxX },
+            { territory: "right", worldMin: geometry.territories.right.world.minX, worldMax: geometry.territories.right.world.maxX, screenMinPx: geometry.territories.right.screen.minX, screenMaxPx: geometry.territories.right.screen.maxX }
+        ]);
         console.table(([
             ["left", "left", "buy"],
             ["left", "left", "sell"],
@@ -1029,7 +1091,16 @@ export class WhaleOceanRuntime {
             ["right", "right", "sell"]
         ] as const).map(([symbol, territory, side]) => {
             const path = this.getTransitPath(territory, side, 0, 0, 0);
-            return { symbol, territory, side, spawnX: Number(path.fromX.toFixed(3)), despawnX: Number(path.toX.toFixed(3)), direction: side === "buy" ? "right" : "left" };
+            return {
+                symbol,
+                territory,
+                side,
+                spawnWorldX: Number(path.fromX.toFixed(3)),
+                despawnWorldX: Number(path.toX.toFixed(3)),
+                spawnScreenPx: this.projectToCss(path.fromX, 0, 0)?.x ?? null,
+                despawnScreenPx: this.projectToCss(path.toX, 0, 0)?.x ?? null,
+                direction: side === "buy" ? "right" : "left"
+            };
         }));
         console.groupEnd();
     }
@@ -1043,7 +1114,9 @@ export class WhaleOceanRuntime {
             direction: side === "buy" ? "right" : "left",
             depth: Number(depth.toFixed(3)),
             spawnX: Number(path.fromX.toFixed(3)),
-            despawnX: Number(path.toX.toFixed(3))
+            despawnX: Number(path.toX.toFixed(3)),
+            spawnScreenPx: this.projectToCss(path.fromX, 0, depth)?.x ?? null,
+            despawnScreenPx: this.projectToCss(path.toX, 0, depth)?.x ?? null
         });
     }
 
@@ -1102,6 +1175,14 @@ export class WhaleOceanRuntime {
         };
         void previousKind;
         void previousNotional;
+    }
+
+    private text(key: string, fallback: string): string {
+        return this.labels[key] ?? fallback;
+    }
+
+    public setLabels(labels: Record<string, string>): void {
+        this.labels = { ...labels };
     }
 
     private ensureFishLabel(agent: FishAgent, text: string, color: string): void {
@@ -1187,6 +1268,32 @@ export class WhaleOceanRuntime {
         for (const event of this.whales)
             rows.push(this.buildDiagnosticRow(event.eventId, event.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, event.kind, event.territory, event.sprite, event.label, event.labelText));
         return rows;
+    }
+
+    /** Uses the same frustum and territory calculations as the renderer. */
+    public geometryDiagnostics(): WhaleOceanGeometryDiagnostic {
+        const width = this.canvas.clientWidth;
+        const height = this.canvas.clientHeight;
+        const visible = this.getVisibleHorizontalBounds(0);
+        const left = this.getTeamHorizontalBounds("left", 0, 0);
+        const right = this.getTeamHorizontalBounds("right", 0, 0);
+        const screenX = (worldX: number): number | null => this.projectToCss(worldX, 0, 0)?.x ?? null;
+        return {
+            viewportCss: { width, height },
+            renderViewport: { width: this.engine?.getRenderWidth() ?? 0, height: this.engine?.getRenderHeight() ?? 0 },
+            cameraCenterWorldX: round2(this.camera?.target.x ?? visible.center),
+            visibleWorld: { left: round2(visible.left), center: round2(visible.center), right: round2(visible.right) },
+            territories: {
+                left: { world: { minX: round2(left.minX), maxX: round2(left.maxX) }, screen: { minX: 0, maxX: round2(width / 2) } },
+                right: { world: { minX: round2(right.minX), maxX: round2(right.maxX) }, screen: { minX: round2(width / 2), maxX: round2(width) } }
+            },
+            animals: this.visualDiagnostics().map(row => ({
+                id: row.id,
+                territory: this.options.leftSymbol === row.symbol ? "left" : "right",
+                worldX: row.worldPositionX,
+                screenX: screenX(row.worldPositionX)
+            }))
+        };
     }
 
     private buildDiagnosticRow(id: string, symbol: string, kind: SpriteKind, territory: "left" | "right", sprite: Sprite, label: HTMLElement | null, labelText: string): WhaleOceanVisualDiagnosticRow {
@@ -1479,10 +1586,15 @@ export class WhaleOceanRuntime {
         const text = `${formatCompactVolume(pending.totalNotional)} ${quoteCurrency ?? "QUOTE"}`;
         const labelWidthPx = Math.min(230, 30 + text.length * 8.6);
         const labelHeightPx = 24;
-        const outerPadding = Math.max(spriteWidth * 0.65, labelWidthPx / this.cssPixelsPerWorldUnit() * 0.55) + 0.45;
         const lane = pending.side === "buy" ? 1.65 : -1.65;
         const depth = (this.random() - 0.5) * 1.2;
-        const path = this.getTransitPath(territory, pending.side, depth, outerPadding, spriteWidth * 0.55);
+        const path = this.getTransitPath(
+            territory,
+            pending.side,
+            depth,
+            this.spriteHalfWidth(spriteWidth),
+            this.visibleBodyHalfWidth(kind, territory, spriteWidth)
+        );
         sprite.width = spriteWidth;
         sprite.height = spriteWidth * 0.5;
         sprite.invertU = !movingRight;
@@ -1602,13 +1714,13 @@ export class WhaleOceanRuntime {
             const eased = progress * progress * (3 - 2 * progress);
             actor.sprite.position.y += Math.sin(progress * Math.PI * 2 + actor.phase) * 0.0025;
             actor.sprite.position.z = Math.sin(progress * Math.PI * 3 + actor.phase) * 0.38;
-            const path = this.getTransitPath(actor.territory, actor.side, actor.sprite.position.z, this.flowOuterPadding(actor), actor.size * 0.55);
+            const pulse = 1 + Math.sin(progress * Math.PI * 3 + actor.phase) * (0.025 + actor.intensity * 0.04);
+            const path = this.getTransitPath(actor.territory, actor.side, actor.sprite.position.z, this.spriteHalfWidth(actor.size * pulse), this.visibleBodyHalfWidth(actor.kind, actor.territory, actor.size * pulse));
             actor.fromX = path.fromX;
             actor.toX = path.toX;
             const direction = actor.toX >= actor.fromX ? 1 : -1;
             actor.sprite.position.x = actor.fromX + (actor.toX - actor.fromX) * eased;
             actor.sprite.invertU = direction < 0;
-            const pulse = 1 + Math.sin(progress * Math.PI * 3 + actor.phase) * (0.025 + actor.intensity * 0.04);
             actor.sprite.width = actor.size * pulse;
             actor.sprite.height = actor.size * 0.5 * pulse;
             const fadeIn = Math.min(1, progress / 0.12);
@@ -1655,9 +1767,14 @@ export class WhaleOceanRuntime {
         const movingRight = event.side === "buy";
         const kind = animalKindForEvent(event.kind);
         const size = this.spriteWidthFor(kind, territory);
-        const outerPadding = Math.max(size * 0.72, 1.5) + 0.8;
         const depth = 0.5;
-        const path = this.getTransitPath(territory, event.side, depth, outerPadding, size * 0.55);
+        const path = this.getTransitPath(
+            territory,
+            event.side,
+            depth,
+            this.spriteHalfWidth(size),
+            this.visibleBodyHalfWidth(kind, territory, size)
+        );
         const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-${event.kind}-${event.id}`, this.random());
         sprite.width = size;
         sprite.height = size * 0.5;
@@ -1711,12 +1828,12 @@ export class WhaleOceanRuntime {
             const lane = event.side === "buy" ? 3.15 : -3.15;
             event.sprite.position.y = lane + Math.sin(progress * Math.PI * 2) * 0.55;
             event.sprite.position.z = Math.sin(progress * Math.PI * 3) * 0.6;
-            const path = this.getTransitPath(event.territory, event.side, event.sprite.position.z, Math.max(event.size * 0.72, 1.5) + 0.8, event.size * 0.55);
+            const pulse = 1 + Math.sin(progress * Math.PI) * 0.12;
+            const path = this.getTransitPath(event.territory, event.side, event.sprite.position.z, this.spriteHalfWidth(event.size * pulse), this.visibleBodyHalfWidth(event.kind, event.territory, event.size * pulse));
             event.fromX = path.fromX;
             event.toX = path.toX;
             event.sprite.position.x = event.fromX + (event.toX - event.fromX) * progress;
             event.sprite.invertU = event.toX < event.fromX;
-            const pulse = 1 + Math.sin(progress * Math.PI) * 0.12;
             event.sprite.width = event.size * pulse;
             event.sprite.height = event.size * 0.5 * pulse;
             const fadeIn = Math.min(1, progress / 0.14);
@@ -1734,7 +1851,7 @@ export class WhaleOceanRuntime {
         item.className = `whale-ocean-alert whale-ocean-alert--${event.kind}`;
         const value = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(event.notionalUsdt);
         const currency = this.symbols.get(event.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(event.symbol) ?? "QUOTE";
-        item.textContent = `${event.kind === "whale" ? "BALEIA" : "TUBARÃO"} · ${event.symbol} · ${event.side === "buy" ? "COMPRA" : "VENDA"} · ${value} ${currency}`;
+        item.textContent = `${event.kind === "whale" ? this.text("alertWhale", "WHALE") : this.text("alertShark", "SHARK")} · ${event.symbol} · ${event.side === "buy" ? this.text("buy", "BUY") : this.text("sell", "SELL")} · ${value} ${currency}`;
         list.prepend(item);
         while (list.children.length > 5) list.lastElementChild?.remove();
         this.write("events", String(this.alertCount));
@@ -1764,6 +1881,51 @@ export class WhaleOceanRuntime {
     }
 
     // Territory divider is presentation-only: it must never affect actors or fish.
+    /** Development-only overlay; it is not constructed unless explicitly enabled. */
+    private updateGeometryDebugOverlay(): void {
+        if (!this.options.debugWhaleOcean) return;
+        const stage = this.canvas.parentElement;
+        if (!stage) return;
+        if (!this.geometryDebugOverlay) {
+            const overlay = document.createElement("div");
+            overlay.className = "whale-ocean__geometry-debug";
+            overlay.dataset.whaleOcean = "geometry-debug";
+            stage.append(overlay);
+            this.geometryDebugOverlay = overlay;
+        }
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const stageRect = stage.getBoundingClientRect();
+        const overlay = this.geometryDebugOverlay;
+        overlay.style.left = `${canvasRect.left - stageRect.left}px`;
+        overlay.style.top = `${canvasRect.top - stageRect.top}px`;
+        overlay.style.width = `${canvasRect.width}px`;
+        overlay.style.height = `${canvasRect.height}px`;
+        overlay.replaceChildren();
+        const geometry = this.geometryDiagnostics();
+        const markers = [
+            ["camera", geometry.viewportCss.width / 2, `camera ${geometry.cameraCenterWorldX}`],
+            ["divider", geometry.viewportCss.width / 2, "divider 50%"],
+            ["boundary", 0, `L ${geometry.visibleWorld.left}`],
+            ["boundary", geometry.viewportCss.width, `R ${geometry.visibleWorld.right}`],
+            ["exit", geometry.viewportCss.width / 2, `territory edge ${geometry.visibleWorld.center}`]
+        ] as const;
+        for (const [kind, x, label] of markers) {
+            const marker = document.createElement("div");
+            marker.className = `whale-ocean__geometry-marker whale-ocean__geometry-marker--${kind}`;
+            marker.style.left = `${x}px`;
+            marker.innerHTML = `<span>${label}</span>`;
+            overlay.append(marker);
+        }
+        for (const animal of geometry.animals) {
+            if (animal.screenX === null) continue;
+            const fish = document.createElement("i");
+            fish.className = `whale-ocean__geometry-fish whale-ocean__geometry-fish--${animal.territory}`;
+            fish.title = `${animal.id} · world X ${animal.worldX}`;
+            fish.style.left = `${animal.screenX}px`;
+            overlay.append(fish);
+        }
+    }
+
     private updateTerritoryDivider(): void {
         const divider = this.root?.querySelector<HTMLElement>('[data-whale-ocean="territory-divider"]');
         if (!divider) return;
@@ -1775,9 +1937,32 @@ export class WhaleOceanRuntime {
         divider.style.setProperty("--whale-ocean-divider-x", `${Math.round(centerX * 100) / 100}px`);
     }
 
-    private setStatus(status: string): void {
-        this.write("renderer-status", status);
-        this.root?.setAttribute("data-ocean-state", status);
+    private setFlowStatus(status: WhaleOceanFlowStatus, reason: string): void {
+        const decision = guardWhaleOceanFlowStatus(this.matchFinished, this.flowStatus, status);
+        if (!decision.accepted) {
+            this.logMatchState(`blocked flow transition: ${reason}`, `${this.flowStatus} -> ${status}`, true);
+            return;
+        }
+
+        const previous = this.flowStatus;
+        this.flowStatus = decision.status;
+        this.write("renderer-status", decision.status);
+        this.root?.setAttribute("data-flow-state", decision.status);
+        if (previous !== decision.status)
+            this.logMatchState(reason, `${previous} -> ${decision.status}`);
+    }
+
+    private logMatchState(reason: string, transition: string | null = null, warning = false): void {
+        (warning ? console.warn : console.info)("[WhaleOcean:MatchState]", {
+            matchId: this.options.matchId,
+            rawStatus: this.officialRawStatus,
+            normalizedStatus: this.officialStatus,
+            startTimeUtc: this.officialStartTimeUtc,
+            endTimeUtc: this.officialEndTimeUtc,
+            flowStatus: this.flowStatus,
+            transition,
+            reason
+        });
     }
 
     private write(key: string, value: string): void {
@@ -1794,6 +1979,8 @@ export class WhaleOceanRuntime {
 interface MeasuredAtlasBounds {
     widthRatio: number;
     heightRatio: number;
+    minXRatio: number;
+    maxXRatio: number;
 }
 
 async function measureAtlasBounds(url: string, frameWidth: number, frameHeight: number, frameCount: number): Promise<MeasuredAtlasBounds> {
@@ -1833,7 +2020,9 @@ async function measureAtlasBounds(url: string, frameWidth: number, frameHeight: 
         if (maxX < minX || maxY < minY) throw new Error(`Whale Ocean atlas has no visible pixels: ${url}.`);
         return {
             widthRatio: (maxX - minX + 1) / frameWidth,
-            heightRatio: (maxY - minY + 1) / frameHeight
+            heightRatio: (maxY - minY + 1) / frameHeight,
+            minXRatio: minX / frameWidth,
+            maxXRatio: (maxX + 1) / frameWidth
         };
     } finally {
         bitmap.close();

@@ -45,6 +45,9 @@ export function receive(matchId, batch) {
 export function getVisualDiagnostics(matchId) {
     return instances.get(matchId)?.visualDiagnostics() ?? [];
 }
+export function getGeometryDiagnostics(matchId) {
+    return instances.get(matchId)?.geometryDiagnostics() ?? null;
+}
 export function setPaused(matchId, paused) {
     instances.get(matchId)?.setPaused(paused);
 }
@@ -54,11 +57,17 @@ export function setConnectionState(matchId, connected) {
 export function setMatchFinished(matchId, finished) {
     instances.get(matchId)?.setMatchFinished(finished);
 }
+export function setOfficialMatchState(matchId, finished, rawStatus, startTimeUtc, endTimeUtc) {
+    instances.get(matchId)?.setOfficialMatchState(finished, rawStatus, startTimeUtc, endTimeUtc);
+}
 export function completeReplay(matchId) {
     instances.get(matchId)?.completeReplay();
 }
 export async function setQuality(matchId, quality) {
     await instances.get(matchId)?.setQuality(quality);
+}
+export function setLabels(matchId, labels) {
+    instances.get(matchId)?.setLabels(labels);
 }
 export async function dispose(matchId) {
     const runtime = instances.get(matchId);

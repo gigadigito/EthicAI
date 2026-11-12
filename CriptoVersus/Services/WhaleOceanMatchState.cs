@@ -5,6 +5,13 @@ namespace CriptoVersus.Web.Services;
 
 public static class WhaleOceanMatchState
 {
+    public enum OfficialStatus
+    {
+        Unavailable,
+        Live,
+        Finalized
+    }
+
     public static bool IsFinished(MatchDto? match)
     {
         if (match is null)
@@ -12,8 +19,50 @@ public static class WhaleOceanMatchState
 
         return match.IsFinished
             || match.EndTime.HasValue
-            || match.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase)
-            || match.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase);
+            || IsFinalStatus(match.Status);
+    }
+
+    public static OfficialStatus NormalizeStatus(MatchDto? match)
+    {
+        if (match is null)
+            return OfficialStatus.Unavailable;
+
+        return IsFinished(match)
+            ? OfficialStatus.Finalized
+            : OfficialStatus.Live;
+    }
+
+    public static string NormalizeRawStatus(MatchDto? match)
+        => string.IsNullOrWhiteSpace(match?.Status)
+            ? "UNKNOWN"
+            : match.Status.Trim().ToUpperInvariant();
+
+    private static bool IsFinalStatus(string? status)
+        => status?.Trim().ToUpperInvariant() switch
+        {
+            null => false,
+            "COMPLETED" => true,
+            "CANCELLED" => true,
+            "CANCELED" => true,
+            "FINISHED" => true,
+            "FINALIZED" => true,
+            "ENDED" => true,
+            "CLOSED" => true,
+            "TERMINATED" => true,
+            _ => false
+        };
+
+    public static string OfficialStatusCode(MatchDto? match, bool requestFailed = false)
+    {
+        if (requestFailed)
+            return "UNAVAILABLE";
+
+        return NormalizeStatus(match) switch
+        {
+            OfficialStatus.Finalized => "FINALIZED",
+            OfficialStatus.Live => "LIVE",
+            _ => "UNAVAILABLE"
+        };
     }
 
     public static string FormatEndDateUtc(DateTime endTimeUtc, string cultureCode)

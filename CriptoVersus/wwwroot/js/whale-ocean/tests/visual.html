@@ -9,7 +9,7 @@
 <style>body{margin:0;background:#020a14}</style>
 </head>
 <body>
-<main class="whale-ocean" data-ocean-state="BOOTSTRAP_PENDING" data-match-state="LIVE">
+<main class="whale-ocean" data-flow-state="BOOTSTRAP_PENDING" data-match-state="LIVE">
     <section class="whale-ocean__stage" aria-label="Whale Ocean 3D visualization">
         <canvas class="whale-ocean__canvas"></canvas>
         <div class="whale-ocean__divider" data-whale-ocean="territory-divider" aria-hidden="true"></div>
@@ -68,7 +68,8 @@ await bootstrap.initialize({
 });
 window.wo = {
     receive: batch => bootstrap.receive(matchId, batch),
-    diagnostics: () => bootstrap.getVisualDiagnostics(matchId)
+    diagnostics: () => bootstrap.getVisualDiagnostics(matchId),
+    geometry: () => bootstrap.getGeometryDiagnostics(matchId)
 };
 window.woReady = true;
 </script>

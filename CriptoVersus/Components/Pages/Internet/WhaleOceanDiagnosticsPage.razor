@@ -14,7 +14,7 @@
 }
 else
 {
-    <main class="whale-ocean whale-ocean-diagnostic" data-ocean-state="DIAGNOSTIC">
+    <main class="whale-ocean whale-ocean-diagnostic" data-flow-state="DIAGNOSTIC">
         <header class="whale-ocean-diagnostic__header">
             <div>
                 <div>WHALE OCEAN · DEVELOPMENT DIAGNOSTIC</div>
@@ -45,7 +45,7 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || !HostEnvironment.IsDevelopment()) return;
-        _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261112-whale-ocean-status-v1");
+        _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261112-whale-ocean-territory-v8");
         await _module.InvokeVoidAsync("initializeDiagnostic", _canvas, IsShowcase ? "showcase" : "sprites");
     }
 

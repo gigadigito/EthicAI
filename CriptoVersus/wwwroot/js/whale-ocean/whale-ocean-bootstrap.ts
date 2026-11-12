@@ -1,4 +1,4 @@
-import { WhaleOceanRuntime, type WhaleOceanRuntimeOptions, type WhaleOceanVisualDiagnosticRow } from "./whale-ocean-runtime.js";
+import { WhaleOceanRuntime, type WhaleOceanGeometryDiagnostic, type WhaleOceanRuntimeOptions, type WhaleOceanVisualDiagnosticRow } from "./whale-ocean-runtime.js";
 import type { WhaleOceanBatch } from "./whale-ocean-model.js";
 
 const instances = new Map<number, WhaleOceanRuntime>();
@@ -51,6 +51,10 @@ export function getVisualDiagnostics(matchId: number): WhaleOceanVisualDiagnosti
     return instances.get(matchId)?.visualDiagnostics() ?? [];
 }
 
+export function getGeometryDiagnostics(matchId: number): WhaleOceanGeometryDiagnostic | null {
+    return instances.get(matchId)?.geometryDiagnostics() ?? null;
+}
+
 export function setPaused(matchId: number, paused: boolean): void {
     instances.get(matchId)?.setPaused(paused);
 }
@@ -63,12 +67,26 @@ export function setMatchFinished(matchId: number, finished: boolean): void {
     instances.get(matchId)?.setMatchFinished(finished);
 }
 
+export function setOfficialMatchState(
+    matchId: number,
+    finished: boolean,
+    rawStatus: string | null,
+    startTimeUtc: string | null,
+    endTimeUtc: string | null
+): void {
+    instances.get(matchId)?.setOfficialMatchState(finished, rawStatus, startTimeUtc, endTimeUtc);
+}
+
 export function completeReplay(matchId: number): void {
     instances.get(matchId)?.completeReplay();
 }
 
 export async function setQuality(matchId: number, quality: "Low" | "Medium" | "High"): Promise<void> {
     await instances.get(matchId)?.setQuality(quality);
+}
+
+export function setLabels(matchId: number, labels: Record<string, string>): void {
+    instances.get(matchId)?.setLabels(labels);
 }
 
 export async function dispose(matchId: number): Promise<void> {

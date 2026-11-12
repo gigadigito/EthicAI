@@ -42,4 +42,24 @@ public sealed class WhaleOceanMatchStateTests
         Assert.Equal("12/11/2026", WhaleOceanMatchState.FormatEndDateUtc(endTime, "pt-BR"));
         Assert.Equal("17:30:00", WhaleOceanMatchState.FormatEndClockUtc(endTime));
     }
+
+    [Theory]
+    [InlineData("Completed")]
+    [InlineData("Finished")]
+    [InlineData("Finalized")]
+    [InlineData("Cancelled")]
+    public void Final_status_values_are_normalized_without_flow_data(string rawStatus)
+    {
+        var match = new MatchDto { Status = rawStatus, EndTime = null };
+
+        Assert.Equal(WhaleOceanMatchState.OfficialStatus.Finalized, WhaleOceanMatchState.NormalizeStatus(match));
+        Assert.Equal("FINALIZED", WhaleOceanMatchState.OfficialStatusCode(match));
+    }
+
+    [Fact]
+    public void Missing_match_lookup_is_unavailable_instead_of_flow_pending()
+    {
+        Assert.Equal(WhaleOceanMatchState.OfficialStatus.Unavailable, WhaleOceanMatchState.NormalizeStatus(null));
+        Assert.Equal("UNAVAILABLE", WhaleOceanMatchState.OfficialStatusCode(null, requestFailed: true));
+    }
 }
