@@ -375,3 +375,5 @@ FodyWeavers.xsd
 
 # Saida gerada dos testes de captura do Price Crossover Social
 CriptoVersus/tools/price-crossover/out/
+/.codex-whale-edge-profile/component_crx_cache
+/.codex-whale-edge-profile
