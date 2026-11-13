@@ -411,24 +411,36 @@ else
 
     private async Task ChangeLanguageAsync(string targetCulture)
     {
-        _cultureModule ??= await JS.InvokeAsync<IJSObjectReference>(
-            "import",
-            "./js/culturePreference.mjs");
+        try
+        {
+            _cultureModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/culturePreference.mjs");
 
-        await _cultureModule.InvokeVoidAsync("setPreferredCulture", targetCulture);
-        var targetPath = RouteLocalization.BuildLocalizedPathForCurrentPage(targetCulture, Nav.ToBaseRelativePath(Nav.Uri));
-        Nav.NavigateTo(targetPath, forceLoad: true);
+            var module = _cultureModule;
+            if (module is null) return;
+            await module.InvokeVoidAsync("setPreferredCulture", targetCulture);
+            var targetPath = RouteLocalization.BuildLocalizedPathForCurrentPage(targetCulture, Nav.ToBaseRelativePath(Nav.Uri));
+            Nav.NavigateTo(targetPath, forceLoad: true);
+        }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
     }
 
     private async Task WarnPublishedVersionAsync()
     {
-        _appVersionModule ??= await JS.InvokeAsync<IJSObjectReference>(
-            "import",
-            "./js/appVersion.js");
+        try
+        {
+            _appVersionModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/appVersion.js");
 
-        await _appVersionModule.InvokeVoidAsync(
-            "warnPublishedVersion",
-            PublishedVersion.VersionTag);
+            var module = _appVersionModule;
+            if (module is null) return;
+            await module.InvokeVoidAsync("warnPublishedVersion", PublishedVersion.VersionTag);
+        }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
     }
 
     private async Task LoadLoginSessionAsync()
@@ -469,26 +481,33 @@ else
     }
     private async Task SyncWalletObserverAsync()
     {
-        _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
-            "import",
-            "./js/solanaWalletActions.js?v=20260506");
-
-        if (string.IsNullOrWhiteSpace(authToken) || string.IsNullOrWhiteSpace(walletPublicKey))
+        try
         {
-            await _walletActionsModule.InvokeVoidAsync("unregisterWalletObserver");
-            return;
-        }
+            _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/solanaWalletActions.js?v=20260506");
 
-        _walletObserverRef ??= DotNetObjectReference.Create(this);
-
-        await _walletActionsModule.InvokeAsync<bool>(
-            "registerWalletObserver",
-            _walletObserverRef,
-            new
+            var module = _walletActionsModule;
+            if (module is null) return;
+            if (string.IsNullOrWhiteSpace(authToken) || string.IsNullOrWhiteSpace(walletPublicKey))
             {
-                expectedWallet = walletPublicKey,
-                cluster = "session"
-            });
+                await module.InvokeVoidAsync("unregisterWalletObserver");
+                return;
+            }
+
+            _walletObserverRef ??= DotNetObjectReference.Create(this);
+
+            await module.InvokeAsync<bool>(
+                "registerWalletObserver",
+                _walletObserverRef,
+                new
+                {
+                    expectedWallet = walletPublicKey,
+                    cluster = "session"
+                });
+        }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
     }
 
     [JSInvokable]
@@ -509,9 +528,12 @@ else
         _showPostLoginPrompt = false;
         WalletState.SetSession(null, null);
 
-        if (_walletActionsModule is not null)
+        var walletModule = _walletActionsModule;
+        if (walletModule is not null)
         {
-            await _walletActionsModule.InvokeVoidAsync("unregisterWalletObserver");
+            try { await walletModule.InvokeVoidAsync("unregisterWalletObserver"); }
+            catch (JSDisconnectedException) { }
+            catch (InvalidOperationException) { }
         }
 
         await InvokeAsync(StateHasChanged);
@@ -634,29 +656,45 @@ else
 
     public async ValueTask DisposeAsync()
     {
-        if (_walletActionsModule is not null)
+        var walletModule = _walletActionsModule;
+        _walletActionsModule = null;
+        if (walletModule is not null)
         {
             try
             {
-                await _walletActionsModule.InvokeVoidAsync("unregisterWalletObserver");
+                await walletModule.InvokeVoidAsync("unregisterWalletObserver");
             }
-            catch
+            catch (JSDisconnectedException) { }
+            catch (InvalidOperationException) { }
+            catch (JSException) { }
+            try
             {
-                // Ignora falhas de teardown do observer JS.
+                await walletModule.DisposeAsync();
             }
-
-            await _walletActionsModule.DisposeAsync();
+            catch (JSDisconnectedException) { }
+            catch (InvalidOperationException) { }
+            catch (ArgumentNullException) { }
         }
 
-        if (_appVersionModule is not null)
-            await _appVersionModule.DisposeAsync();
+        var appVersionModule = _appVersionModule;
+        _appVersionModule = null;
+        await DisposeJsModuleAsync(appVersionModule);
 
-        if (_cultureModule is not null)
-        {
-            await _cultureModule.DisposeAsync();
-        }
+        var cultureModule = _cultureModule;
+        _cultureModule = null;
+        await DisposeJsModuleAsync(cultureModule);
 
         _walletObserverRef?.Dispose();
+        _walletObserverRef = null;
+    }
+
+    private static async Task DisposeJsModuleAsync(IJSObjectReference? module)
+    {
+        if (module is null) return;
+        try { await module.DisposeAsync(); }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
+        catch (ArgumentNullException) { }
     }
 
     public sealed class WalletProviderStateChange

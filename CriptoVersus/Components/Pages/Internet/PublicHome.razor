@@ -4137,20 +4137,6 @@
         border-color: #63aaa6;
     }
 
-    .public-home-arena .arena-match-card__actions {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        align-items: stretch;
-        width: 100%;
-        gap: .5rem;
-    }
-
-    .public-home-arena .arena-match-card__actions > a {
-        width: 100%;
-        min-width: 0;
-        flex: none;
-    }
-
     .public-home-arena .home-cta--primary,
     .public-home-arena .arena-chip--live,
     .public-home-arena .arena-status--live {
@@ -4175,13 +4161,33 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
         align-items: stretch;
         width: 100%;
-        gap: .5rem;
+        gap: 5px;
     }
 
     .public-home-arena .home-match-actions > a {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
         width: 100%;
         min-width: 0;
         flex: none;
+        height: 2.25rem;
+        min-height: 2.25rem;
+        padding: 0 .2rem;
+        border-radius: 8px;
+        font-size: .7rem;
+        font-weight: 700;
+        letter-spacing: 0;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .public-home-arena .home-match-actions .bi {
+        flex: 0 0 auto;
+        font-size: .78rem;
+        line-height: 1;
     }
 
     .public-home-arena .home-match-actions__link--whale,
@@ -4202,8 +4208,8 @@
     }
 
     .public-home-arena .home-match-actions__whale-icon {
-        width: 1.15rem;
-        height: .85rem;
+        width: .85rem;
+        height: .66rem;
         flex: 0 0 auto;
         fill: currentColor;
     }

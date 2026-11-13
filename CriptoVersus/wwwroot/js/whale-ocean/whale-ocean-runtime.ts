@@ -239,7 +239,7 @@ interface LiveSymbolState {
 
 const QUALITY_FPS: Record<Quality, number> = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS: Record<Quality, number> = { Low: 2, Medium: 3, High: 4 };
-const SPRITE_ASSET_VERSION = "20261112-whale-ocean-territory-v10";
+const SPRITE_ASSET_VERSION = "20261112-whale-ocean-territory-v11";
 const CAMERA_FOV = 0.8;
 const CAMERA_RADIUS = 27;
 const REFERENCE_CSS_PIXELS_PER_WORLD_UNIT = 700 / (2 * CAMERA_RADIUS * Math.tan(CAMERA_FOV / 2));
@@ -362,12 +362,17 @@ export class WhaleOceanRuntime {
             engine: this.engine
         });
         await this.buildSpriteLibrary();
+        if (this.disposed) return;
+        const babylon = this.B;
+        const scene = this.scene;
+        if (!babylon || !this.engine || !scene)
+            throw new Error("Whale Ocean Babylon initialization completed without a live scene.");
         if (this.options.diagnostic === "sprites") {
             this.buildSpriteDiagnostic();
             this.setFlowStatus("DIAGNOSTIC_SPRITES", "sprite diagnostic initialized");
         } else {
             this.buildFishGroups();
-            this.buildBubbles();
+            this.buildBubbles(babylon, scene);
             this.updateHud();
             this.refreshDiagnostics(Date.now(), true);
             if (this.options.diagnostic === "showcase") {
@@ -661,9 +666,8 @@ export class WhaleOceanRuntime {
         });
     }
 
-    private buildBubbles(): void {
-        const B = this.B!;
-        const scene = this.scene!;
+    private buildBubbles(B: BabylonApi, scene: Scene): void {
+        if (this.disposed) return;
         const material = new B.StandardMaterial("whale-ocean-bubbles", scene);
         material.diffuseColor = B.Color3.FromHexString("#b9f5ff");
         material.emissiveColor = B.Color3.FromHexString("#62b9d0");

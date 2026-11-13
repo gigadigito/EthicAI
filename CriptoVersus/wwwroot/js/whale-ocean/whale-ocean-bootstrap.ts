@@ -2,8 +2,25 @@ import { WhaleOceanRuntime, type WhaleOceanGeometryDiagnostic, type WhaleOceanRu
 import type { WhaleOceanBatch } from "./whale-ocean-model.js";
 
 const instances = new Map<number, WhaleOceanRuntime>();
+const initializationTasks = new Map<number, Promise<void>>();
 
 export async function initialize(options: WhaleOceanRuntimeOptions): Promise<void> {
+    const previous = initializationTasks.get(options.matchId);
+    if (previous) {
+        try { await previous; } catch { /* the next initialization owns recovery */ }
+    }
+
+    const task = initializeRuntime(options);
+    initializationTasks.set(options.matchId, task);
+    try {
+        await task;
+    } finally {
+        if (initializationTasks.get(options.matchId) === task)
+            initializationTasks.delete(options.matchId);
+    }
+}
+
+async function initializeRuntime(options: WhaleOceanRuntimeOptions): Promise<void> {
     await dispose(options.matchId);
     const mobile = typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches;
     const runtime = new WhaleOceanRuntime({
@@ -15,6 +32,9 @@ export async function initialize(options: WhaleOceanRuntimeOptions): Promise<voi
             ...options.visualBudget
         }
     });
+    // Keep the instance discoverable for an explicit dispose while async
+    // Babylon/texture initialization is still in flight. The runtime itself
+    // checks `disposed` before touching the scene after every await.
     instances.set(options.matchId, runtime);
     try {
         await runtime.initialize();
