@@ -95,6 +95,10 @@
                     {
                         <small class="whale-ocean__status-ended">@OfficialEndTimeText</small>
                     }
+                    @if (FinalResultText is not null)
+                    {
+                        <strong class="whale-ocean__final-result" aria-live="polite">@FinalResultText</strong>
+                    }
                     <span class="whale-ocean__renderer-status" data-whale-ocean="renderer-status" aria-hidden="true"></span>
                 </div>
                 <div class="whale-ocean__state-note">@T("demoModeOff")</div>
@@ -627,6 +631,17 @@
             "endedAt",
             WhaleOceanMatchState.FormatEndDateUtc(endTime, AppCulture.ToCultureCode(_culture)),
             WhaleOceanMatchState.FormatEndClockUtc(endTime));
+    private string? FinalResultText
+    {
+        get
+        {
+            if (!IsOfficialMatchFinished)
+                return null;
+
+            var winner = WhaleOceanMatchState.ResolveWhaleOceanWinnerSymbol(_match, _scoreboard);
+            return winner is null ? T("drawAnnouncement") : T("winnerAnnouncement", winner);
+        }
+    }
 
     private bool SetFlowStatus(string nextStatus, string reason)
     {

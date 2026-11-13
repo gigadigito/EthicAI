@@ -3165,6 +3165,8 @@
     "statusUnavailable": "STATO NON DISPONIBILE",
     "finalized": "TERMINATA",
     "endedAt": "Terminata il {0} alle {1} UTC",
+    "winnerAnnouncement": "Vincitore: {0}",
+    "drawAnnouncement": "Pareggio",
     "battleScoreboard": "Tabellone della battaglia oceanica",
     "points": "punti",
     "creatures": "creature",

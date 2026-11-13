@@ -3167,6 +3167,8 @@
     "statusUnavailable": "状态不可用",
     "finalized": "已结束",
     "endedAt": "结束于 {0} {1} UTC",
+    "winnerAnnouncement": "获胜者：{0}",
+    "drawAnnouncement": "平局",
     "battleScoreboard": "海洋战斗记分牌",
     "points": "分",
     "creatures": "生物",

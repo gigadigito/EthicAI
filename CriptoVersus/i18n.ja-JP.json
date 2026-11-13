@@ -3165,6 +3165,8 @@
     "statusUnavailable": "ステータスを取得できません",
     "finalized": "終了",
     "endedAt": "終了日時 {0} {1} UTC",
+    "winnerAnnouncement": "勝者: {0}",
+    "drawAnnouncement": "引き分け",
     "battleScoreboard": "オーシャンバトルのスコアボード",
     "points": "ポイント",
     "creatures": "生物",

@@ -3165,6 +3165,8 @@
     "statusUnavailable": "STATUS NICHT VERFÜGBAR",
     "finalized": "BEENDET",
     "endedAt": "Beendet am {0} um {1} UTC",
+    "winnerAnnouncement": "Sieger: {0}",
+    "drawAnnouncement": "Unentschieden",
     "battleScoreboard": "Punktestand der Ozean-Schlacht",
     "points": "Punkte",
     "creatures": "Kreaturen",

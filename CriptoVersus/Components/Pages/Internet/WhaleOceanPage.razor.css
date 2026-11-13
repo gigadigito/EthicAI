@@ -296,6 +296,14 @@
     text-transform: none;
 }
 
+.whale-ocean__final-result {
+    color: #f8e3a2;
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
 .whale-ocean__renderer-status {
     display: none;
 }

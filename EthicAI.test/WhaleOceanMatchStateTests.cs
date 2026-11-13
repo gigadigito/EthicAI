@@ -62,4 +62,36 @@ public sealed class WhaleOceanMatchStateTests
         Assert.Equal(WhaleOceanMatchState.OfficialStatus.Unavailable, WhaleOceanMatchState.NormalizeStatus(null));
         Assert.Equal("UNAVAILABLE", WhaleOceanMatchState.OfficialStatusCode(null, requestFailed: true));
     }
+
+    [Fact]
+    public void Whale_ocean_uses_final_scoreboard_when_official_winner_is_missing()
+    {
+        var match = new MatchDto
+        {
+            TeamA = "DODOUSDT",
+            TeamB = "SUIUSDT",
+            Status = "Completed",
+            IsFinished = true
+        };
+        var scoreboard = new WhaleOceanScoreboardDto
+        {
+            TeamA = new() { MatchTotal = new() { Buy = new() { Small = 10 } } },
+            TeamB = new() { MatchTotal = new() { Buy = new() { Small = 11 } } }
+        };
+
+        Assert.Equal("SUIUSDT", WhaleOceanMatchState.ResolveWhaleOceanWinnerSymbol(match, scoreboard));
+    }
+
+    [Fact]
+    public void Whale_ocean_reports_no_winner_for_a_final_score_tie()
+    {
+        var match = new MatchDto { TeamA = "DODOUSDT", TeamB = "SUIUSDT", Status = "Completed" };
+        var scoreboard = new WhaleOceanScoreboardDto
+        {
+            TeamA = new() { MatchTotal = new() { Buy = new() { Small = 10 } } },
+            TeamB = new() { MatchTotal = new() { Buy = new() { Small = 10 } } }
+        };
+
+        Assert.Null(WhaleOceanMatchState.ResolveWhaleOceanWinnerSymbol(match, scoreboard));
+    }
 }

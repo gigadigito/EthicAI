@@ -54,7 +54,7 @@ public sealed class WhaleOceanPageTests
             "bootstrapPending", "live", "finalized", "statusUnavailable",
             "stageAria", "demoModeOff", "direction", "buy", "sell",
             "buyAggressor", "sellAggressor", "events", "alertWhale", "alertShark",
-            "windowVolume", "endedAt", "battleScoreboard", "points", "creatures", "oceanControl",
+            "windowVolume", "endedAt", "winnerAnnouncement", "drawAnnouncement", "battleScoreboard", "points", "creatures", "oceanControl",
             "small", "medium", "large", "shark", "whale", "total", "last30Seconds", "matchTotal"
         };
 

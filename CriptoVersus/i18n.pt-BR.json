@@ -3166,6 +3166,8 @@
     "statusUnavailable": "STATUS INDISPONÍVEL",
     "finalized": "FINALIZADA",
     "endedAt": "Encerrada em {0} às {1} UTC",
+    "winnerAnnouncement": "Vencedor: {0}",
+    "drawAnnouncement": "Empate",
     "battleScoreboard": "Placar da batalha oceânica",
     "points": "pontos",
     "creatures": "criaturas",

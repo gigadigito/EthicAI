@@ -3166,6 +3166,8 @@
     "statusUnavailable": "STATUS UNAVAILABLE",
     "finalized": "FINALIZED",
     "endedAt": "Ended on {0} at {1} UTC",
+    "winnerAnnouncement": "Winner: {0}",
+    "drawAnnouncement": "Draw",
     "battleScoreboard": "Whale Ocean battle scoreboard",
     "points": "points",
     "creatures": "creatures",

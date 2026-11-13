@@ -81,6 +81,27 @@ public static class WhaleOceanMatchState
     public static string FormatEndClockUtc(DateTime endTimeUtc)
         => DateTime.SpecifyKind(endTimeUtc, DateTimeKind.Utc).ToString("HH:mm:ss", CultureInfo.InvariantCulture);
 
+    public static string? ResolveWhaleOceanWinnerSymbol(
+        MatchDto? match,
+        WhaleOceanScoreboardDto? scoreboard)
+    {
+        if (match is null || !IsFinished(match))
+            return null;
+
+        if (!string.IsNullOrWhiteSpace(match.WinnerTeamSymbol))
+            return match.WinnerTeamSymbol.Trim();
+
+        if (scoreboard is null)
+            return null;
+
+        var teamAPoints = scoreboard.TeamA.MatchTotal.Points;
+        var teamBPoints = scoreboard.TeamB.MatchTotal.Points;
+        if (teamAPoints == teamBPoints)
+            return null;
+
+        return teamAPoints > teamBPoints ? match.TeamA : match.TeamB;
+    }
+
     private static CultureInfo GetCulture(string cultureCode)
     {
         try

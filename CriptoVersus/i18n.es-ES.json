@@ -3165,6 +3165,8 @@
     "statusUnavailable": "ESTADO NO DISPONIBLE",
     "finalized": "FINALIZADA",
     "endedAt": "Finalizada el {0} a las {1} UTC",
+    "winnerAnnouncement": "Ganador: {0}",
+    "drawAnnouncement": "Empate",
     "battleScoreboard": "Marcador de la batalla oceánica",
     "points": "puntos",
     "creatures": "criaturas",
