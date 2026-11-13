@@ -55,7 +55,7 @@ test("production Whale Ocean execution cannot resolve legacy atlas paths", async
     for (const kind of EXPECTED_KINDS)
         assert.match(executable, new RegExp(`(?:kind: \\"${kind}\\"|\\"${kind}\\")`));
     assert.match(runtime, /Missing Whale Ocean sprite atlas/, "missing new assets must fail explicitly");
-    assert.match(runtime, /20261112-whale-ocean-territory-v8/, "manifest and atlas URLs must invalidate the old sprite cache");
+    assert.match(runtime, /20261112-whale-ocean-territory-v10/, "manifest and atlas URLs must invalidate the old sprite cache");
     assert.match(runtime, /animalKindForEvent/, "shark and whale event actors use the current catalog");
 });
 

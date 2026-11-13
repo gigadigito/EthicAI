@@ -29,16 +29,12 @@
 <main class="whale-ocean" data-match-state="@OfficialMatchState" data-flow-state="@FlowStatus">
     <header class="whale-ocean__header">
         <div>
-            <div class="whale-ocean__eyebrow">@T("eyebrow")</div>
-            <h1>Whale Ocean <span>3D</span></h1>
+            <h1>@T("title")</h1>
             <p>@T("tagline")</p>
         </div>
         <div class="whale-ocean__actions">
-            @if (_match is not null)
-            {
-                <a href="@RouteLocalization.BuildTvMatchPath(_culture, MatchId, Slug ?? string.Empty)">@T("backToTv")</a>
-            }
-            <button type="button" @onclick="TogglePaused">@T("pause")</button>
+            <a href="@RouteLocalization.BuildHomePath(_culture)">@T("backToHome")</a>
+            <button type="button" @onclick="TogglePaused">@(_paused ? T("resume") : T("pause"))</button>
             <label>@T("quality") <select @bind="_quality" @bind:after="QualityChangedAsync"><option value="Low">@T("qualityLow")</option><option value="Medium">@T("qualityMedium")</option><option value="High">@T("qualityHigh")</option></select></label>
         </div>
     </header>
@@ -193,7 +189,7 @@
         {
             var leftPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamA, _lifetime.Token);
             var rightPrice = await Api.GetAssetPriceSnapshotAsync(_match.TeamB, _lifetime.Token);
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261112-whale-ocean-territory-v8");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261112-whale-ocean-territory-v10");
             await _module.InvokeVoidAsync("initialize", new
             {
                 canvas = _canvas,

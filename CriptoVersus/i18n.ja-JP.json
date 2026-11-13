@@ -3014,11 +3014,12 @@
     "stageAria": "Arena Pressureゲームのステージ"
   },
   "whaleOcean": {
+    "title": "Whale Ocean 3D",
     "pageTitle": "Whale Ocean 3D · {0} 対 {1}",
-    "eyebrow": "CRIPTOVERSUS · マーケット可視化",
     "tagline": "試合の公式取引フローをもとに、リアルタイムのマーケットフローを表現しています。",
-    "backToTv": "TVに戻る",
+    "backToHome": "ホームに戻る",
     "pause": "一時停止",
+    "resume": "再開",
     "quality": "画質",
     "qualityLow": "低",
     "qualityMedium": "中",

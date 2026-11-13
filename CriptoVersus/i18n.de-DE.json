@@ -3014,11 +3014,12 @@
     "stageAria": "Arena Pressure Spielbühne"
   },
   "whaleOcean": {
+    "title": "Whale Ocean 3D",
     "pageTitle": "Whale Ocean 3D · {0} vs {1}",
-    "eyebrow": "CRIPTOVERSUS · MARKTVISUALISIERUNG",
     "tagline": "Echtzeit-Marktfluss, dargestellt auf Basis des offiziellen Handelsstroms des Matches.",
-    "backToTv": "Zurück zum TV",
+    "backToHome": "Zurück zur Startseite",
     "pause": "Pause",
+    "resume": "Fortsetzen",
     "quality": "Qualität",
     "qualityLow": "Niedrig",
     "qualityMedium": "Mittel",

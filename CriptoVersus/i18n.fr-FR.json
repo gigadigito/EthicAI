@@ -3014,11 +3014,12 @@
     "stageAria": "Scène du jeu Arena Pressure"
   },
   "whaleOcean": {
+    "title": "Whale Ocean 3D",
     "pageTitle": "Whale Ocean 3D · {0} vs {1}",
-    "eyebrow": "CRIPTOVERSUS · VISUALISATION DU MARCHÉ",
     "tagline": "Flux de marché en temps réel, représenté à partir du flux de transactions officiel du match.",
-    "backToTv": "Retour à la TV",
+    "backToHome": "Retour à l’accueil",
     "pause": "Pause",
+    "resume": "Reprendre",
     "quality": "Qualité",
     "qualityLow": "Faible",
     "qualityMedium": "Moyenne",

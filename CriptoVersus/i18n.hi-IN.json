@@ -3014,11 +3014,12 @@
     "stageAria": "अरीना प्रेशर गेम स्टेज"
   },
   "whaleOcean": {
+    "title": "Whale Ocean 3D",
     "pageTitle": "Whale Ocean 3D · {0} vs {1}",
-    "eyebrow": "CRIPTOVERSUS · बाज़ार विज़ुअलाइज़ेशन",
     "tagline": "रीयल-टाइम बाज़ार प्रवाह, मैच की आधिकारिक ट्रेड स्ट्रीम से प्रस्तुत किया गया।",
-    "backToTv": "TV पर वापस जाएँ",
+    "backToHome": "होम पर वापस जाएँ",
     "pause": "रोकें",
+    "resume": "फिर से शुरू करें",
     "quality": "गुणवत्ता",
     "qualityLow": "कम",
     "qualityMedium": "मध्यम",

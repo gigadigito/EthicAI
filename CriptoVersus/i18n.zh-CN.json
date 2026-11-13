@@ -3016,11 +3016,12 @@
     "stageAria": "Arena Pressure 游戏舞台"
   },
   "whaleOcean": {
+    "title": "Whale Ocean 3D",
     "pageTitle": "Whale Ocean 3D · {0} 对阵 {1}",
-    "eyebrow": "CRIPTOVERSUS · 市场可视化",
     "tagline": "实时市场资金流，基于该场比赛的官方交易流呈现。",
-    "backToTv": "返回 TV",
+    "backToHome": "返回首页",
     "pause": "暂停",
+    "resume": "继续",
     "quality": "画质",
     "qualityLow": "低",
     "qualityMedium": "中",

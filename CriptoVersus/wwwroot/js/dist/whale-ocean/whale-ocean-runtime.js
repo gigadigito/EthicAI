@@ -1,11 +1,11 @@
 import { acquireBabylon, releaseBabylon } from "../futurebol/futurebol-babylon-loader.js";
 import { createOceanEnvironment } from "./ocean-environment.js";
 import { flowStatusForConnection, guardWhaleOceanFlowStatus } from "./whale-ocean-flow-state.js";
-import { cssPixelToRenderPixel, getTeamHorizontalBounds as calculateTeamHorizontalBounds, getTransitPath as calculateTransitPath } from "./whale-ocean-geometry.js";
+import { cssPixelToRenderPixel, getTeamHorizontalBounds as calculateTeamHorizontalBounds, getTransitPath as calculateTransitPath, getDirectionalTransitPath as calculateDirectionalTransitPath, positionOnTransitPath, preserveTransitProgress } from "./whale-ocean-geometry.js";
 import { computePressure, formatCompactVolume, normalizeActivity, visualProfile, visualDensity, VolumeEventDetector, WHALE_OCEAN_SPECIES, WHALE_OCEAN_SIZE_CATEGORIES, DEFAULT_WHALE_OCEAN_VISUAL_BUDGET, animalKindForFinancialVolume, animalKindForEvent, isLargeAnimalKind, sizeCategoryForKind, quoteCurrencyForSymbol, swimDirectionForSide } from "./whale-ocean-model.js";
 const QUALITY_FPS = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS = { Low: 2, Medium: 3, High: 4 };
-const SPRITE_ASSET_VERSION = "20261112-whale-ocean-territory-v8";
+const SPRITE_ASSET_VERSION = "20261112-whale-ocean-territory-v10";
 const CAMERA_FOV = 0.8;
 const CAMERA_RADIUS = 27;
 const REFERENCE_CSS_PIXELS_PER_WORLD_UNIT = 700 / (2 * CAMERA_RADIUS * Math.tan(CAMERA_FOV / 2));
@@ -362,8 +362,8 @@ export class WhaleOceanRuntime {
             sprite.width = this.spriteWidthFor(kind, territory);
             sprite.height = sprite.width * 0.5;
             const anchor = this.schoolAnchor(territory, side, index);
-            agents.push({
-                position: new B.Vector3(anchor.x + (this.random() - 0.5) * 0.55, anchor.y + (this.random() - 0.5) * 0.4, anchor.z + (this.random() - 0.5) * 0.3),
+            const agent = {
+                position: new B.Vector3(0, anchor.y + (this.random() - 0.5) * 0.4, anchor.z + (this.random() - 0.5) * 0.3),
                 velocity: new B.Vector3(Math.cos(angle) * 0.012, (this.random() - 0.5) * 0.01, Math.sin(angle) * 0.009),
                 phase: this.random() * Math.PI * 2,
                 seed: this.random(),
@@ -372,8 +372,20 @@ export class WhaleOceanRuntime {
                 allocatedNotional: 0,
                 label: null,
                 labelText: "",
-                debugId: `school-${territory}-${side}-${index}`
-            });
+                debugId: `school-${territory}-${side}-${index}`,
+                active: false,
+                startX: 0,
+                targetX: 0,
+                direction: side === "buy" ? 1 : -1,
+                territory,
+                progress: 0,
+                speedWorldPerSecond: 0,
+                lastUpdatedAt: 0,
+                completed: false,
+                pathDepth: anchor.z
+            };
+            this.configureFishPath(agent, territory, side, false, 0);
+            agents.push(agent);
         }
         this.fishGroups.push({
             side, symbol, territory, agents, targetCount: 0, baseline: 0, activity: 0, flowBias: 0, lastActiveAt: 0,
@@ -414,12 +426,17 @@ export class WhaleOceanRuntime {
     }
     /** The transparent atlas frame is not a territory boundary. */
     visibleBodyHalfWidth(kind, territory, spriteWidth) {
+        const extents = this.visibleBodyExtents(kind, territory, spriteWidth);
+        return Math.max(extents.left, extents.right);
+    }
+    visibleBodyExtents(kind, territory, spriteWidth) {
         const atlas = this.spriteAtlases.get(`${kind}:${territory}`);
         if (!atlas)
-            return Math.max(0, spriteWidth / 2);
-        const left = atlas.visualMinXRatio;
-        const right = 1 - atlas.visualMaxXRatio;
-        return Math.max(0, spriteWidth * Math.max(left, right));
+            return { left: Math.max(0, spriteWidth / 2), right: Math.max(0, spriteWidth / 2) };
+        return {
+            left: Math.max(0, spriteWidth * (0.5 - atlas.visualMinXRatio)),
+            right: Math.max(0, spriteWidth * (atlas.visualMaxXRatio - 0.5))
+        };
     }
     spriteHalfWidth(spriteWidth) {
         return Math.max(0, spriteWidth / 2);
@@ -584,6 +601,22 @@ export class WhaleOceanRuntime {
             z: Math.sin(angle * 0.7) * 0.45
         };
     }
+    configureFishPath(agent, territory, side, preserveProgress, now) {
+        const previousPath = { fromX: agent.startX, toX: agent.targetX };
+        const safeWidth = Math.max(0.01, (agent.sprite.width || this.spriteWidthFor(agent.kind, territory)) * 1.12);
+        const path = this.getTransitPath(territory, side, agent.pathDepth, this.spriteHalfWidth(safeWidth), 0, this.visibleBodyExtents(agent.kind, territory, safeWidth));
+        agent.progress = preserveProgress && agent.active
+            ? preserveTransitProgress(previousPath, agent.position.x, path)
+            : 0;
+        agent.startX = path.fromX;
+        agent.targetX = path.toX;
+        agent.direction = path.toX >= path.fromX ? 1 : -1;
+        agent.speedWorldPerSecond = Math.max(0.01, Math.abs(path.toX - path.fromX) / (9 + Math.min(7, Math.abs(path.toX - path.fromX) * 0.3)));
+        agent.lastUpdatedAt = now;
+        agent.position.x = positionOnTransitPath(path, agent.progress);
+        agent.sprite.position.x = agent.position.x;
+        agent.sprite.position.z = agent.pathDepth;
+    }
     frame() {
         if (this.paused || this.disposed || !this.scene)
             return;
@@ -612,156 +645,72 @@ export class WhaleOceanRuntime {
         this.debugNoEventWarning(wallClockNow);
         this.debugSizeWarnings(wallClockNow);
     }
-    updateFish(seconds, factor) {
+    updateFish(seconds, _factor) {
         this.rebalancePopulation();
-        const activeAgents = [];
-        // The two-large-animals-per-territory cap covers schools, transits and
-        // events together, so big bodies never stack in one territory.
+        const now = performance.now();
         const largeByTerritory = {
             left: this.transientLargeCount("left"),
             right: this.transientLargeCount("right")
         };
         for (const group of this.fishGroups) {
-            const activeCount = Math.min(group.agents.length, Math.max(0, group.visibleCount));
-            const allocations = this.allocateSchoolVolume(group, activeCount);
-            for (let index = 0; index < activeCount; index++) {
+            const desiredCount = Math.min(group.agents.length, Math.max(0, group.visibleCount));
+            const allocations = this.allocateSchoolVolume(group, desiredCount);
+            for (let index = 0; index < group.agents.length; index++) {
                 const agent = group.agents[index];
-                const allocation = allocations[index] ?? { kind: group.schoolKind, notionalUsdt: 0 };
-                let visualKind = allocation.kind;
+                if (!agent.active && index < desiredCount) {
+                    agent.active = true;
+                    agent.completed = false;
+                    this.configureFishPath(agent, group.territory, group.side, false, now);
+                }
+                if (!agent.active) {
+                    agent.sprite.isVisible = false;
+                    this.removeLabel(agent.label);
+                    agent.label = null;
+                    agent.labelText = "";
+                    continue;
+                }
+                const allocation = allocations[index];
+                let visualKind = allocation?.kind ?? agent.kind;
                 if (isLargeAnimalKind(visualKind)) {
                     if (largeByTerritory[group.territory] >= this.budget.maxLargeHighlightsPerTerritory)
                         visualKind = visualKind === "swordfish" ? "barracuda" : "grouper";
                     else
                         largeByTerritory[group.territory]++;
                 }
-                this.assignAgentSpecies(agent, visualKind, group.territory, group.symbol, group.side, allocation.notionalUsdt);
-                activeAgents.push({ agent, group, index });
-            }
-            for (let index = activeCount; index < group.agents.length; index++) {
-                const inactive = group.agents[index];
-                inactive.sprite.isVisible = false;
-                this.removeLabel(inactive.label);
-                inactive.label = null;
-                inactive.labelText = "";
-            }
-        }
-        const grid = new Map();
-        for (const item of activeAgents) {
-            const { agent } = item;
-            const key = `${Math.floor(agent.position.x / 2.1)}:${Math.floor(agent.position.y / 1.8)}:${Math.floor(agent.position.z / 2.2)}`;
-            const cell = grid.get(key);
-            if (cell)
-                cell.push(item);
-            else
-                grid.set(key, [item]);
-        }
-        for (const { agent, group, index } of activeAgents) {
-            const sprite = agent.sprite;
-            let separationX = 0;
-            let separationY = 0;
-            let separationZ = 0;
-            let alignmentX = 0;
-            let alignmentY = 0;
-            let alignmentZ = 0;
-            let neighbors = 0;
-            const cellX = Math.floor(agent.position.x / 2.1);
-            const cellY = Math.floor(agent.position.y / 1.8);
-            const cellZ = Math.floor(agent.position.z / 2.2);
-            for (let dx = -1; dx <= 1; dx++)
-                for (let dy = -1; dy <= 1; dy++)
-                    for (let dz = -1; dz <= 1; dz++) {
-                        const nearby = grid.get(`${cellX + dx}:${cellY + dy}:${cellZ + dz}`);
-                        if (!nearby)
-                            continue;
-                        for (const otherItem of nearby) {
-                            const other = otherItem.agent;
-                            if (other === agent)
-                                continue;
-                            const deltaX = other.position.x - agent.position.x;
-                            const deltaY = other.position.y - agent.position.y;
-                            const deltaZ = other.position.z - agent.position.z;
-                            const distance = Math.hypot(deltaX, deltaY, deltaZ);
-                            const minimumDistance = (this.spriteWidthFor(agent.kind, group.territory) + this.spriteWidthFor(other.kind, otherItem.group.territory)) * 0.24 + 0.32;
-                            if (distance <= 0 || distance > Math.max(3.5, minimumDistance * 1.6))
-                                continue;
-                            neighbors++;
-                            const inverseDistance = 1 / distance;
-                            const separation = Math.max(0, minimumDistance - distance) * inverseDistance;
-                            separationX -= deltaX * (inverseDistance + separation * 2.2);
-                            separationY -= deltaY * (inverseDistance + separation * 2.2);
-                            separationZ -= deltaZ * (inverseDistance + separation * 2.2);
-                            alignmentX += other.velocity.x;
-                            alignmentY += other.velocity.y;
-                            alignmentZ += other.velocity.z;
-                        }
-                    }
-            if (neighbors > 0) {
-                const reciprocal = 1 / neighbors;
-                alignmentX = alignmentX * reciprocal - agent.velocity.x;
-                alignmentY = alignmentY * reciprocal - agent.velocity.y;
-                alignmentZ = alignmentZ * reciprocal - agent.velocity.z;
-            }
-            const anchor = this.schoolAnchor(group.territory, group.side, index);
-            const wave = Math.sin(seconds * 0.7 + agent.phase) * 0.003;
-            agent.velocity.x += (separationX * 0.0009 + alignmentX * 0.012 + (anchor.x - agent.position.x) * 0.0009 + group.flowBias + Math.sin(seconds * 0.3 + agent.phase) * 0.0005) * factor;
-            agent.velocity.y += (separationY * 0.0009 + alignmentY * 0.012 + (anchor.y - agent.position.y) * 0.0012 + wave) * factor;
-            agent.velocity.z += (separationZ * 0.0006 + alignmentZ * 0.01 + (anchor.z - agent.position.z) * 0.001) * factor;
-            const speed = Math.max(0.006, Math.min(0.055, agent.velocity.length()));
-            agent.velocity.scaleInPlace(0.996);
-            agent.velocity.normalize().scaleInPlace(speed);
-            const horizontalSign = group.side === "buy" ? 1 : -1;
-            agent.velocity.x = horizontalSign * Math.max(0.01, Math.abs(agent.velocity.x));
-            agent.position.x += agent.velocity.x * factor;
-            agent.position.y += agent.velocity.y * factor;
-            agent.position.z += agent.velocity.z * factor;
-            const size = this.spriteWidthFor(agent.kind, group.territory) * (1 + group.activity * 0.12 + agent.seed * 0.05);
-            const edgePadding = this.visibleBodyHalfWidth(agent.kind, group.territory, size);
-            const teamBounds = this.getTeamHorizontalBounds(group.territory, agent.position.z, edgePadding);
-            const minX = teamBounds.minX;
-            const maxX = teamBounds.maxX;
-            if (group.side === "buy" && agent.position.x > maxX)
-                agent.position.x = minX;
-            if (group.side === "sell" && agent.position.x < minX)
-                agent.position.x = maxX;
-            if (group.side === "buy" && agent.position.x < minX)
-                agent.position.x = minX;
-            if (group.side === "sell" && agent.position.x > maxX)
-                agent.position.x = maxX;
-            if (agent.position.y < -4.15 + edgePadding * 0.35) {
-                agent.position.y = -4.15 + edgePadding * 0.35;
-                agent.velocity.y = Math.abs(agent.velocity.y);
-            }
-            if (agent.position.y > 4.15 - edgePadding * 0.35) {
-                agent.position.y = 4.15 - edgePadding * 0.35;
-                agent.velocity.y = -Math.abs(agent.velocity.y);
-            }
-            if (agent.position.z < -2.1) {
-                agent.position.z = -2.1;
-                agent.velocity.z = Math.abs(agent.velocity.z);
-            }
-            if (agent.position.z > 2.1) {
-                agent.position.z = 2.1;
-                agent.velocity.z = -Math.abs(agent.velocity.z);
-            }
-            sprite.position.x = agent.position.x;
-            sprite.position.y = agent.position.y;
-            sprite.position.z = agent.position.z;
-            sprite.invertU = horizontalSign < 0;
-            sprite.width = size;
-            sprite.height = size * 0.5;
-            const exitDistance = group.side === "buy" ? maxX - agent.position.x : agent.position.x - minX;
-            const entryDistance = group.side === "buy" ? agent.position.x - minX : maxX - agent.position.x;
-            const fadeDistance = Math.max(1.15, size * 1.2);
-            const edgeFade = Math.min(1, Math.max(0, exitDistance / fadeDistance), Math.max(0, entryDistance / fadeDistance));
-            sprite.color.a = Math.min(1, 0.74 + group.activity * 0.26) * Math.max(0.18, edgeFade);
-            sprite.isVisible = true;
-            const currency = this.symbols.get(group.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(group.symbol);
-            const labelText = `${group.side === "buy" ? `${this.text("buy", "BUY")} →` : `${this.text("sell", "SELL")} ←`} ${formatCompactVolume(agent.allocatedNotional)} ${currency ?? "QUOTE"}`;
-            this.ensureFishLabel(agent, labelText, group.side === "buy" ? "#36e7b0" : "#ff6b55");
-            if (agent.label) {
-                const below = index % 2 !== 0;
-                const labelOffset = below ? -size * 0.42 : size * 0.42;
-                this.placeScreenLabel(agent.label, agent.position.x, agent.position.y + labelOffset, agent.position.z, sprite.color.a, below);
+                const speciesChanged = agent.kind !== visualKind;
+                this.assignAgentSpecies(agent, visualKind, group.territory, group.symbol, group.side, allocation?.notionalUsdt ?? agent.allocatedNotional);
+                const size = this.spriteWidthFor(agent.kind, group.territory) * (1 + group.activity * 0.12 + agent.seed * 0.05);
+                agent.sprite.width = size;
+                agent.sprite.height = size * 0.5;
+                if (speciesChanged)
+                    this.configureFishPath(agent, group.territory, group.side, true, now);
+                const elapsedMs = agent.lastUpdatedAt > 0 ? Math.min(80, Math.max(0, now - agent.lastUpdatedAt)) : 0;
+                agent.lastUpdatedAt = now;
+                const distance = Math.abs(agent.targetX - agent.startX);
+                agent.progress = distance > Number.EPSILON
+                    ? Math.min(1, agent.progress + agent.speedWorldPerSecond * elapsedMs / 1000 / distance)
+                    : 1;
+                agent.position.x = positionOnTransitPath({ fromX: agent.startX, toX: agent.targetX }, agent.progress);
+                agent.position.y += Math.sin(seconds * 0.7 + agent.phase) * 0.004;
+                agent.position.y = Math.max(-4.15, Math.min(4.15, agent.position.y));
+                agent.sprite.position.copyFrom(agent.position);
+                agent.sprite.invertU = agent.direction < 0;
+                agent.sprite.color.a = Math.min(1, 0.72 + group.activity * 0.28) * Math.min(1, agent.progress / 0.08);
+                agent.sprite.isVisible = true;
+                if (agent.progress >= 1) {
+                    agent.completed = true;
+                    agent.active = false;
+                    agent.sprite.isVisible = false;
+                    this.removeLabel(agent.label);
+                    agent.label = null;
+                    agent.labelText = "";
+                    continue;
+                }
+                this.ensureFishLabel(agent, this.fishLabelText(group, agent), group.side === "buy" ? "#36e7b0" : "#ff6b55");
+                if (agent.label) {
+                    const below = index % 2 !== 0;
+                    this.placeScreenLabel(agent.label, agent.position.x, agent.position.y + (below ? -size * 0.42 : size * 0.42), agent.position.z, agent.sprite.color.a, below);
+                }
             }
         }
     }
@@ -812,12 +761,11 @@ export class WhaleOceanRuntime {
         const visible = this.getVisibleHorizontalBounds(depth);
         return calculateTeamHorizontalBounds(visible, territory, padding);
     }
-    getTransitPath(territory, side, depth, outerPadding, spritePadding) {
+    getTransitPath(territory, side, depth, outerPadding, spritePadding, bodyExtents) {
         const visible = this.getVisibleHorizontalBounds(depth);
-        return calculateTransitPath(visible, territory, side, outerPadding, spritePadding);
-    }
-    flowOuterPadding(actor) {
-        return this.spriteHalfWidth(actor.size);
+        return bodyExtents
+            ? calculateDirectionalTransitPath(visible, territory, side, outerPadding, bodyExtents)
+            : calculateTransitPath(visible, territory, side, outerPadding, spritePadding);
     }
     resizeArena() {
         if (this.disposed)
@@ -825,29 +773,31 @@ export class WhaleOceanRuntime {
         const now = performance.now();
         for (const group of this.fishGroups) {
             for (const agent of group.agents) {
-                const size = agent.sprite.width || this.spriteWidthFor(agent.kind, group.territory);
-                const padding = this.visibleBodyHalfWidth(agent.kind, group.territory, size);
-                const bounds = this.getTeamHorizontalBounds(group.territory, agent.position.z, padding);
-                agent.position.x = Math.max(bounds.minX, Math.min(bounds.maxX, agent.position.x));
-                agent.sprite.position.x = agent.position.x;
+                if (agent.active)
+                    this.configureFishPath(agent, group.territory, group.side, true, now);
             }
         }
         for (const actor of this.flowActors) {
-            const progress = Math.max(0, Math.min(1, (now - actor.startedAt) / actor.duration));
-            const bodyHalfWidth = this.visibleBodyHalfWidth(actor.kind, actor.territory, actor.size);
-            const path = this.getTransitPath(actor.territory, actor.side, actor.sprite.position.z, this.flowOuterPadding(actor), bodyHalfWidth);
-            actor.fromX = path.fromX;
-            actor.toX = path.toX;
-            const eased = progress * progress * (3 - 2 * progress);
-            actor.sprite.position.x = actor.fromX + (actor.toX - actor.fromX) * eased;
+            const previousPath = { fromX: actor.startX, toX: actor.targetX };
+            const safeSize = actor.size * 1.12;
+            const path = this.getTransitPath(actor.territory, actor.side, actor.pathDepth, this.spriteHalfWidth(safeSize), 0, this.visibleBodyExtents(actor.kind, actor.territory, safeSize));
+            actor.progress = preserveTransitProgress(previousPath, actor.sprite.position.x, path);
+            actor.startX = path.fromX;
+            actor.targetX = path.toX;
+            actor.direction = path.toX >= path.fromX ? 1 : -1;
+            actor.sprite.position.x = positionOnTransitPath(path, actor.progress);
+            actor.lastUpdatedAt = now;
         }
         for (const event of this.whales) {
-            const progress = Math.max(0, Math.min(1, (now - event.startedAt) / event.duration));
-            const bodyHalfWidth = this.visibleBodyHalfWidth(event.kind, event.territory, event.size);
-            const path = this.getTransitPath(event.territory, event.side, event.sprite.position.z, this.spriteHalfWidth(event.size), bodyHalfWidth);
-            event.fromX = path.fromX;
-            event.toX = path.toX;
-            event.sprite.position.x = event.fromX + (event.toX - event.fromX) * progress;
+            const previousPath = { fromX: event.startX, toX: event.targetX };
+            const safeSize = event.size * 1.12;
+            const path = this.getTransitPath(event.territory, event.side, event.pathDepth, this.spriteHalfWidth(safeSize), 0, this.visibleBodyExtents(event.kind, event.territory, safeSize));
+            event.progress = preserveTransitProgress(previousPath, event.sprite.position.x, path);
+            event.startX = path.fromX;
+            event.targetX = path.toX;
+            event.direction = path.toX >= path.fromX ? 1 : -1;
+            event.sprite.position.x = positionOnTransitPath(path, event.progress);
+            event.lastUpdatedAt = now;
         }
         this.debugArenaResize();
     }
@@ -974,12 +924,32 @@ export class WhaleOceanRuntime {
     }
     setLabels(labels) {
         this.labels = { ...labels };
+        this.refreshFishLabels();
+    }
+    refreshFishLabels() {
+        for (const group of this.fishGroups) {
+            for (const agent of group.agents) {
+                if (!agent.label)
+                    continue;
+                this.ensureFishLabel(agent, this.fishLabelText(group, agent), group.side === "buy" ? "#36e7b0" : "#ff6b55");
+            }
+        }
+    }
+    fishLabelText(group, agent) {
+        const currency = this.symbols.get(group.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(group.symbol);
+        return `${group.side === "buy" ? `${this.text("buy", "BUY")} →` : `${this.text("sell", "SELL")} ←`} ${formatCompactVolume(agent.allocatedNotional)} ${currency ?? "QUOTE"}`;
     }
     ensureFishLabel(agent, text, color) {
         if (agent.label && agent.labelText === text)
             return;
-        this.removeLabel(agent.label);
-        agent.label = this.createVolumeLabel(text, color);
+        if (agent.label) {
+            agent.label.textContent = text;
+            agent.label.style.setProperty("--whale-ocean-label-accent", color);
+            agent.label.dataset.halfWidth = String(Math.ceil(agent.label.offsetWidth / 2) || 60);
+        }
+        else {
+            agent.label = this.createVolumeLabel(text, color);
+        }
         agent.labelText = text;
     }
     debugInit() {
@@ -1378,7 +1348,8 @@ export class WhaleOceanRuntime {
         const labelHeightPx = 24;
         const lane = pending.side === "buy" ? 1.65 : -1.65;
         const depth = (this.random() - 0.5) * 1.2;
-        const path = this.getTransitPath(territory, pending.side, depth, this.spriteHalfWidth(spriteWidth), this.visibleBodyHalfWidth(kind, territory, spriteWidth));
+        const safeSpriteWidth = spriteWidth * 1.12;
+        const path = this.getTransitPath(territory, pending.side, depth, this.spriteHalfWidth(safeSpriteWidth), 0, this.visibleBodyExtents(kind, territory, safeSpriteWidth));
         sprite.width = spriteWidth;
         sprite.height = spriteWidth * 0.5;
         sprite.invertU = !movingRight;
@@ -1387,7 +1358,33 @@ export class WhaleOceanRuntime {
         sprite.isVisible = true;
         const label = this.createVolumeLabel(text, sideColor);
         const id = `flow-${this.nextFlowId++}`;
-        this.flowActors.push({ id, sprite, label, labelText: text, startedAt: performance.now(), duration: Math.max(9000, Math.min(15000, 8000 + Math.abs(path.toX - path.fromX) * 420)), fromX: path.fromX, toX: path.toX, side: pending.side, territory, kind, size: spriteWidth, intensity: profile.intensity, phase: this.random() * Math.PI * 2, notional: pending.totalNotional, quoteCurrency, labelWidthPx, labelHeightPx });
+        const distance = Math.abs(path.toX - path.fromX);
+        const nowPerformance = performance.now();
+        this.flowActors.push({
+            id,
+            sprite,
+            label,
+            labelText: text,
+            startedAt: nowPerformance,
+            startX: path.fromX,
+            targetX: path.toX,
+            direction: path.toX >= path.fromX ? 1 : -1,
+            progress: 0,
+            speedWorldPerSecond: Math.max(0.01, distance / Math.max(9, Math.min(15, 8 + distance * 0.42))),
+            lastUpdatedAt: nowPerformance,
+            completed: false,
+            pathDepth: depth,
+            side: pending.side,
+            territory,
+            kind,
+            size: spriteWidth,
+            intensity: profile.intensity,
+            phase: this.random() * Math.PI * 2,
+            notional: pending.totalNotional,
+            quoteCurrency,
+            labelWidthPx,
+            labelHeightPx
+        });
         this.debugArenaPath("spawn", pending.symbol, territory, pending.side, depth, path);
         this.debugSpawn("created", pending, id);
     }
@@ -1479,28 +1476,28 @@ export class WhaleOceanRuntime {
     updateFlowActors(now) {
         for (let index = this.flowActors.length - 1; index >= 0; index--) {
             const actor = this.flowActors[index];
-            const rawProgress = (now - actor.startedAt) / actor.duration;
-            if (rawProgress >= 1) {
+            const distance = Math.abs(actor.targetX - actor.startX);
+            const elapsedMs = Math.min(80, Math.max(0, now - actor.lastUpdatedAt));
+            actor.lastUpdatedAt = now;
+            actor.progress = distance > Number.EPSILON
+                ? Math.min(1, actor.progress + actor.speedWorldPerSecond * elapsedMs / 1000 / distance)
+                : 1;
+            if (actor.progress >= 1) {
+                actor.completed = true;
                 this.disposeFlowActor(actor);
                 this.flowActors.splice(index, 1);
                 continue;
             }
-            const progress = Math.max(0, Math.min(1, rawProgress));
-            const eased = progress * progress * (3 - 2 * progress);
-            actor.sprite.position.y += Math.sin(progress * Math.PI * 2 + actor.phase) * 0.0025;
-            actor.sprite.position.z = Math.sin(progress * Math.PI * 3 + actor.phase) * 0.38;
+            const progress = actor.progress;
             const pulse = 1 + Math.sin(progress * Math.PI * 3 + actor.phase) * (0.025 + actor.intensity * 0.04);
-            const path = this.getTransitPath(actor.territory, actor.side, actor.sprite.position.z, this.spriteHalfWidth(actor.size * pulse), this.visibleBodyHalfWidth(actor.kind, actor.territory, actor.size * pulse));
-            actor.fromX = path.fromX;
-            actor.toX = path.toX;
-            const direction = actor.toX >= actor.fromX ? 1 : -1;
-            actor.sprite.position.x = actor.fromX + (actor.toX - actor.fromX) * eased;
-            actor.sprite.invertU = direction < 0;
+            actor.sprite.position.x = positionOnTransitPath({ fromX: actor.startX, toX: actor.targetX }, progress);
+            actor.sprite.position.z = actor.pathDepth;
+            actor.sprite.position.y = (actor.side === "buy" ? 1.65 : -1.65) + Math.sin(progress * Math.PI * 2 + actor.phase) * 0.38;
+            actor.sprite.invertU = actor.direction < 0;
             actor.sprite.width = actor.size * pulse;
             actor.sprite.height = actor.size * 0.5 * pulse;
             const fadeIn = Math.min(1, progress / 0.12);
-            const fadeOut = Math.min(1, (1 - progress) / 0.16);
-            actor.sprite.color.a = Math.min(fadeIn, fadeOut);
+            actor.sprite.color.a = fadeIn;
             if (actor.label) {
                 this.placeScreenLabel(actor.label, actor.sprite.position.x, actor.sprite.position.y + actor.size * 0.62, actor.sprite.position.z, actor.sprite.color.a);
             }
@@ -1510,7 +1507,7 @@ export class WhaleOceanRuntime {
         actor.sprite.dispose();
         this.removeLabel(actor.label);
         actor.label = null;
-        this.debugArenaPath("despawn", actor.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, actor.territory, actor.side, actor.sprite.position.z, { fromX: actor.fromX, toX: actor.toX });
+        this.debugArenaPath("despawn", actor.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, actor.territory, actor.side, actor.pathDepth, { fromX: actor.startX, toX: actor.targetX });
         this.debugExit({
             animalId: actor.id,
             symbol: actor.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol,
@@ -1519,7 +1516,7 @@ export class WhaleOceanRuntime {
             direction: swimDirectionForSide(actor.side),
             kind: actor.kind,
             source: "money_flow_batch",
-            exitX: actor.toX,
+            exitX: actor.targetX,
             removalReason: "completed_full_transit"
         });
     }
@@ -1545,7 +1542,8 @@ export class WhaleOceanRuntime {
         const kind = animalKindForEvent(event.kind);
         const size = this.spriteWidthFor(kind, territory);
         const depth = 0.5;
-        const path = this.getTransitPath(territory, event.side, depth, this.spriteHalfWidth(size), this.visibleBodyHalfWidth(kind, territory, size));
+        const safeSpriteWidth = size * 1.12;
+        const path = this.getTransitPath(territory, event.side, depth, this.spriteHalfWidth(safeSpriteWidth), 0, this.visibleBodyExtents(kind, territory, safeSpriteWidth));
         const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-${event.kind}-${event.id}`, this.random());
         sprite.width = size;
         sprite.height = size * 0.5;
@@ -1558,7 +1556,29 @@ export class WhaleOceanRuntime {
         const quoteCurrency = this.symbols.get(event.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(event.symbol);
         const labelText = `${formatCompactVolume(event.notionalUsdt)} ${quoteCurrency ?? "QUOTE"}`;
         const label = this.createVolumeLabel(labelText, baseColor);
-        this.whales.push({ sprite, label, labelText, startedAt: performance.now(), duration: 13000, fromX: path.fromX, toX: path.toX, size, territory, kind, side: event.side, notional: event.notionalUsdt, quoteCurrency, eventId: event.id });
+        const distance = Math.abs(path.toX - path.fromX);
+        const nowPerformance = performance.now();
+        this.whales.push({
+            sprite,
+            label,
+            labelText,
+            startedAt: nowPerformance,
+            startX: path.fromX,
+            targetX: path.toX,
+            direction: path.toX >= path.fromX ? 1 : -1,
+            progress: 0,
+            speedWorldPerSecond: Math.max(0.01, distance / 13),
+            lastUpdatedAt: nowPerformance,
+            completed: false,
+            pathDepth: depth,
+            size,
+            territory,
+            kind,
+            side: event.side,
+            notional: event.notionalUsdt,
+            quoteCurrency,
+            eventId: event.id
+        });
         this.debugArenaPath("spawn", event.symbol, territory, event.side, depth, path);
         this.debugSpawn("created", { symbol: event.symbol, side: event.side, totalNotional: event.notionalUsdt, peakNotional: event.notionalUsdt, baseline: 0, firstReceivedAt: Date.now(), lastReceivedAt: Date.now(), batchCount: 1 }, event.id, kind, "classified_event");
         this.rebalancePopulation();
@@ -1585,30 +1605,33 @@ export class WhaleOceanRuntime {
     updateWhales(now) {
         for (let index = this.whales.length - 1; index >= 0; index--) {
             const event = this.whales[index];
-            const progress = (now - event.startedAt) / event.duration;
-            if (progress >= 1) {
+            const distance = Math.abs(event.targetX - event.startX);
+            const elapsedMs = Math.min(80, Math.max(0, now - event.lastUpdatedAt));
+            event.lastUpdatedAt = now;
+            event.progress = distance > Number.EPSILON
+                ? Math.min(1, event.progress + event.speedWorldPerSecond * elapsedMs / 1000 / distance)
+                : 1;
+            if (event.progress >= 1) {
+                event.completed = true;
                 event.sprite.dispose();
                 this.removeLabel(event.label);
                 event.label = null;
-                this.debugArenaPath("despawn", event.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, event.territory, event.side, event.sprite.position.z, { fromX: event.fromX, toX: event.toX });
-                this.debugExit({ animalId: event.eventId, symbol: event.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, side: event.side, volume: event.notional, direction: swimDirectionForSide(event.side), kind: event.kind, source: "classified_event", exitX: event.toX, removalReason: "completed_full_transit" });
+                this.debugArenaPath("despawn", event.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, event.territory, event.side, event.pathDepth, { fromX: event.startX, toX: event.targetX });
+                this.debugExit({ animalId: event.eventId, symbol: event.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, side: event.side, volume: event.notional, direction: swimDirectionForSide(event.side), kind: event.kind, source: "classified_event", exitX: event.targetX, removalReason: "completed_full_transit" });
                 this.whales.splice(index, 1);
                 continue;
             }
             const lane = event.side === "buy" ? 3.15 : -3.15;
-            event.sprite.position.y = lane + Math.sin(progress * Math.PI * 2) * 0.55;
-            event.sprite.position.z = Math.sin(progress * Math.PI * 3) * 0.6;
+            const progress = event.progress;
             const pulse = 1 + Math.sin(progress * Math.PI) * 0.12;
-            const path = this.getTransitPath(event.territory, event.side, event.sprite.position.z, this.spriteHalfWidth(event.size * pulse), this.visibleBodyHalfWidth(event.kind, event.territory, event.size * pulse));
-            event.fromX = path.fromX;
-            event.toX = path.toX;
-            event.sprite.position.x = event.fromX + (event.toX - event.fromX) * progress;
-            event.sprite.invertU = event.toX < event.fromX;
+            event.sprite.position.x = positionOnTransitPath({ fromX: event.startX, toX: event.targetX }, progress);
+            event.sprite.position.y = lane + Math.sin(progress * Math.PI * 2) * 0.55;
+            event.sprite.position.z = event.pathDepth;
+            event.sprite.invertU = event.direction < 0;
             event.sprite.width = event.size * pulse;
             event.sprite.height = event.size * 0.5 * pulse;
             const fadeIn = Math.min(1, progress / 0.14);
-            const fadeOut = Math.min(1, (1 - progress) / 0.18);
-            event.sprite.color.a = Math.min(fadeIn, fadeOut);
+            event.sprite.color.a = fadeIn;
             if (event.label)
                 this.placeScreenLabel(event.label, event.sprite.position.x, event.sprite.position.y + event.size * 0.56, event.sprite.position.z, event.sprite.color.a);
         }

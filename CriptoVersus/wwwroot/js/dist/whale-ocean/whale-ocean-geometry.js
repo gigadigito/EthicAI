@@ -15,21 +15,52 @@ export function getTeamHorizontalBounds(visible, territory, bodyHalfWidth) {
     };
 }
 /**
- * Builds a complete entry-to-exit path inside one territory. The entry is
- * outside the visible edge by the full sprite half-width; the exit places the
- * visible body edge exactly on the territory boundary.
+ * Builds a complete entry-to-exit path inside one territory. Outer entries
+ * start outside the viewport by the full sprite half-width; central entries
+ * start with the visible body already contained in their own territory. The
+ * exit places the leading visible body edge exactly on the territory boundary.
  */
 export function getTransitPath(visible, territory, direction, spriteHalfWidth, bodyHalfWidth) {
+    return getDirectionalTransitPath(visible, territory, direction, spriteHalfWidth, {
+        left: Math.max(0, bodyHalfWidth),
+        right: Math.max(0, bodyHalfWidth)
+    });
+}
+/**
+ * Builds a path using the measured alpha extents of the sprite. This keeps
+ * the visible body, rather than its transparent atlas frame, on its side of
+ * the divider. The same path is used for spawn, movement and despawn.
+ */
+export function getDirectionalTransitPath(visible, territory, direction, spriteHalfWidth, bodyExtents) {
     const teamLeft = territory === "left" ? visible.left : visible.center;
     const teamRight = territory === "left" ? visible.center : visible.right;
     const directionSign = direction === "buy" ? 1 : -1;
     const entryBoundary = directionSign > 0 ? teamLeft : teamRight;
     const exitBoundary = directionSign > 0 ? teamRight : teamLeft;
-    const safeBodyHalfWidth = Math.min(Math.max(0, bodyHalfWidth), Math.abs(teamRight - teamLeft) / 2);
+    const span = Math.abs(teamRight - teamLeft);
+    const leadingExtent = Math.min(Math.max(0, directionSign > 0 ? bodyExtents.right : bodyExtents.left), span / 2);
+    const centralEntry = territory === "right" ? directionSign > 0 : directionSign < 0;
+    const entryBodyInset = Math.max(0, directionSign > 0 ? bodyExtents.left : bodyExtents.right);
+    const centralExit = territory === "left" ? directionSign > 0 : directionSign < 0;
     return {
-        fromX: entryBoundary - directionSign * Math.max(0, spriteHalfWidth),
-        toX: exitBoundary - directionSign * safeBodyHalfWidth
+        fromX: centralEntry
+            ? entryBoundary + directionSign * Math.min(entryBodyInset, span / 2)
+            : entryBoundary - directionSign * Math.max(0, spriteHalfWidth),
+        toX: centralExit
+            ? exitBoundary - directionSign * leadingExtent
+            : exitBoundary + directionSign * Math.max(0, spriteHalfWidth)
     };
+}
+export function positionOnTransitPath(path, progress) {
+    const t = Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0));
+    return path.fromX + (path.toX - path.fromX) * t;
+}
+/** Returns the same normalized progress after a camera/viewport resize. */
+export function preserveTransitProgress(previousPath, currentX, nextPath) {
+    const distance = previousPath.toX - previousPath.fromX;
+    if (!Number.isFinite(distance) || Math.abs(distance) < Number.EPSILON)
+        return 0;
+    return Math.max(0, Math.min(1, (currentX - previousPath.fromX) / distance));
 }
 /** Converts CSS pixels to Babylon render pixels, preserving one screen space. */
 export function cssPixelToRenderPixel(cssPixel, cssSize, renderSize) {
