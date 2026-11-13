@@ -86,8 +86,7 @@
 .whale-ocean__topbar,
 .whale-ocean__direction,
 .whale-ocean__territory,
-.whale-ocean__legend,
-.whale-ocean__alerts {
+.whale-ocean__legend {
     position: absolute;
     z-index: 3;
     pointer-events: none;
@@ -179,11 +178,12 @@
 
 .whale-ocean__direction {
     top: 1rem;
+    left: 50%;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: .55rem;
-    width: min(31vw, 420px);
+    width: min(420px, calc(100% - 2rem));
     box-sizing: border-box;
     padding: .52rem .78rem;
     border: 1px solid #4a98a899;
@@ -196,14 +196,7 @@
     letter-spacing: .02em;
     white-space: nowrap;
     box-shadow: 0 8px 22px #0005;
-}
-
-.whale-ocean__direction--left {
-    left: 1.1rem;
-}
-
-.whale-ocean__direction--right {
-    right: 1.1rem;
+    transform: translateX(-50%);
 }
 
 .whale-ocean__direction .sell {
@@ -382,36 +375,6 @@
     color: #ff7e66;
 }
 
-.whale-ocean__alerts {
-    right: 1rem;
-    bottom: 3.5rem;
-    display: grid;
-    gap: .35rem;
-    width: min(320px, calc(100% - 2rem));
-    max-width: calc(100% - 2rem);
-}
-
-.whale-ocean-alert {
-    min-width: 0;
-    box-sizing: border-box;
-    padding: .45rem .6rem;
-    border-left: 2px solid #67f4a5;
-    background: #031221d9;
-    color: #d9f8ed;
-    font-size: .68rem;
-    overflow-wrap: anywhere;
-    box-shadow: 0 5px 20px #0005;
-}
-
-.whale-ocean-alert--whale {
-    border-left-color: #ffe38a;
-    color: #fff3bd;
-}
-
-.whale-ocean-alert--shark {
-    border-left-color: #70cfff;
-}
-
 .whale-ocean__diagnostics {
     box-sizing: border-box;
     max-width: calc(100% - 2rem);
@@ -512,22 +475,14 @@
 
     .whale-ocean__direction {
         top: .7rem;
-        width: calc(50% - 1.1rem);
-        gap: .25rem;
-        padding: .42rem .46rem;
+        width: calc(100% - 1.4rem);
+        gap: .35rem;
+        padding: .42rem .55rem;
         font-size: clamp(.65rem, 2.7vw, .82rem);
     }
 
-    .whale-ocean__direction--left {
-        left: .7rem;
-    }
-
-    .whale-ocean__direction--right {
-        right: .7rem;
-    }
-
     .whale-ocean__direction strong {
-        max-width: 34%;
+        max-width: 42%;
     }
 
     .whale-ocean__territory {
@@ -580,16 +535,6 @@
         font-size: .57rem;
     }
 
-    .whale-ocean__alerts {
-        right: .7rem;
-        bottom: 8rem;
-        width: calc(100% - 1.4rem);
-        max-width: calc(100% - 1.4rem);
-    }
-
-    .whale-ocean-alert {
-        font-size: .62rem;
-    }
 }
 
 @media (prefers-reduced-motion: reduce) {

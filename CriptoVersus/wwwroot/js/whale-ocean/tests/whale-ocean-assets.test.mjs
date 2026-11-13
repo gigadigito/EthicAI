@@ -55,7 +55,7 @@ test("production Whale Ocean execution cannot resolve legacy atlas paths", async
     for (const kind of EXPECTED_KINDS)
         assert.match(executable, new RegExp(`(?:kind: \\"${kind}\\"|\\"${kind}\\")`));
     assert.match(runtime, /Missing Whale Ocean sprite atlas/, "missing new assets must fail explicitly");
-    assert.match(runtime, /20261112-whale-ocean-territory-v11/, "manifest and atlas URLs must invalidate the old sprite cache");
+    assert.match(runtime, /20261113-whale-ocean-depth-bands-v12/, "manifest and atlas URLs must invalidate the sprite cache for the depth-band runtime");
     assert.match(runtime, /buildBubbles\(babylon, scene\)/, "bubbles receive the live Babylon scene explicitly");
     assert.match(runtime, /if \(this\.disposed\)\s*return;/, "initialization stops after an asynchronous dispose");
     assert.match(bootstrap, /initializationTasks/, "same-match bootstrap calls are serialized");

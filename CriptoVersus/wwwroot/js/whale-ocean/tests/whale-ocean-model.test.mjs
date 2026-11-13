@@ -9,6 +9,7 @@ import {
     DEFAULT_WHALE_OCEAN_VISUAL_BUDGET,
     WHALE_OCEAN_SIZE_CATEGORIES,
     WHALE_OCEAN_SPECIES,
+    depthBandForKind,
     sizeCategoryForKind,
     formatCompactVolume,
     quoteCurrencyForSymbol,
@@ -27,6 +28,17 @@ test("maps every financial animal to a supplied atlas species", () => {
     assert.equal(animalKindForVisualTier("whale"), "swordfish");
     assert.equal(animalKindForEvent("shark"), "shark");
     assert.equal(animalKindForEvent("whale"), "whale");
+});
+
+test("maps financial species to five virtual depth bands without changing classification", () => {
+    assert.equal(depthBandForKind("sardine"), "surface");
+    assert.equal(depthBandForKind("mackerel"), "surface");
+    assert.equal(depthBandForKind("snook"), "high");
+    assert.equal(depthBandForKind("barracuda"), "high");
+    assert.equal(depthBandForKind("tuna"), "central");
+    assert.equal(depthBandForKind("swordfish"), "central");
+    assert.equal(depthBandForKind("shark"), "deep");
+    assert.equal(depthBandForKind("whale"), "bottom");
 });
 
 test("classifies normal aggregate volume across the eight financial species", () => {

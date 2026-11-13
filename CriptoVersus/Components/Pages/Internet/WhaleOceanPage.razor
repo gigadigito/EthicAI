@@ -65,8 +65,7 @@
                 </div>
                 <div class="whale-ocean__state-note">@T("demoModeOff")</div>
             </div>
-            <div class="whale-ocean__direction whale-ocean__direction--left" aria-label="@T("direction")"><span class="sell">← @T("sell")</span><strong>@_match.TeamA</strong><span class="buy">@T("buy") →</span></div>
-            <div class="whale-ocean__direction whale-ocean__direction--right" aria-label="@T("direction")"><span class="sell">← @T("sell")</span><strong>@_match.TeamB</strong><span class="buy">@T("buy") →</span></div>
+            <div class="whale-ocean__direction" aria-label="@T("direction")"><span class="sell">← @T("sell")</span><strong>@_match.TeamA@_match.TeamB</strong><span class="buy">@T("buy") →</span></div>
             <div class="whale-ocean__territory whale-ocean__territory--left">
                 <div class="whale-ocean__coin">
                     @if (!string.IsNullOrEmpty(LeftLogoUrl))
@@ -98,7 +97,6 @@
                 <small>@T("windowVolume") <span data-whale-ocean="right-volume">—</span> <span data-whale-ocean="right-currency">QUOTE</span></small>
             </div>
             <div class="whale-ocean__legend"><span class="buy">● @T("buyAggressor")</span><span class="sell">● @T("sellAggressor")</span><span>@T("events") <b data-whale-ocean="events">0</b></span></div>
-            <div class="whale-ocean__alerts" data-whale-ocean="alerts" aria-live="polite"></div>
             @if (HostEnvironment.IsDevelopment())
             {
                 <aside class="whale-ocean__diagnostics" data-whale-ocean="flow-diagnostics" aria-live="polite" aria-label="Money Flow development diagnostics"></aside>
@@ -120,12 +118,14 @@
     private readonly SemaphoreSlim _rendererGate = new(1, 1);
     private ElementReference _canvas;
     private IJSObjectReference? _module;
+    private int _jsMatchId;
     private MatchDto? _match;
     private string _culture = AppCultureService.DefaultRouteCulture;
     private string? _loadError;
     private string _quality = "Medium";
     private bool _paused;
     private bool _subscribed;
+    private int _subscribedMatchId;
     private bool _dashboardSubscribed;
     private bool _disposed;
     private int _loadedMatchId;
@@ -156,7 +156,7 @@
             _officialMatchFinalized = false;
             _rendererInitializationFailed = false;
             _flowStatus = "BOOTSTRAP_PENDING";
-            await DisposeJsAsync();
+            await DisposeJsCoreAsync();
             _match = await Api.GetMatchByIdAsync(MatchId, includeParticipants: false, _lifetime.Token);
             if (_match is null)
             {
@@ -197,13 +197,16 @@
             catch (InvalidOperationException) { }
         }
 
-        if (_rendererInitializationFailed || _match is null || _lifetime.IsCancellationRequested) return;
+        if (_disposed || _rendererInitializationFailed || _match is null || _lifetime.IsCancellationRequested) return;
         if (!await _rendererGate.WaitAsync(0)) return;
         var gateEntered = true;
         try
         {
-            if (_match is null || _module is not null || _lifetime.IsCancellationRequested) return;
+            if (_disposed || _match is null || _module is not null || _lifetime.IsCancellationRequested) return;
+            var matchId = MatchId;
             var match = _match;
+            var culture = _culture;
+            var labels = JsLabels;
             var priceTasks = new[]
             {
                 Api.GetAssetPriceSnapshotAsync(match.TeamA, _lifetime.Token),
@@ -212,34 +215,47 @@
             await Task.WhenAll(priceTasks);
             var leftPrice = await priceTasks[0];
             var rightPrice = await priceTasks[1];
-            var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261112-whale-ocean-territory-v11");
+            if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId) return;
+            var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261113-whale-ocean-depth-bands-v12");
             if (module is null)
                 throw new InvalidOperationException("Whale Ocean bootstrap module was not returned by JS interop.");
+            if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId)
+            {
+                try { await module.DisposeAsync(); }
+                catch (JSDisconnectedException) { }
+                catch (InvalidOperationException) { }
+                return;
+            }
+
             _module = module;
+            _jsMatchId = matchId;
             await module.InvokeVoidAsync("initialize", new
             {
                 canvas = _canvas,
-                matchId = MatchId,
+                matchId,
                 leftSymbol = match.TeamA.ToUpperInvariant(),
                 rightSymbol = match.TeamB.ToUpperInvariant(),
                 leftPrice = leftPrice?.LastPriceUsdt,
                 rightPrice = rightPrice?.LastPriceUsdt,
-                leftChange = leftPrice?.PercentageChange ?? _match.PctA ?? 0,
-                rightChange = rightPrice?.PercentageChange ?? _match.PctB ?? 0,
+                leftChange = leftPrice?.PercentageChange ?? match.PctA ?? 0,
+                rightChange = rightPrice?.PercentageChange ?? match.PctB ?? 0,
                 leftColor = "#ff9100",
                 rightColor = "#18d8d2",
                 quality = _quality,
-                labels = JsLabels,
+                labels,
                 developmentDiagnostics = HostEnvironment.IsDevelopment(),
                 debugWhaleOcean = DebugWhaleOceanEnabled(),
                 matchFinished = IsOfficialMatchFinished,
                 officialStatus = OfficialMatchState,
-                officialRawStatus = _match.Status,
-                officialStartTimeUtc = _match.StartTime,
-                officialEndTimeUtc = _match.EndTime
+                officialRawStatus = match.Status,
+                officialStartTimeUtc = match.StartTime,
+                officialEndTimeUtc = match.EndTime
             });
-            await module.InvokeVoidAsync("setMatchFinished", MatchId, IsOfficialMatchFinished);
-            _renderedCulture = _culture;
+            if (_disposed || _lifetime.IsCancellationRequested) return;
+
+            await module.InvokeVoidAsync("setMatchFinished", matchId, IsOfficialMatchFinished);
+            _renderedCulture = culture;
+            if (_disposed || _lifetime.IsCancellationRequested) return;
 
             if (IsOfficialMatchFinished)
             {
@@ -255,27 +271,34 @@
             _dashboardSubscribed = true;
 
             if (!IsOfficialMatchFinished)
-                _subscribed = await Hub.SubscribeToMoneyFlowAsync(MatchId, _lifetime.Token);
+            {
+                _subscribed = await Hub.SubscribeToMoneyFlowAsync(matchId, _lifetime.Token);
+                _subscribedMatchId = _subscribed ? matchId : 0;
+            }
 
             try { await Hub.EnsureStartedAsync(_lifetime.Token); }
             catch (OperationCanceledException) { }
             catch (Exception ex) { Logger.LogDebug(ex, "Whale Ocean dashboard hub unavailable; state verification continues."); }
 
-            await module.InvokeVoidAsync("setConnectionState", MatchId, _subscribed);
-            await module.InvokeVoidAsync("completeReplay", MatchId);
+            await module.InvokeVoidAsync("setConnectionState", matchId, _subscribed);
+            await module.InvokeVoidAsync("completeReplay", matchId);
             SetFlowStatus("BOOTSTRAP_PENDING", "Money Flow subscription initialized; awaiting first batch");
             if (_statusMonitorTask is null || _statusMonitorTask.IsCompleted)
                 _statusMonitorTask = RunStatusVerificationAsync(_lifetime.Token);
             await InvokeAsync(StateHasChanged);
         }
+        catch (JSDisconnectedException) { }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
-        catch (Exception ex) when (ex is JSException or InvalidOperationException or ArgumentNullException or HttpRequestException)
+        catch (Exception ex) when (ex is JSException or InvalidOperationException or HttpRequestException or OperationCanceledException)
         {
             Logger.LogWarning(ex, "Whale Ocean bootstrap failed. MatchId={MatchId}", MatchId);
             _rendererInitializationFailed = true;
-            await DisposeJsAsync();
-            _loadError = T("rendererFailed");
-            await InvokeAsync(StateHasChanged);
+            await DisposeJsCoreAsync();
+            if (!_disposed && !_lifetime.IsCancellationRequested)
+            {
+                _loadError = T("rendererFailed");
+                await InvokeAsync(StateHasChanged);
+            }
         }
         finally
         {
@@ -286,7 +309,7 @@
 
     private void OnMoneyFlowBatch(MoneyFlowClientBatchDto batch)
     {
-        if (batch.MatchId != MatchId) return;
+        if (_disposed || batch.MatchId != MatchId) return;
         if (IsOfficialMatchFinished)
         {
             _ = InvokeAsync(() =>
@@ -301,10 +324,11 @@
         if (module is null) return;
         _ = InvokeAsync(async () =>
         {
+            if (_disposed) return;
             try
             {
                 var becameLive = SetFlowStatus("LIVE", "Money Flow batch received");
-                await module.InvokeVoidAsync("receive", MatchId, new
+                await module.InvokeVoidAsync("receive", batch.MatchId, new
                 {
                     matchId = batch.MatchId,
                     symbol = batch.Symbol,
@@ -326,6 +350,7 @@
 
     private void OnMoneyFlowConnectionChanged(bool connected)
     {
+        if (_disposed) return;
         if (IsOfficialMatchFinished)
         {
             _ = InvokeAsync(() =>
@@ -340,6 +365,7 @@
         if (module is null) return;
         _ = InvokeAsync(async () =>
         {
+            if (_disposed) return;
             try { await module.InvokeVoidAsync("setConnectionState", MatchId, connected); }
             catch (JSDisconnectedException) { }
             catch (InvalidOperationException) { }
@@ -347,7 +373,7 @@
                 ? "LIVE"
                 : "BOOTSTRAP_PENDING";
             var changed = SetFlowStatus(nextFlowStatus, connected ? "SignalR connected; awaiting Money Flow data" : "SignalR disconnected");
-            if (changed) await InvokeAsync(StateHasChanged);
+            if (changed && !_disposed) await InvokeAsync(StateHasChanged);
         });
     }
 
@@ -378,6 +404,7 @@
         if (_disposed || MatchId <= 0)
             return;
 
+        var matchId = MatchId;
         try
         {
             if (!await _matchRefresh.WaitAsync(0, _lifetime.Token))
@@ -387,11 +414,15 @@
         {
             return;
         }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
 
         try
         {
-            var latest = await Api.GetMatchByIdAsync(MatchId, includeParticipants: false, _lifetime.Token);
-            if (_disposed || latest is null)
+            var latest = await Api.GetMatchByIdAsync(matchId, includeParticipants: false, _lifetime.Token);
+            if (_disposed || MatchId != matchId || latest is null)
                 return;
 
             _officialMatchFinalized |= WhaleOceanMatchState.IsFinished(latest);
@@ -401,7 +432,7 @@
             if (module is not null)
                 await module.InvokeVoidAsync(
                     "setOfficialMatchState",
-                    MatchId,
+                    matchId,
                     finished,
                     latest.Status,
                     latest.StartTime,
@@ -419,11 +450,11 @@
         catch (JSDisconnectedException) { }
         catch (Exception ex)
         {
-            Logger.LogDebug(ex, "Whale Ocean official match state refresh failed. MatchId={MatchId}", MatchId);
+            Logger.LogDebug(ex, "Whale Ocean official match state refresh failed. MatchId={MatchId}", matchId);
         }
         finally
         {
-            _matchRefresh.Release();
+            try { _matchRefresh.Release(); } catch (ObjectDisposedException) { }
         }
     }
 
@@ -433,10 +464,13 @@
         Hub.MoneyFlowBatchReceived -= OnMoneyFlowBatch;
         if (_subscribed)
         {
-            try { await Hub.UnsubscribeFromMoneyFlowAsync(MatchId, _lifetime.Token); }
+            var subscribedMatchId = _subscribedMatchId;
+            _subscribed = false;
+            _subscribedMatchId = 0;
+            try { await Hub.UnsubscribeFromMoneyFlowAsync(subscribedMatchId, _lifetime.Token); }
+            catch (OperationCanceledException) { }
             catch (JSDisconnectedException) { }
             catch (InvalidOperationException) { }
-            finally { _subscribed = false; }
         }
 
         if (_dashboardSubscribed)
@@ -556,42 +590,74 @@
 
     private async Task DisposeJsAsync()
     {
+        var gateEntered = false;
+        try
+        {
+            await _rendererGate.WaitAsync();
+            gateEntered = true;
+            await DisposeJsCoreAsync();
+        }
+        catch (ObjectDisposedException) { }
+        finally
+        {
+            if (gateEntered)
+            {
+                try { _rendererGate.Release(); } catch (ObjectDisposedException) { }
+            }
+        }
+    }
+
+    // Callers must hold _rendererGate: module disposal must never interleave
+    // with an in-flight bootstrap continuation that still owns _module.
+    private async Task DisposeJsCoreAsync()
+    {
         Hub.MoneyFlowBatchReceived -= OnMoneyFlowBatch;
         Hub.MoneyFlowConnectionChanged -= OnMoneyFlowConnectionChanged;
         Hub.DashboardChanged -= OnDashboardChanged;
         _dashboardSubscribed = false;
         if (_subscribed)
         {
-            try { await Hub.UnsubscribeFromMoneyFlowAsync(MatchId); }
+            var subscribedMatchId = _subscribedMatchId;
+            _subscribed = false;
+            _subscribedMatchId = 0;
+            try { await Hub.UnsubscribeFromMoneyFlowAsync(subscribedMatchId); }
+            catch (OperationCanceledException) { }
             catch (JSDisconnectedException) { }
             catch (InvalidOperationException) { }
-            finally { _subscribed = false; }
+            catch (Exception ex) { Logger.LogDebug(ex, "Whale Ocean Money Flow unsubscribe failed during dispose. MatchId={MatchId}", subscribedMatchId); }
         }
+
         var module = _module;
         _module = null;
-        if (module is not null)
+        var jsMatchId = _jsMatchId;
+        _jsMatchId = 0;
+        if (module is null) return;
+
+        try
         {
-            try { await module.InvokeVoidAsync("dispose", MatchId); }
-            catch (JSDisconnectedException) { }
-            catch (InvalidOperationException) { }
-            catch (JSException) { }
-            try { await module.DisposeAsync(); }
-            catch (JSDisconnectedException) { }
-            catch (InvalidOperationException) { }
-            catch (ArgumentNullException) { }
+            if (jsMatchId > 0)
+                await module.InvokeVoidAsync("dispose", jsMatchId);
         }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
+        catch (JSException) { }
+        try { await module.DisposeAsync(); }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (_disposed) return;
         _disposed = true;
         _lifetime.Cancel();
         if (_statusMonitorTask is not null)
         {
-            try { await _statusMonitorTask; } catch (OperationCanceledException) { }
+            try { await _statusMonitorTask; }
+            catch (OperationCanceledException) { }
+            catch (Exception ex) { Logger.LogDebug(ex, "Whale Ocean status monitor stopped with an error during dispose."); }
         }
         try { await _matchRefresh.WaitAsync(); _matchRefresh.Release(); } catch (ObjectDisposedException) { }
-        try { await _rendererGate.WaitAsync(); _rendererGate.Release(); } catch (ObjectDisposedException) { }
         await DisposeJsAsync();
         _matchRefresh.Dispose();
         _rendererGate.Dispose();

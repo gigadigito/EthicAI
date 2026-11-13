@@ -43,7 +43,106 @@ git restore CriptoVersus.Mcp/docker-compose.yml
 git pull origin main
 cd CriptoVersus.Mcp
 docker compose down
-docker compose up -d --build
+docker compose up -d --build# PROMPT — Whale Ocean 3D: 5 faixas virtuais de profundidade
+
+Implementar no Whale Ocean 3D um sistema de distribuição dos peixes em **5 faixas horizontais virtuais**, conforme a imagem de referência.
+
+## 1. Divisão das faixas
+
+Dividir a área útil do oceano em cinco faixas, de cima para baixo, sem desenhar linhas divisórias na interface.
+
+| Faixa | Espécie | Volume | Aparência |
+|---|---|---|---|
+| 1 — Superfície | Peixes pequenos | Muito baixo | Menores e mais distantes |
+| 2 — Alta | Peixes médios | Baixo | Pequenos |
+| 3 — Central | Peixes grandes | Médio | Tamanho intermediário |
+| 4 — Profunda | Tubarões | Alto | Grandes e próximos |
+| 5 — Fundo | Baleias | Muito alto | Enormes e visualmente próximas |
+
+**Regra principal:** quanto maior o volume financeiro da operação, maior será o animal e mais baixa será sua faixa de circulação.
+
+Utilizar os limites de volume já existentes no projeto para determinar as espécies. Não criar valores fixos arbitrários nem modificar as regras financeiras.
+
+## 2. Posicionamento e profundidade
+
+- Cada espécie deve circular exclusivamente na sua faixa correspondente.
+- Cada faixa possui uma altura calculada proporcionalmente à área útil do oceano.
+- Permitir pequenas variações verticais naturais dentro da própria faixa.
+- Nunca deixar o animal atravessar os limites de outra faixa.
+- Aplicar escala e perspectiva para que os animais das faixas inferiores pareçam mais próximos da câmera.
+- Baleias devem ser significativamente maiores que tubarões.
+- Tubarões devem ser maiores que os peixes grandes.
+- Não alterar os sprites originais.
+
+A escala visual deve considerar a espécie e a posição em profundidade, mantendo consistência durante toda a travessia.
+
+## 3. Movimentação horizontal
+
+Preservar rigorosamente a lógica de território e direção:
+
+- BUY: esquerda ? direita.
+- SELL: direita ? esquerda.
+- Território A: metade esquerda.
+- Território B: metade direita.
+- A linha tracejada central continua sendo o limite dos territórios.
+
+Os animais devem nascer exclusivamente na borda externa correspondente ou na linha central, conforme o sentido da operação, atravessar sua região inteira e desaparecer somente depois de ultrapassar a borda de destino.
+
+Nenhum animal pode surgir ou desaparecer no meio da trajetória.
+
+As cinco faixas são apenas corredores verticais de circulação; não devem alterar essas regras horizontais.
+
+## 4. Distribuição e espaçamento
+
+Corrigir a sobreposição excessiva dos animais e das labels:
+
+- Distribuir os animais horizontalmente dentro de cada faixa.
+- Aplicar espaçamento mínimo entre animais da mesma faixa.
+- Evitar sobreposição das labels de volume.
+- As labels devem acompanhar os animais e respeitar o tamanho visual deles.
+- Preservar a identificação BUY/SELL e o volume em USDT.
+- Respeitar os limites de entidades simultâneas e os presets Low, Medium e High.
+- Priorizar visualmente operações de maior volume.
+
+Não criar animais artificiais para preencher faixas vazias. Se não houver operações de determinado porte, a faixa correspondente deve permanecer vazia.
+
+## 5. Responsividade
+
+O posicionamento deve ser calculado dinamicamente com base no tamanho real do viewport do Babylon.js.
+
+Garantir funcionamento em monitores ultrawide, desktops e dispositivos móveis.
+
+Evitar que baleias sejam cortadas pela parte inferior ou que peixes pequenos fiquem escondidos atrás do header.
+
+A divisão deve considerar somente a área renderizável útil, e não a altura total da página.
+
+## 6. Preservar a integração existente
+
+- Manter Babylon.js e a arquitetura atual do Whale Ocean.
+- Preservar SignalR, money_flow_batch e REPLAY.
+- Não alterar o cálculo financeiro, o placar ou os dados recebidos.
+- Preservar o comportamento das partidas encerradas.
+- Manter os sprites e suas animações.
+- Não adicionar linhas, caixas ou marcações visíveis para representar as faixas.
+
+## 7. Validação obrigatória
+
+Testar operações de todos os cinco portes e verificar:
+
+1. Cada espécie permanece na faixa correta.
+2. Baleias aparecem grandes e próximas, na faixa inferior.
+3. Tubarões ocupam a faixa imediatamente superior.
+4. Peixes menores aparecem progressivamente mais distantes nas faixas superiores.
+5. Não existem nascimentos ou desaparecimentos no meio da tela.
+6. Não ocorrem invasões indevidas entre territórios.
+7. As labels permanecem legíveis e sem sobreposição excessiva.
+8. A distribuição funciona em telas ultrawide.
+
+**Resultado esperado:** um oceano organizado em cinco níveis de profundidade, com peixes pequenos nadando ao longe, peixes médios e grandes nas faixas intermediárias, tubarões mais próximos e baleias gigantes atravessando a faixa inferior.
+
+A sensação deve ser de profundidade, escala e hierarquia financeira, mantendo o oceano visualmente limpo e agradável.
+
+Implementar efetivamente no runtime do Whale Ocean 3D, gerar o bundle atualizado e informar os arquivos modificados.
 docker compose logs -f --tail 100
 
 

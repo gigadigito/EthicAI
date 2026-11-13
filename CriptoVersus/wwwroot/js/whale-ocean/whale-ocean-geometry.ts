@@ -1,5 +1,48 @@
 export type WhaleOceanTerritory = "left" | "right";
 export type WhaleOceanDirection = "buy" | "sell";
+export type WhaleOceanVerticalBandName = "surface" | "high" | "central" | "deep" | "bottom";
+
+export interface WhaleOceanVerticalViewport {
+    top: number;
+    bottom: number;
+}
+
+export interface WhaleOceanVerticalBand {
+    name: WhaleOceanVerticalBandName;
+    index: number;
+    top: number;
+    bottom: number;
+    center: number;
+}
+
+const VERTICAL_BAND_NAMES: readonly WhaleOceanVerticalBandName[] = ["surface", "high", "central", "deep", "bottom"];
+
+/**
+ * Returns the useful canvas area for the depth lanes. The canvas already
+ * excludes the page header; the small proportional insets keep the first
+ * and last lanes clear of the in-stage HUD on desktop and mobile.
+ */
+export function getUsefulOceanVerticalViewport(viewportHeight: number): WhaleOceanVerticalViewport {
+    const height = Number.isFinite(viewportHeight) && viewportHeight > 0 ? viewportHeight : 0;
+    const topInset = Math.min(96, Math.max(20, height * 0.1));
+    const bottomInset = Math.min(112, Math.max(28, height * 0.12));
+    const top = Math.min(Math.max(0, height - 5), topInset);
+    const bottom = Math.max(top + 5, height - bottomInset);
+    return { top, bottom };
+}
+
+/** Splits the useful viewport into five equal, invisible horizontal bands. */
+export function getWhaleOceanVerticalBands(viewportHeight: number): WhaleOceanVerticalBand[] {
+    const viewport = getUsefulOceanVerticalViewport(viewportHeight);
+    const height = (viewport.bottom - viewport.top) / VERTICAL_BAND_NAMES.length;
+    return VERTICAL_BAND_NAMES.map((name, index) => ({
+        name,
+        index,
+        top: viewport.top + height * index,
+        bottom: viewport.top + height * (index + 1),
+        center: viewport.top + height * (index + 0.5)
+    }));
+}
 
 export interface WhaleOceanVisibleBounds {
     left: number;

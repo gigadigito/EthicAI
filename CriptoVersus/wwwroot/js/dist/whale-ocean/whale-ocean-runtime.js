@@ -1,17 +1,19 @@
 import { acquireBabylon, releaseBabylon } from "../futurebol/futurebol-babylon-loader.js";
 import { createOceanEnvironment } from "./ocean-environment.js";
 import { flowStatusForConnection, guardWhaleOceanFlowStatus } from "./whale-ocean-flow-state.js";
-import { cssPixelToRenderPixel, getTeamHorizontalBounds as calculateTeamHorizontalBounds, getTransitPath as calculateTransitPath, getDirectionalTransitPath as calculateDirectionalTransitPath, positionOnTransitPath, preserveTransitProgress } from "./whale-ocean-geometry.js";
-import { computePressure, formatCompactVolume, normalizeActivity, visualProfile, visualDensity, VolumeEventDetector, WHALE_OCEAN_SPECIES, WHALE_OCEAN_SIZE_CATEGORIES, DEFAULT_WHALE_OCEAN_VISUAL_BUDGET, animalKindForFinancialVolume, animalKindForEvent, isLargeAnimalKind, sizeCategoryForKind, quoteCurrencyForSymbol, swimDirectionForSide } from "./whale-ocean-model.js";
+import { cssPixelToRenderPixel, getTeamHorizontalBounds as calculateTeamHorizontalBounds, getTransitPath as calculateTransitPath, getDirectionalTransitPath as calculateDirectionalTransitPath, positionOnTransitPath, preserveTransitProgress, getWhaleOceanVerticalBands } from "./whale-ocean-geometry.js";
+import { computePressure, formatCompactVolume, normalizeActivity, visualProfile, visualDensity, VolumeEventDetector, WHALE_OCEAN_SPECIES, WHALE_OCEAN_SIZE_CATEGORIES, DEFAULT_WHALE_OCEAN_VISUAL_BUDGET, animalKindForFinancialVolume, animalKindForEvent, depthBandForKind, depthBandIndexForKind, isLargeAnimalKind, sizeCategoryForKind, quoteCurrencyForSymbol, swimDirectionForSide } from "./whale-ocean-model.js";
 const QUALITY_FPS = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS = { Low: 2, Medium: 3, High: 4 };
-const SPRITE_ASSET_VERSION = "20261112-whale-ocean-territory-v11";
+const SPRITE_ASSET_VERSION = "20261113-whale-ocean-depth-bands-v12";
 const CAMERA_FOV = 0.8;
 const CAMERA_RADIUS = 27;
 const REFERENCE_CSS_PIXELS_PER_WORLD_UNIT = 700 / (2 * CAMERA_RADIUS * Math.tan(CAMERA_FOV / 2));
 const SCHOOL_TRANSIT_RESERVE = 4;
 const SCHOOL_OCCUPANCY_SHARE = 0.55;
 const MINIMUM_SIZE_WARNING_INTERVAL_MS = 5000;
+const DEPTH_WORLD_SPREAD = 2.2;
+const LABEL_COLLISION_GAP_PX = 5;
 export class WhaleOceanRuntime {
     constructor(options) {
         this.detector = new VolumeEventDetector();
@@ -50,6 +52,7 @@ export class WhaleOceanRuntime {
         this.nextFlowId = 1;
         this.labelLayer = null;
         this.labelLayerOwned = false;
+        this.labelPlacements = [];
         this.undersizedWarnedIds = new Set();
         this.lastSizeWarningAt = 0;
         this.geometryDebugOverlay = null;
@@ -369,7 +372,7 @@ export class WhaleOceanRuntime {
             sprite.height = sprite.width * 0.5;
             const anchor = this.schoolAnchor(territory, side, index);
             const agent = {
-                position: new B.Vector3(0, anchor.y + (this.random() - 0.5) * 0.4, anchor.z + (this.random() - 0.5) * 0.3),
+                position: new B.Vector3(0, anchor.y, anchor.z),
                 velocity: new B.Vector3(Math.cos(angle) * 0.012, (this.random() - 0.5) * 0.01, Math.sin(angle) * 0.009),
                 phase: this.random() * Math.PI * 2,
                 seed: this.random(),
@@ -388,7 +391,7 @@ export class WhaleOceanRuntime {
                 speedWorldPerSecond: 0,
                 lastUpdatedAt: 0,
                 completed: false,
-                pathDepth: anchor.z
+                pathDepth: this.depthWorldForKind(kind)
             };
             this.configureFishPath(agent, territory, side, false, 0);
             agents.push(agent);
@@ -425,6 +428,89 @@ export class WhaleOceanRuntime {
         if (Number.isFinite(projectedScale) && projectedScale > 0)
             return projectedScale;
         return REFERENCE_CSS_PIXELS_PER_WORLD_UNIT;
+    }
+    depthWorldForBandIndex(index) {
+        const camera = this.camera;
+        const targetZ = camera?.target.z ?? 0;
+        const cameraSide = Math.sign((camera?.position.z ?? -CAMERA_RADIUS) - targetZ) || -1;
+        const normalized = 1 - Math.max(0, Math.min(4, index)) / 4;
+        const offset = (normalized * 2 - 1) * DEPTH_WORLD_SPREAD;
+        // The surface is farther from the front-facing camera and the bottom
+        // is closer, while keeping the camera, alpha and beta unchanged.
+        return targetZ - cameraSide * offset;
+    }
+    depthWorldForKind(kind) {
+        return this.depthWorldForBandIndex(depthBandIndexForKind(kind));
+    }
+    worldYAtScreen(depth, screenCssY) {
+        const B = this.B;
+        const engine = this.engine;
+        const camera = this.camera;
+        const scene = this.scene;
+        const clientWidth = this.canvas.clientWidth;
+        const clientHeight = this.canvas.clientHeight;
+        if (!B || !engine || !camera || !scene || clientWidth <= 0 || clientHeight <= 0)
+            return null;
+        const renderWidth = engine.getRenderWidth();
+        const renderHeight = engine.getRenderHeight();
+        if (renderWidth <= 0 || renderHeight <= 0)
+            return null;
+        const ray = scene.createPickingRay(cssPixelToRenderPixel(clientWidth / 2, clientWidth, renderWidth), cssPixelToRenderPixel(screenCssY, clientHeight, renderHeight), B.Matrix.Identity(), camera, false);
+        if (Math.abs(ray.direction.z) < 0.0001)
+            return null;
+        const distance = (depth - ray.origin.z) / ray.direction.z;
+        if (!Number.isFinite(distance) || distance < 0)
+            return null;
+        const y = ray.origin.y + ray.direction.y * distance;
+        return Number.isFinite(y) ? y : null;
+    }
+    verticalBandLayout() {
+        const height = this.canvas.clientHeight;
+        const screenBands = getWhaleOceanVerticalBands(height);
+        return screenBands.map(band => {
+            const depth = this.depthWorldForBandIndex(band.index);
+            const topWorld = this.worldYAtScreen(depth, band.top) ?? (this.camera?.target.y ?? 0);
+            const bottomWorld = this.worldYAtScreen(depth, band.bottom) ?? (this.camera?.target.y ?? 0);
+            const centerWorld = this.worldYAtScreen(depth, band.center) ?? (topWorld + bottomWorld) / 2;
+            return { ...band, depth, topWorld, bottomWorld, centerWorld };
+        });
+    }
+    verticalBandForKind(kind) {
+        const index = depthBandIndexForKind(kind);
+        return this.verticalBandLayout()[index] ?? {
+            name: depthBandForKind(kind),
+            index,
+            top: 0,
+            bottom: this.canvas.clientHeight,
+            center: this.canvas.clientHeight / 2,
+            depth: this.depthWorldForKind(kind),
+            topWorld: this.camera?.target.y ?? 0,
+            bottomWorld: this.camera?.target.y ?? 0,
+            centerWorld: this.camera?.target.y ?? 0
+        };
+    }
+    worldPositionInVerticalBand(kind, territory, sprite, phase, seed, progress) {
+        const band = this.verticalBandForKind(kind);
+        const atlas = this.spriteAtlases.get(`${kind}:${territory}`);
+        const bodyHeightRatio = atlas?.visualHeightRatio ?? 0.5;
+        const bodyHalfCss = sprite.height * bodyHeightRatio * this.cssPixelsPerWorldUnitAtDepth(band.depth) / 2;
+        const minCenter = band.top + bodyHalfCss + 4;
+        const maxCenter = band.bottom - bodyHalfCss - 4;
+        const center = maxCenter >= minCenter ? Math.max(minCenter, Math.min(maxCenter, band.center)) : band.center;
+        const variation = maxCenter >= minCenter ? Math.min((maxCenter - minCenter) / 2, (band.bottom - band.top) * 0.28) : 0;
+        const screenY = center + Math.sin(phase + progress * Math.PI * 2 + seed * Math.PI * 0.7) * variation;
+        return {
+            y: this.worldYAtScreen(band.depth, screenY) ?? band.centerWorld,
+            z: band.depth
+        };
+    }
+    cssPixelsPerWorldUnitAtDepth(depth) {
+        const targetZ = this.camera?.target.z ?? 0;
+        return this.cssPixelsPerWorldUnit() * CAMERA_RADIUS / Math.max(0.1, CAMERA_RADIUS + depth - targetZ);
+    }
+    labelBelowForKind(kind, alternate = false) {
+        const index = depthBandIndexForKind(kind);
+        return index < 2 || (index === 2 && alternate);
     }
     /** Visible body length (atlas margins excluded) in world units. */
     bodyWorldLength(kind) {
@@ -597,19 +683,21 @@ export class WhaleOceanRuntime {
         const teamLeft = territory === "left" ? visible.left : visible.center;
         const teamRight = territory === "left" ? visible.center : visible.right;
         const centerX = (teamLeft + teamRight) / 2;
-        const centerY = side === "buy" ? 2.15 : -2.15;
+        const surfaceBand = this.verticalBandForKind("sardine");
         const angle = index * 2.399963;
         const widthScale = Math.max(0.75, Math.min(1.8, Math.abs(teamRight - teamLeft) / 8.3));
         const radius = (0.35 + Math.sqrt(index + 0.5) * 0.72) * widthScale;
         return {
             x: centerX + Math.cos(angle) * radius * 1.25,
-            y: centerY + Math.sin(angle) * radius * 0.55,
-            z: Math.sin(angle * 0.7) * 0.45
+            y: surfaceBand.centerWorld,
+            z: surfaceBand.depth
         };
     }
     configureFishPath(agent, territory, side, preserveProgress, now) {
         const previousPath = { fromX: agent.startX, toX: agent.targetX };
         const safeWidth = Math.max(0.01, (agent.sprite.width || this.spriteWidthFor(agent.kind, territory)) * 1.12);
+        const verticalBand = this.verticalBandForKind(agent.kind);
+        agent.pathDepth = verticalBand.depth;
         const path = this.getTransitPath(territory, side, agent.pathDepth, this.spriteHalfWidth(safeWidth), 0, this.visibleBodyExtents(agent.kind, territory, safeWidth));
         agent.progress = preserveProgress && agent.active
             ? preserveTransitProgress(previousPath, agent.position.x, path)
@@ -620,8 +708,10 @@ export class WhaleOceanRuntime {
         agent.speedWorldPerSecond = Math.max(0.01, Math.abs(path.toX - path.fromX) / (9 + Math.min(7, Math.abs(path.toX - path.fromX) * 0.3)));
         agent.lastUpdatedAt = now;
         agent.position.x = positionOnTransitPath(path, agent.progress);
-        agent.sprite.position.x = agent.position.x;
-        agent.sprite.position.z = agent.pathDepth;
+        const vertical = this.worldPositionInVerticalBand(agent.kind, territory, agent.sprite, agent.phase, agent.seed, agent.progress);
+        agent.position.y = vertical.y;
+        agent.position.z = vertical.z;
+        agent.sprite.position.copyFrom(agent.position);
     }
     frame() {
         if (this.paused || this.disposed || !this.scene)
@@ -636,6 +726,7 @@ export class WhaleOceanRuntime {
         this.frameAccumulator = 0;
         const seconds = now / 1000;
         const wallClockNow = Date.now();
+        this.labelPlacements = [];
         if (!this.options.diagnostic) {
             this.expireFinancialWindow(wallClockNow);
             this.decayInactiveFish(wallClockNow);
@@ -644,6 +735,7 @@ export class WhaleOceanRuntime {
         this.updateFish(seconds, elapsed / 16.67);
         this.updateFlowActors(now);
         this.updateWhales(now);
+        this.resolveScreenLabels();
         this.updateGeometryDebugOverlay();
         this.promotePendingEvents();
         this.trySpawnPendingFlows(wallClockNow);
@@ -697,8 +789,9 @@ export class WhaleOceanRuntime {
                     ? Math.min(1, agent.progress + agent.speedWorldPerSecond * elapsedMs / 1000 / distance)
                     : 1;
                 agent.position.x = positionOnTransitPath({ fromX: agent.startX, toX: agent.targetX }, agent.progress);
-                agent.position.y += Math.sin(seconds * 0.7 + agent.phase) * 0.004;
-                agent.position.y = Math.max(-4.15, Math.min(4.15, agent.position.y));
+                const vertical = this.worldPositionInVerticalBand(agent.kind, group.territory, agent.sprite, agent.phase + seconds * 0.7, agent.seed, agent.progress);
+                agent.position.y = vertical.y;
+                agent.position.z = vertical.z;
                 agent.sprite.position.copyFrom(agent.position);
                 agent.sprite.invertU = agent.direction < 0;
                 agent.sprite.color.a = Math.min(1, 0.72 + group.activity * 0.28) * Math.min(1, agent.progress / 0.08);
@@ -714,7 +807,7 @@ export class WhaleOceanRuntime {
                 }
                 this.ensureFishLabel(agent, this.fishLabelText(group, agent), group.side === "buy" ? "#36e7b0" : "#ff6b55");
                 if (agent.label) {
-                    const below = index % 2 !== 0;
+                    const below = this.labelBelowForKind(agent.kind, index % 2 !== 0);
                     this.placeScreenLabel(agent.label, agent.position.x, agent.position.y + (below ? -size * 0.42 : size * 0.42), agent.position.z, agent.sprite.color.a, below);
                 }
             }
@@ -786,23 +879,27 @@ export class WhaleOceanRuntime {
         for (const actor of this.flowActors) {
             const previousPath = { fromX: actor.startX, toX: actor.targetX };
             const safeSize = actor.size * 1.12;
+            actor.pathDepth = this.depthWorldForKind(actor.kind);
             const path = this.getTransitPath(actor.territory, actor.side, actor.pathDepth, this.spriteHalfWidth(safeSize), 0, this.visibleBodyExtents(actor.kind, actor.territory, safeSize));
             actor.progress = preserveTransitProgress(previousPath, actor.sprite.position.x, path);
             actor.startX = path.fromX;
             actor.targetX = path.toX;
             actor.direction = path.toX >= path.fromX ? 1 : -1;
             actor.sprite.position.x = positionOnTransitPath(path, actor.progress);
+            actor.sprite.position.z = actor.pathDepth;
             actor.lastUpdatedAt = now;
         }
         for (const event of this.whales) {
             const previousPath = { fromX: event.startX, toX: event.targetX };
             const safeSize = event.size * 1.12;
+            event.pathDepth = this.depthWorldForKind(event.kind);
             const path = this.getTransitPath(event.territory, event.side, event.pathDepth, this.spriteHalfWidth(safeSize), 0, this.visibleBodyExtents(event.kind, event.territory, safeSize));
             event.progress = preserveTransitProgress(previousPath, event.sprite.position.x, path);
             event.startX = path.fromX;
             event.targetX = path.toX;
             event.direction = path.toX >= path.fromX ? 1 : -1;
             event.sprite.position.x = positionOnTransitPath(path, event.progress);
+            event.sprite.position.z = event.pathDepth;
             event.lastUpdatedAt = now;
         }
         this.debugArenaResize();
@@ -1046,6 +1143,7 @@ export class WhaleOceanRuntime {
         const left = this.getTeamHorizontalBounds("left", 0, 0);
         const right = this.getTeamHorizontalBounds("right", 0, 0);
         const screenX = (worldX) => this.projectToCss(worldX, 0, 0)?.x ?? null;
+        const depthBands = this.verticalBandLayout();
         return {
             viewportCss: { width, height },
             renderViewport: { width: this.engine?.getRenderWidth() ?? 0, height: this.engine?.getRenderHeight() ?? 0 },
@@ -1055,6 +1153,13 @@ export class WhaleOceanRuntime {
                 left: { world: { minX: round2(left.minX), maxX: round2(left.maxX) }, screen: { minX: 0, maxX: round2(width / 2) } },
                 right: { world: { minX: round2(right.minX), maxX: round2(right.maxX) }, screen: { minX: round2(width / 2), maxX: round2(width) } }
             },
+            depthBands: depthBands.map(band => ({
+                name: band.name,
+                index: band.index,
+                depth: round2(band.depth),
+                screen: { top: round2(band.top), bottom: round2(band.bottom), center: round2(band.center) },
+                world: { top: round2(band.topWorld), bottom: round2(band.bottomWorld), center: round2(band.centerWorld) }
+            })),
             animals: this.visualDiagnostics().map(row => ({
                 id: row.id,
                 territory: this.options.leftSymbol === row.symbol ? "left" : "right",
@@ -1074,6 +1179,7 @@ export class WhaleOceanRuntime {
             : CAMERA_RADIUS;
         const projected = this.projectToCss(sprite.position.x, sprite.position.y, sprite.position.z);
         const band = WHALE_OCEAN_SIZE_CATEGORIES[sizeCategoryForKind(kind)];
+        const depthBand = this.verticalBandForKind(kind);
         return {
             id,
             symbol,
@@ -1084,6 +1190,9 @@ export class WhaleOceanRuntime {
             worldPositionX: round2(sprite.position.x),
             worldPositionY: round2(sprite.position.y),
             worldPositionZ: round2(sprite.position.z),
+            depthBand: depthBand.name,
+            depthBandTopCss: round2(depthBand.top),
+            depthBandBottomCss: round2(depthBand.bottom),
             cameraDistance: round2(cameraDistance),
             projectedBodyCssWidth: round2(bodyWidthWorld * cssPerWorldAtDepth),
             projectedBodyCssHeight: round2(bodyHeightWorld * cssPerWorldAtDepth),
@@ -1095,6 +1204,7 @@ export class WhaleOceanRuntime {
             labelState: !label ? "none" : projected && sprite.color.a >= 0.05 ? "visible" : "hidden",
             labelCssX: projected ? round2(projected.x) : -1,
             labelCssY: projected ? round2(projected.y) : -1,
+            projectedCssY: projected ? round2(projected.y) : -1,
             labelText
         };
     }
@@ -1352,14 +1462,16 @@ export class WhaleOceanRuntime {
         const text = `${formatCompactVolume(pending.totalNotional)} ${quoteCurrency ?? "QUOTE"}`;
         const labelWidthPx = Math.min(230, 30 + text.length * 8.6);
         const labelHeightPx = 24;
-        const lane = pending.side === "buy" ? 1.65 : -1.65;
-        const depth = (this.random() - 0.5) * 1.2;
+        const depth = this.depthWorldForKind(kind);
         const safeSpriteWidth = spriteWidth * 1.12;
         const path = this.getTransitPath(territory, pending.side, depth, this.spriteHalfWidth(safeSpriteWidth), 0, this.visibleBodyExtents(kind, territory, safeSpriteWidth));
         sprite.width = spriteWidth;
         sprite.height = spriteWidth * 0.5;
         sprite.invertU = !movingRight;
-        sprite.position.set(path.fromX, lane + (this.random() - 0.5) * 1.15, depth);
+        const phase = this.random() * Math.PI * 2;
+        const seed = this.random();
+        const vertical = this.worldPositionInVerticalBand(kind, territory, sprite, phase, seed, 0);
+        sprite.position.set(path.fromX, vertical.y, vertical.z);
         sprite.color.a = 0;
         sprite.isVisible = true;
         const label = this.createVolumeLabel(text, sideColor);
@@ -1385,7 +1497,7 @@ export class WhaleOceanRuntime {
             kind,
             size: spriteWidth,
             intensity: profile.intensity,
-            phase: this.random() * Math.PI * 2,
+            phase,
             notional: pending.totalNotional,
             quoteCurrency,
             labelWidthPx,
@@ -1467,14 +1579,51 @@ export class WhaleOceanRuntime {
             label.style.display = "none";
             return;
         }
-        const halfWidth = Number(label.dataset.halfWidth ?? "60");
-        const clampedX = Math.max(halfWidth + 4, Math.min(clientWidth - halfWidth - 4, cssX));
-        const clampedY = below
-            ? Math.max(28, Math.min(clientHeight - 30, cssY))
-            : Math.max(30, Math.min(clientHeight - 28, cssY));
-        label.style.display = "";
-        label.style.opacity = "1";
-        label.style.transform = `translate(${clampedX.toFixed(1)}px, ${clampedY.toFixed(1)}px) translate(-50%, ${below ? "0" : "-100%"})`;
+        this.labelPlacements.push({ label, anchorX: cssX, anchorY: cssY, below, alpha });
+    }
+    resolveScreenLabels() {
+        if (this.labelPlacements.length === 0)
+            return;
+        const width = this.canvas.clientWidth;
+        const height = this.canvas.clientHeight;
+        const placed = [];
+        const ordered = [...this.labelPlacements].sort((a, b) => a.anchorY - b.anchorY);
+        for (const placement of ordered) {
+            const label = placement.label;
+            const labelWidth = Math.max(24, label.offsetWidth || Number(label.dataset.halfWidth ?? "60") * 2);
+            const labelHeight = Math.max(18, label.offsetHeight || 24);
+            const halfWidth = labelWidth / 2;
+            const x = Math.max(halfWidth + 4, Math.min(width - halfWidth - 4, placement.anchorX));
+            const offsets = [0, -(labelHeight + LABEL_COLLISION_GAP_PX), labelHeight + LABEL_COLLISION_GAP_PX, -(labelHeight * 2 + LABEL_COLLISION_GAP_PX * 2), labelHeight * 2 + LABEL_COLLISION_GAP_PX * 2];
+            let chosenY = placement.anchorY;
+            let chosenRect = this.labelRect(x, chosenY, labelWidth, labelHeight, placement.below, height);
+            for (const offset of offsets) {
+                const candidateY = placement.anchorY + offset;
+                const candidateRect = this.labelRect(x, candidateY, labelWidth, labelHeight, placement.below, height);
+                if (!placed.some(existing => this.rectanglesOverlap(existing, candidateRect))) {
+                    chosenY = placement.below ? candidateRect.top : candidateRect.bottom;
+                    chosenRect = candidateRect;
+                    break;
+                }
+            }
+            label.style.display = "";
+            label.style.opacity = "1";
+            label.style.transform = `translate(${x.toFixed(1)}px, ${chosenY.toFixed(1)}px) translate(-50%, ${placement.below ? "0" : "-100%"})`;
+            placed.push(chosenRect);
+        }
+    }
+    labelRect(x, anchorY, width, height, below, viewportHeight) {
+        const clampedAnchor = below
+            ? Math.max(24, Math.min(viewportHeight - 28, anchorY))
+            : Math.max(28, Math.min(viewportHeight - 24, anchorY));
+        const top = below ? clampedAnchor : clampedAnchor - height;
+        return { left: x - width / 2, right: x + width / 2, top, bottom: top + height };
+    }
+    rectanglesOverlap(a, b) {
+        return a.left < b.right + LABEL_COLLISION_GAP_PX
+            && a.right + LABEL_COLLISION_GAP_PX > b.left
+            && a.top < b.bottom + LABEL_COLLISION_GAP_PX
+            && a.bottom + LABEL_COLLISION_GAP_PX > b.top;
     }
     removeLabel(label) {
         label?.remove();
@@ -1497,16 +1646,17 @@ export class WhaleOceanRuntime {
             const progress = actor.progress;
             const pulse = 1 + Math.sin(progress * Math.PI * 3 + actor.phase) * (0.025 + actor.intensity * 0.04);
             actor.sprite.position.x = positionOnTransitPath({ fromX: actor.startX, toX: actor.targetX }, progress);
-            actor.sprite.position.z = actor.pathDepth;
-            actor.sprite.position.y = (actor.side === "buy" ? 1.65 : -1.65) + Math.sin(progress * Math.PI * 2 + actor.phase) * 0.38;
-            actor.sprite.invertU = actor.direction < 0;
             actor.sprite.width = actor.size * pulse;
             actor.sprite.height = actor.size * 0.5 * pulse;
+            const vertical = this.worldPositionInVerticalBand(actor.kind, actor.territory, actor.sprite, actor.phase, actor.phase / (Math.PI * 2), progress);
+            actor.sprite.position.y = vertical.y;
+            actor.sprite.position.z = vertical.z;
+            actor.pathDepth = vertical.z;
+            actor.sprite.invertU = actor.direction < 0;
             const fadeIn = Math.min(1, progress / 0.12);
             actor.sprite.color.a = fadeIn;
-            if (actor.label) {
-                this.placeScreenLabel(actor.label, actor.sprite.position.x, actor.sprite.position.y + actor.size * 0.62, actor.sprite.position.z, actor.sprite.color.a);
-            }
+            if (actor.label)
+                this.placeScreenLabel(actor.label, actor.sprite.position.x, actor.sprite.position.y + actor.size * 0.62, actor.sprite.position.z, actor.sprite.color.a, this.labelBelowForKind(actor.kind));
         }
     }
     disposeFlowActor(actor) {
@@ -1534,7 +1684,7 @@ export class WhaleOceanRuntime {
             this.seenEventIds.add(event.id);
         const territory = this.options.leftSymbol === event.symbol ? "left" : "right";
         if (!alreadySeen)
-            this.addAlert(event);
+            this.recordEvent();
         if (this.flowActors.length + this.whales.length >= this.budget.maxVisibleAnimals || !this.canUseHighlight(territory) || this.territoryOccupancy(territory) >= this.budget.maxOccupancyPerTerritory) {
             this.pendingEvents.push(event);
             while (this.pendingEvents.length > 8)
@@ -1547,7 +1697,7 @@ export class WhaleOceanRuntime {
         const movingRight = event.side === "buy";
         const kind = animalKindForEvent(event.kind);
         const size = this.spriteWidthFor(kind, territory);
-        const depth = 0.5;
+        const depth = this.depthWorldForKind(kind);
         const safeSpriteWidth = size * 1.12;
         const path = this.getTransitPath(territory, event.side, depth, this.spriteHalfWidth(safeSpriteWidth), 0, this.visibleBodyExtents(kind, territory, safeSpriteWidth));
         const sprite = this.createAnimatedSprite(kind, territory, `whale-ocean-${event.kind}-${event.id}`, this.random());
@@ -1555,8 +1705,10 @@ export class WhaleOceanRuntime {
         sprite.height = size * 0.5;
         sprite.invertU = !movingRight;
         sprite.position.x = path.fromX;
-        sprite.position.y = event.side === "buy" ? 2.9 + (this.random() - 0.5) * 0.55 : -2.9 + (this.random() - 0.5) * 0.55;
-        sprite.position.z = depth;
+        const phase = this.random() * Math.PI * 2;
+        const vertical = this.worldPositionInVerticalBand(kind, territory, sprite, phase, this.random(), 0);
+        sprite.position.y = vertical.y;
+        sprite.position.z = vertical.z;
         sprite.color.a = 0;
         sprite.isVisible = true;
         const quoteCurrency = this.symbols.get(event.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(event.symbol);
@@ -1577,6 +1729,7 @@ export class WhaleOceanRuntime {
             lastUpdatedAt: nowPerformance,
             completed: false,
             pathDepth: depth,
+            phase,
             size,
             territory,
             kind,
@@ -1627,34 +1780,24 @@ export class WhaleOceanRuntime {
                 this.whales.splice(index, 1);
                 continue;
             }
-            const lane = event.side === "buy" ? 3.15 : -3.15;
             const progress = event.progress;
             const pulse = 1 + Math.sin(progress * Math.PI) * 0.12;
             event.sprite.position.x = positionOnTransitPath({ fromX: event.startX, toX: event.targetX }, progress);
-            event.sprite.position.y = lane + Math.sin(progress * Math.PI * 2) * 0.55;
-            event.sprite.position.z = event.pathDepth;
-            event.sprite.invertU = event.direction < 0;
             event.sprite.width = event.size * pulse;
             event.sprite.height = event.size * 0.5 * pulse;
+            const vertical = this.worldPositionInVerticalBand(event.kind, event.territory, event.sprite, event.phase, event.phase / (Math.PI * 2), progress);
+            event.sprite.position.y = vertical.y;
+            event.sprite.position.z = vertical.z;
+            event.pathDepth = vertical.z;
+            event.sprite.invertU = event.direction < 0;
             const fadeIn = Math.min(1, progress / 0.14);
             event.sprite.color.a = fadeIn;
             if (event.label)
-                this.placeScreenLabel(event.label, event.sprite.position.x, event.sprite.position.y + event.size * 0.56, event.sprite.position.z, event.sprite.color.a);
+                this.placeScreenLabel(event.label, event.sprite.position.x, event.sprite.position.y + event.size * 0.56, event.sprite.position.z, event.sprite.color.a, this.labelBelowForKind(event.kind));
         }
     }
-    addAlert(event) {
-        const list = this.root?.querySelector('[data-whale-ocean="alerts"]');
-        if (!list)
-            return;
+    recordEvent() {
         this.alertCount++;
-        const item = document.createElement("div");
-        item.className = `whale-ocean-alert whale-ocean-alert--${event.kind}`;
-        const value = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(event.notionalUsdt);
-        const currency = this.symbols.get(event.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(event.symbol) ?? "QUOTE";
-        item.textContent = `${event.kind === "whale" ? this.text("alertWhale", "WHALE") : this.text("alertShark", "SHARK")} · ${event.symbol} · ${event.side === "buy" ? this.text("buy", "BUY") : this.text("sell", "SELL")} · ${value} ${currency}`;
-        list.prepend(item);
-        while (list.children.length > 5)
-            list.lastElementChild?.remove();
         this.write("events", String(this.alertCount));
     }
     updateHud() {

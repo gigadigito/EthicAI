@@ -65,6 +65,19 @@ function assertSizeBands(rows) {
     return checked;
 }
 
+function assertDepthBands(rows, geometry, label) {
+    expect(geometry.depthBands, `${label}: five depth bands`).toHaveLength(5);
+    for (let index = 1; index < geometry.depthBands.length; index++)
+        expect(geometry.depthBands[index].screen.top, `${label}: bands are contiguous`).toBeCloseTo(geometry.depthBands[index - 1].screen.bottom, 3);
+
+    for (const row of rows.filter(row => row.visible && row.inViewport && row.opacity >= 0.55 && row.projectedCssY >= 0)) {
+        const band = geometry.depthBands.find(candidate => candidate.name === row.depthBand);
+        expect(band, `${label}: ${row.kind} has a mapped depth band`).toBeTruthy();
+        expect(row.projectedCssY, `${label}: ${row.kind} stays below its band top`).toBeGreaterThanOrEqual(band.screen.top - 1);
+        expect(row.projectedCssY, `${label}: ${row.kind} stays above its band bottom`).toBeLessThanOrEqual(band.screen.bottom + 1);
+    }
+}
+
 function assertBudget(rows, maxAnimals) {
     expect(rows.length).toBeLessThanOrEqual(maxAnimals);
     for (const symbol of symbols) {
@@ -104,7 +117,7 @@ const dividerMetrics = page => page.evaluate(() => {
 const geometryMetrics = page => page.evaluate(() => window.wo.geometry());
 
 function assertGeometry(geometry, label) {
-    expect(geometry.visibleWorld.center, `${label}: frustum center is finite`).toBeFinite();
+    expect(Number.isFinite(geometry.visibleWorld.center), `${label}: frustum center is finite`).toBe(true);
     expect(geometry.territories.left.screen.minX).toBe(0);
     expect(geometry.territories.left.screen.maxX).toBeCloseTo(geometry.viewportCss.width / 2, 3);
     expect(geometry.territories.right.screen.minX).toBeCloseTo(geometry.viewportCss.width / 2, 3);
@@ -214,6 +227,7 @@ test('desktop: readable animals, legible volumes and full traversals', async ({ 
     };
 
     const geometry = await geometryMetrics(page);
+    assertDepthBands(await diagnostics(page), geometry, 'desktop');
     const leftTerritory = geometry.territories.left.world;
     const before = new Set((await diagnostics(page)).map(row => row.id));
     await feed(page, 'INITUSDT', ++sequenceA, 1_600, 0);
@@ -312,6 +326,7 @@ test('mobile: readable animals, legible volumes and the 12-animal cap', async ({
     await page.waitForTimeout(1_500);
     const rows = await diagnostics(page);
     assertSizeBands(rows);
+    assertDepthBands(rows, await geometryMetrics(page), 'mobile');
     assertBudget(rows, 12);
     assertLabelLegibility(await visibleLabels(page));
     await page.screenshot({ path: testInfo.outputPath('whale-ocean-mobile.png') });

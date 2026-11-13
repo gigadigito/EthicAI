@@ -6,7 +6,9 @@ import {
     getTransitPath,
     getDirectionalTransitPath,
     positionOnTransitPath,
-    preserveTransitProgress
+    preserveTransitProgress,
+    getUsefulOceanVerticalViewport,
+    getWhaleOceanVerticalBands
 } from '../../dist/whale-ocean/whale-ocean-geometry.js';
 
 const visible = { left: -20, center: 0, right: 20 };
@@ -54,4 +56,18 @@ test('resize preserves normalized progress instead of jumping or restarting a tr
     const progress = preserveTransitProgress(before, currentX, after);
     assert.equal(progress, 0.4);
     assert.equal(positionOnTransitPath(after, progress), -20.6);
+});
+
+test('divides only the canvas viewport into five proportional invisible depth bands', () => {
+    const viewport = getUsefulOceanVerticalViewport(844);
+    const bands = getWhaleOceanVerticalBands(844);
+    assert.equal(bands.length, 5);
+    assert.equal(bands[0].top, viewport.top);
+    assert.equal(bands.at(-1).bottom, viewport.bottom);
+    for (let index = 0; index < bands.length; index++) {
+        assert.equal(bands[index].index, index);
+        assert.ok(bands[index].bottom > bands[index].top);
+        assert.equal(bands[index].center, (bands[index].top + bands[index].bottom) / 2);
+        if (index > 0) assert.equal(bands[index - 1].bottom, bands[index].top);
+    }
 });

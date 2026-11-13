@@ -3,6 +3,7 @@ export type WhaleOceanEventKind = "shark" | "whale";
 export type WhaleOceanVisualTier = "micro" | "small" | "medium" | "large" | "whale";
 export type WhaleOceanFlowAnimalKind = "sardine" | "bluefish" | "mackerel" | "snook" | "grouper" | "barracuda" | "tuna" | "swordfish";
 export type WhaleOceanAnimalKind = WhaleOceanFlowAnimalKind | "shark" | "whale";
+export type WhaleOceanDepthBand = "surface" | "high" | "central" | "deep" | "bottom";
 
 export interface WhaleOceanVisualBudget {
     maxVisibleAnimals: number;
@@ -47,6 +48,24 @@ export function sizeCategoryForKind(kind: WhaleOceanAnimalKind): WhaleOceanSizeC
         case "barracuda": return "medium";
         default: return "small";
     }
+}
+
+/**
+ * Presentation-only vertical lanes. The financial classifier remains the
+ * owner of the animal kind; this maps that result to its depth corridor.
+ */
+export function depthBandForKind(kind: WhaleOceanAnimalKind): WhaleOceanDepthBand {
+    switch (sizeCategoryForKind(kind)) {
+        case "medium": return "high";
+        case "large": return "central";
+        case "shark": return "deep";
+        case "whale": return "bottom";
+        default: return "surface";
+    }
+}
+
+export function depthBandIndexForKind(kind: WhaleOceanAnimalKind): number {
+    return ["surface", "high", "central", "deep", "bottom"].indexOf(depthBandForKind(kind));
 }
 
 export interface WhaleOceanSpecies {

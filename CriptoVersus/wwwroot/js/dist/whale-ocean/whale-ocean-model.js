@@ -24,6 +24,22 @@ export function sizeCategoryForKind(kind) {
         default: return "small";
     }
 }
+/**
+ * Presentation-only vertical lanes. The financial classifier remains the
+ * owner of the animal kind; this maps that result to its depth corridor.
+ */
+export function depthBandForKind(kind) {
+    switch (sizeCategoryForKind(kind)) {
+        case "medium": return "high";
+        case "large": return "central";
+        case "shark": return "deep";
+        case "whale": return "bottom";
+        default: return "surface";
+    }
+}
+export function depthBandIndexForKind(kind) {
+    return ["surface", "high", "central", "deep", "bottom"].indexOf(depthBandForKind(kind));
+}
 export const WHALE_OCEAN_SPECIES = {
     sardine: { kind: "sardine", name: "Sardinha", financialLevel: 1, bodyLengthPx: 50, swimSpeed: 1.18, fps: 12 },
     bluefish: { kind: "bluefish", name: "Peixe-azul", financialLevel: 2, bodyLengthPx: 57, swimSpeed: 1.12, fps: 12 },
