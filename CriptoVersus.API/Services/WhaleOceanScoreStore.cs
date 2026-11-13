@@ -38,6 +38,16 @@ public sealed class WhaleOceanScoreStore
         foreach (var symbol in batches.Select(batch => MoneyFlowMatchRegistry.Normalize(batch.Symbol)).Distinct(StringComparer.Ordinal))
             matchesBySymbol[symbol] = await _registry.GetMatchesForSymbolAsync(symbol, ct);
 
+        _logger.LogDebug(
+            "Whale Ocean score ingest. SourceId={SourceId} Batches={BatchCount} Symbols={Symbols} Matches={Matches} TradeCount={TradeCount} CreatureTradeCount={CreatureTradeCount} Points={Points}",
+            sourceId,
+            batches.Count,
+            string.Join(",", matchesBySymbol.Keys),
+            string.Join(",", matchesBySymbol.SelectMany(pair => pair.Value.Select(matchId => $"{pair.Key}:{matchId}"))),
+            batches.Sum(batch => batch.TradeCount),
+            batches.Sum(batch => batch.CreatureCounts.TradeCount),
+            batches.Sum(batch => batch.CreatureCounts.Points));
+
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         foreach (var batch in batches)
@@ -76,14 +86,28 @@ public sealed class WhaleOceanScoreStore
             .Where(row => row.MatchId == matchId)
             .ToListAsync(ct);
 
+        var teamA = BuildTeam(match.TeamA, rows, windowStart);
+        var teamB = BuildTeam(match.TeamB, rows, windowStart);
+        _logger.LogInformation(
+            "Whale Ocean scoreboard snapshot. MatchId={MatchId} TeamA={TeamA} TeamB={TeamB} Rows={Rows} TeamAPoints={TeamAPoints} TeamBPoints={TeamBPoints} TeamATrades={TeamATrades} TeamBTrades={TeamBTrades} WindowStartUtc={WindowStartUtc}",
+            matchId,
+            teamA.Symbol,
+            teamB.Symbol,
+            rows.Count,
+            teamA.MatchTotal.Points,
+            teamB.MatchTotal.Points,
+            teamA.MatchTotal.TradeCount,
+            teamB.MatchTotal.TradeCount,
+            windowStart);
+
         return new WhaleOceanScoreboardDto
         {
             MatchId = matchId,
             WindowStartUtc = windowStart,
             WindowEndUtc = windowEnd,
             IsFinalized = finalized,
-            TeamA = BuildTeam(match.TeamA, rows, windowStart),
-            TeamB = BuildTeam(match.TeamB, rows, windowStart)
+            TeamA = teamA,
+            TeamB = teamB
         };
     }
 

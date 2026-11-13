@@ -49,6 +49,8 @@ import {
     creaturePoints,
     creatureTradeCount,
     emptyCreatureCounts,
+    normalizeCreatureCounts,
+    normalizeScoreboard,
     oceanControl,
     sidePoints,
     type WhaleOceanCreatureCounts,
@@ -436,8 +438,11 @@ export class WhaleOceanRuntime {
         this.officialEndTimeUtc = options.officialEndTimeUtc ?? null;
         this.symbols.set(options.leftSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.leftPrice, quoteCurrency: quoteCurrencyForSymbol(options.leftSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
         this.symbols.set(options.rightSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.rightPrice, quoteCurrency: quoteCurrencyForSymbol(options.rightSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
-        this.seedScoreState(options.leftSymbol, options.scoreboard?.teamA);
-        this.seedScoreState(options.rightSymbol, options.scoreboard?.teamB);
+        const normalizedScoreboard = normalizeScoreboard(options.scoreboard);
+        this.options.scoreboard = normalizedScoreboard;
+        this.seedScoreState(options.leftSymbol, normalizedScoreboard?.teamA);
+        this.seedScoreState(options.rightSymbol, normalizedScoreboard?.teamB);
+        this.debugScoreboard("initial", normalizedScoreboard);
     }
 
     public async initialize(): Promise<void> {
@@ -605,10 +610,15 @@ export class WhaleOceanRuntime {
     }
 
     public setScoreboard(scoreboard: WhaleOceanScoreboard | null): void {
-        if (!scoreboard || scoreboard.matchId !== this.options.matchId) return;
-        this.options.scoreboard = scoreboard;
-        this.seedScoreState(this.options.leftSymbol, scoreboard.teamA);
-        this.seedScoreState(this.options.rightSymbol, scoreboard.teamB);
+        const normalizedScoreboard = normalizeScoreboard(scoreboard);
+        if (!normalizedScoreboard || normalizedScoreboard.matchId !== this.options.matchId) {
+            this.debugScoreboard("ignored", scoreboard);
+            return;
+        }
+        this.options.scoreboard = normalizedScoreboard;
+        this.seedScoreState(this.options.leftSymbol, normalizedScoreboard.teamA);
+        this.seedScoreState(this.options.rightSymbol, normalizedScoreboard.teamB);
+        this.debugScoreboard("refresh", normalizedScoreboard);
         this.updateScoreboardHud();
     }
 
@@ -2638,12 +2648,13 @@ export class WhaleOceanRuntime {
 
     private acceptScoreBatch(symbol: string, batch: WhaleOceanBatch): void {
         const state = this.scoreStates.get(symbol);
-        const counts = batch.creatureCounts;
-        if (!state || !counts) return;
+        const counts = normalizeCreatureCounts(batch.creatureCounts);
+        if (!state) return;
         addCreatureCounts(state.matchTotal, counts);
         const eventAt = Date.parse(batch.eventTimeUtc) || Date.now();
         state.recent.push({ at: eventAt, counts: cloneCreatureCounts(counts) });
         this.pruneScoreWindow(state, Date.now());
+        this.debugScoreBatch(symbol, batch, counts);
         this.updateScoreboardHud();
     }
 
@@ -2697,6 +2708,36 @@ export class WhaleOceanRuntime {
         const rightBar = this.root?.querySelector<HTMLElement>('[data-whale-ocean="control-right-bar"]');
         if (leftBar) leftBar.style.width = `${control.left ?? 50}%`;
         if (rightBar) rightBar.style.width = `${control.right ?? 50}%`;
+    }
+
+    private debugScoreboard(stage: string, scoreboard: WhaleOceanScoreboard | null | unknown): void {
+        if (this.options.debugWhaleOcean === false) return;
+        const payload = normalizeScoreboard(scoreboard);
+        console.info("[WhaleOcean][SCOREBOARD] state", {
+            stage,
+            matchId: payload?.matchId ?? null,
+            leftSymbol: payload?.teamA.symbol ?? this.options.leftSymbol,
+            rightSymbol: payload?.teamB.symbol ?? this.options.rightSymbol,
+            leftMatchPoints: payload ? creaturePoints(payload.teamA.matchTotal) : 0,
+            rightMatchPoints: payload ? creaturePoints(payload.teamB.matchTotal) : 0,
+            leftWindowPoints: payload ? creaturePoints(payload.teamA.last30Seconds) : 0,
+            rightWindowPoints: payload ? creaturePoints(payload.teamB.last30Seconds) : 0
+        });
+    }
+
+    private debugScoreBatch(symbol: string, batch: WhaleOceanBatch, counts: WhaleOceanCreatureCounts): void {
+        if (this.options.debugWhaleOcean === false) return;
+        console.info("[WhaleOcean][SCOREBOARD] live batch applied", {
+            matchId: batch.matchId,
+            symbol,
+            sourceId: batch.sourceId ?? "",
+            sequence: batch.sequence,
+            tradeCount: batch.tradeCount,
+            countTradeCount: creatureTradeCount(counts),
+            points: creaturePoints(counts),
+            buy: counts.buy,
+            sell: counts.sell
+        });
     }
 
     private updateHud(): void {

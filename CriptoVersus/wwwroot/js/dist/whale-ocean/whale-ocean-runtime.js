@@ -3,7 +3,7 @@ import { createOceanEnvironment } from "./ocean-environment.js";
 import { flowStatusForConnection, guardWhaleOceanFlowStatus } from "./whale-ocean-flow-state.js";
 import { cssPixelToRenderPixel, getTeamHorizontalBounds as calculateTeamHorizontalBounds, getTransitPath as calculateTransitPath, getDirectionalTransitPath as calculateDirectionalTransitPath, positionOnTransitPath, preserveTransitProgress, getUsefulOceanVerticalViewport, getWhaleOceanVerticalBands } from "./whale-ocean-geometry.js";
 import { computePressure, formatCompactVolume, normalizeActivity, visualProfile, visualDensity, VolumeEventDetector, WHALE_OCEAN_SPECIES, WHALE_OCEAN_SIZE_CATEGORIES, DEFAULT_WHALE_OCEAN_VISUAL_BUDGET, adaptiveVisualBudgetForViewport, animalKindForFinancialVolume, animalKindForEvent, depthBandForKind, depthBandIndexForKind, isLargeAnimalKind, sizeCategoryForKind, quoteCurrencyForSymbol, swimDirectionForSide } from "./whale-ocean-model.js";
-import { addCreatureCounts, cloneCreatureCounts, creaturePoints, creatureTradeCount, emptyCreatureCounts, oceanControl, sidePoints } from "./whale-ocean-scoreboard.js";
+import { addCreatureCounts, cloneCreatureCounts, creaturePoints, creatureTradeCount, emptyCreatureCounts, normalizeCreatureCounts, normalizeScoreboard, oceanControl, sidePoints } from "./whale-ocean-scoreboard.js";
 const QUALITY_FPS = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS = { Low: 2, Medium: 4, High: 5 };
 const SPRITE_ASSET_VERSION = "20261113-whale-ocean-depth-bands-v14";
@@ -86,8 +86,11 @@ export class WhaleOceanRuntime {
         this.officialEndTimeUtc = options.officialEndTimeUtc ?? null;
         this.symbols.set(options.leftSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.leftPrice, quoteCurrency: quoteCurrencyForSymbol(options.leftSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
         this.symbols.set(options.rightSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.rightPrice, quoteCurrency: quoteCurrencyForSymbol(options.rightSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
-        this.seedScoreState(options.leftSymbol, options.scoreboard?.teamA);
-        this.seedScoreState(options.rightSymbol, options.scoreboard?.teamB);
+        const normalizedScoreboard = normalizeScoreboard(options.scoreboard);
+        this.options.scoreboard = normalizedScoreboard;
+        this.seedScoreState(options.leftSymbol, normalizedScoreboard?.teamA);
+        this.seedScoreState(options.rightSymbol, normalizedScoreboard?.teamB);
+        this.debugScoreboard("initial", normalizedScoreboard);
     }
     async initialize() {
         this.debugInit();
@@ -253,11 +256,15 @@ export class WhaleOceanRuntime {
             this.setFlowStatus(flowStatusForConnection(this.connected, this.hasLiveData()), "replay completed");
     }
     setScoreboard(scoreboard) {
-        if (!scoreboard || scoreboard.matchId !== this.options.matchId)
+        const normalizedScoreboard = normalizeScoreboard(scoreboard);
+        if (!normalizedScoreboard || normalizedScoreboard.matchId !== this.options.matchId) {
+            this.debugScoreboard("ignored", scoreboard);
             return;
-        this.options.scoreboard = scoreboard;
-        this.seedScoreState(this.options.leftSymbol, scoreboard.teamA);
-        this.seedScoreState(this.options.rightSymbol, scoreboard.teamB);
+        }
+        this.options.scoreboard = normalizedScoreboard;
+        this.seedScoreState(this.options.leftSymbol, normalizedScoreboard.teamA);
+        this.seedScoreState(this.options.rightSymbol, normalizedScoreboard.teamB);
+        this.debugScoreboard("refresh", normalizedScoreboard);
         this.updateScoreboardHud();
     }
     setMatchFinished(finished) {
@@ -2168,13 +2175,14 @@ export class WhaleOceanRuntime {
     }
     acceptScoreBatch(symbol, batch) {
         const state = this.scoreStates.get(symbol);
-        const counts = batch.creatureCounts;
-        if (!state || !counts)
+        const counts = normalizeCreatureCounts(batch.creatureCounts);
+        if (!state)
             return;
         addCreatureCounts(state.matchTotal, counts);
         const eventAt = Date.parse(batch.eventTimeUtc) || Date.now();
         state.recent.push({ at: eventAt, counts: cloneCreatureCounts(counts) });
         this.pruneScoreWindow(state, Date.now());
+        this.debugScoreBatch(symbol, batch, counts);
         this.updateScoreboardHud();
     }
     pruneScoreWindow(state, now) {
@@ -2229,6 +2237,36 @@ export class WhaleOceanRuntime {
             leftBar.style.width = `${control.left ?? 50}%`;
         if (rightBar)
             rightBar.style.width = `${control.right ?? 50}%`;
+    }
+    debugScoreboard(stage, scoreboard) {
+        if (this.options.debugWhaleOcean === false)
+            return;
+        const payload = normalizeScoreboard(scoreboard);
+        console.info("[WhaleOcean][SCOREBOARD] state", {
+            stage,
+            matchId: payload?.matchId ?? null,
+            leftSymbol: payload?.teamA.symbol ?? this.options.leftSymbol,
+            rightSymbol: payload?.teamB.symbol ?? this.options.rightSymbol,
+            leftMatchPoints: payload ? creaturePoints(payload.teamA.matchTotal) : 0,
+            rightMatchPoints: payload ? creaturePoints(payload.teamB.matchTotal) : 0,
+            leftWindowPoints: payload ? creaturePoints(payload.teamA.last30Seconds) : 0,
+            rightWindowPoints: payload ? creaturePoints(payload.teamB.last30Seconds) : 0
+        });
+    }
+    debugScoreBatch(symbol, batch, counts) {
+        if (this.options.debugWhaleOcean === false)
+            return;
+        console.info("[WhaleOcean][SCOREBOARD] live batch applied", {
+            matchId: batch.matchId,
+            symbol,
+            sourceId: batch.sourceId ?? "",
+            sequence: batch.sequence,
+            tradeCount: batch.tradeCount,
+            countTradeCount: creatureTradeCount(counts),
+            points: creaturePoints(counts),
+            buy: counts.buy,
+            sell: counts.sell
+        });
     }
     updateHud() {
         const left = this.symbols.get(this.options.leftSymbol);

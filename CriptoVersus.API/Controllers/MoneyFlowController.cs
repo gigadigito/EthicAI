@@ -18,19 +18,22 @@ public sealed class MoneyFlowController : ControllerBase
     private readonly IOptions<MoneyFlowTransportOptions> _options;
     private readonly MoneyFlowMetrics _metrics;
     private readonly WhaleOceanScoreStore _scoreStore;
+    private readonly ILogger<MoneyFlowController> _logger;
 
     public MoneyFlowController(
         IMoneyFlowWorkerAuthenticationService authentication,
         MoneyFlowDispatcher dispatcher,
         IOptions<MoneyFlowTransportOptions> options,
         MoneyFlowMetrics metrics,
-        WhaleOceanScoreStore scoreStore)
+        WhaleOceanScoreStore scoreStore,
+        ILogger<MoneyFlowController> logger)
     {
         _authentication = authentication;
         _dispatcher = dispatcher;
         _options = options;
         _metrics = metrics;
         _scoreStore = scoreStore;
+        _logger = logger;
     }
 
     [HttpPost("batches")]
@@ -61,6 +64,20 @@ public sealed class MoneyFlowController : ControllerBase
 
         // Persist before acknowledging the worker. The transport retry then
         // becomes safe even if the API process stops before SignalR publish.
+        _logger.LogDebug(
+            "Money-flow batch accepted for Whale Ocean scoring. SourceId={SourceId} Batches={BatchCount} TradeCount={TradeCount} CreatureTradeCount={CreatureTradeCount} Points={Points}",
+            request.SourceId,
+            request.Batches.Count,
+            request.Batches.Sum(batch => batch.TradeCount),
+            request.Batches.Sum(batch => batch.CreatureCounts.TradeCount),
+            request.Batches.Sum(batch => batch.CreatureCounts.Points));
+        if (request.Batches.Sum(batch => batch.TradeCount) > 0
+            && request.Batches.Sum(batch => batch.CreatureCounts.TradeCount) == 0)
+        {
+            _logger.LogWarning(
+                "Whale Ocean received real trades without CreatureCounts. SourceId={SourceId}; redeploy the Worker with the Whale Ocean market-flow contract.",
+                request.SourceId);
+        }
         await _scoreStore.PersistAsync(request.SourceId, request.Batches, ct);
         return Accepted(await _dispatcher.EnqueueAsync(request, ct));
     }

@@ -203,6 +203,15 @@
             try
             {
                 _scoreboard = await Api.GetWhaleOceanScoreboardAsync(MatchId, _lifetime.Token);
+                Logger.LogInformation(
+                    "Whale Ocean scoreboard snapshot loaded. MatchId={MatchId} TeamA={TeamA} TeamB={TeamB} TeamAPoints={TeamAPoints} TeamBPoints={TeamBPoints} TeamATrades={TeamATrades} TeamBTrades={TeamBTrades}",
+                    MatchId,
+                    _scoreboard?.TeamA.Symbol,
+                    _scoreboard?.TeamB.Symbol,
+                    _scoreboard?.TeamA.MatchTotal.Points ?? 0,
+                    _scoreboard?.TeamB.MatchTotal.Points ?? 0,
+                    _scoreboard?.TeamA.MatchTotal.TradeCount ?? 0,
+                    _scoreboard?.TeamB.MatchTotal.TradeCount ?? 0);
             }
             catch (Exception ex) when (ex is HttpRequestException or TimeoutException)
             {
@@ -356,6 +365,21 @@
     private void OnMoneyFlowBatch(MoneyFlowClientBatchDto batch)
     {
         if (_disposed || batch.MatchId != MatchId) return;
+        Logger.LogDebug(
+            "Whale Ocean live score batch received. MatchId={MatchId} Symbol={Symbol} SourceId={SourceId} Sequence={Sequence} TradeCount={TradeCount} CountTradeCount={CountTradeCount} Points={Points}",
+            batch.MatchId,
+            batch.Symbol,
+            batch.SourceId,
+            batch.Sequence,
+            batch.TradeCount,
+            batch.CreatureCounts.TradeCount,
+            batch.CreatureCounts.Points);
+        if (batch.TradeCount > 0 && batch.CreatureCounts.TradeCount == 0)
+            Logger.LogWarning(
+                "Whale Ocean live batch has trades but no CreatureCounts. MatchId={MatchId} Symbol={Symbol} Sequence={Sequence}; this indicates an older Worker contract.",
+                batch.MatchId,
+                batch.Symbol,
+                batch.Sequence);
         if (IsOfficialMatchFinished)
         {
             _ = InvokeAsync(() =>
@@ -387,7 +411,25 @@
                     lastPrice = batch.LastPrice,
                     isPartial = batch.IsPartial,
                     isReplay = batch.IsReplay,
-                    creatureCounts = batch.CreatureCounts
+                    creatureCounts = new
+                    {
+                        buy = new
+                        {
+                            small = batch.CreatureCounts.Buy.Small,
+                            medium = batch.CreatureCounts.Buy.Medium,
+                            large = batch.CreatureCounts.Buy.Large,
+                            shark = batch.CreatureCounts.Buy.Shark,
+                            whale = batch.CreatureCounts.Buy.Whale
+                        },
+                        sell = new
+                        {
+                            small = batch.CreatureCounts.Sell.Small,
+                            medium = batch.CreatureCounts.Sell.Medium,
+                            large = batch.CreatureCounts.Sell.Large,
+                            shark = batch.CreatureCounts.Sell.Shark,
+                            whale = batch.CreatureCounts.Sell.Whale
+                        }
+                    }
                 });
                 if (becameLive) await InvokeAsync(StateHasChanged);
             }
