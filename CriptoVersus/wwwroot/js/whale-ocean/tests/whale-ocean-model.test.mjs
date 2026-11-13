@@ -7,6 +7,7 @@ import {
     animalKindForVisualTier,
     computePressure,
     DEFAULT_WHALE_OCEAN_VISUAL_BUDGET,
+    adaptiveVisualBudgetForViewport,
     WHALE_OCEAN_SIZE_CATEGORIES,
     WHALE_OCEAN_SPECIES,
     depthBandForKind,
@@ -89,6 +90,19 @@ test("uses a shared, configurable visual budget", () => {
     assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxVisibleAnimals, 24);
     assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxLargeHighlightsPerTerritory, 2);
     assert.equal(DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.windowMs, 30_000);
+});
+
+test("adapts entity and occupancy ceilings to viewport area and quality", () => {
+    const desktop = adaptiveVisualBudgetForViewport(1400, 820, "High");
+    const ultrawide = adaptiveVisualBudgetForViewport(3440, 1440, "High");
+    const mobile = adaptiveVisualBudgetForViewport(390, 844, "High");
+    const low = adaptiveVisualBudgetForViewport(1400, 820, "Low");
+    assert.equal(desktop.maxVisibleAnimals, 24);
+    assert.equal(ultrawide.maxVisibleAnimals, 24);
+    assert.equal(mobile.maxVisibleAnimals, 12);
+    assert.ok(low.maxVisibleAnimals < desktop.maxVisibleAnimals);
+    assert.ok(mobile.maxOccupancyPerTerritory < desktop.maxOccupancyPerTerritory);
+    assert.ok(mobile.maxSchoolAnimalsPerGroup <= 3);
 });
 
 test("keeps every species body inside its CSS-pixel size band", () => {

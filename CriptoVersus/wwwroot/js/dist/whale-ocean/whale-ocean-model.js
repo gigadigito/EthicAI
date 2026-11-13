@@ -5,6 +5,34 @@ export const DEFAULT_WHALE_OCEAN_VISUAL_BUDGET = {
     maxOccupancyPerTerritory: 14,
     windowMs: 30000
 };
+/**
+ * Keeps the visual budget proportional to the pixels available to the ocean.
+ * The financial window is deliberately not part of this calculation: this is
+ * only a presentation ceiling, never a filter for received market data.
+ */
+export function adaptiveVisualBudgetForViewport(width, height, quality, requested = {}) {
+    const safeWidth = Number.isFinite(width) && width > 0 ? width : 1;
+    const safeHeight = Number.isFinite(height) && height > 0 ? height : 1;
+    const referenceArea = 1400 * 820;
+    const areaFactor = Math.max(0.55, Math.min(1.15, Math.sqrt((safeWidth * safeHeight) / referenceArea)));
+    const qualityMaximum = { Low: 12, Medium: 18, High: 24 }[quality];
+    const viewportMaximum = safeWidth <= 700
+        ? 12
+        : Math.max(8, Math.min(qualityMaximum, Math.round(qualityMaximum * areaFactor)));
+    const requestedMaximum = requested.maxVisibleAnimals;
+    const maxVisibleAnimals = Math.max(8, Math.min(viewportMaximum, Number.isFinite(requestedMaximum) ? Math.round(requestedMaximum) : viewportMaximum));
+    const requestedSchool = requested.maxSchoolAnimalsPerGroup;
+    const maxSchoolAnimalsPerGroup = Math.max(2, Math.min(safeWidth <= 700 ? 3 : 6, Number.isFinite(requestedSchool) ? Math.round(requestedSchool) : Math.round(maxVisibleAnimals / 4)));
+    const requestedOccupancy = requested.maxOccupancyPerTerritory;
+    const maxOccupancyPerTerritory = Math.max(7, Math.min(safeWidth <= 700 ? 7 : 14, Number.isFinite(requestedOccupancy) ? Number(requestedOccupancy) : Math.round(maxVisibleAnimals / 1.7)));
+    return {
+        maxVisibleAnimals,
+        maxLargeHighlightsPerTerritory: Math.max(1, Math.min(2, Math.round(requested.maxLargeHighlightsPerTerritory ?? DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxLargeHighlightsPerTerritory))),
+        maxSchoolAnimalsPerGroup,
+        maxOccupancyPerTerritory,
+        windowMs: Math.max(5000, Math.min(120000, Math.round(requested.windowMs ?? DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.windowMs)))
+    };
+}
 export const WHALE_OCEAN_SIZE_CATEGORIES = {
     small: { minPx: 45, maxPx: 65 },
     medium: { minPx: 70, maxPx: 95 },

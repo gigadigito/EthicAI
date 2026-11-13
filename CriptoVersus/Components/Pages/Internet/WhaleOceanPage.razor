@@ -216,7 +216,7 @@
             var leftPrice = await priceTasks[0];
             var rightPrice = await priceTasks[1];
             if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId) return;
-            var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261113-whale-ocean-depth-bands-v13");
+            var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261113-whale-ocean-depth-bands-v14");
             if (module is null)
                 throw new InvalidOperationException("Whale Ocean bootstrap module was not returned by JS interop.");
             if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId)

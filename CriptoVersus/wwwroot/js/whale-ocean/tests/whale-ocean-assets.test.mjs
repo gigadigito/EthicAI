@@ -58,7 +58,7 @@ test("production Whale Ocean execution cannot resolve legacy atlas paths", async
     for (const kind of EXPECTED_KINDS)
         assert.match(executable, new RegExp(`(?:kind: \\"${kind}\\"|\\"${kind}\\")`));
     assert.match(runtime, /Missing Whale Ocean sprite atlas/, "missing new assets must fail explicitly");
-    assert.match(runtime, /20261113-whale-ocean-depth-bands-v13/, "manifest and atlas URLs must invalidate the sprite cache for the depth-band runtime");
+    assert.match(runtime, /20261113-whale-ocean-depth-bands-v14/, "manifest and atlas URLs must invalidate the sprite cache for the adaptive depth-band runtime");
     assert.doesNotMatch(runtime, /getImageData|measureAtlasBounds/, "sprite bounds must not be measured on the browser main thread");
     assert.match(runtime, /buildBubbles\(babylon, scene\)/, "bubbles receive the live Babylon scene explicitly");
     assert.match(runtime, /if \(this\.disposed\)\s*return;/, "initialization stops after an asynchronous dispose");

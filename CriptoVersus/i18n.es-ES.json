@@ -395,7 +395,127 @@
   "howItWorks": {
     "seo": {
       "title": "Cómo Funciona | CriptoVersus",
-      "description": "Aprende cómo funciona CriptoVersus: selección de bando, puntuación de partidas, competición impulsada por el mercado, lógica de liquidación y análisis educativo de criptomonedas."
+      "description": "Aprende cómo funciona CriptoVersus: selección de bando, puntuación de partidas, competición impulsada por el mercado, lógica de liquidación y análisis educativo de criptomonedas.",
+      "keywords": "cómo funciona CriptoVersus, #CriptoVersus reglas, reglas de puntuación cripto"
+    },
+    "loading": "Cargando reglas del protocolo...",
+    "error": {
+      "loadFailed": "No se pudieron cargar las reglas dinámicas: {0}"
+    },
+    "metrics": {
+      "activeCapital": "Capital activo",
+      "activePositions": "{0} posiciones activas",
+      "totalAllocated": "Total asignado",
+      "indexedUsers": "{0} usuarios indexados",
+      "cyclesInProgress": "Ciclos en curso",
+      "pending": "{0} pendientes",
+      "inOpenMatches": "En partidas abiertas",
+      "openEntries": "{0} entradas abiertas"
+    },
+    "semantic": {
+      "openPositions": {
+        "title": "Posiciones abiertas",
+        "body": "CriptoVersus no es solo un marcador. Los usuarios abren posiciones en un lado de una arena cripto en vivo y mantienen una exposición competitiva estilo staking a lo largo de pools de batalla cíclicos."
+      },
+      "cyclicalPools": {
+        "title": "Pools cíclicos",
+        "body": "Cada ciclo de la arena agrupa la selección de lado, el rendimiento del mercado, la competición entre pools y la participación recurrente, para que los activos regresen al campo cuando se abren nuevos ciclos."
+      },
+      "rewardRedistribution": {
+        "title": "Redistribución de recompensas",
+        "body": "Las recompensas se redistribuyen según el rendimiento real del mercado, la mecánica de pools por lado y las reglas de liquidación, reforzando una arena cripto competitiva en lugar de una simple lista de precios."
+      }
+    },
+    "topic": {
+      "label": "Tema especial",
+      "title": "Reglas de las partidas y formación del marcador",
+      "body": "Vea en detalle cómo funcionan los cruces, los umbrales, el volumen por ventana, el volumen por cruce y el registro de eventos auditable que reconstruye cada punto de la partida.",
+      "link": "Abrir tema completo"
+    },
+    "panels": {
+      "howItWorks": {
+        "title": "Cómo funciona",
+        "body": "Elija un activo, seleccione un lado a través de ese activo, deposite SOL y mantenga su posición activa para participar automáticamente en nuevos ciclos siempre que ese activo regrese. Así no necesita repetir la entrada manual en cada ronda y su capital queda listo para el próximo ciclo competitivo de la arena.",
+        "stepDeposit": "Depositar SOL",
+        "stepEnter": "Entrar en posición",
+        "stepSettle": "Liquidar cuando quieras",
+        "stepContinue": "Continuar automáticamente"
+      },
+      "positions": {
+        "title": "Posiciones",
+        "body": "Cada posición pertenece a un wallet y a un activo específico. El capital actual puede crecer tras ciclos ganadores, sufrir una erosión controlada en ciclos perdedores o entrar en un proceso de salida cuando el usuario solicita cerrar la posición, comportándose aún como parte de un pool cíclico más grande de la arena.",
+        "active": "Activas",
+        "exitRequested": "Salida solicitada",
+        "closed": "Cerradas"
+      },
+      "scoring": {
+        "title": "Sistema de puntuación",
+        "body": "La puntuación compara el rendimiento relativo de los activos dentro del ciclo. Cada {0}% de ventaja puede convertirse en goles, respetando siempre el tope máximo de puntuación por lado definido en la configuración operativa.",
+        "percentPerGoal": "% por gol",
+        "capPerTeam": "Límite por equipo"
+      },
+      "cycles": {
+        "title": "Ciclos",
+        "body": "Cada partida representa un ciclo de mercado con una ventana de entrada, un período de seguimiento y liquidación. Si la reentrada automática está habilitada, las posiciones recurrentes vuelven al juego cuando el activo reaparece, siempre que la posición siga activa y por encima del capital mínimo operativo, creando participación cíclica en lugar de una entrada única.",
+        "targetDuration": "Duración objetivo",
+        "autoReentry": "Reentrada automática",
+        "enabled": "Activa",
+        "paused": "En pausa"
+      },
+      "settlement": {
+        "title": "Liquidación",
+        "body": "El lado ganador recibe una ganancia proporcional de la parte distribuible generada por el lado perdedor. El lado perdedor conserva la mayor parte de su capital, reduciendo la eliminación rápida y reforzando una dinámica más cercana a un pool rotativo con redistribución de recompensas que a una apuesta clásica de ronda única.",
+        "chartLabel": "Distribución de la liquidación",
+        "loserRefund": "Retorno al perdedor",
+        "winnersPool": "Pool de ganadores",
+        "houseFee": "Comisión de la casa",
+        "legendLoser": "El perdedor recupera {0}",
+        "legendWinners": "Los ganadores reciben {0}",
+        "legendHouse": "Casa {0}"
+      },
+      "fees": {
+        "title": "Comisiones",
+        "body": "La comisión de la casa se mantiene en un nivel reducido para sostener la operación, la indexación y la infraestructura operativa, sin consumir una parte agresiva del capital de los participantes en cada ciclo.",
+        "minimumCapital": "Capital mínimo"
+      },
+      "withdrawal": {
+        "title": "Retiro",
+        "body": "El usuario puede solicitar salir de la posición en cualquier momento. Si hay un ciclo activo, la posición espera la liquidación de ese ciclo; después, el capital restante puede proceder al cierre y al retiro según el flujo operativo habilitado en el sistema."
+      },
+      "risks": {
+        "title": "Riesgos",
+        "body": "El protocolo opera con activos volátiles, reglas automatizadas y contratos en la red Solana. Las pequeñas pérdidas por ciclo pueden acumularse con el tiempo, los parámetros pueden ser ajustados por la operación y un entorno de devnet no debe interpretarse como garantía de retornos, liquidez o rendimiento futuro."
+      },
+      "custody": {
+        "title": "Wallet de custodia",
+        "body": "En el modo Off-chain Custody, los fondos operativos se concilian fuera del contrato. La wallet de Solana sigue siendo la identidad del usuario, mientras que las transferencias a la wallet de custodia en la red {0} deben ser reconocidas por el sistema antes de convertirse en saldo interno de apuestas.",
+        "wallet": "Wallet",
+        "label": "Etiqueta",
+        "network": "Red"
+      },
+      "onChain": {
+        "title": "Contrato on-chain",
+        "body": "Los depósitos y las posiciones usan el programa configurado en la red {0}. El backend actúa como indexador y capa de orquestación, mientras que la posición on-chain preserva la trazabilidad del capital, las direcciones vinculadas y la lógica operativa publicada en el contrato.",
+        "programId": "ID del programa",
+        "authority": "Autoridad"
+      }
+    },
+    "distribution": {
+      "label": "Activos con más capital",
+      "title": "Distribución actual de las posiciones",
+      "body": "Lectura rápida de las posiciones con mayor capital activo en este momento.",
+      "capitalInPlay": "Capital en juego"
+    },
+    "structured": {
+      "abstract": "Cómo CriptoVersus gestiona posiciones, pools cíclicos, selección de lado, redistribución de recompensas y staking competitivo a lo largo de ciclos de arena cripto en vivo.",
+      "about": [
+        "abrir posiciones",
+        "pools cíclicos",
+        "redistribución de recompensas",
+        "selección de lado",
+        "staking competitivo",
+        "rendimiento del mercado"
+      ]
     }
   },
   "social": {

@@ -22,15 +22,9 @@ export async function initialize(options: WhaleOceanRuntimeOptions): Promise<voi
 
 async function initializeRuntime(options: WhaleOceanRuntimeOptions): Promise<void> {
     await dispose(options.matchId);
-    const mobile = typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches;
     const runtime = new WhaleOceanRuntime({
         ...options,
-        visualBudget: {
-            maxVisibleAnimals: mobile ? 12 : 24,
-            maxSchoolAnimalsPerGroup: mobile ? 3 : 6,
-            maxOccupancyPerTerritory: mobile ? 7 : 14,
-            ...options.visualBudget
-        }
+        visualBudget: options.visualBudget
     });
     // Keep the instance discoverable for an explicit dispose while async
     // Babylon/texture initialization is still in flight. The runtime itself

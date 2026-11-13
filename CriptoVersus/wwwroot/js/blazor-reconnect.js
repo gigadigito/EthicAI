@@ -39,7 +39,7 @@
             || /^\/faq/.test(path)
             || /^\/(en|pt|zh)\/faq/.test(path)
             || /^\/tokenomics/.test(path)
-            || /^\/(en|pt|zh)\/(tokenomics|como-funciona)/.test(path)
+            || /^\/(en|pt|zh|es|fr|de|it|ja|hi)\/(tokenomics|como-funciona)/.test(path)
             || /^\/token/.test(path)
             || /^\/(en|pt|zh)\/token/.test(path)
             || /^\/roadmap/.test(path)

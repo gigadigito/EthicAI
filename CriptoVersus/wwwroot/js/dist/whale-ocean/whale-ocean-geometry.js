@@ -4,17 +4,24 @@ const VERTICAL_BAND_NAMES = ["surface", "high", "central", "deep", "bottom"];
  * excludes the page header; the small proportional insets keep the first
  * and last lanes clear of the in-stage HUD on desktop and mobile.
  */
-export function getUsefulOceanVerticalViewport(viewportHeight) {
+export function getUsefulOceanVerticalViewport(viewportHeight, viewportWidth = Number.POSITIVE_INFINITY) {
     const height = Number.isFinite(viewportHeight) && viewportHeight > 0 ? viewportHeight : 0;
-    const topInset = Math.min(96, Math.max(20, height * 0.1));
-    const bottomInset = Math.min(112, Math.max(28, height * 0.12));
+    const mobile = Number.isFinite(viewportWidth) && viewportWidth <= 700;
+    const topInset = mobile
+        ? Math.min(118, Math.max(28, height * 0.11))
+        : Math.min(96, Math.max(20, height * 0.1));
+    // Mobile territory cards move to the bottom of the stage. Reserve their
+    // visual footprint so the lowest band remains visible above the HUD.
+    const bottomInset = mobile
+        ? Math.min(220, Math.max(120, height * 0.22))
+        : Math.min(112, Math.max(28, height * 0.12));
     const top = Math.min(Math.max(0, height - 5), topInset);
     const bottom = Math.max(top + 5, height - bottomInset);
     return { top, bottom };
 }
 /** Splits the useful viewport into five equal, invisible horizontal bands. */
-export function getWhaleOceanVerticalBands(viewportHeight) {
-    const viewport = getUsefulOceanVerticalViewport(viewportHeight);
+export function getWhaleOceanVerticalBands(viewportHeight, viewportWidth = Number.POSITIVE_INFINITY) {
+    const viewport = getUsefulOceanVerticalViewport(viewportHeight, viewportWidth);
     const height = (viewport.bottom - viewport.top) / VERTICAL_BAND_NAMES.length;
     return VERTICAL_BAND_NAMES.map((name, index) => ({
         name,

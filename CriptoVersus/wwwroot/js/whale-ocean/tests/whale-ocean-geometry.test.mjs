@@ -71,3 +71,10 @@ test('divides only the canvas viewport into five proportional invisible depth ba
         if (index > 0) assert.equal(bands[index - 1].bottom, bands[index].top);
     }
 });
+
+test('reserves the mobile HUD footprint before placing the bottom band', () => {
+    const desktop = getUsefulOceanVerticalViewport(844, 1400);
+    const mobile = getUsefulOceanVerticalViewport(844, 390);
+    assert.ok(mobile.bottom < desktop.bottom);
+    assert.ok(mobile.bottom - mobile.top > 0);
+});

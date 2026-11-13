@@ -1110,15 +1110,15 @@ a:hover,
     left: 0;
     top: 0;
     max-width: 220px;
-    padding: 2px 7px;
-    border: 1px solid var(--whale-ocean-label-accent, #7fd8ff);
-    border-radius: 6px;
-    background: #04111ee8;
+    padding: 2px 4px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
     color: #f5ffff;
     font: 700 15px/1.25 system-ui, sans-serif;
     letter-spacing: .01em;
     white-space: nowrap;
     opacity: 1;
-    text-shadow: 0 1px 2px #000c;
+    text-shadow: 0 1px 2px #00101ecc, 0 0 3px #00101ecc;
     will-change: transform;
 }

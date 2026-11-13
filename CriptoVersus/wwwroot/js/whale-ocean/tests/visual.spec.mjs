@@ -44,8 +44,7 @@ function assertLabelLegibility(labels) {
     for (const label of labels) {
         expect(label.fontSize, `label "${label.text}" font size`).toBeGreaterThanOrEqual(14);
         expect(label.fontSize, `label "${label.text}" font size`).toBeLessThanOrEqual(16);
-        expect(label.background, `label "${label.text}" chip background`).toMatch(/^rgba?\(/);
-        expect(label.background, `label "${label.text}" chip background`).not.toBe('rgba(0, 0, 0, 0)');
+        expect(label.background, `label "${label.text}" background`).toBe('rgba(0, 0, 0, 0)');
         expect(label.opacity, `label "${label.text}" opacity`).toBeGreaterThanOrEqual(0.85);
         expect(label.text, 'volume label keeps real volume and quote currency').toMatch(/\d/);
         expect(label.text).toContain('USDT');
@@ -214,6 +213,8 @@ test('desktop: readable animals, legible volumes and full traversals', async ({ 
     }
     await expect.poll(async () => (await diagnostics(page)).length, { timeout: 15_000 }).toBeGreaterThan(2);
 
+    await expect.poll(async () => (await geometryMetrics(page)).verticalOccupancy.coveragePercent, { timeout: 15_000 }).toBeGreaterThanOrEqual(85);
+
     const directions = await page.$$eval('.whale-ocean__direction', elements => elements.map(element => element.textContent ?? ''));
     for (const text of directions) {
         expect(text).toContain('← SELL');
@@ -228,7 +229,7 @@ test('desktop: readable animals, legible volumes and full traversals', async ({ 
 
     const geometry = await geometryMetrics(page);
     assertDepthBands(await diagnostics(page), geometry, 'desktop');
-    const leftTerritory = geometry.territories.left.world;
+    const leftTerritory = geometry.territories.left.screen;
     const before = new Set((await diagnostics(page)).map(row => row.id));
     await feed(page, 'INITUSDT', ++sequenceA, 1_600, 0);
     await feed(page, 'INITUSDT', ++sequenceA, 0, 1_600);
@@ -239,7 +240,7 @@ test('desktop: readable animals, legible volumes and full traversals', async ({ 
         for (const row of await diagnostics(page)) {
             if (before.has(row.id) || !row.id.startsWith('flow-') || row.symbol !== 'INITUSDT') continue;
             const list = samples.get(row.id) ?? [];
-            list.push(row.worldPositionX);
+            list.push(row.projectedCssX);
             samples.set(row.id, list);
         }
         const complete = [...samples.values()].filter(xs => xs.length >= 25
@@ -304,6 +305,11 @@ test('desktop: readable animals, legible volumes and full traversals', async ({ 
         expect(categories, `category ${category} is readable on screen`).toContain(category);
 
     assertLabelLegibility(await visibleLabels(page));
+    const occupancy = (await geometryMetrics(page)).verticalOccupancy;
+    if (occupancy.animalCount >= 5) {
+        expect(occupancy.bandCounts.filter(count => count > 0).length).toBeGreaterThanOrEqual(4);
+        expect(occupancy.coveragePercent).toBeGreaterThanOrEqual(85);
+    }
     await page.screenshot({ path: testInfo.outputPath('whale-ocean-desktop-events.png') });
 });
 
@@ -327,6 +333,9 @@ test('mobile: readable animals, legible volumes and the 12-animal cap', async ({
     const rows = await diagnostics(page);
     assertSizeBands(rows);
     assertDepthBands(rows, await geometryMetrics(page), 'mobile');
+    const mobileOccupancy = (await geometryMetrics(page)).verticalOccupancy;
+    if (mobileOccupancy.animalCount >= 5)
+        expect(mobileOccupancy.coveragePercent).toBeGreaterThanOrEqual(85);
     assertBudget(rows, 12);
     assertLabelLegibility(await visibleLabels(page));
     await page.screenshot({ path: testInfo.outputPath('whale-ocean-mobile.png') });

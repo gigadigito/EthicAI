@@ -395,7 +395,127 @@
   "howItWorks": {
     "seo": {
       "title": "玩法说明 | CriptoVersus",
-      "description": "了解 CriptoVersus 如何运作：阵营选择、对战计分、市场驱动竞争、结算逻辑和教育性加密货币分析。"
+      "description": "了解 CriptoVersus 如何运作：阵营选择、对战计分、市场驱动竞争、结算逻辑和教育性加密货币分析。",
+      "keywords": "CriptoVersus 玩法说明, #CriptoVersus 规则, 加密计分规则"
+    },
+    "loading": "正在加载协议规则...",
+    "error": {
+      "loadFailed": "无法加载动态规则：{0}"
+    },
+    "metrics": {
+      "activeCapital": "活跃资金",
+      "activePositions": "{0} 个活跃仓位",
+      "totalAllocated": "分配总额",
+      "indexedUsers": "{0} 个已索引用户",
+      "cyclesInProgress": "进行中的周期",
+      "pending": "{0} 个待处理",
+      "inOpenMatches": "在公开对战中",
+      "openEntries": "{0} 个开放入口"
+    },
+    "semantic": {
+      "openPositions": {
+        "title": "公开仓位",
+        "body": "CriptoVersus 不仅仅是一个计分板。用户在实时加密竞技场的一侧开仓，并在周期性对战资金池中保持竞争性的类质押敞口。"
+      },
+      "cyclicalPools": {
+        "title": "循环资金池",
+        "body": "每个竞技场周期整合阵营选择、市场表现、资金池竞争和循环参与，让资产在新周期开启时重返战场。"
+      },
+      "rewardRedistribution": {
+        "title": "奖励再分配",
+        "body": "奖励根据真实市场表现、按阵营划分的资金池机制和结算规则进行再分配，强化竞争性加密竞技场，而不是简单的价格列表。"
+      }
+    },
+    "topic": {
+      "label": "专题",
+      "title": "比赛规则与比分生成",
+      "body": "详细了解十字交叉、阈值、窗口成交量、交叉成交量以及可审计的事件日志如何重建比赛中的每一分。",
+      "link": "打开完整专题"
+    },
+    "panels": {
+      "howItWorks": {
+        "title": "运作方式",
+        "body": "选择一个资产，通过该资产选择阵营，存入 SOL 并保持仓位活跃，即可在该资产回归时自动参与新的周期。这样您无需每轮手动入场，资金随时准备迎接下一个竞技场竞争周期。",
+        "stepDeposit": "存入 SOL",
+        "stepEnter": "进入仓位",
+        "stepSettle": "想结算时再结算",
+        "stepContinue": "自动继续"
+      },
+      "positions": {
+        "title": "仓位",
+        "body": "每个仓位都属于一个钱包和特定资产。当前资金可在获胜周期后增长，在亏损周期中受到可控侵蚀，或在用户申请平仓时进入退出流程，同时仍像大型周期性竞技场资金池的一部分那样运作。",
+        "active": "活跃",
+        "exitRequested": "已请求退出",
+        "closed": "已关闭"
+      },
+      "scoring": {
+        "title": "计分系统",
+        "body": "计分比较周期内各资产的相对表现。每 {0}% 的优势可换算为进球，同时始终遵守运营配置中定义的每侧最高计分上限。",
+        "percentPerGoal": "每球百分比",
+        "capPerTeam": "每队上限"
+      },
+      "cycles": {
+        "title": "周期",
+        "body": "每场比赛代表一个市场周期，包含入场窗口、跟踪阶段和结算。若启用自动再入场，循环仓位会在资产再次出现时重返游戏，只要仓位保持活跃且高于最低运营资金，从而形成周期性参与而非一次性入场。",
+        "targetDuration": "目标时长",
+        "autoReentry": "自动重新进入",
+        "enabled": "启用",
+        "paused": "暂停"
+      },
+      "settlement": {
+        "title": "结算",
+        "body": "获胜方按比例获得由失败方产生的可分配份额。失败方保留大部分资金，减少快速淘汰，强化更接近带有奖励再分配的轮换资金池、而非经典单轮下注的动态机制。",
+        "chartLabel": "结算分配",
+        "loserRefund": "败者返还",
+        "winnersPool": "胜者资金池",
+        "houseFee": "平台费用",
+        "legendLoser": "败者返还 {0}",
+        "legendWinners": "胜者获得 {0}",
+        "legendHouse": "平台 {0}"
+      },
+      "fees": {
+        "title": "费用",
+        "body": "房屋手续费保持在较低水平，以支持运营、索引和运营基础设施，而不参与者资金的过大比例。",
+        "minimumCapital": "最低资金"
+      },
+      "withdrawal": {
+        "title": "提现",
+        "body": "用户可以随时申请退出仓位。若有进行中的周期，仓位将等待该周期结算；之后剩余资金可按照系统中启用的运营流程进行平仓和提现。"
+      },
+      "risks": {
+        "title": "风险",
+        "body": "本协议使用波动性资产、自动化规则和 Solana 网络上的合约运行。每周期的小额损失可能随时间累积，参数可能由运营调整，devnet 环境不应被视为回报、流动性或未来表现的保证。"
+      },
+      "custody": {
+        "title": "托管钱包",
+        "body": "在 Off-chain Custody 模式下，运营资金在合约之外进行对账。Solana 钱包仍是用户身份，而向 {0} 网络上托管钱包的转账需经系统确认后才能成为内部投注余额。",
+        "wallet": "钱包",
+        "label": "标签",
+        "network": "网络"
+      },
+      "onChain": {
+        "title": "链上合约",
+        "body": "充值和仓位使用 {0} 网络上配置的程序。后端充当索引器和编排层，而链上仓位保留资金、关联地址以及合约中发布的运营逻辑的可追溯性。",
+        "programId": "程序 ID",
+        "authority": "权限账户"
+      }
+    },
+    "distribution": {
+      "label": "资金最多的资产",
+      "title": "当前仓位分布",
+      "body": "快速查看当前活跃资金最高的仓位。",
+      "capitalInPlay": "投入中的资金"
+    },
+    "structured": {
+      "abstract": "CriptoVersus 如何在实时加密竞技场周期中处理仓位、周期资金池、阵营选择、奖励再分配和竞争性质押。",
+      "about": [
+        "开仓",
+        "周期资金池",
+        "奖励再分配",
+        "阵营选择",
+        "竞争性质押",
+        "市场表现"
+      ]
     }
   },
   "social": {

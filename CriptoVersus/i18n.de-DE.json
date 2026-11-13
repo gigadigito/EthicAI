@@ -395,7 +395,127 @@
   "howItWorks": {
     "seo": {
       "title": "How It Works | CriptoVersus",
-      "description": "Learn how CriptoVersus works: side selection, match scoring, market-driven competition, settlement logic and educational crypto analysis."
+      "description": "Learn how CriptoVersus works: side selection, match scoring, market-driven competition, settlement logic and educational crypto analysis.",
+      "keywords": "So funktioniert CriptoVersus, #CriptoVersus Regeln, Krypto-Punkteregeln"
+    },
+    "loading": "Protokollregeln werden geladen...",
+    "error": {
+      "loadFailed": "Dynamische Regeln konnten nicht geladen werden: {0}"
+    },
+    "metrics": {
+      "activeCapital": "Aktives Kapital",
+      "activePositions": "{0} aktive Positionen",
+      "totalAllocated": "Zugewiesen gesamt",
+      "indexedUsers": "{0} indexierte Nutzer",
+      "cyclesInProgress": "Laufende Zyklen",
+      "pending": "{0} ausstehend",
+      "inOpenMatches": "In offenen Matches",
+      "openEntries": "{0} offene Einsätze"
+    },
+    "semantic": {
+      "openPositions": {
+        "title": "Offene Positionen",
+        "body": "CriptoVersus ist mehr als eine Anzeigetafel. Nutzer eröffnen Positionen auf einer Seite einer Live-Krypto-Arena und halten wettbewerbsorientierte Staking-artige Engagements über zyklische Kampf-Pools hinweg."
+      },
+      "cyclicalPools": {
+        "title": "Zyklische Pools",
+        "body": "Jeder Arena-Zyklus bündelt Seitenauswahl, Marktleistung, Pool-Wettbewerb und wiederkehrende Teilnahme, damit Vermögenswerte beim Öffnen neuer Zyklen auf das Schlachtfeld zurückkehren."
+      },
+      "rewardRedistribution": {
+        "title": "Belohnungsverteilung",
+        "body": "Belohnungen werden entsprechend der realen Marktleistung, der seitenspezifischen Pool-Mechanik und den Abwicklungsregeln neu verteilt und stärken so eine wettbewerbsorientierte Krypto-Arena statt einer einfachen Preisliste."
+      }
+    },
+    "topic": {
+      "label": "Sonderthema",
+      "title": "Matchregeln und Punktentstehung",
+      "body": "Sehen Sie im Detail, wie Crossovers, Schwellenwerte, Volumenfenster, Crossover-Volumen und das prüfbare Ereignisprotokoll jeden Punkt im Match rekonstruieren.",
+      "link": "Vollständiges Thema öffnen"
+    },
+    "panels": {
+      "howItWorks": {
+        "title": "So funktioniert es",
+        "body": "Wählen Sie ein Asset, wählen Sie über dieses Asset eine Seite, hinterlegen Sie SOL und halten Sie Ihre Position aktiv, um automatisch an neuen Zyklen teilzunehmen, wann immer dieses Asset zurückkehrt. So müssen Sie den manuellen Einstieg nicht jede Runde wiederholen und Ihr Kapital bleibt für den nächsten wettbewerbsorientierten Arena-Zyklus bereit.",
+        "stepDeposit": "SOL einzahlen",
+        "stepEnter": "Position eröffnen",
+        "stepSettle": "Abrechnen wann Sie wollen",
+        "stepContinue": "Automatisch fortfahren"
+      },
+      "positions": {
+        "title": "Positionen",
+        "body": "Jede Position gehört zu einer Wallet und einem bestimmten Asset. Das aktuelle Kapital kann nach gewonnenen Zyklen wachsen, in verlorenen Zyklen kontrolliert abschmelzen oder in einen Ausstiegsprozess übergehen, wenn der Nutzer die Schließung der Position anfordert, während es weiterhin wie Teil eines größeren zyklischen Arena-Pools agiert.",
+        "active": "Aktiv",
+        "exitRequested": "Ausstieg angefordert",
+        "closed": "Geschlossen"
+      },
+      "scoring": {
+        "title": "Punktesystem",
+        "body": "Die Punktewertung vergleicht die relative Performance der Assets innerhalb des Zyklus. Jede {0}% Vorsprung können in Tore umgewandelt werden, stets unter Einhaltung der in der Betriebskonfiguration definierten maximalen Punktgrenze pro Seite.",
+        "percentPerGoal": "% pro Tor",
+        "capPerTeam": "Grenze pro Team"
+      },
+      "cycles": {
+        "title": "Zyklen",
+        "body": "Jedes Match steht für einen Marktzyklus mit Einstiegsfenster, Verlaufszeitraum und Abrechnung. Ist der automatische Wiedereinstieg aktiviert, kehren wiederkehrende Positionen ins Spiel zurück, sobald das Asset erneut erscheint, solange die Position aktiv und über dem minimalen Betriebskapital bleibt – so entsteht zyklische Teilnahme statt eines einmaligen Einstiegs.",
+        "targetDuration": "Zieldauer",
+        "autoReentry": "Automatischer Wiedereinstieg",
+        "enabled": "Aktiv",
+        "paused": "Pausiert"
+      },
+      "settlement": {
+        "title": "Abrechnung",
+        "body": "Die gewinnende Seite erhält einen proportionalen Gewinn aus dem verteilbaren Anteil der verlierenden Seite. Die verlierende Seite behält den Großteil ihres Kapitals, was schnelle Eliminierung reduziert und eine Dynamik stärkt, die eher einem rotierenden Pool mit Belohnungsverteilung als einer klassischen Einzelrunden-Wette entspricht.",
+        "chartLabel": "Abrechnungsverteilung",
+        "loserRefund": "Rückzahlung an Verlierer",
+        "winnersPool": "Pool der Gewinner",
+        "houseFee": "Hausgebühr",
+        "legendLoser": "Verlierer erhält {0} zurück",
+        "legendWinners": "Gewinner erhalten {0}",
+        "legendHouse": "Haus {0}"
+      },
+      "fees": {
+        "title": "Gebühren",
+        "body": "Die Hausgebühr wird auf reduziertem Niveau gehalten, um Betrieb, Indexierung und operative Infrastruktur zu tragen, ohne in jedem Zyklus einen aggressiven Anteil des Teilnehmerkapitals zu verbrauchen.",
+        "minimumCapital": "Mindestkapital"
+      },
+      "withdrawal": {
+        "title": "Auszahlung",
+        "body": "Der Nutzer kann jederzeit den Ausstieg aus der Position anfordern. Läuft ein Zyklus, wartet die Position auf dessen Abrechnung; danach kann das verbleibende Kapital gemäß dem im System aktivierten Betriebsablauf zur Schließung und Auszahlung übergehen."
+      },
+      "risks": {
+        "title": "Risiken",
+        "body": "Das Protokoll arbeitet mit volatilen Assets, automatisierten Regeln und Verträgen im Solana-Netzwerk. Kleine Verluste pro Zyklus können sich mit der Zeit summieren, Parameter können vom Betrieb angepasst werden und eine Devnet-Umgebung darf nicht als Garantie für Rendite, Liquidität oder zukünftige Performance verstanden werden."
+      },
+      "custody": {
+        "title": "Verwahrungs-Wallet",
+        "body": "Im Off-chain-Custody-Modus werden Betriebsmittel außerhalb des Vertrags abgeglichen. Die Solana-Wallet bleibt die Nutzeridentität, während Überweisungen an die Verwahrungs-Wallet im {0}-Netzwerk vom System anerkannt werden müssen, bevor sie zu internem Wettguthaben werden.",
+        "wallet": "Wallet",
+        "label": "Bezeichnung",
+        "network": "Netzwerk"
+      },
+      "onChain": {
+        "title": "On-Chain-Vertrag",
+        "body": "Einzahlungen und Positionen nutzen das im {0}-Netzwerk konfigurierte Programm. Das Backend agiert als Indexer und Orchestrierungsschicht, während die On-Chain-Position die Nachvollziehbarkeit von Kapital, verknüpften Adressen und der im Vertrag veröffentlichten Betriebslogik bewahrt.",
+        "programId": "Programm-ID",
+        "authority": "Autorität"
+      }
+    },
+    "distribution": {
+      "label": "Assets mit dem meisten Kapital",
+      "title": "Aktuelle Positionsverteilung",
+      "body": "Schneller Überblick über die Positionen mit dem höchsten aktiven Kapital gerade jetzt.",
+      "capitalInPlay": "Kapital im Spiel"
+    },
+    "structured": {
+      "abstract": "Wie CriptoVersus Positionen, zyklische Pools, Seitenauswahl, Belohnungsverteilung und wettbewerbsorientiertes Staking über Live-Krypto-Arena-Zyklen hinweg handhabt.",
+      "about": [
+        "Positionen eröffnen",
+        "zyklische Pools",
+        "Belohnungsverteilung",
+        "Seitenauswahl",
+        "wettbewerbsorientiertes Staking",
+        "Marktleistung"
+      ]
     }
   },
   "social": {
