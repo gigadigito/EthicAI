@@ -49,7 +49,7 @@ function assertLabelLegibility(labels) {
         expect(label.background, `label "${label.text}" background`).toBe('rgba(0, 0, 0, 0)');
         expect(label.borderWidth, `label "${label.text}" keeps its semantic border`).toBe('1px');
         expect(label.borderColor, `label "${label.text}" border remains visible`).not.toBe('rgba(0, 0, 0, 0)');
-        expect(label.color, `label "${label.text}" keeps its semantic color`).not.toBe('rgb(245, 255, 255)');
+        expect(label.color, `label "${label.text}" keeps white text`).toBe('rgb(245, 255, 255)');
         expect(label.opacity, `label "${label.text}" opacity`).toBeGreaterThanOrEqual(0.85);
         expect(label.text, 'volume label keeps real volume and quote currency').toMatch(/\d/);
         expect(label.text).toContain('USDT');
