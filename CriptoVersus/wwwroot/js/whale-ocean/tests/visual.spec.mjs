@@ -31,6 +31,8 @@ async function visibleLabels(page) {
             text: element.textContent ?? '',
             fontSize: parseFloat(style.fontSize),
             color: style.color,
+            borderColor: style.borderColor,
+            borderWidth: style.borderWidth,
             background: style.backgroundColor,
             opacity: Number(style.opacity),
             display: style.display,
@@ -45,6 +47,9 @@ function assertLabelLegibility(labels) {
         expect(label.fontSize, `label "${label.text}" font size`).toBeGreaterThanOrEqual(14);
         expect(label.fontSize, `label "${label.text}" font size`).toBeLessThanOrEqual(16);
         expect(label.background, `label "${label.text}" background`).toBe('rgba(0, 0, 0, 0)');
+        expect(label.borderWidth, `label "${label.text}" keeps its semantic border`).toBe('1px');
+        expect(label.borderColor, `label "${label.text}" border remains visible`).not.toBe('rgba(0, 0, 0, 0)');
+        expect(label.color, `label "${label.text}" keeps its semantic color`).not.toBe('rgb(245, 255, 255)');
         expect(label.opacity, `label "${label.text}" opacity`).toBeGreaterThanOrEqual(0.85);
         expect(label.text, 'volume label keeps real volume and quote currency').toMatch(/\d/);
         expect(label.text).toContain('USDT');

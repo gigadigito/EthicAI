@@ -1110,11 +1110,11 @@ a:hover,
     left: 0;
     top: 0;
     max-width: 220px;
-    padding: 2px 4px;
-    border: 0;
-    border-radius: 0;
+    padding: 2px 7px;
+    border: 1px solid var(--whale-ocean-label-accent, #7fd8ff);
+    border-radius: 6px;
     background: transparent;
-    color: #f5ffff;
+    color: var(--whale-ocean-label-accent, #f5ffff);
     font: 700 15px/1.25 system-ui, sans-serif;
     letter-spacing: .01em;
     white-space: nowrap;

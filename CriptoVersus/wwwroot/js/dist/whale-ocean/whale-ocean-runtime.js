@@ -529,8 +529,14 @@ export class WhaleOceanRuntime {
         const maxCenter = band.bottom - bodyHalfCss - 4;
         const center = maxCenter >= minCenter ? Math.max(minCenter, Math.min(maxCenter, band.center)) : band.center;
         const variation = maxCenter >= minCenter ? Math.min((maxCenter - minCenter) / 2, (band.bottom - band.top) * 0.28) : 0;
+        // Keep the outer corridors visually anchored to the useful viewport
+        // edges. The bias is soft and still leaves the sinusoidal swim motion
+        // intact, but prevents random phase from collapsing the whole school
+        // toward the middle of the ocean.
+        const edgeBias = band.index === 0 ? -variation * 0.55 : band.index === 4 ? variation * 0.55 : 0;
         const requestedScreenY = center
             + Math.sin(phase + progress * Math.PI * 2 + seed * Math.PI * 0.7) * variation
+            + edgeBias
             + verticalOffsetPx;
         const screenY = maxCenter >= minCenter
             ? Math.max(minCenter, Math.min(maxCenter, requestedScreenY))
