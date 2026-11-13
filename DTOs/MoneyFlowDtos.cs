@@ -1,4 +1,104 @@
+using System.Text.Json.Serialization;
+
 namespace DTOs;
+
+/// <summary>
+/// Presentation-only creature categories for Whale Ocean. The thresholds are
+/// quote-notional thresholds, evaluated once per real aggTrade in the Worker.
+/// They are deliberately independent from the Babylon visual budget.
+/// </summary>
+public enum MoneyFlowCreatureKind
+{
+    Small,
+    Medium,
+    Large,
+    Shark,
+    Whale
+}
+
+public static class MoneyFlowCreatureRules
+{
+    // These are shared product rules, not financial thresholds. The quote
+    // amount is expressed in the market's quote currency (normally USDT).
+    public const decimal MediumMinimumQuote = 1_000m;
+    public const decimal LargeMinimumQuote = 10_000m;
+    public const decimal SharkMinimumQuote = 100_000m;
+    public const decimal WhaleMinimumQuote = 1_000_000m;
+
+    public const int SmallPoints = 1;
+    public const int MediumPoints = 3;
+    public const int LargePoints = 8;
+    public const int SharkPoints = 20;
+    public const int WhalePoints = 60;
+
+    public static MoneyFlowCreatureKind Classify(decimal quoteNotional)
+    {
+        if (quoteNotional >= WhaleMinimumQuote) return MoneyFlowCreatureKind.Whale;
+        if (quoteNotional >= SharkMinimumQuote) return MoneyFlowCreatureKind.Shark;
+        if (quoteNotional >= LargeMinimumQuote) return MoneyFlowCreatureKind.Large;
+        if (quoteNotional >= MediumMinimumQuote) return MoneyFlowCreatureKind.Medium;
+        return MoneyFlowCreatureKind.Small;
+    }
+
+    public static long Score(MoneyFlowCreatureSideCountsDto counts)
+        => counts.Small * SmallPoints
+         + counts.Medium * MediumPoints
+         + counts.Large * LargePoints
+         + counts.Shark * SharkPoints
+         + counts.Whale * WhalePoints;
+}
+
+public sealed record MoneyFlowCreatureSideCountsDto
+{
+    public long Small { get; init; }
+    public long Medium { get; init; }
+    public long Large { get; init; }
+    public long Shark { get; init; }
+    public long Whale { get; init; }
+
+    [JsonIgnore]
+    public long TradeCount => Small + Medium + Large + Shark + Whale;
+
+    [JsonIgnore]
+    public long Points => MoneyFlowCreatureRules.Score(this);
+}
+
+public sealed record MoneyFlowCreatureCountsDto
+{
+    public MoneyFlowCreatureSideCountsDto Buy { get; init; } = new();
+    public MoneyFlowCreatureSideCountsDto Sell { get; init; } = new();
+
+    [JsonIgnore]
+    public long TradeCount => Buy.TradeCount + Sell.TradeCount;
+
+    [JsonIgnore]
+    public long Points => Buy.Points + Sell.Points;
+}
+
+public sealed record MoneyFlowSourceSequenceDto
+{
+    public string SourceId { get; init; } = string.Empty;
+    public string Symbol { get; init; } = string.Empty;
+    public long Sequence { get; init; }
+}
+
+public sealed record WhaleOceanScoreboardTeamDto
+{
+    public string Symbol { get; init; } = string.Empty;
+    public MoneyFlowCreatureCountsDto Last30Seconds { get; init; } = new();
+    public MoneyFlowCreatureCountsDto MatchTotal { get; init; } = new();
+    public IReadOnlyList<MoneyFlowSourceSequenceDto> LastSequences { get; init; } = Array.Empty<MoneyFlowSourceSequenceDto>();
+}
+
+public sealed record WhaleOceanScoreboardDto
+{
+    public int MatchId { get; init; }
+    public DateTimeOffset WindowStartUtc { get; init; }
+    public DateTimeOffset WindowEndUtc { get; init; }
+    public bool IsFinalized { get; init; }
+    public WhaleOceanScoreboardTeamDto TeamA { get; init; } = new();
+    public WhaleOceanScoreboardTeamDto TeamB { get; init; } = new();
+}
 
 /// <summary>
 /// Non-authoritative realtime money-flow snapshot. Decimal values are kept as
@@ -26,6 +126,7 @@ public sealed record MoneyFlowBatchDto
     public decimal HighPrice { get; init; }
     public decimal LowPrice { get; init; }
     public bool IsPartial { get; init; }
+    public MoneyFlowCreatureCountsDto CreatureCounts { get; init; } = new();
 }
 
 public sealed record MoneyFlowTransportRequest
@@ -42,6 +143,7 @@ public sealed record MoneyFlowTransportRequest
 public sealed record MoneyFlowClientBatchDto
 {
     public int MatchId { get; init; }
+    public string SourceId { get; init; } = string.Empty;
     public string Symbol { get; init; } = string.Empty;
     public long Sequence { get; init; }
     public DateTimeOffset WindowStartUtc { get; init; }
@@ -66,6 +168,7 @@ public sealed record MoneyFlowClientBatchDto
     /// Replay data is presentation-only and must never create a new live alert.
     /// </summary>
     public bool IsReplay { get; init; }
+    public MoneyFlowCreatureCountsDto CreatureCounts { get; init; } = new();
 }
 
 public sealed record MoneyFlowTransportAccepted(int Accepted, int Duplicates, int Rejected);

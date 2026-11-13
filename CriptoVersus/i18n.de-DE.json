@@ -3164,6 +3164,18 @@
     "bootstrapPending": "BOOTSTRAP_PENDING",
     "statusUnavailable": "STATUS NICHT VERFÜGBAR",
     "finalized": "BEENDET",
-    "endedAt": "Beendet am {0} um {1} UTC"
+    "endedAt": "Beendet am {0} um {1} UTC",
+    "battleScoreboard": "Punktestand der Ozean-Schlacht",
+    "points": "Punkte",
+    "creatures": "Kreaturen",
+    "oceanControl": "Ozean-Kontrolle",
+    "small": "Klein",
+    "medium": "Mittel",
+    "large": "Groß",
+    "shark": "Hai",
+    "whale": "Wal",
+    "total": "Gesamt",
+    "last30Seconds": "Letzte 30 Sekunden",
+    "matchTotal": "Match-Gesamt"
   }
 }

@@ -3166,6 +3166,18 @@
     "bootstrapPending": "等待初始化",
     "statusUnavailable": "状态不可用",
     "finalized": "已结束",
-    "endedAt": "结束于 {0} {1} UTC"
+    "endedAt": "结束于 {0} {1} UTC",
+    "battleScoreboard": "海洋战斗记分牌",
+    "points": "分",
+    "creatures": "生物",
+    "oceanControl": "海洋控制",
+    "small": "小鱼",
+    "medium": "中鱼",
+    "large": "大鱼",
+    "shark": "鲨鱼",
+    "whale": "鲸鱼",
+    "total": "总计",
+    "last30Seconds": "最近30秒",
+    "matchTotal": "比赛总计"
   }
 }

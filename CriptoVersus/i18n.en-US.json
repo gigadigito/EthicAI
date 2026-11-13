@@ -3165,6 +3165,18 @@
     "bootstrapPending": "BOOTSTRAP_PENDING",
     "statusUnavailable": "STATUS UNAVAILABLE",
     "finalized": "FINALIZED",
-    "endedAt": "Ended on {0} at {1} UTC"
+    "endedAt": "Ended on {0} at {1} UTC",
+    "battleScoreboard": "Whale Ocean battle scoreboard",
+    "points": "points",
+    "creatures": "creatures",
+    "oceanControl": "Ocean Control",
+    "small": "Small",
+    "medium": "Medium",
+    "large": "Large",
+    "shark": "Shark",
+    "whale": "Whale",
+    "total": "Total",
+    "last30Seconds": "Last 30 seconds",
+    "matchTotal": "Match Total"
   }
 }

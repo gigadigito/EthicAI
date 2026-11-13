@@ -1,3 +1,5 @@
+import type { WhaleOceanCreatureCounts } from "./whale-ocean-scoreboard.js";
+
 export type WhaleOceanSide = "buy" | "sell";
 export type WhaleOceanEventKind = "shark" | "whale";
 export type WhaleOceanVisualTier = "micro" | "small" | "medium" | "large" | "whale";
@@ -143,6 +145,7 @@ const FLOW_TIER_THRESHOLDS = [0.35, 0.55, 0.78, 1.08, 1.48, 2.0, 2.8] as const;
 export interface WhaleOceanBatch {
     matchId: number;
     symbol: string;
+    sourceId?: string;
     sequence: number;
     eventTimeUtc: string;
     tradeCount: number;
@@ -151,6 +154,7 @@ export interface WhaleOceanBatch {
     lastPrice: string;
     isPartial: boolean;
     isReplay?: boolean;
+    creatureCounts?: WhaleOceanCreatureCounts;
 }
 
 export interface WhaleOceanPressure {

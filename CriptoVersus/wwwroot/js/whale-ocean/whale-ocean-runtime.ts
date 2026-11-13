@@ -43,6 +43,18 @@ import {
     type WhaleOceanSizeCategory,
     type WhaleOceanDepthBand
 } from "./whale-ocean-model.js";
+import {
+    addCreatureCounts,
+    cloneCreatureCounts,
+    creaturePoints,
+    creatureTradeCount,
+    emptyCreatureCounts,
+    oceanControl,
+    sidePoints,
+    type WhaleOceanCreatureCounts,
+    type WhaleOceanScoreboard,
+    type WhaleOceanScoreboardTeam
+} from "./whale-ocean-scoreboard.js";
 import type { ArcRotateCamera, Engine, Mesh, Scene, Sprite, SpriteManager, StandardMaterial, Vector3 } from "babylonjs";
 
 type BabylonApi = typeof import("babylonjs");
@@ -90,6 +102,7 @@ export interface WhaleOceanRuntimeOptions {
     officialStartTimeUtc?: string | null;
     officialEndTimeUtc?: string | null;
     visualBudget?: Partial<WhaleOceanVisualBudget>;
+    scoreboard?: WhaleOceanScoreboard | null;
 }
 
 interface FishAgent {
@@ -317,6 +330,16 @@ interface LiveSymbolState {
     lastActorAt: Record<WhaleOceanSide, number>;
 }
 
+interface ScoreBatch {
+    at: number;
+    counts: WhaleOceanCreatureCounts;
+}
+
+interface ScoreSymbolState {
+    matchTotal: WhaleOceanCreatureCounts;
+    recent: ScoreBatch[];
+}
+
 const QUALITY_FPS: Record<Quality, number> = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS: Record<Quality, number> = { Low: 2, Medium: 4, High: 5 };
 const SPRITE_ASSET_VERSION = "20261113-whale-ocean-depth-bands-v14";
@@ -349,6 +372,7 @@ export class WhaleOceanRuntime {
     private readonly whales: WhaleOceanEventActor[] = [];
     private readonly pendingEvents: WhaleOceanEvent[] = [];
     private readonly lastBatchSequence = new Map<string, number>();
+    private readonly scoreStates = new Map<string, ScoreSymbolState>();
     private readonly seenEventIds = new Set<string>();
     private B: BabylonApi | null = null;
     private engine: Engine | null = null;
@@ -412,6 +436,8 @@ export class WhaleOceanRuntime {
         this.officialEndTimeUtc = options.officialEndTimeUtc ?? null;
         this.symbols.set(options.leftSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.leftPrice, quoteCurrency: quoteCurrencyForSymbol(options.leftSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
         this.symbols.set(options.rightSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.rightPrice, quoteCurrency: quoteCurrencyForSymbol(options.rightSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
+        this.seedScoreState(options.leftSymbol, options.scoreboard?.teamA);
+        this.seedScoreState(options.rightSymbol, options.scoreboard?.teamB);
     }
 
     public async initialize(): Promise<void> {
@@ -501,7 +527,8 @@ export class WhaleOceanRuntime {
             this.debugFilter(batch, "unmatched_symbol");
             return;
         }
-        const lastSequence = this.lastBatchSequence.get(symbol) ?? 0;
+        const sequenceKey = this.sequenceKey(batch.sourceId, symbol);
+        const lastSequence = this.lastBatchSequence.get(sequenceKey) ?? 0;
         if (!Number.isFinite(batch.sequence)) {
             this.debugFilter(batch, "invalid_sequence");
             return;
@@ -510,7 +537,9 @@ export class WhaleOceanRuntime {
             this.debugFilter(batch, batch.sequence === lastSequence ? "duplicate_sequence" : "late_sequence");
             return;
         }
-        this.lastBatchSequence.set(symbol, batch.sequence);
+        this.lastBatchSequence.set(sequenceKey, batch.sequence);
+
+        this.acceptScoreBatch(symbol, batch);
 
         const buyQuote = parseNumber(batch.takerBuyQuote);
         const sellQuote = parseNumber(batch.takerSellQuote);
@@ -573,6 +602,14 @@ export class WhaleOceanRuntime {
         this.replayComplete = true;
         this.replaying = false;
         if (!this.paused) this.setFlowStatus(flowStatusForConnection(this.connected, this.hasLiveData()), "replay completed");
+    }
+
+    public setScoreboard(scoreboard: WhaleOceanScoreboard | null): void {
+        if (!scoreboard || scoreboard.matchId !== this.options.matchId) return;
+        this.options.scoreboard = scoreboard;
+        this.seedScoreState(this.options.leftSymbol, scoreboard.teamA);
+        this.seedScoreState(this.options.rightSymbol, scoreboard.teamB);
+        this.updateScoreboardHud();
     }
 
     public setMatchFinished(finished: boolean): void {
@@ -2582,6 +2619,86 @@ export class WhaleOceanRuntime {
         this.write("events", String(this.alertCount));
     }
 
+    private seedScoreState(symbol: string, team?: WhaleOceanScoreboardTeam): void {
+        const normalized = symbol.trim().toUpperCase();
+        const state: ScoreSymbolState = {
+            matchTotal: cloneCreatureCounts(team?.matchTotal),
+            recent: []
+        };
+        const windowEnd = Date.parse(this.options.scoreboard?.windowEndUtc ?? "") || Date.now();
+        if (team?.last30Seconds && creatureTradeCount(team.last30Seconds) > 0)
+            state.recent.push({ at: windowEnd, counts: cloneCreatureCounts(team.last30Seconds) });
+        for (const sequence of team?.lastSequences ?? []) {
+            if (sequence.symbol.trim().toUpperCase() !== normalized) continue;
+            const key = this.sequenceKey(sequence.sourceId, normalized);
+            this.lastBatchSequence.set(key, Math.max(this.lastBatchSequence.get(key) ?? 0, sequence.sequence));
+        }
+        this.scoreStates.set(normalized, state);
+    }
+
+    private acceptScoreBatch(symbol: string, batch: WhaleOceanBatch): void {
+        const state = this.scoreStates.get(symbol);
+        const counts = batch.creatureCounts;
+        if (!state || !counts) return;
+        addCreatureCounts(state.matchTotal, counts);
+        const eventAt = Date.parse(batch.eventTimeUtc) || Date.now();
+        state.recent.push({ at: eventAt, counts: cloneCreatureCounts(counts) });
+        this.pruneScoreWindow(state, Date.now());
+        this.updateScoreboardHud();
+    }
+
+    private pruneScoreWindow(state: ScoreSymbolState, now: number): void {
+        const cutoff = now - 30_000;
+        while (state.recent.length > 0 && state.recent[0].at < cutoff)
+            state.recent.shift();
+    }
+
+    private getRecentScore(symbol: string): WhaleOceanCreatureCounts {
+        const state = this.scoreStates.get(symbol);
+        const result = emptyCreatureCounts();
+        if (!state) return result;
+        this.pruneScoreWindow(state, Date.now());
+        for (const item of state.recent) addCreatureCounts(result, item.counts);
+        return result;
+    }
+
+    private sequenceKey(sourceId: string | undefined, symbol: string): string {
+        return `${(sourceId ?? "").trim()}\u0000${symbol}`;
+    }
+
+    private updateScoreboardHud(): void {
+        const leftSymbol = this.options.leftSymbol.trim().toUpperCase();
+        const rightSymbol = this.options.rightSymbol.trim().toUpperCase();
+        const left = this.scoreStates.get(leftSymbol);
+        const right = this.scoreStates.get(rightSymbol);
+        if (!left || !right) return;
+        const leftRecent = this.getRecentScore(leftSymbol);
+        const rightRecent = this.getRecentScore(rightSymbol);
+        const control = oceanControl(creaturePoints(leftRecent), creaturePoints(rightRecent));
+        this.write("left-score", formatInteger(creaturePoints(left.matchTotal)));
+        this.write("right-score", formatInteger(creaturePoints(right.matchTotal)));
+        this.write("left-window-score", formatInteger(creaturePoints(leftRecent)));
+        this.write("right-window-score", formatInteger(creaturePoints(rightRecent)));
+        this.write("left-total-trades", formatInteger(creatureTradeCount(left.matchTotal)));
+        this.write("right-total-trades", formatInteger(creatureTradeCount(right.matchTotal)));
+        this.write("left-window-trades", formatInteger(creatureTradeCount(leftRecent)));
+        this.write("right-window-trades", formatInteger(creatureTradeCount(rightRecent)));
+        this.write("left-buy-points", formatInteger(sidePoints(left.matchTotal, "buy")));
+        this.write("left-sell-points", formatInteger(sidePoints(left.matchTotal, "sell")));
+        this.write("right-buy-points", formatInteger(sidePoints(right.matchTotal, "buy")));
+        this.write("right-sell-points", formatInteger(sidePoints(right.matchTotal, "sell")));
+        for (const kind of ["small", "medium", "large", "shark", "whale"] as const) {
+            this.write(`left-${kind}`, formatInteger(left.matchTotal.buy[kind] + left.matchTotal.sell[kind]));
+            this.write(`right-${kind}`, formatInteger(right.matchTotal.buy[kind] + right.matchTotal.sell[kind]));
+        }
+        this.write("control-left", control.left === null ? "—" : `${control.left}%`);
+        this.write("control-right", control.right === null ? "—" : `${control.right}%`);
+        const leftBar = this.root?.querySelector<HTMLElement>('[data-whale-ocean="control-left-bar"]');
+        const rightBar = this.root?.querySelector<HTMLElement>('[data-whale-ocean="control-right-bar"]');
+        if (leftBar) leftBar.style.width = `${control.left ?? 50}%`;
+        if (rightBar) rightBar.style.width = `${control.right ?? 50}%`;
+    }
+
     private updateHud(): void {
         const left = this.symbols.get(this.options.leftSymbol);
         const right = this.symbols.get(this.options.rightSymbol);
@@ -2599,6 +2716,7 @@ export class WhaleOceanRuntime {
         this.write("right-volume", formatVolume(right?.volume ?? 0));
         this.write("left-currency", left?.quoteCurrency ?? "QUOTE");
         this.write("right-currency", right?.quoteCurrency ?? "QUOTE");
+        this.updateScoreboardHud();
     }
 
     private hasLiveData(): boolean {
@@ -2725,6 +2843,10 @@ function formatPrice(value: number | null | undefined): string {
 
 function formatPercent(value: number): string {
     return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
+}
+
+function formatInteger(value: number): string {
+    return Math.max(0, Math.round(value)).toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
 function formatPressure(value: number | null): string {

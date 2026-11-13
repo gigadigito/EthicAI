@@ -45,6 +45,7 @@ namespace EthicAI.EntityModel
         public DbSet<MatchAlertSubscription> MatchAlertSubscription { get; set; }
         public DbSet<MatchAlertDelivery> MatchAlertDelivery { get; set; }
         public DbSet<AssetAlertSubscription> AssetAlertSubscription { get; set; }
+        public DbSet<WhaleOceanActivityBatch> WhaleOceanActivityBatch { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -59,6 +60,36 @@ namespace EthicAI.EntityModel
                 e.Property(x => x.Winner).HasMaxLength(5);
                 e.Property(x => x.RuleVersion).HasMaxLength(80);
                 e.HasOne<Match>().WithMany().HasForeignKey(x => x.MatchId).OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<WhaleOceanActivityBatch>(entity =>
+            {
+                entity.ToTable("whale_ocean_activity_batch");
+                entity.HasKey(e => e.WhaleOceanActivityBatchId);
+                entity.Property(e => e.WhaleOceanActivityBatchId)
+                    .HasColumnName("cd_whale_ocean_activity_batch")
+                    .ValueGeneratedOnAdd();
+                entity.Property(e => e.MatchId).HasColumnName("cd_match");
+                entity.Property(e => e.SourceId).HasColumnName("tx_source_id").HasMaxLength(128).IsRequired();
+                entity.Property(e => e.Symbol).HasColumnName("tx_symbol").HasMaxLength(30).IsRequired();
+                entity.Property(e => e.Sequence).HasColumnName("nr_sequence");
+                entity.Property(e => e.WindowStartUtc).HasColumnName("dt_window_start").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.EventTimeUtc).HasColumnName("dt_event_time").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.ReceivedAtUtc).HasColumnName("dt_received_at").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.IsPartial).HasColumnName("bl_partial").HasDefaultValue(false);
+                entity.Property(e => e.TradeCount).HasColumnName("nr_trade_count");
+                entity.Property(e => e.SmallBuy).HasColumnName("nr_small_buy");
+                entity.Property(e => e.MediumBuy).HasColumnName("nr_medium_buy");
+                entity.Property(e => e.LargeBuy).HasColumnName("nr_large_buy");
+                entity.Property(e => e.SharkBuy).HasColumnName("nr_shark_buy");
+                entity.Property(e => e.WhaleBuy).HasColumnName("nr_whale_buy");
+                entity.Property(e => e.SmallSell).HasColumnName("nr_small_sell");
+                entity.Property(e => e.MediumSell).HasColumnName("nr_medium_sell");
+                entity.Property(e => e.LargeSell).HasColumnName("nr_large_sell");
+                entity.Property(e => e.SharkSell).HasColumnName("nr_shark_sell");
+                entity.Property(e => e.WhaleSell).HasColumnName("nr_whale_sell");
+                entity.HasIndex(e => new { e.MatchId, e.SourceId, e.Symbol, e.Sequence }).IsUnique();
+                entity.HasIndex(e => new { e.MatchId, e.Symbol, e.EventTimeUtc });
+                entity.HasOne<Match>().WithMany().HasForeignKey(e => e.MatchId).OnDelete(DeleteBehavior.Cascade);
             });
             modelBuilder.Entity<CandleBattlesState>(e =>
             {

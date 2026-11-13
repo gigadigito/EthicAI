@@ -2,6 +2,7 @@ using System.Text;
 using System.Diagnostics;
 using System.Collections.Concurrent;
 using CriptoVersus.Worker.MarketFlow;
+using DTOs;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -59,6 +60,33 @@ public sealed class MarketFlowTests
         Assert.Equal(105m, snapshot.LastPrice);
         Assert.Equal(105m, snapshot.HighPrice);
         Assert.Equal(98m, snapshot.LowPrice);
+    }
+
+    [Fact]
+    public void Aggregator_ClassifiesEveryRealTradeIntoIndependentBuySellCounts()
+    {
+        var aggregator = new MarketFlowAggregator(TimeSpan.FromMilliseconds(250), 20);
+        aggregator.Add(Trade("BTCUSDT", 1, 1m, 100m, 10, false));
+        aggregator.Add(Trade("BTCUSDT", 2, 1m, 1_000m, 20, false));
+        aggregator.Add(Trade("BTCUSDT", 3, 1m, 10_000m, 30, false));
+        aggregator.Add(Trade("BTCUSDT", 4, 1m, 100_000m, 40, false));
+        aggregator.Add(Trade("BTCUSDT", 5, 1m, 1_000_000m, 50, false));
+        aggregator.Add(Trade("BTCUSDT", 6, 1m, 100m, 60, true));
+        aggregator.Add(Trade("BTCUSDT", 7, 1m, 1_000m, 70, true));
+        aggregator.Add(Trade("BTCUSDT", 8, 1m, 10_000m, 80, true));
+        aggregator.Add(Trade("BTCUSDT", 9, 1m, 100_000m, 90, true));
+        aggregator.Add(Trade("BTCUSDT", 10, 1m, 1_000_000m, 100, true));
+
+        var snapshot = Assert.Single(aggregator.FlushDue(Start.AddMilliseconds(250)));
+        Assert.Equal(10, snapshot.CreatureCounts.TradeCount);
+        Assert.Equal(5, snapshot.CreatureCounts.Buy.TradeCount);
+        Assert.Equal(5, snapshot.CreatureCounts.Sell.TradeCount);
+        Assert.Equal(1, snapshot.CreatureCounts.Buy.Small);
+        Assert.Equal(1, snapshot.CreatureCounts.Buy.Medium);
+        Assert.Equal(1, snapshot.CreatureCounts.Buy.Large);
+        Assert.Equal(1, snapshot.CreatureCounts.Buy.Shark);
+        Assert.Equal(1, snapshot.CreatureCounts.Buy.Whale);
+        Assert.Equal(184, snapshot.CreatureCounts.Points);
     }
 
     [Fact]

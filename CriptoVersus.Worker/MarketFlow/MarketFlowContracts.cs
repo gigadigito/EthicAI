@@ -1,3 +1,5 @@
+using DTOs;
+
 namespace CriptoVersus.Worker.MarketFlow;
 
 // BuyerIsMaker=true means the taker/aggressor was a seller; it is not a price direction signal.
@@ -35,6 +37,7 @@ public sealed record MarketFlowSnapshot(
 {
     public DateTimeOffset ReceivedAtUtc { get; init; }
     public long ReceivedMonotonicTimestamp { get; init; }
+    public MoneyFlowCreatureCountsDto CreatureCounts { get; init; } = new();
 }
 
 public sealed record MarketFlowTradeEnvelope(

@@ -234,7 +234,7 @@ Responsibilities:
 - Notify the API after state changes.
 - Request procedural audio resolution from the API.
 - Aggregate and delete old metric data.
-- Optionally ingest Binance Spot `@aggTrade` market-flow data in a separate, feature-flagged hosted service. This flow is in-memory only and is not part of authoritative candle, score, settlement, replay, or dashboard processing.
+- Optionally ingest Binance Spot `@aggTrade` market-flow data in a separate, feature-flagged hosted service. The Worker deduplicates aggregate-trade identities before its bounded 250 ms aggregation windows. Each window transports real per-trade Whale Ocean creature counts (BUY/SELL and Small/Medium/Large/Shark/Whale) alongside the existing visual snapshot; the count is independent of Babylon entity budgets and does not affect authoritative match scoring, settlement, or lifecycle rules.
 
 The Worker is not called by the API to perform a cycle. It runs independently as hosted services. The general worker cycle keeps its existing cadence for match, scoring, settlement, and retention stages. Candle Battle confirmation runs in the dedicated `CandleBattlesWorker` hosted service, using the shared `CandleBattlesRoundService`. It makes a first confirmation attempt at each UTC candle boundary plus the exchange confirmation grace (1.5 seconds), with a five-second default recovery interval (`CriptoVersusWorker:CandleBattlesIntervalSeconds`, bounded to 1–60 seconds). After a transaction commits a new round, the dedicated worker publishes the existing `dashboard_changed` invalidation through `CriptoVersusWorker:DashboardNotifyUrl`; the Web one-second request remains recovery for missed notifications. The service logs exchange server time, candle close, confirmation eligibility, persistence and publication timestamps. This isolates five-minute candle-result delivery from unrelated cycle latency without creating a second financial clock or changing scoring ownership.
 
@@ -1179,6 +1179,8 @@ MCP wallet authentication does not require a Solana RPC call.
 6. API uses some Solnet types through transitive BLL dependencies instead of explicit package references.
 7. Some test projects still rely on transitive references and linked production files; Worker tests now reference DTOs directly.
 8. API includes an old explicit SignalR server package while targeting .NET 8.
+
+Whale Ocean activity is persisted by the API in `whale_ocean_activity_batch` as deduplicated aggregated windows keyed by match, worker/source, symbol, and transport sequence. The public `GET /api/matches/{matchId}/whale-ocean/scoreboard` endpoint reconstructs match totals and the moving 30-second window. This is presentation telemetry; it is intentionally not used by official score, winner, settlement, or match-closing logic.
 
 ### Operational
 

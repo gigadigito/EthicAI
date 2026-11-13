@@ -83,6 +83,136 @@
     height: 100%;
 }
 
+.whale-ocean__scoreboard {
+    position: absolute;
+    z-index: 3;
+    right: clamp(.7rem, 2vw, 1.7rem);
+    bottom: .8rem;
+    left: clamp(.7rem, 2vw, 1.7rem);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(120px, 160px) minmax(0, 1fr);
+    align-items: stretch;
+    gap: clamp(.45rem, 1vw, 1rem);
+    box-sizing: border-box;
+    padding: .45rem clamp(.55rem, 1.2vw, 1rem);
+    border: 1px solid #1b8a8a99;
+    border-radius: 1rem;
+    background: linear-gradient(90deg, #061a1ddd, #061b1dcc 50%, #061a1ddd);
+    backdrop-filter: blur(5px);
+    box-shadow: 0 8px 24px #0005;
+    pointer-events: none;
+}
+
+.whale-ocean__score-team {
+    min-width: 0;
+    display: grid;
+    gap: .2rem;
+    align-content: center;
+}
+
+.whale-ocean__score-team--left { color: #ffb04d; }
+.whale-ocean__score-team--right { color: #70f4ee; }
+
+.whale-ocean__score-heading,
+.whale-ocean__score-meta,
+.whale-ocean__score-side,
+.whale-ocean__control-labels {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .5rem;
+    min-width: 0;
+}
+
+.whale-ocean__score-heading strong {
+    overflow: hidden;
+    color: currentColor;
+    font-size: clamp(.76rem, 1.15vw, 1rem);
+    letter-spacing: .04em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.whale-ocean__score-heading b {
+    flex: 0 0 auto;
+    color: #f7ffff;
+    font-size: clamp(1rem, 1.8vw, 1.55rem);
+    line-height: 1;
+}
+
+.whale-ocean__score-heading small,
+.whale-ocean__score-window,
+.whale-ocean__score-meta,
+.whale-ocean__score-side {
+    color: #a9cbd0;
+    font-size: .56rem;
+}
+
+.whale-ocean__score-meta b,
+.whale-ocean__score-side b,
+.whale-ocean__score-window b { color: #efffff; }
+
+.whale-ocean__score-side { color: #79d8c8; }
+.whale-ocean__score-team--right .whale-ocean__score-side { justify-content: flex-end; }
+
+.whale-ocean__species-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .22rem;
+    align-items: end;
+}
+
+.whale-ocean__species-grid > span {
+    display: grid;
+    min-width: 0;
+    justify-items: center;
+    gap: .05rem;
+    color: #e8ffff;
+    text-align: center;
+}
+
+.whale-ocean__species-grid b { font-size: .72rem; line-height: 1; }
+.whale-ocean__species-grid em { overflow: hidden; color: #8db7bb; font-size: .46rem; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+
+.whale-ocean__species-icon {
+    display: block;
+    width: 34px;
+    height: 17px;
+    background-position: 0 0;
+    background-repeat: no-repeat;
+    background-size: 400% 300%;
+    filter: saturate(.9) brightness(1.15);
+}
+
+.whale-ocean__species-icon--small { background-image: url('/games/whale-ocean/sprites/atlas_sardine_lima.png'); }
+.whale-ocean__species-icon--medium { background-image: url('/games/whale-ocean/sprites/atlas_grouper_lima.png'); }
+.whale-ocean__species-icon--large { background-image: url('/games/whale-ocean/sprites/atlas_tuna_lima.png'); }
+.whale-ocean__species-icon--shark { background-image: url('/games/whale-ocean/sprites/atlas_shark_lima.png'); }
+.whale-ocean__species-icon--whale { background-image: url('/games/whale-ocean/sprites/atlas_whale_lima.png'); }
+.whale-ocean__score-team--right .whale-ocean__species-icon--small { background-image: url('/games/whale-ocean/sprites/atlas_sardine_ciano.png'); }
+.whale-ocean__score-team--right .whale-ocean__species-icon--medium { background-image: url('/games/whale-ocean/sprites/atlas_grouper_ciano.png'); }
+.whale-ocean__score-team--right .whale-ocean__species-icon--large { background-image: url('/games/whale-ocean/sprites/atlas_tuna_ciano.png'); }
+.whale-ocean__score-team--right .whale-ocean__species-icon--shark { background-image: url('/games/whale-ocean/sprites/atlas_shark_ciano.png'); }
+.whale-ocean__score-team--right .whale-ocean__species-icon--whale { background-image: url('/games/whale-ocean/sprites/atlas_whale_ciano.png'); }
+
+.whale-ocean__score-control {
+    display: grid;
+    align-content: center;
+    gap: .18rem;
+    min-width: 0;
+    color: #e9ffff;
+    text-align: center;
+}
+
+.whale-ocean__score-control > strong { font-size: clamp(1.05rem, 1.6vw, 1.45rem); line-height: 1; }
+.whale-ocean__score-control > span { color: #a9cbd0; font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.whale-ocean__control-bar { display: flex; height: 9px; overflow: hidden; border: 1px solid #83e6df99; border-radius: 99px; background: #0d3238; }
+.whale-ocean__control-bar i { display: block; height: 100%; transition: width .25s ease; }
+.whale-ocean__control-bar i:first-child { background: #ff9100; }
+.whale-ocean__control-bar i:last-child { background: #18d8d2; }
+.whale-ocean__control-labels { color: #ffb04d; font-size: .66rem; font-weight: 900; }
+.whale-ocean__control-labels b:last-child { color: #70f4ee; }
+
 .whale-ocean__topbar,
 .whale-ocean__direction,
 .whale-ocean__territory,
@@ -347,7 +477,7 @@
 }
 
 .whale-ocean__legend {
-    bottom: 1rem;
+    bottom: 9.3rem;
     left: 50%;
     display: flex;
     flex-wrap: wrap;
@@ -487,7 +617,7 @@
 
     .whale-ocean__territory {
         top: auto;
-        bottom: 3.8rem;
+        bottom: 11.7rem;
         width: calc(50% - 1.1rem);
         padding: .55rem;
     }
@@ -530,10 +660,32 @@
     }
 
     .whale-ocean__legend {
-        bottom: .8rem;
+        bottom: 9.5rem;
         gap: .5rem;
         font-size: .57rem;
     }
+
+    .whale-ocean__scoreboard {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        bottom: .45rem;
+        gap: .3rem;
+        padding: .42rem;
+        border-radius: .75rem;
+    }
+
+    .whale-ocean__score-control {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+
+    .whale-ocean__score-team { grid-row: 2; }
+    .whale-ocean__score-heading b { font-size: .96rem; }
+    .whale-ocean__score-meta,
+    .whale-ocean__score-side,
+    .whale-ocean__score-window { font-size: .48rem; }
+    .whale-ocean__species-icon { width: 24px; height: 13px; }
+    .whale-ocean__species-grid b { font-size: .62rem; }
+    .whale-ocean__species-grid em { font-size: .38rem; }
 
 }
 

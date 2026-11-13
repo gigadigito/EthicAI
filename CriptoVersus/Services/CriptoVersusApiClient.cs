@@ -105,6 +105,12 @@ public sealed class CriptoVersusApiClient
             $"api/Matches/{matchId}?includeParticipants={includeParticipants.ToString().ToLowerInvariant()}",
             ct);
 
+    public Task<WhaleOceanScoreboardDto?> GetWhaleOceanScoreboardAsync(
+        int matchId,
+        CancellationToken ct = default)
+        => GetFromJsonWithBearerAsync<WhaleOceanScoreboardDto>(
+            $"api/matches/{matchId}/whale-ocean/scoreboard", ct);
+
     public Task<CandleBattlesFeedDto?> GetCandleBattlesAsync(int matchId, long? after = null, CancellationToken ct = default)
         => GetFromJsonWithBearerAsync<CandleBattlesFeedDto>($"api/matches/{matchId}/candle-battles?take=200" +
             (after.HasValue ? $"&after={after.Value}" : string.Empty), ct);

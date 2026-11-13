@@ -54,7 +54,8 @@ public sealed class WhaleOceanPageTests
             "bootstrapPending", "live", "finalized", "statusUnavailable",
             "stageAria", "demoModeOff", "direction", "buy", "sell",
             "buyAggressor", "sellAggressor", "events", "alertWhale", "alertShark",
-            "windowVolume", "endedAt"
+            "windowVolume", "endedAt", "battleScoreboard", "points", "creatures", "oceanControl",
+            "small", "medium", "large", "shark", "whale", "total", "last30Seconds", "matchTotal"
         };
 
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

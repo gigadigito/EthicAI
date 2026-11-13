@@ -241,6 +241,7 @@ builder.Services.AddRateLimiter(options => options.AddTvBroadcastRateLimiting())
 builder.Services.AddHostedService<PostgresChangeListener>();
 builder.Services.AddSingleton<MoneyFlowMetrics>();
 builder.Services.AddSingleton<MoneyFlowMatchRegistry>();
+builder.Services.AddScoped<WhaleOceanScoreStore>();
 builder.Services.AddSingleton<MoneyFlowDispatcher>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<MoneyFlowDispatcher>());
 builder.Services.AddSingleton<IMoneyFlowWorkerAuthenticationService, MoneyFlowWorkerAuthenticationService>();

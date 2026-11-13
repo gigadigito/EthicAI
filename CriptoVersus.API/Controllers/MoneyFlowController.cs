@@ -17,17 +17,20 @@ public sealed class MoneyFlowController : ControllerBase
     private readonly MoneyFlowDispatcher _dispatcher;
     private readonly IOptions<MoneyFlowTransportOptions> _options;
     private readonly MoneyFlowMetrics _metrics;
+    private readonly WhaleOceanScoreStore _scoreStore;
 
     public MoneyFlowController(
         IMoneyFlowWorkerAuthenticationService authentication,
         MoneyFlowDispatcher dispatcher,
         IOptions<MoneyFlowTransportOptions> options,
-        MoneyFlowMetrics metrics)
+        MoneyFlowMetrics metrics,
+        WhaleOceanScoreStore scoreStore)
     {
         _authentication = authentication;
         _dispatcher = dispatcher;
         _options = options;
         _metrics = metrics;
+        _scoreStore = scoreStore;
     }
 
     [HttpPost("batches")]
@@ -56,6 +59,9 @@ public sealed class MoneyFlowController : ControllerBase
             }
         }
 
+        // Persist before acknowledging the worker. The transport retry then
+        // becomes safe even if the API process stops before SignalR publish.
+        await _scoreStore.PersistAsync(request.SourceId, request.Batches, ct);
         return Accepted(await _dispatcher.EnqueueAsync(request, ct));
     }
 
@@ -70,6 +76,16 @@ public sealed class MoneyFlowController : ControllerBase
         if (batch.TotalBaseQuantity < 0 || batch.TakerBuyBaseQuantity < 0 || batch.TakerSellBaseQuantity < 0
             || batch.TakerBuyQuote < 0 || batch.TakerSellQuote < 0 || batch.FirstPrice <= 0 || batch.LastPrice <= 0
             || batch.HighPrice <= 0 || batch.LowPrice <= 0)
+            return false;
+        // Older Workers may omit CreatureCounts during a rolling deployment;
+        // those batches remain valid but cannot contribute species points.
+        // New batches with counts must reconcile exactly to the real trade count.
+        var counts = batch.CreatureCounts;
+        if (counts.TradeCount > 0 && counts.TradeCount != batch.TradeCount) return false;
+        if (counts.Buy.Small < 0 || counts.Buy.Medium < 0 || counts.Buy.Large < 0
+            || counts.Buy.Shark < 0 || counts.Buy.Whale < 0 || counts.Sell.Small < 0
+            || counts.Sell.Medium < 0 || counts.Sell.Large < 0 || counts.Sell.Shark < 0
+            || counts.Sell.Whale < 0)
             return false;
         return true;
     }

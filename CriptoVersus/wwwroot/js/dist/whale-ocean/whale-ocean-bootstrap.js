@@ -79,6 +79,9 @@ export function setOfficialMatchState(matchId, finished, rawStatus, startTimeUtc
 export function completeReplay(matchId) {
     instances.get(matchId)?.completeReplay();
 }
+export function setScoreboard(matchId, scoreboard) {
+    instances.get(matchId)?.setScoreboard(scoreboard);
+}
 export async function setQuality(matchId, quality) {
     await instances.get(matchId)?.setQuality(quality);
 }

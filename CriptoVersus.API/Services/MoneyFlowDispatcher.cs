@@ -135,7 +135,7 @@ public sealed class MoneyFlowDispatcher : BackgroundService
             _metrics.WorkerToApiLatencyMs.Record(Math.Max(0, (now - envelope.Batch.ReceivedAtUtc).TotalMilliseconds));
         foreach (var matchId in matches)
         {
-            var clientBatch = ToClientBatch(matchId, envelope.Batch);
+            var clientBatch = ToClientBatch(matchId, envelope.SourceId, envelope.Batch);
             StoreReplay(matchId, clientBatch, now);
             await _hub.Clients.Group(DashboardHub.MoneyFlowGroup(matchId))
                 .SendAsync(DashboardHub.MoneyFlowEventName, clientBatch, ct);
@@ -144,10 +144,11 @@ public sealed class MoneyFlowDispatcher : BackgroundService
         }
     }
 
-    private static MoneyFlowClientBatchDto ToClientBatch(int matchId, MoneyFlowBatchDto batch)
+    private static MoneyFlowClientBatchDto ToClientBatch(int matchId, string sourceId, MoneyFlowBatchDto batch)
         => new()
         {
             MatchId = matchId,
+            SourceId = sourceId,
             Symbol = batch.Symbol,
             Sequence = batch.Sequence,
             WindowStartUtc = batch.WindowStartUtc,
@@ -166,7 +167,8 @@ public sealed class MoneyFlowDispatcher : BackgroundService
             LastPrice = Format(batch.LastPrice),
             HighPrice = Format(batch.HighPrice),
             LowPrice = Format(batch.LowPrice),
-            IsPartial = batch.IsPartial
+            IsPartial = batch.IsPartial,
+            CreatureCounts = batch.CreatureCounts
         };
 
     private void StoreReplay(int matchId, MoneyFlowClientBatchDto batch, DateTimeOffset now)

@@ -1,5 +1,6 @@
 import { WhaleOceanRuntime, type WhaleOceanGeometryDiagnostic, type WhaleOceanRuntimeOptions, type WhaleOceanVisualDiagnosticRow } from "./whale-ocean-runtime.js";
 import type { WhaleOceanBatch } from "./whale-ocean-model.js";
+import type { WhaleOceanScoreboard } from "./whale-ocean-scoreboard.js";
 
 const instances = new Map<number, WhaleOceanRuntime>();
 const initializationTasks = new Map<number, Promise<void>>();
@@ -93,6 +94,10 @@ export function setOfficialMatchState(
 
 export function completeReplay(matchId: number): void {
     instances.get(matchId)?.completeReplay();
+}
+
+export function setScoreboard(matchId: number, scoreboard: WhaleOceanScoreboard | null): void {
+    instances.get(matchId)?.setScoreboard(scoreboard);
 }
 
 export async function setQuality(matchId: number, quality: "Low" | "Medium" | "High"): Promise<void> {

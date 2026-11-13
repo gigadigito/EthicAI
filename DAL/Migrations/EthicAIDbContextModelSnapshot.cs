@@ -50,6 +50,37 @@ namespace DAL.Migrations
                 b.HasIndex("Complete", "MatchId");
                 b.ToTable("candle_battles_state");
             });
+            modelBuilder.Entity("DAL.NftFutebol.WhaleOceanActivityBatch", b =>
+            {
+                b.Property<long>("WhaleOceanActivityBatchId")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("bigint")
+                    .HasColumnName("cd_whale_ocean_activity_batch");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("WhaleOceanActivityBatchId"));
+                b.Property<int>("MatchId").HasColumnType("integer").HasColumnName("cd_match");
+                b.Property<string>("SourceId").IsRequired().HasMaxLength(128).HasColumnType("character varying(128)").HasColumnName("tx_source_id");
+                b.Property<string>("Symbol").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)").HasColumnName("tx_symbol");
+                b.Property<long>("Sequence").HasColumnType("bigint").HasColumnName("nr_sequence");
+                b.Property<DateTimeOffset>("WindowStartUtc").HasColumnType("timestamp with time zone").HasColumnName("dt_window_start");
+                b.Property<DateTimeOffset>("EventTimeUtc").HasColumnType("timestamp with time zone").HasColumnName("dt_event_time");
+                b.Property<DateTimeOffset>("ReceivedAtUtc").HasColumnType("timestamp with time zone").HasColumnName("dt_received_at");
+                b.Property<bool>("IsPartial").ValueGeneratedOnAdd().HasColumnType("boolean").HasDefaultValue(false).HasColumnName("bl_partial");
+                b.Property<long>("TradeCount").HasColumnType("bigint").HasColumnName("nr_trade_count");
+                b.Property<long>("SmallBuy").HasColumnType("bigint").HasColumnName("nr_small_buy");
+                b.Property<long>("MediumBuy").HasColumnType("bigint").HasColumnName("nr_medium_buy");
+                b.Property<long>("LargeBuy").HasColumnType("bigint").HasColumnName("nr_large_buy");
+                b.Property<long>("SharkBuy").HasColumnType("bigint").HasColumnName("nr_shark_buy");
+                b.Property<long>("WhaleBuy").HasColumnType("bigint").HasColumnName("nr_whale_buy");
+                b.Property<long>("SmallSell").HasColumnType("bigint").HasColumnName("nr_small_sell");
+                b.Property<long>("MediumSell").HasColumnType("bigint").HasColumnName("nr_medium_sell");
+                b.Property<long>("LargeSell").HasColumnType("bigint").HasColumnName("nr_large_sell");
+                b.Property<long>("SharkSell").HasColumnType("bigint").HasColumnName("nr_shark_sell");
+                b.Property<long>("WhaleSell").HasColumnType("bigint").HasColumnName("nr_whale_sell");
+                b.HasKey("WhaleOceanActivityBatchId");
+                b.HasIndex("MatchId", "SourceId", "Symbol", "Sequence").IsUnique();
+                b.HasIndex("MatchId", "Symbol", "EventTimeUtc");
+                b.ToTable("whale_ocean_activity_batch");
+            });
 
 
             modelBuilder.Entity("DAL.NftFutebol.ArenaSentimentSnapshot", b =>
@@ -2627,6 +2658,8 @@ namespace DAL.Migrations
                 b.HasOne("DAL.NftFutebol.Match", null).WithMany().HasForeignKey("MatchId").OnDelete(DeleteBehavior.Restrict).IsRequired());
             modelBuilder.Entity("DAL.NftFutebol.CandleBattlesState", b =>
                 b.HasOne("DAL.NftFutebol.Match", null).WithMany().HasForeignKey("MatchId").OnDelete(DeleteBehavior.Restrict).IsRequired());
+            modelBuilder.Entity("DAL.NftFutebol.WhaleOceanActivityBatch", b =>
+                b.HasOne("DAL.NftFutebol.Match", null).WithMany().HasForeignKey("MatchId").OnDelete(DeleteBehavior.Cascade).IsRequired());
 #pragma warning restore 612, 618
         }
     }

@@ -54,6 +54,40 @@
             <canvas @ref="_canvas" class="whale-ocean__canvas"></canvas>
             <div class="whale-ocean__divider" data-whale-ocean="territory-divider" aria-hidden="true"></div>
             <div class="whale-ocean__labels" data-whale-ocean="labels" aria-hidden="true"></div>
+            <section class="whale-ocean__scoreboard" aria-label="@T("battleScoreboard")">
+                <div class="whale-ocean__score-team whale-ocean__score-team--left">
+                    <div class="whale-ocean__score-heading"><strong>@_match.TeamA</strong><b><span data-whale-ocean="left-score">0</span> <small>@T("points")</small></b></div>
+                    <div class="whale-ocean__score-meta"><span>@T("matchTotal") <b data-whale-ocean="left-total-trades">0</b></span><span>@T("last30Seconds") <b data-whale-ocean="left-window-trades">0</b></span></div>
+                    <div class="whale-ocean__score-side"><span>@T("buy") <b data-whale-ocean="left-buy-points">0</b></span><span>@T("sell") <b data-whale-ocean="left-sell-points">0</b></span></div>
+                    <div class="whale-ocean__species-grid">
+                        <span title="@T("small")"><i class="whale-ocean__species-icon whale-ocean__species-icon--small"></i><b data-whale-ocean="left-small">0</b><em>@T("small")</em></span>
+                        <span title="@T("medium")"><i class="whale-ocean__species-icon whale-ocean__species-icon--medium"></i><b data-whale-ocean="left-medium">0</b><em>@T("medium")</em></span>
+                        <span title="@T("large")"><i class="whale-ocean__species-icon whale-ocean__species-icon--large"></i><b data-whale-ocean="left-large">0</b><em>@T("large")</em></span>
+                        <span title="@T("shark")"><i class="whale-ocean__species-icon whale-ocean__species-icon--shark"></i><b data-whale-ocean="left-shark">0</b><em>@T("shark")</em></span>
+                        <span title="@T("whale")"><i class="whale-ocean__species-icon whale-ocean__species-icon--whale"></i><b data-whale-ocean="left-whale">0</b><em>@T("whale")</em></span>
+                    </div>
+                    <small class="whale-ocean__score-window">@T("last30Seconds"): <b data-whale-ocean="left-window-score">0</b> @T("points")</small>
+                </div>
+                <div class="whale-ocean__score-control">
+                    <strong>VS</strong>
+                    <span>@T("oceanControl")</span>
+                    <div class="whale-ocean__control-bar"><i data-whale-ocean="control-left-bar"></i><i data-whale-ocean="control-right-bar"></i></div>
+                    <div class="whale-ocean__control-labels"><b data-whale-ocean="control-left">—</b><b data-whale-ocean="control-right">—</b></div>
+                </div>
+                <div class="whale-ocean__score-team whale-ocean__score-team--right">
+                    <div class="whale-ocean__score-heading"><b><span data-whale-ocean="right-score">0</span> <small>@T("points")</small></b><strong>@_match.TeamB</strong></div>
+                    <div class="whale-ocean__score-meta"><span>@T("last30Seconds") <b data-whale-ocean="right-window-trades">0</b></span><span>@T("matchTotal") <b data-whale-ocean="right-total-trades">0</b></span></div>
+                    <div class="whale-ocean__score-side"><span>@T("buy") <b data-whale-ocean="right-buy-points">0</b></span><span>@T("sell") <b data-whale-ocean="right-sell-points">0</b></span></div>
+                    <div class="whale-ocean__species-grid">
+                        <span title="@T("whale")"><i class="whale-ocean__species-icon whale-ocean__species-icon--whale"></i><b data-whale-ocean="right-whale">0</b><em>@T("whale")</em></span>
+                        <span title="@T("shark")"><i class="whale-ocean__species-icon whale-ocean__species-icon--shark"></i><b data-whale-ocean="right-shark">0</b><em>@T("shark")</em></span>
+                        <span title="@T("large")"><i class="whale-ocean__species-icon whale-ocean__species-icon--large"></i><b data-whale-ocean="right-large">0</b><em>@T("large")</em></span>
+                        <span title="@T("medium")"><i class="whale-ocean__species-icon whale-ocean__species-icon--medium"></i><b data-whale-ocean="right-medium">0</b><em>@T("medium")</em></span>
+                        <span title="@T("small")"><i class="whale-ocean__species-icon whale-ocean__species-icon--small"></i><b data-whale-ocean="right-small">0</b><em>@T("small")</em></span>
+                    </div>
+                    <small class="whale-ocean__score-window">@T("last30Seconds"): <b data-whale-ocean="right-window-score">0</b> @T("points")</small>
+                </div>
+            </section>
             <div class="whale-ocean__topbar">
                 <div class="whale-ocean__status" aria-live="polite">
                     <div class="whale-ocean__status-main"><i></i><span>@DisplayedStatusLabel</span></div>
@@ -120,6 +154,7 @@
     private IJSObjectReference? _module;
     private int _jsMatchId;
     private MatchDto? _match;
+    private WhaleOceanScoreboardDto? _scoreboard;
     private string _culture = AppCultureService.DefaultRouteCulture;
     private string? _loadError;
     private string _quality = "Medium";
@@ -151,6 +186,7 @@
             if (_loadedMatchId == MatchId && _match is not null) return;
             _loadedMatchId = MatchId;
             _match = null;
+            _scoreboard = null;
             _loadError = null;
             _initialMatchStateLogged = false;
             _officialMatchFinalized = false;
@@ -162,6 +198,15 @@
             {
                 _loadError = T("matchNotFound");
                 return;
+            }
+
+            try
+            {
+                _scoreboard = await Api.GetWhaleOceanScoreboardAsync(MatchId, _lifetime.Token);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TimeoutException)
+            {
+                Logger.LogWarning(ex, "Whale Ocean scoreboard recovery failed; live replay will still be used. MatchId={MatchId}", MatchId);
             }
 
             _officialMatchFinalized = WhaleOceanMatchState.IsFinished(_match);
@@ -249,7 +294,8 @@
                 officialStatus = OfficialMatchState,
                 officialRawStatus = match.Status,
                 officialStartTimeUtc = match.StartTime,
-                officialEndTimeUtc = match.EndTime
+                officialEndTimeUtc = match.EndTime,
+                scoreboard = _scoreboard
             });
             if (_disposed || _lifetime.IsCancellationRequested) return;
 
@@ -332,6 +378,7 @@
                 {
                     matchId = batch.MatchId,
                     symbol = batch.Symbol,
+                    sourceId = batch.SourceId,
                     sequence = batch.Sequence,
                     eventTimeUtc = batch.EventTimeUtc,
                     tradeCount = batch.TradeCount,
@@ -339,7 +386,8 @@
                     takerSellQuote = batch.TakerSellQuote,
                     lastPrice = batch.LastPrice,
                     isPartial = batch.IsPartial,
-                    isReplay = batch.IsReplay
+                    isReplay = batch.IsReplay,
+                    creatureCounts = batch.CreatureCounts
                 });
                 if (becameLive) await InvokeAsync(StateHasChanged);
             }
@@ -429,6 +477,19 @@
             _match = latest;
             var finished = IsOfficialMatchFinished;
             var module = _module;
+            if (finished)
+            {
+                try
+                {
+                    _scoreboard = await Api.GetWhaleOceanScoreboardAsync(matchId, _lifetime.Token);
+                    if (module is not null)
+                        await module.InvokeVoidAsync("setScoreboard", matchId, _scoreboard);
+                }
+                catch (Exception ex) when (ex is HttpRequestException or TimeoutException)
+                {
+                    Logger.LogDebug(ex, "Whale Ocean final scoreboard refresh failed. MatchId={MatchId}", matchId);
+                }
+            }
             if (module is not null)
                 await module.InvokeVoidAsync(
                     "setOfficialMatchState",

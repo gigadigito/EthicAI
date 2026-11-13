@@ -3164,6 +3164,18 @@
     "bootstrapPending": "BOOTSTRAP_PENDING",
     "statusUnavailable": "STATO NON DISPONIBILE",
     "finalized": "TERMINATA",
-    "endedAt": "Terminata il {0} alle {1} UTC"
+    "endedAt": "Terminata il {0} alle {1} UTC",
+    "battleScoreboard": "Tabellone della battaglia oceanica",
+    "points": "punti",
+    "creatures": "creature",
+    "oceanControl": "Controllo dell’oceano",
+    "small": "Piccolo",
+    "medium": "Medio",
+    "large": "Grande",
+    "shark": "Squalo",
+    "whale": "Balena",
+    "total": "Totale",
+    "last30Seconds": "Ultimi 30 secondi",
+    "matchTotal": "Totale partita"
   }
 }

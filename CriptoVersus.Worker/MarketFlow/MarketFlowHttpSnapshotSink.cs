@@ -142,7 +142,8 @@ public sealed class MarketFlowHttpSnapshotSink : BackgroundService, IMarketFlowS
             LastPrice = snapshot.LastPrice,
             HighPrice = snapshot.HighPrice,
             LowPrice = snapshot.LowPrice,
-            IsPartial = snapshot.IsPartial
+            IsPartial = snapshot.IsPartial,
+            CreatureCounts = snapshot.CreatureCounts
         };
 
     private sealed class BoundedSnapshotQueue

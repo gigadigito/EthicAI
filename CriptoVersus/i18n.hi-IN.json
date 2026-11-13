@@ -3164,6 +3164,18 @@
     "bootstrapPending": "BOOTSTRAP_PENDING",
     "statusUnavailable": "स्थिति उपलब्ध नहीं",
     "finalized": "समाप्त",
-    "endedAt": "समाप्ति {0} को {1} UTC"
+    "endedAt": "समाप्ति {0} को {1} UTC",
+    "battleScoreboard": "ओशन बैटल स्कोरबोर्ड",
+    "points": "अंक",
+    "creatures": "जीव",
+    "oceanControl": "ओशन कंट्रोल",
+    "small": "छोटी मछली",
+    "medium": "मध्यम मछली",
+    "large": "बड़ी मछली",
+    "shark": "शार्क",
+    "whale": "व्हेल",
+    "total": "कुल",
+    "last30Seconds": "पिछले 30 सेकंड",
+    "matchTotal": "मैच कुल"
   }
 }

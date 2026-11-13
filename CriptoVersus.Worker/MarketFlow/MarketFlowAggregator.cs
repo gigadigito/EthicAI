@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using DTOs;
 
 namespace CriptoVersus.Worker.MarketFlow;
 
@@ -116,6 +117,16 @@ public sealed class MarketFlowAggregator(TimeSpan window, int maxTrackedWindows,
         private decimal SellQuote { get; set; }
         private decimal High { get; set; }
         private decimal Low { get; set; }
+        private long SmallBuy { get; set; }
+        private long MediumBuy { get; set; }
+        private long LargeBuy { get; set; }
+        private long SharkBuy { get; set; }
+        private long WhaleBuy { get; set; }
+        private long SmallSell { get; set; }
+        private long MediumSell { get; set; }
+        private long LargeSell { get; set; }
+        private long SharkSell { get; set; }
+        private long WhaleSell { get; set; }
 
         public void Add(BinanceAggregateTrade trade)
         {
@@ -123,6 +134,7 @@ public sealed class MarketFlowAggregator(TimeSpan window, int maxTrackedWindows,
             TotalBase += trade.Quantity;
             if (trade.IsTakerBuy) { BuyBase += trade.Quantity; BuyQuote += trade.QuoteQuantity; }
             else { SellBase += trade.Quantity; SellQuote += trade.QuoteQuantity; }
+            AddCreatureCount(trade);
             High = TradeCount == 1 ? trade.Price : Math.Max(High, trade.Price);
             Low = TradeCount == 1 ? trade.Price : Math.Min(Low, trade.Price);
             if (_first is null || Compare(trade, _first) < 0) _first = trade;
@@ -139,8 +151,54 @@ public sealed class MarketFlowAggregator(TimeSpan window, int maxTrackedWindows,
                 first.Price, last.Price, High, Low, first.TradeTime, last.TradeTime, IsPartial)
             {
                 ReceivedAtUtc = FirstReceivedAtUtc,
-                ReceivedMonotonicTimestamp = FirstReceivedMonotonicTimestamp
+                ReceivedMonotonicTimestamp = FirstReceivedMonotonicTimestamp,
+                CreatureCounts = new MoneyFlowCreatureCountsDto
+                {
+                    Buy = new MoneyFlowCreatureSideCountsDto
+                    {
+                        Small = SmallBuy,
+                        Medium = MediumBuy,
+                        Large = LargeBuy,
+                        Shark = SharkBuy,
+                        Whale = WhaleBuy
+                    },
+                    Sell = new MoneyFlowCreatureSideCountsDto
+                    {
+                        Small = SmallSell,
+                        Medium = MediumSell,
+                        Large = LargeSell,
+                        Shark = SharkSell,
+                        Whale = WhaleSell
+                    }
+                }
             };
+        }
+
+        private void AddCreatureCount(BinanceAggregateTrade trade)
+        {
+            var kind = MoneyFlowCreatureRules.Classify(trade.QuoteQuantity);
+            if (trade.IsTakerBuy)
+            {
+                switch (kind)
+                {
+                    case MoneyFlowCreatureKind.Small: SmallBuy++; break;
+                    case MoneyFlowCreatureKind.Medium: MediumBuy++; break;
+                    case MoneyFlowCreatureKind.Large: LargeBuy++; break;
+                    case MoneyFlowCreatureKind.Shark: SharkBuy++; break;
+                    case MoneyFlowCreatureKind.Whale: WhaleBuy++; break;
+                }
+            }
+            else
+            {
+                switch (kind)
+                {
+                    case MoneyFlowCreatureKind.Small: SmallSell++; break;
+                    case MoneyFlowCreatureKind.Medium: MediumSell++; break;
+                    case MoneyFlowCreatureKind.Large: LargeSell++; break;
+                    case MoneyFlowCreatureKind.Shark: SharkSell++; break;
+                    case MoneyFlowCreatureKind.Whale: WhaleSell++; break;
+                }
+            }
         }
 
         private static int Compare(BinanceAggregateTrade left, BinanceAggregateTrade right)
