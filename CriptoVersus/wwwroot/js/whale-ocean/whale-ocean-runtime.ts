@@ -59,6 +59,13 @@ interface SpriteAtlas {
     visualMaxXRatio: number;
 }
 
+interface SpriteVisualBounds {
+    widthRatio: number;
+    heightRatio: number;
+    minXRatio: number;
+    maxXRatio: number;
+}
+
 export interface WhaleOceanRuntimeOptions {
     canvas: HTMLCanvasElement;
     matchId: number;
@@ -180,6 +187,7 @@ interface LabelPlacement {
     anchorY: number;
     below: boolean;
     alpha: number;
+    priority: number;
 }
 
 type VisibleHorizontalBounds = WhaleOceanVisibleBounds;
@@ -271,7 +279,9 @@ interface LiveSymbolState {
 
 const QUALITY_FPS: Record<Quality, number> = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS: Record<Quality, number> = { Low: 2, Medium: 3, High: 4 };
-const SPRITE_ASSET_VERSION = "20261113-whale-ocean-depth-bands-v12";
+const SPRITE_ASSET_VERSION = "20261113-whale-ocean-depth-bands-v13";
+const MAX_VISIBLE_VOLUME_LABELS_DESKTOP = 10;
+const MAX_VISIBLE_VOLUME_LABELS_MOBILE = 6;
 const CAMERA_FOV = 0.8;
 const CAMERA_RADIUS = 27;
 const REFERENCE_CSS_PIXELS_PER_WORLD_UNIT = 700 / (2 * CAMERA_RADIUS * Math.tan(CAMERA_FOV / 2));
@@ -595,7 +605,7 @@ export class WhaleOceanRuntime {
             frameHeight: number;
             framesPerAnimation: number;
             atlas: { columns: number; rows: number };
-            animations: Record<string, { atlas: string; fps: number; frameCount: number; kind: SpriteKind }>;
+            animations: Record<string, { atlas: string; fps: number; frameCount: number; kind: SpriteKind; bounds: SpriteVisualBounds }>;
         };
         if (manifest.frameWidth !== 512 || manifest.frameHeight !== 256 || manifest.framesPerAnimation !== 12
             || manifest.atlas.columns !== 4 || manifest.atlas.rows !== 3)
@@ -604,7 +614,9 @@ export class WhaleOceanRuntime {
         const atlasPromises = Object.entries(manifest.animations).map(async ([name, definition]) => {
             const territory = name.endsWith("_lima") ? "left" : "right";
             const atlasUrl = `/games/whale-ocean/sprites/${definition.atlas}?v=${SPRITE_ASSET_VERSION}`;
-            const bounds = await measureAtlasBounds(atlasUrl, manifest.frameWidth, manifest.frameHeight, manifest.framesPerAnimation);
+            const bounds = definition.bounds;
+            if (!bounds || ![bounds.widthRatio, bounds.heightRatio, bounds.minXRatio, bounds.maxXRatio].every(Number.isFinite))
+                throw new Error(`Whale Ocean sprite manifest is missing precomputed visual bounds for ${name}.`);
             const manager = new B.SpriteManager(
                 `whale-ocean-sprites-${name}`,
                 atlasUrl,
@@ -1137,7 +1149,7 @@ export class WhaleOceanRuntime {
                 this.ensureFishLabel(agent, this.fishLabelText(group, agent), group.side === "buy" ? "#36e7b0" : "#ff6b55");
                 if (agent.label) {
                     const below = this.labelBelowForKind(agent.kind, index % 2 !== 0);
-                    this.placeScreenLabel(agent.label, agent.position.x, agent.position.y + (below ? -size * 0.42 : size * 0.42), agent.position.z, agent.sprite.color.a, below);
+                    this.placeScreenLabel(agent.label, agent.position.x, agent.position.y + (below ? -size * 0.42 : size * 0.42), agent.position.z, agent.sprite.color.a, below, this.volumeLabelPriority(agent.kind, agent.allocatedNotional, 0));
                 }
             }
         }
@@ -1905,7 +1917,7 @@ export class WhaleOceanRuntime {
         return label;
     }
 
-    private placeScreenLabel(label: HTMLElement, worldX: number, worldY: number, worldZ: number, alpha: number, below = false): void {
+    private placeScreenLabel(label: HTMLElement, worldX: number, worldY: number, worldZ: number, alpha: number, below = false, priority = 0): void {
         const B = this.B!;
         const engine = this.engine;
         const camera = this.camera;
@@ -1930,7 +1942,7 @@ export class WhaleOceanRuntime {
             label.style.display = "none";
             return;
         }
-        this.labelPlacements.push({ label, anchorX: cssX, anchorY: cssY, below, alpha });
+        this.labelPlacements.push({ label, anchorX: cssX, anchorY: cssY, below, alpha, priority });
     }
 
     private resolveScreenLabels(): void {
@@ -1938,9 +1950,14 @@ export class WhaleOceanRuntime {
         const width = this.canvas.clientWidth;
         const height = this.canvas.clientHeight;
         const placed: Array<{ left: number; right: number; top: number; bottom: number }> = [];
-        const ordered = [...this.labelPlacements].sort((a, b) => a.anchorY - b.anchorY);
-        for (const placement of ordered) {
+        const maxVisibleLabels = width <= 700 ? MAX_VISIBLE_VOLUME_LABELS_MOBILE : MAX_VISIBLE_VOLUME_LABELS_DESKTOP;
+        const ordered = [...this.labelPlacements].sort((a, b) => b.priority - a.priority || a.anchorY - b.anchorY);
+        for (const [index, placement] of ordered.entries()) {
             const label = placement.label;
+            if (index >= maxVisibleLabels) {
+                label.style.display = "none";
+                continue;
+            }
             const labelWidth = Math.max(24, label.offsetWidth || Number(label.dataset.halfWidth ?? "60") * 2);
             const labelHeight = Math.max(18, label.offsetHeight || 24);
             const halfWidth = labelWidth / 2;
@@ -1962,6 +1979,12 @@ export class WhaleOceanRuntime {
             label.style.transform = `translate(${x.toFixed(1)}px, ${chosenY.toFixed(1)}px) translate(-50%, ${placement.below ? "0" : "-100%"})`;
             placed.push(chosenRect);
         }
+    }
+
+    private volumeLabelPriority(kind: SpriteKind, notional: number, channel: number): number {
+        const speciesPriority = WHALE_OCEAN_SPECIES[kind].financialLevel * 1_000;
+        const volumePriority = Math.min(999, Math.log10(Math.max(1, notional)) * 100);
+        return channel * 100_000 + speciesPriority + volumePriority;
     }
 
     private labelRect(x: number, anchorY: number, width: number, height: number, below: boolean, viewportHeight: number): { left: number; right: number; top: number; bottom: number } {
@@ -2011,7 +2034,7 @@ export class WhaleOceanRuntime {
             const fadeIn = Math.min(1, progress / 0.12);
             actor.sprite.color.a = fadeIn;
             if (actor.label)
-                this.placeScreenLabel(actor.label, actor.sprite.position.x, actor.sprite.position.y + actor.size * 0.62, actor.sprite.position.z, actor.sprite.color.a, this.labelBelowForKind(actor.kind));
+                this.placeScreenLabel(actor.label, actor.sprite.position.x, actor.sprite.position.y + actor.size * 0.62, actor.sprite.position.z, actor.sprite.color.a, this.labelBelowForKind(actor.kind), this.volumeLabelPriority(actor.kind, actor.notional, 1));
         }
     }
 
@@ -2154,7 +2177,7 @@ export class WhaleOceanRuntime {
             const fadeIn = Math.min(1, progress / 0.14);
             event.sprite.color.a = fadeIn;
             if (event.label)
-                this.placeScreenLabel(event.label, event.sprite.position.x, event.sprite.position.y + event.size * 0.56, event.sprite.position.z, event.sprite.color.a, this.labelBelowForKind(event.kind));
+                this.placeScreenLabel(event.label, event.sprite.position.x, event.sprite.position.y + event.size * 0.56, event.sprite.position.z, event.sprite.color.a, this.labelBelowForKind(event.kind), this.volumeLabelPriority(event.kind, event.notional, 2));
         }
     }
 
@@ -2279,59 +2302,6 @@ export class WhaleOceanRuntime {
     private random(): number {
         this.randomState = (this.randomState * 1664525 + 1013904223) >>> 0;
         return this.randomState / 0x1_0000_0000;
-    }
-}
-
-interface MeasuredAtlasBounds {
-    widthRatio: number;
-    heightRatio: number;
-    minXRatio: number;
-    maxXRatio: number;
-}
-
-async function measureAtlasBounds(url: string, frameWidth: number, frameHeight: number, frameCount: number): Promise<MeasuredAtlasBounds> {
-    const response = await fetch(url, { cache: "force-cache" });
-    if (!response.ok) throw new Error(`Whale Ocean sprite atlas returned ${response.status}: ${url}`);
-    const bitmap = await createImageBitmap(await response.blob());
-    try {
-        const canvas = document.createElement("canvas");
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
-        const context = canvas.getContext("2d", { willReadFrequently: true });
-        if (!context) throw new Error(`Unable to inspect alpha bounds for ${url}.`);
-        context.drawImage(bitmap, 0, 0);
-        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-        if (canvas.width !== frameWidth * 4 || canvas.height !== frameHeight * 3)
-            throw new Error(`Whale Ocean atlas dimensions are invalid for ${url}.`);
-
-        let minX = frameWidth;
-        let minY = frameHeight;
-        let maxX = -1;
-        let maxY = -1;
-        for (let frame = 0; frame < frameCount; frame++) {
-            const column = frame % 4;
-            const row = Math.floor(frame / 4);
-            let framePixels = 0;
-            for (let y = 0; y < frameHeight; y++) for (let x = 0; x < frameWidth; x++) {
-                const alpha = pixels[((row * frameHeight + y) * canvas.width + column * frameWidth + x) * 4 + 3];
-                if (alpha <= 8) continue;
-                framePixels++;
-                minX = Math.min(minX, x);
-                minY = Math.min(minY, y);
-                maxX = Math.max(maxX, x);
-                maxY = Math.max(maxY, y);
-            }
-            if (framePixels === 0) throw new Error(`Whale Ocean atlas has an empty animation frame: ${url} frame ${frame}.`);
-        }
-        if (maxX < minX || maxY < minY) throw new Error(`Whale Ocean atlas has no visible pixels: ${url}.`);
-        return {
-            widthRatio: (maxX - minX + 1) / frameWidth,
-            heightRatio: (maxY - minY + 1) / frameHeight,
-            minXRatio: minX / frameWidth,
-            maxXRatio: (maxX + 1) / frameWidth
-        };
-    } finally {
-        bitmap.close();
     }
 }
 
