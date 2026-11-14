@@ -27,10 +27,10 @@ test('BUY and SELL paths enter from the correct edge and end at the territory ed
     const leftSell = getTransitPath(visible, 'left', 'sell', 3, 2);
     const rightBuy = getTransitPath(visible, 'right', 'buy', 3, 2);
     const rightSell = getTransitPath(visible, 'right', 'sell', 3, 2);
-    assert.deepEqual(leftBuy, { fromX: -23, toX: -2 });
+    assert.deepEqual(leftBuy, { fromX: -18, toX: -2 });
     assert.deepEqual(leftSell, { fromX: -2, toX: -23 });
     assert.deepEqual(rightBuy, { fromX: 2, toX: 23 });
-    assert.deepEqual(rightSell, { fromX: 23, toX: 2 });
+    assert.deepEqual(rightSell, { fromX: 18, toX: 2 });
 });
 
 test('CSS and Babylon render coordinates use the same viewport reference', () => {
@@ -43,10 +43,21 @@ test('CSS and Babylon render coordinates use the same viewport reference', () =>
 test('all four directional paths stay in their own territory with asymmetric sprite bodies', () => {
     const narrow = { left: -7, center: 0, right: 7 };
     const body = { left: 0.2, right: 0.3 };
-    assert.deepEqual(getDirectionalTransitPath(narrow, 'left', 'buy', 0.6, body), { fromX: -7.6, toX: -0.3 });
+    assert.deepEqual(getDirectionalTransitPath(narrow, 'left', 'buy', 0.6, body), { fromX: -6.8, toX: -0.3 });
     assert.deepEqual(getDirectionalTransitPath(narrow, 'left', 'sell', 0.6, body), { fromX: -0.3, toX: -7.6 });
     assert.deepEqual(getDirectionalTransitPath(narrow, 'right', 'buy', 0.6, body), { fromX: 0.2, toX: 7.6 });
-    assert.deepEqual(getDirectionalTransitPath(narrow, 'right', 'sell', 0.6, body), { fromX: 7.6, toX: 0.2 });
+    assert.deepEqual(getDirectionalTransitPath(narrow, 'right', 'sell', 0.6, body), { fromX: 6.7, toX: 0.2 });
+});
+
+test('every entry keeps the visible body on-screen at progress zero', () => {
+    const body = { left: 0.2, right: 0.3 };
+    const paths = [
+        getDirectionalTransitPath(visible, 'left', 'buy', 0.6, body),
+        getDirectionalTransitPath(visible, 'left', 'sell', 0.6, body),
+        getDirectionalTransitPath(visible, 'right', 'buy', 0.6, body),
+        getDirectionalTransitPath(visible, 'right', 'sell', 0.6, body)
+    ];
+    assert.deepEqual(paths.map(path => positionOnTransitPath(path, 0)), [-19.8, -0.3, 0.2, 19.7]);
 });
 
 test('resize preserves normalized progress instead of jumping or restarting a transit', () => {
@@ -55,7 +66,7 @@ test('resize preserves normalized progress instead of jumping or restarting a tr
     const currentX = positionOnTransitPath(before, 0.4);
     const progress = preserveTransitProgress(before, currentX, after);
     assert.equal(progress, 0.4);
-    assert.equal(positionOnTransitPath(after, progress), -20.6);
+    assert.equal(positionOnTransitPath(after, progress), -17.6);
 });
 
 test('divides only the canvas viewport into five proportional invisible depth bands', () => {

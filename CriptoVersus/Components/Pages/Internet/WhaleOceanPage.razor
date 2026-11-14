@@ -21,6 +21,7 @@
 @inject LocalizationService Localization
 @inject ILogger<WhaleOceanPage> Logger
 @inject IWebHostEnvironment HostEnvironment
+@inject IConfiguration Configuration
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 
@@ -39,7 +40,7 @@
         </div>
     </header>
 
-    @if (_match is null)
+    @if (_match is null && !CalibrationEnabled)
     {
         <section class="whale-ocean__loading" aria-live="polite">
             <div class="whale-ocean__status" aria-live="polite">
@@ -54,9 +55,35 @@
             <canvas @ref="_canvas" class="whale-ocean__canvas"></canvas>
             <div class="whale-ocean__divider" data-whale-ocean="territory-divider" aria-hidden="true"></div>
             <div class="whale-ocean__labels" data-whale-ocean="labels" aria-hidden="true"></div>
+            @if (CalibrationEnabled)
+            {
+                <aside class="whale-ocean__calibration" data-whale-ocean-calibration="@MatchId" aria-label="Whale Ocean DEV Calibration">
+                    <div class="whale-ocean__calibration-head"><strong>WHALE OCEAN · DEV CALIBRATION</strong><span data-calibration-status>Inicializando…</span><button type="button" data-calibration-action="toggle" aria-label="Recolher painel">−</button></div>
+                    <details open><summary>Câmera</summary><div class="whale-ocean__calibration-grid">
+                        <label>Target X<input type="range" min="-50" max="50" step="0.01" data-calibration-field="camera.targetX" /><input type="number" step="0.01" data-calibration-field="camera.targetX" /></label>
+                        <label>Target Y<input type="range" min="-30" max="30" step="0.01" data-calibration-field="camera.targetY" /><input type="number" step="0.01" data-calibration-field="camera.targetY" /></label>
+                        <label>Target Z<input type="range" min="-30" max="30" step="0.01" data-calibration-field="camera.targetZ" /><input type="number" step="0.01" data-calibration-field="camera.targetZ" /></label>
+                        <label>Alpha<input type="range" min="-3.14" max="3.14" step="0.01" data-calibration-field="camera.alpha" /><input type="number" step="0.01" data-calibration-field="camera.alpha" /></label>
+                        <label>Beta<input type="range" min="0.1" max="3.04" step="0.01" data-calibration-field="camera.beta" /><input type="number" step="0.01" data-calibration-field="camera.beta" /></label>
+                        <label>Radius<input type="range" min="5" max="70" step="0.1" data-calibration-field="camera.radius" /><input type="number" step="0.1" data-calibration-field="camera.radius" /></label>
+                        <label>FOV<input type="range" min="0.2" max="2.2" step="0.01" data-calibration-field="camera.fov" /><input type="number" step="0.01" data-calibration-field="camera.fov" /></label>
+                        <label>Offset X px<input type="range" min="-500" max="500" step="1" data-calibration-field="screenOffsetX" /><input type="number" step="1" data-calibration-field="screenOffsetX" /></label>
+                        <label>Offset Y px<input type="range" min="-300" max="300" step="1" data-calibration-field="screenOffsetY" /><input type="number" step="1" data-calibration-field="screenOffsetY" /></label>
+                    </div><div class="whale-ocean__calibration-buttons"><button type="button" data-calibration-action="reset-camera">Reset Camera</button><button type="button" data-calibration-action="center-camera">Centralizar</button><button type="button" data-calibration-action="apply-offset">Aplicar offset</button></div></details>
+                    <details open><summary>Territórios e limites · mundo</summary><div class="whale-ocean__calibration-grid">
+                        <label>Limite A<input type="number" step="0.01" data-calibration-field="territories.left" /></label><label>Divisão central<input type="number" step="0.01" data-calibration-field="territories.center" /></label><label>Limite B<input type="number" step="0.01" data-calibration-field="territories.right" /></label>
+                        <label>Altura mínima px<input type="number" step="1" data-calibration-field="vertical.minPx" /></label><label>Altura máxima px<input type="number" step="1" data-calibration-field="vertical.maxPx" /></label><label>Margem px<input type="number" min="0" step="1" data-calibration-field="vertical.safetyMarginPx" /></label>
+                        <label>Spawn BUY<input type="number" step="0.01" data-calibration-field="spawn.buy" /></label><label>Spawn SELL<input type="number" step="0.01" data-calibration-field="spawn.sell" /></label><label>Saída BUY<input type="number" step="0.01" data-calibration-field="exit.buy" /></label><label>Saída SELL<input type="number" step="0.01" data-calibration-field="exit.sell" /></label>
+                    </div></details>
+                    <details open><summary>Peixes de teste · sem servidor</summary><div class="whale-ocean__calibration-test-grid">
+                        <label>Side<select data-test-field="side"><option value="buy">BUY →</option><option value="sell">SELL ←</option></select></label><label>Território<select data-test-field="territory"><option value="left">A / left</option><option value="right">B / right</option></select></label><label>Espécie<select data-test-field="kind"><option value="sardine">P · sardine</option><option value="mackerel">M · mackerel</option><option value="grouper">G · grouper</option><option value="shark">shark</option><option value="whale">whale</option></select></label><label>Faixa<select data-test-field="band"><option value="0">surface</option><option value="1">high</option><option value="2" selected>central</option><option value="3">deep</option><option value="4">bottom</option></select></label><label>Velocidade<input type="number" min="0.05" max="4" step="0.05" value="1" data-test-field="speed" /></label><label>Quantidade<input type="number" min="1" max="24" step="1" value="1" data-test-field="quantity" /></label>
+                    </div><div class="whale-ocean__calibration-buttons"><button type="button" data-calibration-action="spawn">Spawn Test Fish</button><button type="button" data-calibration-action="spawn-both">Spawn BUY + SELL</button><button type="button" data-calibration-action="all-bands">Testar todas as faixas</button><button type="button" data-calibration-action="pause">Pause simulation</button><button type="button" data-calibration-action="clear">Limpar TEST</button><button type="button" data-calibration-action="restart">Reiniciar trajetória</button></div></details>
+                    <details><summary>Rastreamento e persistência</summary><div class="whale-ocean__calibration-checks"><label><input type="checkbox" checked data-calibration-field="guides" /> guias</label><label><input type="checkbox" checked data-calibration-field="grid" /> grade 100 px</label><label><input type="checkbox" checked data-calibration-field="traces" /> trajetórias</label><label>Slow motion<select data-calibration-field="slowMotion"><option value="0.25">0.25x</option><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option></select></label></div><div class="whale-ocean__calibration-buttons"><button type="button" data-calibration-action="save">Save Calibration</button><button type="button" data-calibration-action="load">Load Calibration</button><button type="button" data-calibration-action="reset-defaults">Reset Defaults</button><button type="button" data-calibration-action="export">Export JSON</button><button type="button" data-calibration-action="copy">Copy Settings</button></div><pre data-calibration-diagnostics aria-live="polite"></pre></details>
+                </aside>
+            }
             <section class="whale-ocean__scoreboard" aria-label="@T("battleScoreboard")">
                 <div class="whale-ocean__score-team whale-ocean__score-team--left">
-                    <div class="whale-ocean__score-heading"><strong>@_match.TeamA</strong><b><span data-whale-ocean="left-score">0</span> <small>@T("points")</small></b></div>
+                    <div class="whale-ocean__score-heading"><strong>@DisplayTeamA</strong><b><span data-whale-ocean="left-score">0</span> <small>@T("points")</small></b></div>
                     <div class="whale-ocean__score-meta"><span>@T("matchTotal") <b data-whale-ocean="left-total-trades">0</b></span><span>@T("last30Seconds") <b data-whale-ocean="left-window-trades">0</b></span></div>
                     <div class="whale-ocean__score-side"><span>@T("buy") <b data-whale-ocean="left-buy-points">0</b></span><span>@T("sell") <b data-whale-ocean="left-sell-points">0</b></span></div>
                     <div class="whale-ocean__species-grid">
@@ -75,7 +102,7 @@
                     <div class="whale-ocean__control-labels"><b data-whale-ocean="control-left">—</b><b data-whale-ocean="control-right">—</b></div>
                 </div>
                 <div class="whale-ocean__score-team whale-ocean__score-team--right">
-                    <div class="whale-ocean__score-heading"><b><span data-whale-ocean="right-score">0</span> <small>@T("points")</small></b><strong>@_match.TeamB</strong></div>
+                    <div class="whale-ocean__score-heading"><b><span data-whale-ocean="right-score">0</span> <small>@T("points")</small></b><strong>@DisplayTeamB</strong></div>
                     <div class="whale-ocean__score-meta"><span>@T("last30Seconds") <b data-whale-ocean="right-window-trades">0</b></span><span>@T("matchTotal") <b data-whale-ocean="right-total-trades">0</b></span></div>
                     <div class="whale-ocean__score-side"><span>@T("buy") <b data-whale-ocean="right-buy-points">0</b></span><span>@T("sell") <b data-whale-ocean="right-sell-points">0</b></span></div>
                     <div class="whale-ocean__species-grid">
@@ -103,7 +130,7 @@
                 </div>
                 <div class="whale-ocean__state-note">@T("demoModeOff")</div>
             </div>
-            <div class="whale-ocean__direction" aria-label="@T("direction")"><span class="sell">← @T("sell")</span><strong>@_match.TeamA@_match.TeamB</strong><span class="buy">@T("buy") →</span></div>
+            <div class="whale-ocean__direction" aria-label="@T("direction")"><span class="sell">← @T("sell")</span><strong>@DisplayTeamA vs @DisplayTeamB</strong><span class="buy">@T("buy") →</span></div>
             <div class="whale-ocean__territory whale-ocean__territory--left">
                 <div class="whale-ocean__coin">
                     @if (!string.IsNullOrEmpty(LeftLogoUrl))
@@ -111,12 +138,12 @@
                         <img class="whale-ocean__coin-logo" src="@LeftLogoUrl" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
                     }
                     <span class="whale-ocean__coin-fallback" style="@(string.IsNullOrEmpty(LeftLogoUrl) ? "display:grid" : null)">@LeftCoinInitials</span>
-                    <strong>@_match.TeamA</strong>
+                    <strong>@DisplayTeamA</strong>
                 </div>
                 <small data-whale-ocean="left-price">—</small>
                 <div><span>@T("buy")</span><b data-whale-ocean="left-buy">—</b></div>
                 <div><span>@T("sell")</span><b data-whale-ocean="left-sell">—</b></div>
-                <em data-whale-ocean="left-change">@FormatPercent(_match.PctA)</em>
+                <em data-whale-ocean="left-change">@FormatPercent(_match?.PctA)</em>
                 <small>@T("windowVolume") <span data-whale-ocean="left-volume">—</span> <span data-whale-ocean="left-currency">QUOTE</span></small>
             </div>
             <div class="whale-ocean__territory whale-ocean__territory--right">
@@ -126,12 +153,12 @@
                         <img class="whale-ocean__coin-logo" src="@RightLogoUrl" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
                     }
                     <span class="whale-ocean__coin-fallback" style="@(string.IsNullOrEmpty(RightLogoUrl) ? "display:grid" : null)">@RightCoinInitials</span>
-                    <strong>@_match.TeamB</strong>
+                    <strong>@DisplayTeamB</strong>
                 </div>
                 <small data-whale-ocean="right-price">—</small>
                 <div><span>@T("buy")</span><b data-whale-ocean="right-buy">—</b></div>
                 <div><span>@T("sell")</span><b data-whale-ocean="right-sell">—</b></div>
-                <em data-whale-ocean="right-change">@FormatPercent(_match.PctB)</em>
+                <em data-whale-ocean="right-change">@FormatPercent(_match?.PctB)</em>
                 <small>@T("windowVolume") <span data-whale-ocean="right-volume">—</span> <span data-whale-ocean="right-currency">QUOTE</span></small>
             </div>
             <div class="whale-ocean__legend"><span class="buy">● @T("buyAggressor")</span><span class="sell">● @T("sellAggressor")</span><span>@T("events") <b data-whale-ocean="events">0</b></span></div>
@@ -150,6 +177,7 @@
 @code {
     [Parameter] public int MatchId { get; set; }
     [Parameter] public string? Slug { get; set; }
+    [SupplyParameterFromQuery(Name = "calibration")] public string? CalibrationQuery { get; set; }
 
     private readonly CancellationTokenSource _lifetime = new();
     private readonly SemaphoreSlim _matchRefresh = new(1, 1);
@@ -201,6 +229,9 @@
             if (_match is null)
             {
                 _loadError = T("matchNotFound");
+                if (!CalibrationEnabled)
+                    return;
+                _flowStatus = "BOOTSTRAP_PENDING";
                 return;
             }
 
@@ -255,26 +286,22 @@
             catch (InvalidOperationException) { }
         }
 
-        if (_disposed || _rendererInitializationFailed || _match is null || _lifetime.IsCancellationRequested) return;
+        if (_disposed || _rendererInitializationFailed || (_match is null && !CalibrationEnabled) || _lifetime.IsCancellationRequested) return;
         if (!await _rendererGate.WaitAsync(0)) return;
         var gateEntered = true;
         try
         {
-            if (_disposed || _match is null || _module is not null || _lifetime.IsCancellationRequested) return;
+            if (_disposed || (_match is null && !CalibrationEnabled) || _module is not null || _lifetime.IsCancellationRequested) return;
             var matchId = MatchId;
             var match = _match;
             var culture = _culture;
             var labels = JsLabels;
-            var priceTasks = new[]
-            {
-                Api.GetAssetPriceSnapshotAsync(match.TeamA, _lifetime.Token),
-                Api.GetAssetPriceSnapshotAsync(match.TeamB, _lifetime.Token)
-            };
-            await Task.WhenAll(priceTasks);
-            var leftPrice = await priceTasks[0];
-            var rightPrice = await priceTasks[1];
+            var leftSymbol = DisplayTeamA;
+            var rightSymbol = DisplayTeamB;
+            var leftPrice = match is null ? null : await Api.GetAssetPriceSnapshotAsync(leftSymbol, _lifetime.Token);
+            var rightPrice = match is null ? null : await Api.GetAssetPriceSnapshotAsync(rightSymbol, _lifetime.Token);
             if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId) return;
-            var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261113-whale-ocean-depth-bands-v14");
+            var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261114-whale-ocean-calibration-v1");
             if (module is null)
                 throw new InvalidOperationException("Whale Ocean bootstrap module was not returned by JS interop.");
             if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId)
@@ -291,28 +318,31 @@
             {
                 canvas = _canvas,
                 matchId,
-                leftSymbol = match.TeamA.ToUpperInvariant(),
-                rightSymbol = match.TeamB.ToUpperInvariant(),
+                leftSymbol = leftSymbol.ToUpperInvariant(),
+                rightSymbol = rightSymbol.ToUpperInvariant(),
                 leftPrice = leftPrice?.LastPriceUsdt,
                 rightPrice = rightPrice?.LastPriceUsdt,
-                leftChange = leftPrice?.PercentageChange ?? match.PctA ?? 0,
-                rightChange = rightPrice?.PercentageChange ?? match.PctB ?? 0,
+                leftChange = leftPrice?.PercentageChange ?? match?.PctA ?? 0,
+                rightChange = rightPrice?.PercentageChange ?? match?.PctB ?? 0,
                 leftColor = "#ff9100",
                 rightColor = "#18d8d2",
                 quality = _quality,
                 labels,
                 developmentDiagnostics = HostEnvironment.IsDevelopment(),
-                debugWhaleOcean = DebugWhaleOceanEnabled(),
+                debugWhaleOcean = DebugWhaleOceanEnabled() || CalibrationEnabled,
+                calibrationEnabled = CalibrationEnabled,
                 matchFinished = IsOfficialMatchFinished,
                 officialStatus = OfficialMatchState,
-                officialRawStatus = match.Status,
-                officialStartTimeUtc = match.StartTime,
-                officialEndTimeUtc = match.EndTime,
+                officialRawStatus = match?.Status,
+                officialStartTimeUtc = match?.StartTime,
+                officialEndTimeUtc = match?.EndTime,
                 scoreboard = _scoreboard
             });
             if (_disposed || _lifetime.IsCancellationRequested) return;
 
             await module.InvokeVoidAsync("setMatchFinished", matchId, IsOfficialMatchFinished);
+            if (CalibrationEnabled)
+                await module.InvokeVoidAsync("initializeCalibrationPanel", matchId);
             _renderedCulture = culture;
             if (_disposed || _lifetime.IsCancellationRequested) return;
 
@@ -323,27 +353,36 @@
                 return;
             }
 
-            Hub.MoneyFlowBatchReceived += OnMoneyFlowBatch;
-            Hub.MoneyFlowConnectionChanged += OnMoneyFlowConnectionChanged;
-            Hub.DashboardChanged -= OnDashboardChanged;
-            Hub.DashboardChanged += OnDashboardChanged;
-            _dashboardSubscribed = true;
-
-            if (!IsOfficialMatchFinished)
+            if (match is not null)
             {
-                _subscribed = await Hub.SubscribeToMoneyFlowAsync(matchId, _lifetime.Token);
-                _subscribedMatchId = _subscribed ? matchId : 0;
+                Hub.MoneyFlowBatchReceived += OnMoneyFlowBatch;
+                Hub.MoneyFlowConnectionChanged += OnMoneyFlowConnectionChanged;
+                Hub.DashboardChanged -= OnDashboardChanged;
+                Hub.DashboardChanged += OnDashboardChanged;
+                _dashboardSubscribed = true;
+
+                if (!IsOfficialMatchFinished)
+                {
+                    _subscribed = await Hub.SubscribeToMoneyFlowAsync(matchId, _lifetime.Token);
+                    _subscribedMatchId = _subscribed ? matchId : 0;
+                }
+
+                try { await Hub.EnsureStartedAsync(_lifetime.Token); }
+                catch (OperationCanceledException) { }
+                catch (Exception ex) { Logger.LogDebug(ex, "Whale Ocean dashboard hub unavailable; state verification continues."); }
+
+                await module.InvokeVoidAsync("setConnectionState", matchId, _subscribed);
+                await module.InvokeVoidAsync("completeReplay", matchId);
+                SetFlowStatus("BOOTSTRAP_PENDING", "Money Flow subscription initialized; awaiting first batch");
+                if (_statusMonitorTask is null || _statusMonitorTask.IsCompleted)
+                    _statusMonitorTask = RunStatusVerificationAsync(_lifetime.Token);
             }
-
-            try { await Hub.EnsureStartedAsync(_lifetime.Token); }
-            catch (OperationCanceledException) { }
-            catch (Exception ex) { Logger.LogDebug(ex, "Whale Ocean dashboard hub unavailable; state verification continues."); }
-
-            await module.InvokeVoidAsync("setConnectionState", matchId, _subscribed);
-            await module.InvokeVoidAsync("completeReplay", matchId);
-            SetFlowStatus("BOOTSTRAP_PENDING", "Money Flow subscription initialized; awaiting first batch");
-            if (_statusMonitorTask is null || _statusMonitorTask.IsCompleted)
-                _statusMonitorTask = RunStatusVerificationAsync(_lifetime.Token);
+            else
+            {
+                await module.InvokeVoidAsync("setConnectionState", matchId, false);
+                await module.InvokeVoidAsync("completeReplay", matchId);
+                SetFlowStatus("PAUSED", "DEV calibration fallback initialized without API match data");
+            }
             await InvokeAsync(StateHasChanged);
         }
         catch (JSDisconnectedException) { }
@@ -609,10 +648,25 @@
     private static string FormatPercent(decimal? value)
         => value.HasValue ? $"{(value.Value >= 0 ? "+" : string.Empty)}{value.Value:0.00}%" : "—";
 
+    private string DisplayTeamA => _match?.TeamA ?? CalibrationFallbackSymbol(left: true);
+    private string DisplayTeamB => _match?.TeamB ?? CalibrationFallbackSymbol(left: false);
     private string LeftLogoUrl => _match is null ? string.Empty : Api.BuildBinanceIconUrl(_match.TeamA);
     private string RightLogoUrl => _match is null ? string.Empty : Api.BuildBinanceIconUrl(_match.TeamB);
-    private string LeftCoinInitials => CoinInitials(_match?.TeamA);
-    private string RightCoinInitials => CoinInitials(_match?.TeamB);
+    private string LeftCoinInitials => CoinInitials(DisplayTeamA);
+    private string RightCoinInitials => CoinInitials(DisplayTeamB);
+
+    private string CalibrationFallbackSymbol(bool left)
+    {
+        var slug = Uri.UnescapeDataString(Slug ?? string.Empty);
+        var parts = slug.Split("-vs-", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 2)
+        {
+            var symbol = parts[left ? 0 : 1].Replace("-", string.Empty, StringComparison.Ordinal).ToUpperInvariant();
+            if (symbol.Length > 0) return symbol;
+        }
+
+        return left ? "LIMA" : "CIANO";
+    }
     private bool IsOfficialMatchFinished => _officialMatchFinalized || WhaleOceanMatchState.IsFinished(_match);
     private string OfficialMatchState => _loadError is not null && _match is null
         ? "UNAVAILABLE"
@@ -705,6 +759,16 @@
                     || part.Equals("debugWhaleOcean=1", StringComparison.OrdinalIgnoreCase)
                     || part.Equals("?debugWhaleOcean=true", StringComparison.OrdinalIgnoreCase)
                     || part.Equals("debugWhaleOcean=true", StringComparison.OrdinalIgnoreCase));
+
+    private bool CalibrationEnabled
+        => HostEnvironment.IsDevelopment()
+            && Configuration.GetValue("WhaleOcean:Calibration:Enabled", true)
+            && Nav.ToAbsoluteUri(Nav.Uri).Query
+                .Split('&', StringSplitOptions.RemoveEmptyEntries)
+                .Any(part => part.Equals("?calibration=1", StringComparison.OrdinalIgnoreCase)
+                    || part.Equals("calibration=1", StringComparison.OrdinalIgnoreCase)
+                    || part.Equals("?calibration=true", StringComparison.OrdinalIgnoreCase)
+                    || part.Equals("calibration=true", StringComparison.OrdinalIgnoreCase));
 
     private async Task DisposeJsAsync()
     {

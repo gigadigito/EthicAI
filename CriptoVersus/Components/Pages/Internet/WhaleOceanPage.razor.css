@@ -572,6 +572,50 @@
 .whale-ocean__geometry-marker--boundary { background: #70cfff99; }
 .whale-ocean__geometry-marker--exit { background: #ff9f43aa; }
 
+.whale-ocean__geometry-marker--spawn { z-index: 2; background: #43f18a; box-shadow: 0 0 8px #43f18a; }
+.whale-ocean__geometry-marker--exit { z-index: 2; background: #ff4d5e; box-shadow: 0 0 8px #ff4d5e; }
+.whale-ocean__geometry-marker--grid-x { z-index: 0; background: #b9d6e21a; }
+.whale-ocean__geometry-grid-y { position: absolute; right: 0; left: 0; z-index: 0; height: 1px; background: #b9d6e21a; }
+.whale-ocean__geometry-useful-band { position: absolute; right: 0; left: 0; z-index: 0; border-top: 1px solid #63b9ff66; border-bottom: 1px solid #63b9ff66; background: #2577c00b; }
+.whale-ocean__geometry-camera-center { position: absolute; z-index: 3; width: 12px; height: 12px; margin: -6px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 12px #fff; }
+.whale-ocean__geometry-fish--test { background: #ffe38a; box-shadow: 0 0 0 2px #031525, 0 0 8px #ffe38a; }
+
+.whale-ocean__calibration {
+    position: absolute;
+    z-index: 8;
+    top: .75rem;
+    right: .75rem;
+    width: min(390px, calc(100% - 1.5rem));
+    max-height: calc(100% - 1.5rem);
+    overflow: auto;
+    box-sizing: border-box;
+    padding: .65rem;
+    border: 1px solid #73d9ff99;
+    border-radius: .65rem;
+    background: #031221ed;
+    color: #e9f7ff;
+    box-shadow: 0 12px 32px #0008;
+    font: 600 .68rem/1.25 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.whale-ocean__calibration-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; margin-bottom: .45rem; color: #ffe38a; font-size: .7rem; }
+.whale-ocean__calibration-head span { color: #67f4a5; font-size: .58rem; text-align: right; }
+.whale-ocean__calibration-head button { flex: 0 0 auto; padding: .08rem .35rem; color: #ffe38a; font-size: .8rem; }
+.whale-ocean__calibration--collapsed { width: auto; min-width: 190px; }
+.whale-ocean__calibration--collapsed > :not(.whale-ocean__calibration-head) { display: none; }
+.whale-ocean__calibration details { border-top: 1px solid #28516a99; padding: .45rem 0; }
+.whale-ocean__calibration summary { cursor: pointer; color: #9fe9ff; font-weight: 800; }
+.whale-ocean__calibration-grid, .whale-ocean__calibration-test-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; margin-top: .45rem; }
+.whale-ocean__calibration label { display: grid; min-width: 0; gap: .18rem; color: #a9cbd0; font-size: .58rem; }
+.whale-ocean__calibration label input, .whale-ocean__calibration label select { min-width: 0; box-sizing: border-box; border: 1px solid #28516a; border-radius: .25rem; background: #071a2a; color: #e9f7ff; font: inherit; }
+.whale-ocean__calibration label input[type=number], .whale-ocean__calibration label select { width: 100%; padding: .22rem .28rem; }
+.whale-ocean__calibration label input[type=range] { width: 100%; accent-color: #67f4a5; }
+.whale-ocean__calibration-buttons { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .45rem; }
+.whale-ocean__calibration button { cursor: pointer; padding: .3rem .42rem; border: 1px solid #2e7084; border-radius: .3rem; background: #0a2638; color: #dffaff; font: inherit; font-size: .58rem; }
+.whale-ocean__calibration button:hover { border-color: #67f4a5; color: #fff; }
+.whale-ocean__calibration-checks { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; margin-top: .45rem; }
+.whale-ocean__calibration-checks label { display: flex; align-items: center; gap: .2rem; }
+.whale-ocean__calibration pre { max-height: 180px; overflow: auto; margin: .45rem 0 0; padding: .4rem; border: 1px solid #28516a; border-radius: .25rem; color: #bfe8f2; font-size: .55rem; white-space: pre-wrap; }
+
 .whale-ocean__geometry-fish {
     position: absolute;
     top: 50%;
@@ -601,6 +645,8 @@
     .whale-ocean__stage {
         min-height: 430px;
     }
+
+    .whale-ocean__calibration { top: .45rem; right: .45rem; width: min(350px, calc(100% - .9rem)); max-height: 72%; }
 
     .whale-ocean__topbar {
         top: .6rem;

@@ -28,6 +28,7 @@ export class WhaleOceanRuntime {
         this.spriteManagers = [];
         this.bubbles = [];
         this.flowActors = [];
+        this.calibrationTestActors = [];
         this.pendingFlows = new Map();
         this.whales = [];
         this.pendingEvents = [];
@@ -62,6 +63,10 @@ export class WhaleOceanRuntime {
         this.undersizedWarnedIds = new Set();
         this.lastSizeWarningAt = 0;
         this.geometryDebugOverlay = null;
+        this.calibrationSettings = null;
+        this.calibrationTerritoryDelta = { left: 0, center: 0, right: 0 };
+        this.calibrationPathDelta = { spawnBuy: 0, spawnSell: 0, exitBuy: 0, exitSell: 0 };
+        this.calibrationReferenceCamera = null;
         this.options = options;
         const requestedBudget = options.visualBudget ?? {};
         this.requestedBudget = requestedBudget;
@@ -127,6 +132,7 @@ export class WhaleOceanRuntime {
             camera: this.camera,
             engine: this.engine
         });
+        this.calibrationReferenceCamera = this.readCameraSettings();
         await this.buildSpriteLibrary();
         if (this.disposed)
             return;
@@ -301,6 +307,199 @@ export class WhaleOceanRuntime {
         this.trySpawnPendingFlows(Date.now());
         this.write("quality", quality);
     }
+    getCalibrationState() {
+        const settings = this.calibrationSettings ?? this.defaultCalibrationSettings();
+        const camera = this.readCameraSettings();
+        const width = this.canvas.clientWidth;
+        const height = this.canvas.clientHeight;
+        const renderWidth = this.engine?.getRenderWidth() ?? 0;
+        const renderHeight = this.engine?.getRenderHeight() ?? 0;
+        const visible = this.getVisibleHorizontalBounds(0);
+        const bands = this.verticalBandLayout();
+        const paths = [];
+        for (const band of bands) {
+            for (const territory of ["left", "right"]) {
+                for (const side of ["buy", "sell"]) {
+                    const path = this.getTransitPath(territory, side, band.depth, 0, 0, { left: 0, right: 0 });
+                    const spawn = this.projectToCss(path.fromX, band.centerWorld, band.depth);
+                    const exit = this.projectToCss(path.toX, band.centerWorld, band.depth);
+                    paths.push({ territory, side, band: band.name, depth: round2(band.depth), spawnWorldX: round2(path.fromX), exitWorldX: round2(path.toX), spawnScreenX: spawn ? round2(spawn.x) : null, exitScreenX: exit ? round2(exit.x) : null });
+                }
+            }
+        }
+        const visibleRows = this.visualDiagnostics().filter(row => row.visible && row.inViewport);
+        const useful = this.usefulVerticalViewport();
+        const outside = visibleRows.length === 0 ? 0 : visibleRows.filter(row => row.projectedCssY < useful.top || row.projectedCssY > useful.bottom).length / visibleRows.length * 100;
+        return {
+            settings: this.cloneCalibrationSettings(settings),
+            camera: { ...camera, minZ: this.camera?.minZ ?? 0.1, maxZ: this.camera?.maxZ ?? 450 },
+            canvas: { cssWidth: width, cssHeight: height, renderWidth, renderHeight, devicePixelRatio: window.devicePixelRatio || 1, aspectRatio: height > 0 ? round2(width / height) : 0 },
+            visibleWorld: { left: round2(visible.left), center: round2(visible.center), right: round2(visible.right) },
+            paths,
+            diagnostics: { visiblePercent: visibleRows.length > 0 ? round2((visibleRows.filter(row => row.projectedCssX >= 0 && row.projectedCssX <= width).length / visibleRows.length) * 100) : 0, outsideUsefulAreaPercent: round2(outside), status: this.calibrationStatusFromPaths(paths), testFish: this.calibrationTestActors.length }
+        };
+    }
+    setCalibration(next) {
+        if (this.disposed || !this.options.calibrationEnabled)
+            return;
+        const normalized = this.normalizeCalibrationSettings(next);
+        const baseVisible = this.getBaseVisibleHorizontalBounds(0);
+        this.calibrationSettings = normalized;
+        this.calibrationTerritoryDelta = {
+            left: normalized.territories.left - baseVisible.left,
+            center: normalized.territories.center - baseVisible.center,
+            right: normalized.territories.right - baseVisible.right
+        };
+        this.applyCameraSettings(normalized.camera);
+        const baseBuy = this.getTransitPathWithoutCalibrationPathDelta("left", "buy", 0, 0, 0, { left: 0, right: 0 });
+        const baseSell = this.getTransitPathWithoutCalibrationPathDelta("left", "sell", 0, 0, 0, { left: 0, right: 0 });
+        this.calibrationPathDelta = {
+            spawnBuy: normalized.spawn.buy - baseBuy.fromX,
+            spawnSell: normalized.spawn.sell - baseSell.fromX,
+            exitBuy: normalized.exit.buy - baseBuy.toX,
+            exitSell: normalized.exit.sell - baseSell.toX
+        };
+        this.resizeArena();
+        this.updateGeometryDebugOverlay();
+    }
+    resetCalibration() {
+        if (!this.options.calibrationEnabled)
+            return;
+        this.calibrationSettings = null;
+        this.calibrationTerritoryDelta = { left: 0, center: 0, right: 0 };
+        this.calibrationPathDelta = { spawnBuy: 0, spawnSell: 0, exitBuy: 0, exitSell: 0 };
+        if (this.calibrationReferenceCamera)
+            this.applyCameraSettings(this.calibrationReferenceCamera);
+        this.resizeArena();
+        this.updateGeometryDebugOverlay();
+    }
+    spawnCalibrationTestFish(options) {
+        if (this.disposed || !this.options.calibrationEnabled)
+            return;
+        const quantity = Math.max(1, Math.min(24, Math.round(options.quantity)));
+        for (let index = 0; index < quantity; index++)
+            this.createCalibrationTestActor(options, index);
+    }
+    clearCalibrationTestFish() {
+        for (const actor of this.calibrationTestActors)
+            this.disposeTestActor(actor);
+        this.calibrationTestActors.length = 0;
+    }
+    restartCalibrationTrajectories() {
+        const now = performance.now();
+        for (const actor of this.calibrationTestActors) {
+            const path = this.getTransitPath(actor.territory, actor.side, actor.pathDepth, this.spriteHalfWidth(actor.size * 1.12), 0, this.visibleBodyExtents(actor.kind, actor.territory, actor.size * 1.12));
+            actor.startX = path.fromX;
+            actor.targetX = path.toX;
+            actor.progress = 0;
+            actor.completed = false;
+            actor.lastUpdatedAt = now;
+            actor.sprite.position.x = path.fromX;
+            actor.sprite.color.a = 0;
+            actor.sprite.isVisible = true;
+        }
+    }
+    usefulVerticalViewport() {
+        const base = getUsefulOceanVerticalViewport(this.canvas.clientHeight, this.canvas.clientWidth);
+        const settings = this.calibrationSettings;
+        if (!settings)
+            return base;
+        const top = Math.max(0, Math.min(Math.max(0, this.canvas.clientHeight - 5), settings.vertical.minPx + settings.vertical.safetyMarginPx));
+        const bottom = Math.max(top + 5, Math.min(this.canvas.clientHeight, settings.vertical.maxPx - settings.vertical.safetyMarginPx));
+        return { top, bottom };
+    }
+    defaultCalibrationSettings() {
+        const visible = this.getVisibleHorizontalBounds(0);
+        const bands = getWhaleOceanVerticalBands(this.canvas.clientHeight, this.canvas.clientWidth);
+        const buy = this.getTransitPathWithoutCalibrationPathDelta("left", "buy", 0, 0, 0, { left: 0, right: 0 });
+        const sell = this.getTransitPathWithoutCalibrationPathDelta("left", "sell", 0, 0, 0, { left: 0, right: 0 });
+        return {
+            version: 1,
+            camera: this.readCameraSettings(),
+            screenOffsetX: 0,
+            screenOffsetY: 0,
+            territories: { left: visible.left, center: visible.center, right: visible.right },
+            vertical: { minPx: bands[0]?.top ?? 0, maxPx: bands[bands.length - 1]?.bottom ?? this.canvas.clientHeight, safetyMarginPx: 0 },
+            spawn: { buy: buy.fromX, sell: sell.fromX },
+            exit: { buy: buy.toX, sell: sell.toX },
+            slowMotion: 1,
+            guides: true,
+            grid: true,
+            traces: true
+        };
+    }
+    normalizeCalibrationSettings(input) {
+        const defaults = this.defaultCalibrationSettings();
+        const source = input && input.version === 1 ? input : defaults;
+        const number = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+        const slow = number(source.slowMotion, 1);
+        return {
+            version: 1,
+            camera: {
+                targetX: number(source.camera?.targetX, defaults.camera.targetX), targetY: number(source.camera?.targetY, defaults.camera.targetY), targetZ: number(source.camera?.targetZ, defaults.camera.targetZ),
+                alpha: number(source.camera?.alpha, defaults.camera.alpha), beta: number(source.camera?.beta, defaults.camera.beta), radius: Math.max(1, number(source.camera?.radius, defaults.camera.radius)), fov: Math.max(0.1, Math.min(2.4, number(source.camera?.fov, defaults.camera.fov)))
+            },
+            screenOffsetX: Math.max(-500, Math.min(500, number(source.screenOffsetX, 0))), screenOffsetY: Math.max(-300, Math.min(300, number(source.screenOffsetY, 0))),
+            territories: { left: number(source.territories?.left, defaults.territories.left), center: number(source.territories?.center, defaults.territories.center), right: number(source.territories?.right, defaults.territories.right) },
+            vertical: { minPx: Math.max(0, number(source.vertical?.minPx, defaults.vertical.minPx)), maxPx: Math.max(5, number(source.vertical?.maxPx, defaults.vertical.maxPx)), safetyMarginPx: Math.max(0, Math.min(100, number(source.vertical?.safetyMarginPx, 0))) },
+            spawn: { buy: number(source.spawn?.buy, defaults.spawn.buy), sell: number(source.spawn?.sell, defaults.spawn.sell) },
+            exit: { buy: number(source.exit?.buy, defaults.exit.buy), sell: number(source.exit?.sell, defaults.exit.sell) },
+            slowMotion: slow <= 0.25 ? 0.25 : slow <= 0.5 ? 0.5 : slow <= 1 ? 1 : 2,
+            guides: source.guides !== false, grid: source.grid !== false, traces: source.traces !== false
+        };
+    }
+    cloneCalibrationSettings(settings) {
+        return JSON.parse(JSON.stringify(settings));
+    }
+    readCameraSettings() {
+        const camera = this.camera;
+        return { targetX: camera?.target.x ?? 0, targetY: camera?.target.y ?? 0, targetZ: camera?.target.z ?? 0, alpha: camera?.alpha ?? -Math.PI / 2, beta: camera?.beta ?? 1.48, radius: camera?.radius ?? 27, fov: camera?.fov ?? 0.85 };
+    }
+    applyCameraSettings(settings) {
+        if (!this.camera || !this.B)
+            return;
+        this.camera.alpha = settings.alpha;
+        this.camera.beta = settings.beta;
+        this.camera.radius = settings.radius;
+        this.camera.fov = settings.fov;
+        this.camera.target = new this.B.Vector3(settings.targetX, settings.targetY, settings.targetZ);
+    }
+    getTransitPathWithoutCalibrationPathDelta(territory, side, depth, outerPadding, spritePadding, bodyExtents) {
+        const visible = this.getVisibleHorizontalBounds(depth);
+        return bodyExtents ? calculateDirectionalTransitPath(visible, territory, side, outerPadding, bodyExtents) : calculateTransitPath(visible, territory, side, outerPadding, spritePadding);
+    }
+    createCalibrationTestActor(options, index) {
+        const seed = this.random();
+        const phase = this.random() * Math.PI * 2;
+        const size = this.spriteWidthFor(options.kind, options.territory);
+        const depth = this.verticalBandForIndex(options.bandIndex, options.kind).depth;
+        const path = this.getTransitPath(options.territory, options.side, depth, this.spriteHalfWidth(size * 1.12), 0, this.visibleBodyExtents(options.kind, options.territory, size * 1.12));
+        const sprite = this.createAnimatedSprite(options.kind, options.territory, `whale-ocean-test-${this.nextFlowId}`, seed);
+        sprite.width = size;
+        sprite.height = size * 0.5;
+        sprite.invertU = options.side === "sell";
+        const vertical = this.worldPositionInVerticalBand(options.kind, options.territory, sprite, phase, seed, 0, options.bandIndex, (seed - 0.5) * 10);
+        sprite.position.set(path.fromX, vertical.y, vertical.z);
+        sprite.color.a = 0;
+        sprite.isVisible = true;
+        const text = `TEST · ${options.side.toUpperCase()} · ${options.kind.toUpperCase()}`;
+        const label = this.createVolumeLabel(text, options.side === "buy" ? "#67f4a5" : "#ff7e66");
+        const actor = {
+            id: `TEST-${this.nextFlowId++}-${index + 1}`, sprite, label, labelText: text, startedAt: performance.now(), startX: path.fromX, targetX: path.toX,
+            direction: path.toX >= path.fromX ? 1 : -1, progress: 0, speedWorldPerSecond: Math.max(0.01, Math.abs(path.toX - path.fromX) / 10) * Math.max(0.05, options.speed), lastUpdatedAt: performance.now(), completed: false,
+            pathDepth: depth, side: options.side, territory: options.territory, kind: options.kind, size, intensity: 1, phase, notional: 0, quoteCurrency: null, labelWidthPx: 150, labelHeightPx: 24, bandIndex: options.bandIndex, verticalOffsetPx: (seed - 0.5) * 10, test: true
+        };
+        this.calibrationTestActors.push(actor);
+    }
+    calibrationStatusFromPaths(paths) {
+        const visible = paths.filter(path => path.spawnScreenX !== null && path.exitScreenX !== null);
+        const inside = (x) => x > 0 && x < this.canvas.clientWidth;
+        if (visible.some(path => ((path.territory === "left" && path.side === "buy") || (path.territory === "right" && path.side === "sell")) && inside(path.spawnScreenX)))
+            return "SPAWN FORA DA ÁREA VISÍVEL: revisar câmera";
+        if (visible.some(path => ((path.territory === "left" && path.side === "sell") || (path.territory === "right" && path.side === "buy")) && inside(path.exitScreenX)))
+            return "DESPAWN ANTES DA BORDA: revisar saída";
+        return "TRAJETÓRIAS FORA → DENTRO → FORA";
+    }
     adaptBudgetToViewport() {
         const next = adaptiveVisualBudgetForViewport(this.canvas.clientWidth, this.canvas.clientHeight, this.quality, this.requestedBudget);
         const changed = next.maxVisibleAnimals !== this.budget.maxVisibleAnimals
@@ -338,6 +537,7 @@ export class WhaleOceanRuntime {
                 this.labelLayer.remove();
             this.labelLayer = null;
         }
+        this.clearCalibrationTestFish();
         this.scene?.dispose();
         this.engine?.dispose();
         this.scene = null;
@@ -504,7 +704,7 @@ export class WhaleOceanRuntime {
         const renderHeight = engine.getRenderHeight();
         if (renderWidth <= 0 || renderHeight <= 0)
             return null;
-        const ray = scene.createPickingRay(cssPixelToRenderPixel(clientWidth / 2, clientWidth, renderWidth), cssPixelToRenderPixel(screenCssY, clientHeight, renderHeight), B.Matrix.Identity(), camera, false);
+        const ray = scene.createPickingRay(cssPixelToRenderPixel(clientWidth / 2, clientWidth, renderWidth), cssPixelToRenderPixel(screenCssY - (this.calibrationSettings?.screenOffsetY ?? 0), clientHeight, renderHeight), B.Matrix.Identity(), camera, false);
         if (Math.abs(ray.direction.z) < 0.0001)
             return null;
         const distance = (depth - ray.origin.z) / ray.direction.z;
@@ -515,7 +715,14 @@ export class WhaleOceanRuntime {
     }
     verticalBandLayout() {
         const height = this.canvas.clientHeight;
-        const screenBands = getWhaleOceanVerticalBands(height, this.canvas.clientWidth);
+        const usefulViewport = this.usefulVerticalViewport();
+        const bandHeight = Math.max(1, (usefulViewport.bottom - usefulViewport.top) / 5);
+        const screenBands = getWhaleOceanVerticalBands(height, this.canvas.clientWidth).map((band, index) => ({
+            ...band,
+            top: usefulViewport.top + bandHeight * index,
+            bottom: usefulViewport.top + bandHeight * (index + 1),
+            center: usefulViewport.top + bandHeight * (index + 0.5)
+        }));
         return screenBands.map(band => {
             const depth = this.depthWorldForBandIndex(band.index);
             const topWorld = this.worldYAtScreen(depth, band.top) ?? (this.camera?.target.y ?? 0);
@@ -607,6 +814,8 @@ export class WhaleOceanRuntime {
             }
         }
         for (const actor of this.flowActors)
+            visuals.push({ id: actor.id, territory: actor.territory, kind: actor.kind, bandIndex: actor.bandIndex, sprite: actor.sprite, labelWidthPx: actor.labelWidthPx, labelHeightPx: actor.labelHeightPx });
+        for (const actor of this.calibrationTestActors)
             visuals.push({ id: actor.id, territory: actor.territory, kind: actor.kind, bandIndex: actor.bandIndex, sprite: actor.sprite, labelWidthPx: actor.labelWidthPx, labelHeightPx: actor.labelHeightPx });
         for (const event of this.whales)
             visuals.push({ id: event.eventId, territory: event.territory, kind: event.kind, bandIndex: event.bandIndex, sprite: event.sprite, labelWidthPx: event.label?.offsetWidth ?? 0, labelHeightPx: event.label?.offsetHeight ?? 24 });
@@ -916,6 +1125,7 @@ export class WhaleOceanRuntime {
         this.updateBubbles(seconds);
         this.updateFish(seconds, elapsed / 16.67);
         this.updateFlowActors(now);
+        this.updateCalibrationTestActors(now);
         this.updateWhales(now);
         this.resolveProjectedSpriteSeparation();
         this.resolveScreenLabels();
@@ -999,7 +1209,7 @@ export class WhaleOceanRuntime {
             }
         }
     }
-    getVisibleHorizontalBounds(depth) {
+    getBaseVisibleHorizontalBounds(depth) {
         const B = this.B;
         const engine = this.engine;
         const camera = this.camera;
@@ -1024,8 +1234,8 @@ export class WhaleOceanRuntime {
         // Babylon consumes render pixels. The divider and the canvas layout use
         // CSS pixels, so convert both through the same viewport dimensions.
         const rayXAtDepth = (screenCssX) => {
-            const screenX = cssPixelToRenderPixel(screenCssX, clientWidth, renderWidth);
-            const screenY = cssPixelToRenderPixel(clientHeight / 2, clientHeight, renderHeight);
+            const screenX = cssPixelToRenderPixel(screenCssX - (this.calibrationSettings?.screenOffsetX ?? 0), clientWidth, renderWidth);
+            const screenY = cssPixelToRenderPixel(clientHeight / 2 - (this.calibrationSettings?.screenOffsetY ?? 0), clientHeight, renderHeight);
             const ray = scene.createPickingRay(screenX, screenY, B.Matrix.Identity(), camera, false);
             if (Math.abs(ray.direction.z) < 0.0001)
                 return null;
@@ -1042,15 +1252,30 @@ export class WhaleOceanRuntime {
             return { left, center, right };
         return fallback();
     }
+    getVisibleHorizontalBounds(depth) {
+        const base = this.getBaseVisibleHorizontalBounds(depth);
+        if (!this.calibrationSettings)
+            return base;
+        return {
+            left: base.left + this.calibrationTerritoryDelta.left,
+            center: base.center + this.calibrationTerritoryDelta.center,
+            right: base.right + this.calibrationTerritoryDelta.right
+        };
+    }
     getTeamHorizontalBounds(territory, depth, padding) {
         const visible = this.getVisibleHorizontalBounds(depth);
         return calculateTeamHorizontalBounds(visible, territory, padding);
     }
     getTransitPath(territory, side, depth, outerPadding, spritePadding, bodyExtents) {
         const visible = this.getVisibleHorizontalBounds(depth);
-        return bodyExtents
+        const path = bodyExtents
             ? calculateDirectionalTransitPath(visible, territory, side, outerPadding, bodyExtents)
             : calculateTransitPath(visible, territory, side, outerPadding, spritePadding);
+        if (!this.calibrationSettings)
+            return path;
+        const spawnDelta = side === "buy" ? this.calibrationPathDelta.spawnBuy : this.calibrationPathDelta.spawnSell;
+        const exitDelta = side === "buy" ? this.calibrationPathDelta.exitBuy : this.calibrationPathDelta.exitSell;
+        return { fromX: path.fromX + spawnDelta, toX: path.toX + exitDelta };
     }
     resizeArena() {
         if (this.disposed)
@@ -1087,6 +1312,16 @@ export class WhaleOceanRuntime {
             event.sprite.position.x = positionOnTransitPath(path, event.progress);
             event.sprite.position.z = event.pathDepth;
             event.lastUpdatedAt = now;
+        }
+        for (const actor of this.calibrationTestActors) {
+            const previousPath = { fromX: actor.startX, toX: actor.targetX };
+            const path = this.getTransitPath(actor.territory, actor.side, actor.pathDepth, this.spriteHalfWidth(actor.size * 1.12), 0, this.visibleBodyExtents(actor.kind, actor.territory, actor.size * 1.12));
+            actor.progress = preserveTransitProgress(previousPath, actor.sprite.position.x, path);
+            actor.startX = path.fromX;
+            actor.targetX = path.toX;
+            actor.direction = path.toX >= path.fromX ? 1 : -1;
+            actor.sprite.position.x = positionOnTransitPath(path, actor.progress);
+            actor.lastUpdatedAt = now;
         }
         this.debugArenaResize();
     }
@@ -1317,6 +1552,8 @@ export class WhaleOceanRuntime {
         }
         for (const actor of this.flowActors)
             rows.push(this.buildDiagnosticRow(actor.id, actor.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, actor.kind, actor.territory, actor.sprite, actor.label, actor.labelText, actor.bandIndex));
+        for (const actor of this.calibrationTestActors)
+            rows.push(this.buildDiagnosticRow(actor.id, "TEST", actor.kind, actor.territory, actor.sprite, actor.label, actor.labelText, actor.bandIndex));
         for (const event of this.whales)
             rows.push(this.buildDiagnosticRow(event.eventId, event.territory === "left" ? this.options.leftSymbol : this.options.rightSymbol, event.kind, event.territory, event.sprite, event.label, event.labelText, event.bandIndex));
         return rows;
@@ -1330,7 +1567,7 @@ export class WhaleOceanRuntime {
         const right = this.getTeamHorizontalBounds("right", 0, 0);
         const screenX = (worldX) => this.projectToCss(worldX, 0, 0)?.x ?? null;
         const depthBands = this.verticalBandLayout();
-        const usefulViewport = getUsefulOceanVerticalViewport(height, width);
+        const usefulViewport = this.usefulVerticalViewport();
         const usefulTop = usefulViewport.top;
         const usefulBottom = usefulViewport.bottom;
         const usefulHeight = Math.max(0, usefulBottom - usefulTop);
@@ -1441,8 +1678,8 @@ export class WhaleOceanRuntime {
         const projected = B.Vector3.Project(new B.Vector3(worldX, worldY, worldZ), B.Matrix.Identity(), scene.getTransformMatrix(), camera.viewport.toGlobal(renderWidth, renderHeight));
         if (!(projected.z > 0 && projected.z < 1))
             return null;
-        const cssX = projected.x * (clientWidth / renderWidth);
-        const cssY = projected.y * (clientHeight / renderHeight);
+        const cssX = projected.x * (clientWidth / renderWidth) + (this.calibrationSettings?.screenOffsetX ?? 0);
+        const cssY = projected.y * (clientHeight / renderHeight) + (this.calibrationSettings?.screenOffsetY ?? 0);
         if (cssX < -120 || cssX > clientWidth + 120 || cssY < -60 || cssY > clientHeight + 60)
             return null;
         return { x: cssX, y: cssY };
@@ -1757,7 +1994,8 @@ export class WhaleOceanRuntime {
             labelWidthPx,
             labelHeightPx,
             bandIndex,
-            verticalOffsetPx
+            verticalOffsetPx,
+            test: false
         });
         this.debugArenaPath("spawn", pending.symbol, territory, pending.side, depth, path);
         this.debugSpawn("created", pending, id);
@@ -1994,10 +2232,43 @@ export class WhaleOceanRuntime {
             actor.sprite.position.z = vertical.z;
             actor.pathDepth = vertical.z;
             actor.sprite.invertU = actor.direction < 0;
-            const fadeIn = Math.min(1, progress / 0.12);
-            actor.sprite.color.a = fadeIn;
+            // Entry coordinates are already constrained to the visible body
+            // edge. Keep the first frame visible instead of hiding the animal
+            // during a progress-based fade that makes it appear late.
+            actor.sprite.color.a = Math.min(1, 0.78 + progress * 0.22);
             if (actor.label)
                 this.placeScreenLabel(actor.label, actor.sprite.position.x, actor.sprite.position.y + actor.size * 0.62, actor.sprite.position.z, actor.sprite.color.a, this.labelBelowForKind(actor.kind), this.volumeLabelPriority(actor.kind, actor.notional, 1), [this.projectedBodyRect(actor.kind, actor.territory, actor.sprite)].filter((rect) => rect !== null));
+        }
+    }
+    updateCalibrationTestActors(now) {
+        for (let index = this.calibrationTestActors.length - 1; index >= 0; index--) {
+            const actor = this.calibrationTestActors[index];
+            const distance = Math.abs(actor.targetX - actor.startX);
+            const elapsedMs = Math.min(80, Math.max(0, now - actor.lastUpdatedAt)) * (this.calibrationSettings?.slowMotion ?? 1);
+            actor.lastUpdatedAt = now;
+            actor.progress = distance > Number.EPSILON
+                ? Math.min(1, actor.progress + actor.speedWorldPerSecond * elapsedMs / 1000 / distance)
+                : 1;
+            if (actor.progress >= 1) {
+                actor.completed = true;
+                this.disposeTestActor(actor);
+                this.calibrationTestActors.splice(index, 1);
+                continue;
+            }
+            const pulse = 1 + Math.sin(actor.progress * Math.PI * 3 + actor.phase) * 0.035;
+            actor.sprite.position.x = positionOnTransitPath({ fromX: actor.startX, toX: actor.targetX }, actor.progress);
+            actor.sprite.width = actor.size * pulse;
+            actor.sprite.height = actor.size * 0.5 * pulse;
+            const vertical = this.worldPositionInVerticalBand(actor.kind, actor.territory, actor.sprite, actor.phase, actor.phase / (Math.PI * 2), actor.progress, actor.bandIndex, actor.verticalOffsetPx);
+            actor.sprite.position.y = vertical.y;
+            actor.sprite.position.z = vertical.z;
+            actor.pathDepth = vertical.z;
+            actor.sprite.invertU = actor.direction < 0;
+            // Calibration must expose the exact spawn frame at the viewport
+            // edge; fading from zero would make the test look misaligned.
+            actor.sprite.color.a = 1;
+            if (actor.label)
+                this.placeScreenLabel(actor.label, actor.sprite.position.x, actor.sprite.position.y + actor.size * 0.62, actor.sprite.position.z, actor.sprite.color.a, false, 100000, [this.projectedBodyRect(actor.kind, actor.territory, actor.sprite)].filter((rect) => rect !== null));
         }
     }
     disposeFlowActor(actor) {
@@ -2016,6 +2287,11 @@ export class WhaleOceanRuntime {
             exitX: actor.targetX,
             removalReason: "completed_full_transit"
         });
+    }
+    disposeTestActor(actor) {
+        actor.sprite.dispose();
+        this.removeLabel(actor.label);
+        actor.label = null;
     }
     spawnEvent(event, allowPreviouslySeen = false) {
         const alreadySeen = this.seenEventIds.has(event.id);
@@ -2293,8 +2569,11 @@ export class WhaleOceanRuntime {
     // Territory divider is presentation-only: it must never affect actors or fish.
     /** Development-only overlay; it is not constructed unless explicitly enabled. */
     updateGeometryDebugOverlay() {
-        if (!this.options.debugWhaleOcean)
+        if (!this.options.debugWhaleOcean || (this.options.calibrationEnabled && this.calibrationSettings?.guides === false)) {
+            this.geometryDebugOverlay?.remove();
+            this.geometryDebugOverlay = null;
             return;
+        }
         const stage = this.canvas.parentElement;
         if (!stage)
             return;
@@ -2314,28 +2593,71 @@ export class WhaleOceanRuntime {
         overlay.style.height = `${canvasRect.height}px`;
         overlay.replaceChildren();
         const geometry = this.geometryDiagnostics();
-        const markers = [
-            ["camera", geometry.viewportCss.width / 2, `camera ${geometry.cameraCenterWorldX}`],
-            ["divider", geometry.viewportCss.width / 2, "divider 50%"],
-            ["boundary", 0, `L ${geometry.visibleWorld.left}`],
-            ["boundary", geometry.viewportCss.width, `R ${geometry.visibleWorld.right}`],
-            ["exit", geometry.viewportCss.width / 2, `territory edge ${geometry.visibleWorld.center}`]
-        ];
-        for (const [kind, x, label] of markers) {
+        const calibration = this.getCalibrationState();
+        const addLine = (kind, x, top = 0, bottom = geometry.viewportCss.height, label) => {
+            if (!Number.isFinite(x))
+                return;
             const marker = document.createElement("div");
             marker.className = `whale-ocean__geometry-marker whale-ocean__geometry-marker--${kind}`;
             marker.style.left = `${x}px`;
-            marker.innerHTML = `<span>${label}</span>`;
+            marker.style.top = `${top}px`;
+            marker.style.height = `${Math.max(1, bottom - top)}px`;
+            if (label)
+                marker.innerHTML = `<span>${label}</span>`;
             overlay.append(marker);
+        };
+        if (calibration.settings.grid) {
+            for (let x = 0; x <= geometry.viewportCss.width; x += 100)
+                addLine("grid-x", x, 0, geometry.viewportCss.height);
+            for (let y = 0; y <= geometry.viewportCss.height; y += 100) {
+                const grid = document.createElement("div");
+                grid.className = "whale-ocean__geometry-grid-y";
+                grid.style.top = `${y}px`;
+                overlay.append(grid);
+            }
         }
-        for (const animal of geometry.animals) {
-            if (animal.screenX === null)
+        addLine("boundary", 0, 0, geometry.viewportCss.height, `L ${calibration.visibleWorld.left}`);
+        addLine("boundary", geometry.viewportCss.width, 0, geometry.viewportCss.height, `R ${calibration.visibleWorld.right}`);
+        const target = this.projectToCss(calibration.camera.targetX, calibration.camera.targetY, calibration.camera.targetZ);
+        if (target) {
+            const center = document.createElement("i");
+            center.className = "whale-ocean__geometry-camera-center";
+            center.style.left = `${target.x}px`;
+            center.style.top = `${target.y}px`;
+            center.title = `Camera target ${calibration.camera.targetX}, ${calibration.camera.targetY}, ${calibration.camera.targetZ}`;
+            overlay.append(center);
+        }
+        const bandIndexByName = new Map(geometry.depthBands.map(band => [band.name, band.index]));
+        for (const path of calibration.paths) {
+            const bandIndex = bandIndexByName.get(path.band) ?? 0;
+            const band = geometry.depthBands[bandIndex];
+            if (!band)
                 continue;
-            const fish = document.createElement("i");
-            fish.className = `whale-ocean__geometry-fish whale-ocean__geometry-fish--${animal.territory}`;
-            fish.title = `${animal.id} · world X ${animal.worldX}`;
-            fish.style.left = `${animal.screenX}px`;
-            overlay.append(fish);
+            if (path.spawnScreenX !== null)
+                addLine("spawn", path.spawnScreenX, band.screen.top, band.screen.bottom, `${path.side.toUpperCase()} ${path.territory} spawn ${path.spawnWorldX}`);
+            if (path.exitScreenX !== null)
+                addLine("exit", path.exitScreenX, band.screen.top, band.screen.bottom, `${path.side.toUpperCase()} ${path.territory} exit ${path.exitWorldX}`);
+        }
+        if (this.options.calibrationEnabled) {
+            for (const band of geometry.depthBands) {
+                const useful = document.createElement("div");
+                useful.className = "whale-ocean__geometry-useful-band";
+                useful.style.top = `${band.screen.top}px`;
+                useful.style.height = `${band.screen.bottom - band.screen.top}px`;
+                overlay.append(useful);
+            }
+        }
+        if (calibration.settings.traces) {
+            for (const row of this.visualDiagnostics()) {
+                if (!row.inViewport || row.projectedCssX < -20 || row.projectedCssX > geometry.viewportCss.width + 20)
+                    continue;
+                const fish = document.createElement("i");
+                fish.className = `whale-ocean__geometry-fish whale-ocean__geometry-fish--${row.symbol === "TEST" ? "test" : row.symbol === this.options.leftSymbol ? "left" : "right"}`;
+                fish.title = `${row.id} · world ${row.worldPositionX.toFixed(2)},${row.worldPositionY.toFixed(2)},${row.worldPositionZ.toFixed(2)} · ${row.projectedCssX.toFixed(0)}px`;
+                fish.style.left = `${row.projectedCssX}px`;
+                fish.style.top = `${row.projectedCssY}px`;
+                overlay.append(fish);
+            }
         }
     }
     updateTerritoryDivider() {

@@ -48,10 +48,11 @@ export function getTeamHorizontalBounds(visible, territory, bodyHalfWidth) {
     };
 }
 /**
- * Builds a complete entry-to-exit path inside one territory. Outer entries
- * start outside the viewport by the full sprite half-width; central entries
- * start with the visible body already contained in their own territory. The
- * exit places the leading visible body edge exactly on the territory boundary.
+ * Builds a complete entry-to-exit path inside one territory. Every entry
+ * starts with the visible alpha body touching the current viewport edge or
+ * territory divider. This keeps the first rendered frame visible on every
+ * responsive layout; the exit still travels beyond the viewport so the
+ * animal can leave naturally.
  */
 export function getTransitPath(visible, territory, direction, spriteHalfWidth, bodyHalfWidth) {
     return getDirectionalTransitPath(visible, territory, direction, spriteHalfWidth, {
@@ -72,13 +73,10 @@ export function getDirectionalTransitPath(visible, territory, direction, spriteH
     const exitBoundary = directionSign > 0 ? teamRight : teamLeft;
     const span = Math.abs(teamRight - teamLeft);
     const leadingExtent = Math.min(Math.max(0, directionSign > 0 ? bodyExtents.right : bodyExtents.left), span / 2);
-    const centralEntry = territory === "right" ? directionSign > 0 : directionSign < 0;
     const entryBodyInset = Math.max(0, directionSign > 0 ? bodyExtents.left : bodyExtents.right);
     const centralExit = territory === "left" ? directionSign > 0 : directionSign < 0;
     return {
-        fromX: centralEntry
-            ? entryBoundary + directionSign * Math.min(entryBodyInset, span / 2)
-            : entryBoundary - directionSign * Math.max(0, spriteHalfWidth),
+        fromX: entryBoundary + directionSign * Math.min(entryBodyInset, span / 2),
         toX: centralExit
             ? exitBoundary - directionSign * leadingExtent
             : exitBoundary + directionSign * Math.max(0, spriteHalfWidth)
