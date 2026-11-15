@@ -132,6 +132,48 @@ export interface WhaleOceanCalibrationState {
     diagnostics: { visiblePercent: number; outsideUsefulAreaPercent: number; status: string; testFish: number };
 }
 
+/**
+ * Reference calibration captured from the DEV Whale Ocean calibration tool.
+ * It is applied only when calibration mode is enabled; production rendering
+ * keeps its normal responsive defaults.
+ */
+export const WHALE_OCEAN_CALIBRATION_PRESET: WhaleOceanCalibrationSettings = {
+    version: 1,
+    camera: {
+        targetX: -8.620000000000001,
+        targetY: -0.5,
+        targetZ: 0,
+        alpha: -1.5707963267948966,
+        beta: 1.5707963267948966,
+        radius: 36.230000000000004,
+        fov: 0.85
+    },
+    screenOffsetX: 0,
+    screenOffsetY: 0,
+    territories: {
+        left: -43.09665115590442,
+        center: -8.619330231180882,
+        right: 25.857990693542657
+    },
+    vertical: {
+        minPx: 96,
+        maxPx: 1399,
+        safetyMarginPx: 0
+    },
+    spawn: {
+        buy: -43.09665115590442,
+        sell: -8.619330231180882
+    },
+    exit: {
+        buy: -8.619330231180882,
+        sell: -43.09665115590442
+    },
+    slowMotion: 1,
+    guides: true,
+    grid: true,
+    traces: true
+};
+
 interface FishAgent {
     position: Vector3;
     velocity: Vector3;
@@ -442,7 +484,6 @@ export class WhaleOceanRuntime {
     private calibrationSettings: WhaleOceanCalibrationSettings | null = null;
     private calibrationTerritoryDelta = { left: 0, center: 0, right: 0 };
     private calibrationPathDelta = { spawnBuy: 0, spawnSell: 0, exitBuy: 0, exitSell: 0 };
-    private calibrationReferenceCamera: WhaleOceanCalibrationSettings["camera"] | null = null;
 
     public constructor(options: WhaleOceanRuntimeOptions) {
         this.options = options;
@@ -514,7 +555,8 @@ export class WhaleOceanRuntime {
             camera: this.camera,
             engine: this.engine
         });
-        this.calibrationReferenceCamera = this.readCameraSettings();
+        if (this.options.calibrationEnabled)
+            this.setCalibration(this.defaultCalibrationSettings());
         await this.buildSpriteLibrary();
         if (this.disposed) return;
         const babylon = this.B;
@@ -733,14 +775,17 @@ export class WhaleOceanRuntime {
     public setCalibration(next: WhaleOceanCalibrationSettings): void {
         if (this.disposed || !this.options.calibrationEnabled) return;
         const normalized = this.normalizeCalibrationSettings(next);
-        const baseVisible = this.getBaseVisibleHorizontalBounds(0);
         this.calibrationSettings = normalized;
+        // Recompute the raw viewport after changing the camera. Otherwise a
+        // radius/FOV preset would calculate territory deltas from the previous
+        // frustum and shift the requested world coordinates on screen.
+        this.applyCameraSettings(normalized.camera);
+        const baseVisible = this.getBaseVisibleHorizontalBounds(0);
         this.calibrationTerritoryDelta = {
             left: normalized.territories.left - baseVisible.left,
             center: normalized.territories.center - baseVisible.center,
             right: normalized.territories.right - baseVisible.right
         };
-        this.applyCameraSettings(normalized.camera);
         const baseBuy = this.getTransitPathWithoutCalibrationPathDelta("left", "buy", 0, 0, 0, { left: 0, right: 0 });
         const baseSell = this.getTransitPathWithoutCalibrationPathDelta("left", "sell", 0, 0, 0, { left: 0, right: 0 });
         this.calibrationPathDelta = {
@@ -755,12 +800,7 @@ export class WhaleOceanRuntime {
 
     public resetCalibration(): void {
         if (!this.options.calibrationEnabled) return;
-        this.calibrationSettings = null;
-        this.calibrationTerritoryDelta = { left: 0, center: 0, right: 0 };
-        this.calibrationPathDelta = { spawnBuy: 0, spawnSell: 0, exitBuy: 0, exitSell: 0 };
-        if (this.calibrationReferenceCamera) this.applyCameraSettings(this.calibrationReferenceCamera);
-        this.resizeArena();
-        this.updateGeometryDebugOverlay();
+        this.setCalibration(this.defaultCalibrationSettings());
     }
 
     public spawnCalibrationTestFish(options: { side: WhaleOceanSide; territory: "left" | "right"; kind: SpriteKind; bandIndex: number; speed: number; quantity: number }): void {
@@ -799,24 +839,7 @@ export class WhaleOceanRuntime {
     }
 
     private defaultCalibrationSettings(): WhaleOceanCalibrationSettings {
-        const visible = this.getVisibleHorizontalBounds(0);
-        const bands = getWhaleOceanVerticalBands(this.canvas.clientHeight, this.canvas.clientWidth);
-        const buy = this.getTransitPathWithoutCalibrationPathDelta("left", "buy", 0, 0, 0, { left: 0, right: 0 });
-        const sell = this.getTransitPathWithoutCalibrationPathDelta("left", "sell", 0, 0, 0, { left: 0, right: 0 });
-        return {
-            version: 1,
-            camera: this.readCameraSettings(),
-            screenOffsetX: 0,
-            screenOffsetY: 0,
-            territories: { left: visible.left, center: visible.center, right: visible.right },
-            vertical: { minPx: bands[0]?.top ?? 0, maxPx: bands[bands.length - 1]?.bottom ?? this.canvas.clientHeight, safetyMarginPx: 0 },
-            spawn: { buy: buy.fromX, sell: sell.fromX },
-            exit: { buy: buy.toX, sell: sell.toX },
-            slowMotion: 1,
-            guides: true,
-            grid: true,
-            traces: true
-        };
+        return this.cloneCalibrationSettings(WHALE_OCEAN_CALIBRATION_PRESET);
     }
 
     private normalizeCalibrationSettings(input: WhaleOceanCalibrationSettings): WhaleOceanCalibrationSettings {
@@ -856,6 +879,12 @@ export class WhaleOceanRuntime {
         this.camera.radius = settings.radius;
         this.camera.fov = settings.fov;
         this.camera.target = new this.B.Vector3(settings.targetX, settings.targetY, settings.targetZ);
+        this.camera.lowerAlphaLimit = settings.alpha;
+        this.camera.upperAlphaLimit = settings.alpha;
+        this.camera.lowerBetaLimit = settings.beta;
+        this.camera.upperBetaLimit = settings.beta;
+        this.camera.lowerRadiusLimit = settings.radius;
+        this.camera.upperRadiusLimit = settings.radius;
     }
 
     private getTransitPathWithoutCalibrationPathDelta(territory: "left" | "right", side: WhaleOceanSide, depth: number, outerPadding: number, spritePadding: number, bodyExtents?: { left: number; right: number }): TransitPath {
@@ -1339,7 +1368,8 @@ export class WhaleOceanRuntime {
 
     private cssPixelsPerWorldUnitAtDepth(depth: number): number {
         const targetZ = this.camera?.target.z ?? 0;
-        return this.cssPixelsPerWorldUnit() * CAMERA_RADIUS / Math.max(0.1, CAMERA_RADIUS + depth - targetZ);
+        const cameraRadius = Math.max(0.1, this.camera?.radius ?? CAMERA_RADIUS);
+        return this.cssPixelsPerWorldUnit() * cameraRadius / Math.max(0.1, cameraRadius + depth - targetZ);
     }
 
     private labelBelowForKind(kind: SpriteKind, alternate = false): boolean {
@@ -2101,7 +2131,8 @@ export class WhaleOceanRuntime {
         const atlas = this.spriteAtlases.get(`${kind}:${territory}`);
         const bodyWidthWorld = sprite.width * (atlas?.visualWidthRatio ?? 1);
         const bodyHeightWorld = sprite.height * (atlas?.visualHeightRatio ?? 0.5);
-        const cssPerWorldAtDepth = this.cssPixelsPerWorldUnit() * CAMERA_RADIUS / Math.max(0.1, CAMERA_RADIUS + sprite.position.z);
+        const cameraRadius = Math.max(0.1, this.camera?.radius ?? CAMERA_RADIUS);
+        const cssPerWorldAtDepth = this.cssPixelsPerWorldUnit() * cameraRadius / Math.max(0.1, cameraRadius + sprite.position.z - (this.camera?.target.z ?? 0));
         const cameraPosition = this.camera?.position;
         const cameraDistance = cameraPosition
             ? Math.hypot(sprite.position.x - cameraPosition.x, sprite.position.y - cameraPosition.y, sprite.position.z - cameraPosition.z)

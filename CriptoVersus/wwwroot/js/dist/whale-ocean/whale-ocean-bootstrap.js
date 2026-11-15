@@ -80,7 +80,9 @@ export function initializeCalibrationPanel(matchId) {
     detachCalibrationPanel(matchId);
     let settings = runtime.getCalibrationState().settings;
     let paused = false;
-    const storageKey = "cv:whale-ocean-calibration:v1";
+    // v2 intentionally starts from the new reference preset instead of
+    // reapplying stale DEV values saved by the previous calibration session.
+    const storageKey = "cv:whale-ocean-calibration:v2";
     try {
         const saved = JSON.parse(localStorage.getItem(storageKey) ?? "null");
         if (saved?.version === 1) {
