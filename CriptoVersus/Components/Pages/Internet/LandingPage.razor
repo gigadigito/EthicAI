@@ -1,0 +1,501 @@
+@page "/landing"
+@layout CriptoVersus.Web.Components.Layout.BlankLayout
+@using CriptoVersus.Web.Components.Shared
+@using CriptoVersus.Web.Services
+@using Microsoft.JSInterop
+@inject IHttpContextAccessor HttpContextAccessor
+@inject AppCultureService AppCulture
+@inject NavigationManager Nav
+@inject RouteLocalizationService RouteLocalization
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>@CurrentCopy.PageTitle</PageTitle>
+<HeadContent>
+    <meta name="description" content="@CurrentCopy.Subtitle" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" />
+</HeadContent>
+
+<main @ref="_pageRef" class="landing-page">
+    <section class="landing-hero" aria-labelledby="landing-hero-title">
+        <div class="landing-hero__canvas" aria-hidden="true">
+            <GatewayFlow />
+        </div>
+
+        <header class="landing-hero__navbar">
+            <a class="landing-hero__brand" href="@HomeHref" aria-label="CriptoVersus">
+                <svg class="landing-hero__brand-mark"
+                     viewBox="0 0 101.63 80.14"
+                     fill="currentColor"
+                     aria-hidden="true">
+                    <path d="m7.92,3.82c7.12-.03,14.25-.06,21.37-.09,5.74,11.2,11.48,22.41,17.21,33.61l-9.97,20.13L7.92,3.82Z" />
+                    <path d="m67.78,3.82c-1.16,0-2.32,0-3.48,0l-1.62,3.12-1.39-1.1h-26.45l-1.38,1.1-1.58-3.12c-1.27,0-2.54,0-3.81,0l4.76-3.82c10.32,0,20.65,0,30.97,0,1.33,1.27,2.65,2.54,3.98,3.82Z" />
+                    <polygon points="88.73 3.82 67.78 3.82 50.28 36.95 59.81 36.95 44.71 65.33 55.86 65.33 88.73 3.82" />
+                    <polygon points="48.37 39.96 53.88 39.96 33.55 80.14 28.21 80.14 48.37 39.96" />
+                    <path d="m23.44,64.14c-1.24,1.6-2.47,3.2-3.71,4.8,3.21,2.96,6.42,5.92,9.64,8.88.93-1.85,1.85-3.7,2.78-5.54l-8.71-8.13Z" />
+                    <path d="m88.83,49.29c.14,2.64.28,5.28.42,7.93-3.01,2.81-6.02,5.62-9.03,8.43,2.87-5.45,5.74-10.9,8.61-16.36Z" />
+                    <polygon points="87.14 21.27 89.44 22.54 68.64 63.09 66.36 61.93 61.79 70.88 60.28 70.3 64.94 61.19 62.71 60.05 83.98 19.52 85.77 20.51 92.58 7.2 93.74 8.37 87.14 21.27" />
+                    <polygon points="95.37 26.85 98.03 28 77.23 68.44 65.03 80.14 37.49 80.14 40.63 74.3 67.17 74.3 92.1 25.45 93.84 26.2 100.59 12.9 101.63 13.95 95.37 26.85" />
+                    <path d="m14.22,18.06c-2.1,1.99-4.2,3.98-6.3,5.96l-.54,28.89c2.12-1.59,4.25-3.19,6.37-4.78v-19.11l4.31-4.05c-1.28-2.3-2.56-4.61-3.85-6.91Z" />
+                    <path d="m20.69,33.75l-13.33,19.15-2.15-1.49c-1.29,1.88-2.59,3.76-3.88,5.64l-1.33-.92c1.28-1.9,2.56-3.79,3.84-5.68l-2.05-1.42,13.33-19.15,1.8,1.25c.83-1.23,1.66-2.46,2.5-3.69.37.57.74,1.15,1.1,1.72-.69,1.01-1.39,2.02-2.08,3.02l2.25,1.56Z" />
+                    <path d="m23.62,42.83l1.72,1.2-14.26,20.49-1.72-1.2c-2.21,3.18-4.42,6.36-6.63,9.53l-1.41-.98c2.2-3.19,4.39-6.38,6.58-9.57l-1.74-1.21,14.26-20.49,1.63,1.14c.81-1.17,1.61-2.34,2.42-3.51.34.63.69,1.26,1.02,1.9-.63.9-1.25,1.8-1.88,2.7Z" />
+                    <path d="m31.5,49.94c-4.17,6.1-8.35,12.2-12.53,18.3-.56-.52-1.13-1.04-1.69-1.56l-1.98,2.85-1.45-1.01c.69-1.02,1.39-2.06,2.09-3.08-.52-.48-1.04-.95-1.55-1.43,4.07-5.83,8.14-11.66,12.21-17.49l1.46,1.01c.44-.65.88-1.3,1.32-1.95.4.66.81,1.33,1.21,1.99l-.81,1.17,1.73,1.21Z" />
+                </svg>
+                <span class="landing-hero__brand-name">CriptoVersus</span>
+            </a>
+
+            <nav class="landing-hero__nav" aria-label="@CurrentCopy.NavLabel">
+                <a class="landing-hero__nav-link" href="@HomeHref">@CurrentCopy.NavHome</a>
+                <a class="landing-hero__nav-btn" href="@AboutHref">@CurrentCopy.NavAbout</a>
+            </nav>
+        </header>
+
+        <h1 id="landing-hero-title" class="landing-hero__title">
+            <span class="landing-hero__title-line">@CurrentCopy.TitleLine1</span>
+            <span class="landing-hero__title-line">@CurrentCopy.TitleLine2</span>
+        </h1>
+
+        <div class="landing-hero__sub">
+            <p class="landing-hero__subtitle">@CurrentCopy.Subtitle</p>
+            <div class="landing-hero__actions">
+                <a class="landing-hero__cta" href="@HomeHref">
+                    <span>@CurrentCopy.Cta</span>
+                    <svg class="landing-hero__cta-icon"
+                         viewBox="0 0 20 20"
+                         width="18"
+                         height="18"
+                         fill="none"
+                         aria-hidden="true">
+                        <path d="M4.5 10h11m0 0-4.5-4.5M15.5 10l-4.5 4.5"
+                              stroke="currentColor"
+                              stroke-width="1.75"
+                              stroke-linecap="round"
+                              stroke-linejoin="round" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="landing-translation" aria-labelledby="landing-translation-title">
+        <div class="landing-translation__inner">
+            <div class="landing-translation__copy">
+                <h2 id="landing-translation-title" class="landing-translation__title">
+                    @CurrentCopy.SectionTitle
+                </h2>
+                <p class="landing-translation__lead">
+                    @CurrentCopy.SectionLead
+                </p>
+
+                <dl class="landing-translation__pillars">
+                    <div class="landing-translation__pillar">
+                        <dt>@CurrentCopy.Pillar1Title</dt>
+                        <dd>@CurrentCopy.Pillar1Body</dd>
+                    </div>
+                    <div class="landing-translation__pillar">
+                        <dt>@CurrentCopy.Pillar2Title</dt>
+                        <dd>@CurrentCopy.Pillar2Body</dd>
+                    </div>
+                    <div class="landing-translation__pillar">
+                        <dt>@CurrentCopy.Pillar3Title</dt>
+                        <dd>@CurrentCopy.Pillar3Body</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <div class="landing-translation__stage">
+                <div class="landing-translation__raw" aria-hidden="true">
+                    <span class="landing-translation__raw-label">@CurrentCopy.RawLabel</span>
+                    <code class="landing-translation__raw-line">BTC/ETH · RSI(14) 58.4 · EMA 9/21 · VOL 24H · SPREAD 0.04</code>
+                </div>
+
+                <div class="landing-translation__visual">
+                    <div class="landing-translation__visual-head">
+                        <span class="landing-translation__visual-label">@CurrentCopy.VisualLabel</span>
+                        <div class="landing-translation__states"
+                             role="group"
+                             aria-label="@CurrentCopy.StatesGroupLabel">
+                            @for (var i = 0; i < CurrentStates.Count; i++)
+                            {
+                                var index = i;
+                                var state = CurrentStates[i];
+                                <button type="button"
+                                        class="landing-translation__state-btn @(_selectedVisualState == index ? "is-active" : null)"
+                                        aria-pressed="@(_selectedVisualState == index ? "true" : "false")"
+                                        @onclick="() => SelectVisualState(index)">
+                                    @state.Label
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="landing-translation__duel">
+                        <div class="landing-translation__side landing-translation__side--left">
+                            <span class="landing-translation__asset-name">Bitcoin</span>
+                            <span class="landing-translation__asset-share">@ActiveState.LeftShare%</span>
+                        </div>
+                        <div class="landing-translation__side landing-translation__side--right">
+                            <span class="landing-translation__asset-share">@ActiveState.RightShare%</span>
+                            <span class="landing-translation__asset-name">Ethereum</span>
+                        </div>
+                    </div>
+
+                    <div class="landing-translation__meter" aria-hidden="true">
+                        <span class="landing-translation__meter-left"
+                              style="width: @ActiveState.LeftShare%"></span>
+                        <span class="landing-translation__meter-right"
+                              style="width: @ActiveState.RightShare%"></span>
+                    </div>
+
+                    <p class="landing-translation__reading" aria-live="polite">
+                        @ActiveState.Reading
+                    </p>
+                </div>
+
+                <p class="landing-translation__footnote">
+                    @CurrentCopy.VisualFootnote
+                </p>
+            </div>
+        </div>
+    </section>
+</main>
+
+@code {
+    private sealed record VisualState(string Label, int LeftShare, int RightShare, string Reading);
+
+    private sealed record HeroCopy(
+        string PageTitle,
+        string NavLabel,
+        string NavHome,
+        string NavAbout,
+        string TitleLine1,
+        string TitleLine2,
+        string Subtitle,
+        string Cta,
+        string SectionTitle,
+        string SectionLead,
+        string Pillar1Title,
+        string Pillar1Body,
+        string Pillar2Title,
+        string Pillar2Body,
+        string Pillar3Title,
+        string Pillar3Body,
+        string RawLabel,
+        string VisualLabel,
+        string StatesGroupLabel,
+        string VisualFootnote,
+        IReadOnlyList<VisualState> States);
+
+    private int _selectedVisualState = 1;
+    private ElementReference _pageRef;
+    private IJSObjectReference? _scrollModule;
+    private bool _scrollMounted;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _scrollModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "/js/dist/landing/landingScroll.js?v=20261115");
+            await _scrollModule.InvokeVoidAsync("mountLandingScroll", _pageRef);
+            _scrollMounted = true;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_scrollModule is not null)
+        {
+            try
+            {
+                if (_scrollMounted)
+                {
+                    await _scrollModule.InvokeVoidAsync("destroyLandingScroll", _pageRef);
+                }
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+            finally
+            {
+                await _scrollModule.DisposeAsync();
+                _scrollModule = null;
+            }
+        }
+    }
+
+    private void SelectVisualState(int index)
+    {
+        if (index >= 0 && index < CurrentStates.Count)
+        {
+            _selectedVisualState = index;
+        }
+    }
+
+    private static readonly IReadOnlyDictionary<string, HeroCopy> LocalizedCopy =
+        new Dictionary<string, HeroCopy>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["pt"] = new(
+                "CriptoVersus — O mercado cripto, sem complicação",
+                "Navegação principal",
+                "Home",
+                "Sobre",
+                "O mercado cripto,",
+                "sem complicação.",
+                "Acompanhe movimentos reais das criptomoedas de um jeito visual e intuitivo.",
+                "Explorar o mercado",
+                "Você não precisa decifrar o gráfico para acompanhar o mercado.",
+                "Em vez de começar por painéis sobrecarregados, o CriptoVersus traduz oscilações reais das criptomoedas em movimentos visuais fáceis de comparar.",
+                "Para quem está começando",
+                "Primeiro contato sem barreiras de jargão, permitindo observar como os ativos se comportam desde o início.",
+                "Para quem já acompanha",
+                "Uma perspectiva visual mais limpa sobre força e ritmo entre criptomoedas, sem competir com suas ferramentas técnicas.",
+                "Leitura honesta, sem promessas",
+                "A experiência facilita acompanhar movimentos reais do mercado — não oferece previsão de preços, recomendação ou retorno garantido.",
+                "Leitura técnica fragmentada",
+                "Tradução visual do movimento",
+                "Exemplos ilustrativos de ritmo de mercado",
+                "Exemplo ilustrativo de leitura visual. Os dados reais variam conforme o mercado.",
+                new VisualState[]
+                {
+                    new("Equilíbrio", 52, 48, "Forças próximas: os dois ativos avançam em ritmo parecido, sem predominância clara."),
+                    new("Aceleração", 68, 32, "Impulso concentrado: a variação recente puxa a leitura visual para um dos lados."),
+                    new("Virada", 39, 61, "Mudança de ritmo: o movimento recente inverte a predominância de forma imediata.")
+                }),
+            ["en"] = new(
+                "CriptoVersus — Crypto markets, without the noise",
+                "Primary navigation",
+                "Home",
+                "About",
+                "Crypto markets,",
+                "without the noise.",
+                "Follow real cryptocurrency movements in a clear, visual, and intuitive way.",
+                "Explore the market",
+                "You do not need to decode dense charts to follow the market.",
+                "Instead of starting from overloaded panels, CriptoVersus turns real cryptocurrency swings into visual movements that are easy to compare.",
+                "For newcomers",
+                "A clear first point of contact without jargon barriers, making it easier to see how assets behave.",
+                "For active followers",
+                "A cleaner visual perspective on relative strength and pace between cryptocurrencies, alongside your usual tools.",
+                "Honest framing, no false promises",
+                "Visual clarity helps you observe real market movement—it is not price prediction, financial advice, or guaranteed return.",
+                "Fragmented technical readout",
+                "Visual movement translation",
+                "Illustrative market pace states",
+                "Illustrative visual example. Live platform readings follow real market movement.",
+                new VisualState[]
+                {
+                    new("Balance", 52, 48, "Close pace: both assets move at a comparable rhythm with no dominant pull."),
+                    new("Momentum", 68, 32, "Concentrated shift: recent movement clearly pulls the visual balance to one side."),
+                    new("Reversal", 39, 61, "Change in pace: newer movement shifts relative strength cleanly to the opposite side.")
+                }),
+            ["es"] = new(
+                "CriptoVersus — El mercado cripto, sin complicaciones",
+                "Navegación principal",
+                "Home",
+                "Acerca de",
+                "El mercado cripto,",
+                "sin complicaciones.",
+                "Sigue los movimientos reales de las criptomonedas de forma visual e intuitiva.",
+                "Explorar el mercado",
+                "No necesitas descifrar gráficos complejos para seguir el mercado.",
+                "En lugar de empezar por paneles sobrecargados, CriptoVersus traduce las oscilaciones reales de las criptomonedas en movimientos visuales fáciles de comparar.",
+                "Para quienes empiezan",
+                "Un primer contacto sin barreras de jerga para observar cómo se comportan los activos desde el inicio.",
+                "Para quienes ya siguen el mercado",
+                "Una perspectiva visual más limpia sobre fuerza y ritmo entre activos, sin sustituir tus herramientas técnicas.",
+                "Lectura honesta, sin promesas",
+                "La visualización facilita observar movimientos reales del mercado; no predice precios ni garantiza resultados.",
+                "Lectura técnica fragmentada",
+                "Traducción visual del movimiento",
+                "Ejemplos ilustrativos de ritmo",
+                "Ejemplo ilustrativo de lectura visual. Los datos reales cambian según el mercado.",
+                new VisualState[]
+                {
+                    new("Equilibrio", 52, 48, "Ritmos cercanos: ambos activos se mueven de forma pareja sin un dominio claro."),
+                    new("Aceleración", 68, 32, "Impulso concentrado: la variación reciente inclina la lectura visual hacia un lado."),
+                    new("Giro", 39, 61, "Cambio de impulso: el movimiento más reciente invierte el predominio de manera inmediata.")
+                }),
+            ["fr"] = new(
+                "CriptoVersus — Le marché crypto, sans complication",
+                "Navigation principale",
+                "Accueil",
+                "À propos",
+                "Le marché crypto,",
+                "sans complication.",
+                "Suivez les mouvements réels des cryptomonnaies de manière visuelle et intuitive.",
+                "Explorer le marché",
+                "Pas besoin de décoder des graphiques complexes pour suivre le marché.",
+                "Au lieu de commencer par des écrans surchargés, CriptoVersus traduit les variations réelles des cryptomonnaies en mouvements visuels faciles à comparer.",
+                "Pour débuter",
+                "Un premier contact lisible sans jargon obligatoire pour observer la dynamique des actifs.",
+                "Pour les initiés",
+                "Un regard visuel plus épuré sur la force relative et le rythme entre actifs, en complément de vos outils.",
+                "Une lecture honnête",
+                "L'interface facilite l'observation du marché réel — elle ne constitue ni une prédiction ni un conseil financier.",
+                "Lecture technique fragmentée",
+                "Traduction visuelle du mouvement",
+                "Exemples illustratifs de rythme",
+                "Exemple visuel illustratif. Les lectures réelles suivent l'évolution du marché.",
+                new VisualState[]
+                {
+                    new("Équilibre", 52, 48, "Rythmes proches : les deux actifs évoluent de façon comparable sans traction dominante."),
+                    new("Accélération", 68, 32, "Élan marqué : la variation récente attire clairement la lecture vers un côté."),
+                    new("Bascule", 39, 61, "Changement de rythme : le mouvement récent inverse immédiatement la tendance visuelle.")
+                }),
+            ["de"] = new(
+                "CriptoVersus — Der Kryptomarkt, klarer gedacht",
+                "Hauptnavigation",
+                "Home",
+                "Über uns",
+                "Der Kryptomarkt,",
+                "ohne Umwege.",
+                "Verfolgen Sie reale Kryptobewegungen auf eine visuelle und intuitive Art.",
+                "Markt entdecken",
+                "Sie müssen keine dichten Charts entschlüsseln, um den Markt zu verfolgen.",
+                "Statt mit überladenen Ansichten zu starten, übersetzt CriptoVersus reale Krypto-Schwankungen in klare, vergleichbare Bewegungen.",
+                "Für den Einstieg",
+                "Ein verständlicher erster Zugang ohne Fachjargon, um Marktbewegungen direkt einzuordnen.",
+                "Für Marktkenner",
+                "Ein ruhigerer visueller Blick auf relative Stärke und Dynamik zwischen Assets.",
+                "Klare Einordnung",
+                "Die Darstellung erleichtert das Beobachten realer Bewegungen — ohne Preisversprechen oder Anlageberatung.",
+                "Fragmentierte Rohdaten",
+                "Visuelle Übersetzung der Bewegung",
+                "Illustrative Marktphasen",
+                "Illustratives Beispiel. Reale Ansichten basieren auf aktuellen Marktbewegungen.",
+                new VisualState[]
+                {
+                    new("Balance", 52, 48, "Ähnliches Tempo: Beide Assets bewegen sich ohne klare Dominanz."),
+                    new("Dynamik", 68, 32, "Gebündelter Schub: Die jüngste Bewegung zieht das Gleichgewicht deutlich zu einer Seite."),
+                    new("Umschwung", 39, 61, "Tempowechsel: Neuere Impulse kehren die relative Stärke sofort um.")
+                }),
+            ["it"] = new(
+                "CriptoVersus — Il mercato crypto, senza complicazioni",
+                "Navigazione principale",
+                "Home",
+                "Chi siamo",
+                "Il mercato crypto,",
+                "senza complicazioni.",
+                "Segui i movimenti reali delle criptovalute in modo visivo e intuitivo.",
+                "Esplora il mercato",
+                "Non serve decifrare grafici complessi per seguire il mercato.",
+                "Invece di partire da schermate sovraccariche, CriptoVersus traduce le oscillazioni reali delle criptovalute in movimenti visivi facili da confrontare.",
+                "Per chi inizia",
+                "Un primo contatto accessibile, senza barriere tecniche, per osservare come si muovono gli asset.",
+                "Per chi già segue",
+                "Una lettura visiva più pulita su forza e ritmo tra criptovalute, senza sostituire gli strumenti professionali.",
+                "Chiarezza senza illusioni",
+                "Aiuta a osservare movimenti reali di mercato: non prevede i prezzi e non offre consulenza finanziaria.",
+                "Lettura tecnica frammentata",
+                "Traduzione visiva del movimento",
+                "Esempi illustrativi di ritmo",
+                "Esempio visivo illustrativo. I dati reali variano in base al mercato.",
+                new VisualState[]
+                {
+                    new("Equilibrio", 52, 48, "Ritmi vicini: entrambi gli asset procedono in modo simile senza prevalenza netta."),
+                    new("Spinta", 68, 32, "Slancio concentrato: la variazione recente sposta la lettura visiva verso un lato."),
+                    new("Svolta", 39, 61, "Cambio di passo: il movimento più recente ribalta subito la prevalenza.")
+                }),
+            ["zh"] = new(
+                "CriptoVersus — 直观理解加密市场",
+                "主导航",
+                "首页",
+                "关于",
+                "加密市场，",
+                "化繁为简。",
+                "以更直观的视觉方式观察真实的加密货币市场波动。",
+                "探索市场",
+                "无需先看懂复杂图表，也能开始观察市场。",
+                "CriptoVersus 将真实的加密货币价格波动转化为直观、易于对比的视觉动态，而不是一上来就堆叠繁杂面板。",
+                "适合初识市场者",
+                "减少专业术语门槛，让你从第一眼就能直观感受资产的动态变化。",
+                "适合长期关注者",
+                "以更清爽的视角观察不同资产之间的相对强弱与节奏，不替代原有分析工具。",
+                "清晰克制，不做虚假承诺",
+                "视觉表达用于帮助观察真实市场变化，不构成价格预测、投资建议或收益承诺。",
+                "零散的技术指标",
+                "市场动态的视觉化呈现",
+                "节奏示例切换",
+                "仅为视觉呈现示例，实际数据随真实市场变化。",
+                new VisualState[]
+                {
+                    new("均衡", 52, 48, "节奏接近：双方走势相近，尚未形成明显偏向。"),
+                    new("加速", 68, 32, "动能集中：近期波动使视觉重心清晰倾向一侧。"),
+                    new("转向", 39, 61, "节奏切换：新的波动趋势迅速改变了双方的相对强弱。")
+                }),
+            ["ja"] = new(
+                "CriptoVersus — 暗号資産市場を、もっと直感的に",
+                "メインナビゲーション",
+                "ホーム",
+                "概要",
+                "暗号資産市場を、",
+                "シンプルに。",
+                "実際の暗号資産の値動きを、視覚的で直感的なかたちで追いかけましょう。",
+                "市場を見る",
+                "複雑なチャートを読み解けなくても、市場の動きは追えます。",
+                "情報過多な画面から始めるのではなく、CriptoVersusは実際の暗号資産の値動きを、直感的に比較できる視覚表現へと変換します。",
+                "はじめての方へ",
+                "専門用語の壁を下げ、資産がどのように動いているかを最初から掴みやすくします。",
+                "すでに市場を見ている方へ",
+                "従来の分析ツールを置き換えるのではなく、資産間の勢いやリズムを別の視点から整理します。",
+                "誇張のない誠実な設計",
+                "市場の実際の動きを視覚的に捉えるための体験であり、価格予測や投資助言ではありません。",
+                "断片的なテクニカル表示",
+                "動きの視覚的な翻訳",
+                "リズムの例",
+                "視覚表現のイメージ例です。実際の表示は市場の動きに基づきます。",
+                new VisualState[]
+                {
+                    new("均衡", 52, 48, "近いリズム：双方の値動きが拮抗し、偏りが少ない状態です。"),
+                    new("加速", 68, 32, "勢いの集中：直近の値動きにより、視覚的な重心が一方へ傾いています。"),
+                    new("転換", 39, 61, "リズムの変化：新しい動きによって勢いの向きが反対側へ切り替わります。")
+                }),
+            ["hi"] = new(
+                "CriptoVersus — क्रिप्टो बाज़ार, बिना उलझन के",
+                "मुख्य नेविगेशन",
+                "होम",
+                "परिचय",
+                "क्रिप्टो बाज़ार,",
+                "बिना उलझन के।",
+                "क्रिप्टोकरेंसी की वास्तविक हलचल को सरल और विज़ुअल रूप में देखें।",
+                "बाज़ार देखें",
+                "बाज़ार को समझने के लिए जटिल चार्ट डिकोड करना ज़रूरी नहीं है।",
+                "अत्यधिक भारी स्क्रीन से शुरुआत करने के बजाय, CriptoVersus वास्तविक क्रिप्टो उतार-चढ़ाव को ऐसे विज़ुअल मूवमेंट में बदलता है जिन्हें तुलना करना आसान हो।",
+                "शुरुआत करने वालों के लिए",
+                "कठिन शब्दावली के बिना पहला अनुभव, ताकि आप शुरू से ही बाज़ार की गति को देख सकें।",
+                "नियमित देखने वालों के लिए",
+                "आपके मौजूदा टूल्स को बदले बिना, संपत्तियों की सापेक्ष गति और लय का अधिक साफ़ विज़ुअल नज़रिया।",
+                "ईमानदार प्रस्तुति, कोई झूठे वादे नहीं",
+                "यह अनुभव वास्तविक बाज़ार गति को देखने में मदद करता है — यह मूल्य भविष्यवाणी या निवेश सलाह नहीं है।",
+                "बिखरे हुए तकनीकी संकेत",
+                "गति का विज़ुअल अनुवाद",
+                "लय के उदाहरण",
+                "यह केवल विज़ुअल उदाहरण है। वास्तविक रीडिंग बाज़ार के अनुसार बदलती हैं।",
+                new VisualState[]
+                {
+                    new("संतुलन", 52, 48, "समान गति: दोनों संपत्तियाँ लगभग एक जैसी रफ़्तार से चल रही हैं।"),
+                    new("तेज़ी", 68, 32, "केंद्रित गति: हालिया बदलाव विज़ुअल संतुलन को स्पष्ट रूप से एक ओर खींचता है।"),
+                    new("मोड़", 39, 61, "लय में बदलाव: नया मूवमेंट तुरंत सापेक्ष बढ़त को दूसरी ओर मोड़ देता है।")
+                })
+        };
+
+    private string CurrentCulture => AppCulture.ResolveNavigationCulture(Nav, HttpContextAccessor.HttpContext);
+
+    private HeroCopy CurrentCopy =>
+        LocalizedCopy.TryGetValue(CurrentCulture, out var copy)
+            ? copy
+            : LocalizedCopy[AppCultureService.DefaultRouteCulture];
+
+    private IReadOnlyList<VisualState> CurrentStates => CurrentCopy.States;
+
+    private VisualState ActiveState =>
+        CurrentStates[Math.Clamp(_selectedVisualState, 0, CurrentStates.Count - 1)];
+
+    private string HomeHref => RouteLocalization.BuildHomePath(CurrentCulture);
+
+    private string AboutHref => RouteLocalization.BuildAboutPath(CurrentCulture);
+}

@@ -1,0 +1,14 @@
+.gateway-flow {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000000;
+}
+
+.gateway-flow__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}

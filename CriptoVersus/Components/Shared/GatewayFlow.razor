@@ -1,0 +1,94 @@
+@namespace CriptoVersus.Web.Components.Shared
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div @ref="_containerRef"
+     class="gateway-flow @ClassName"
+     style="@Style"
+     aria-hidden="true">
+    <canvas @ref="_canvasRef" class="gateway-flow__canvas"></canvas>
+</div>
+
+@code {
+    [Parameter] public string Mode { get; set; } = "dark";
+    [Parameter] public double Speed { get; set; } = 1;
+    [Parameter] public double Size { get; set; } = 1;
+    [Parameter] public double Gap { get; set; } = 2;
+    [Parameter] public double Length { get; set; } = 1;
+    [Parameter] public double Density { get; set; } = 1;
+    [Parameter] public double StrokeWidth { get; set; } = 1;
+    [Parameter] public double Opacity { get; set; } = 1;
+    [Parameter] public double Hue { get; set; } = 0;
+    [Parameter] public double Saturation { get; set; } = 1;
+    [Parameter] public double Brightness { get; set; } = 1;
+    [Parameter] public string? ClassName { get; set; }
+    [Parameter] public string? Style { get; set; }
+
+    private ElementReference _containerRef;
+    private ElementReference _canvasRef;
+    private IJSObjectReference? _module;
+    private bool _mounted;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _module = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "/js/dist/landing/gatewayFlow.js?v=20261115-2");
+            await _module.InvokeVoidAsync(
+                "mountGatewayFlow",
+                _containerRef,
+                _canvasRef,
+                BuildOptions());
+            _mounted = true;
+            return;
+        }
+
+        if (_mounted && _module is not null)
+        {
+            await _module.InvokeVoidAsync(
+                "updateGatewayFlow",
+                _containerRef,
+                BuildOptions());
+        }
+    }
+
+    private object BuildOptions() => new
+    {
+        mode = Mode,
+        speed = Speed,
+        size = Size,
+        gap = Gap,
+        length = Length,
+        density = Density,
+        strokeWidth = StrokeWidth,
+        opacity = Opacity,
+        hue = Hue,
+        saturation = Saturation,
+        brightness = Brightness
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            try
+            {
+                if (_mounted)
+                {
+                    await _module.InvokeVoidAsync("destroyGatewayFlow", _containerRef);
+                }
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+            finally
+            {
+                await _module.DisposeAsync();
+                _module = null;
+            }
+        }
+    }
+}

@@ -1,6 +1,6 @@
 // Localized core for Hindi. Same stable ID space as the Portuguese/English
 // catalogs; fallback to English is atomic per exchange.
-import { registerCatalog } from './dialogue-catalog.js?v=20261110a';
+import { registerCatalog } from './dialogue-catalog.js';
 export const hiPhrases = [
     ['taunt.001', 'chart', 'taunt', 'short', 'taunting', 'यह बैटल मेरी है, {opponent}.'],
     ['taunt.002', 'wick', 'taunt', 'short', 'sarcastic', 'तेरी कैंडल मेरे सामने बहुत कमज़ोर है।'],

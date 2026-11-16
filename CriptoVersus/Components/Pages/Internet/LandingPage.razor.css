@@ -1,0 +1,652 @@
+.landing-page {
+    --lp-bg: #000000;
+    --lp-internal-bg: #171c26;
+    --lp-internal-surface: #1e2430;
+    --lp-internal-surface-alt: #222938;
+    --lp-internal-border: rgba(224, 224, 224, 0.1);
+    --lp-internal-border-strong: rgba(224, 224, 224, 0.18);
+    --lp-ink: #F8FAFC;
+    --lp-ink-muted: rgba(248, 250, 252, 0.68);
+    --lp-ink-soft: rgba(243, 245, 247, 0.52);
+    --lp-accent: var(--cv-action, #B8FF00);
+    --lp-accent-hover: #C8FF38;
+    --lp-accent-ink: var(--cv-action-text, #07111F);
+    --lp-focus: var(--cv-brand-secondary, #00D5DF);
+    --lp-team-a: var(--team-a-color, #B8FF00);
+    --lp-team-b: var(--team-b-color, #00D5DF);
+
+    width: 100%;
+    background: var(--lp-bg);
+    color: var(--lp-ink);
+    color-scheme: dark;
+}
+
+.landing-page ::selection {
+    background: var(--lp-accent);
+    color: var(--lp-accent-ink);
+}
+
+.landing-hero {
+    position: relative;
+    display: grid;
+    grid-template-rows: 1fr auto 1fr;
+    align-items: center;
+    justify-items: center;
+    width: 100%;
+    min-height: 100dvh;
+    padding: clamp(1rem, 2.5vw, 1.75rem) clamp(1.25rem, 5vw, 3.5rem);
+    overflow: hidden;
+    background: var(--lp-bg);
+}
+
+.landing-hero::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: clamp(5rem, 16vh, 9.5rem);
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, #000000 100%);
+}
+
+.landing-hero__canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: calc(1 - var(--hero-exit, 0) * 0.85);
+    transform: translate3d(0, calc(var(--hero-exit, 0) * 48px), 0)
+        scale(calc(1 + var(--hero-exit, 0) * 0.045));
+    transform-origin: center center;
+}
+
+.landing-hero__navbar {
+    position: relative;
+    z-index: 2;
+    align-self: start;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    max-width: min(94vw, 112rem);
+    margin: 0 auto;
+    background: transparent;
+    pointer-events: none;
+    opacity: calc(1 - var(--hero-exit, 0) * 0.9);
+    transform: translate3d(0, calc(var(--hero-exit, 0) * -18px), 0);
+}
+
+.landing-hero__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6875rem;
+    padding: 0.375rem 0.25rem;
+    color: var(--lp-ink);
+    text-decoration: none;
+    pointer-events: auto;
+    border-radius: 8px;
+    transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-hero__brand:hover {
+    color: var(--lp-ink);
+    opacity: 0.86;
+}
+
+.landing-hero__brand:focus-visible {
+    outline: 2px solid var(--lp-focus);
+    outline-offset: 4px;
+}
+
+.landing-hero__brand-mark {
+    display: block;
+    width: 34px;
+    height: auto;
+    aspect-ratio: 101.63 / 80.14;
+    color: #ffffff;
+    flex-shrink: 0;
+}
+
+.landing-hero__brand-name {
+    font-family: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+    font-size: clamp(1.125rem, 1.5vw, 1.375rem);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    color: #ffffff;
+    text-transform: uppercase;
+}
+
+.landing-hero__nav {
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(0.75rem, 2vw, 1.5rem);
+    pointer-events: auto;
+}
+
+.landing-hero__nav-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0.375rem 0.25rem;
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: rgba(248, 250, 252, 0.78);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: color 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-hero__nav-link:hover {
+    color: var(--lp-ink);
+}
+
+.landing-hero__nav-link:focus-visible {
+    outline: 2px solid var(--lp-focus);
+    outline-offset: 4px;
+}
+
+.landing-hero__nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0.5rem 1.125rem;
+    border: 1px solid rgba(248, 250, 252, 0.22);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--lp-ink);
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    transition:
+        border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+        background-color 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-hero__nav-btn:hover {
+    color: var(--lp-ink);
+    border-color: rgba(248, 250, 252, 0.5);
+    background: rgba(248, 250, 252, 0.06);
+}
+
+.landing-hero__nav-btn:focus-visible {
+    outline: 2px solid var(--lp-focus);
+    outline-offset: 4px;
+}
+
+.landing-hero__title {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(2.0625rem, 8.25vh, 5.625rem);
+    margin: 0;
+    width: 100%;
+    max-width: min(94vw, 112rem);
+    text-align: center;
+    font-family: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+    font-size: clamp(1.65rem, 6.4vw, 6.75rem);
+    font-weight: 600;
+    line-height: 0.96;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+    color: var(--lp-ink);
+    pointer-events: none;
+    opacity: calc(1 - var(--hero-exit, 0) * 0.92);
+    transform: translate3d(0, calc(var(--hero-exit, 0) * -46px), 0)
+        scale(calc(1 - var(--hero-exit, 0) * 0.04));
+    transform-origin: center center;
+}
+
+.landing-hero__title-line {
+    display: block;
+    animation: landing-hero-enter 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.landing-hero__sub {
+    position: relative;
+    z-index: 2;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    max-width: min(92vw, 46rem);
+    padding-top: clamp(1.25rem, 3.5vh, 2.5rem);
+    pointer-events: none;
+    opacity: calc(1 - var(--hero-exit, 0) * 1.15);
+    transform: translate3d(0, calc(var(--hero-exit, 0) * -28px), 0);
+}
+
+.landing-hero__subtitle {
+    margin: 0;
+    max-width: 42ch;
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-size: clamp(1rem, 1.45vw, 1.25rem);
+    font-weight: 400;
+    line-height: 1.6;
+    letter-spacing: -0.005em;
+    color: var(--lp-ink-muted);
+    text-wrap: pretty;
+    animation: landing-hero-enter 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.landing-hero__actions {
+    margin-top: clamp(1.25rem, 2.8vh, 2rem);
+    pointer-events: auto;
+    animation: landing-hero-enter 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.landing-hero__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    min-height: 48px;
+    padding: 0.875rem 1.875rem;
+    border-radius: 999px;
+    background: var(--lp-accent);
+    color: var(--lp-accent-ink);
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.58);
+    transition:
+        background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-hero__cta:hover {
+    background: var(--lp-accent-hover);
+    color: var(--lp-accent-ink);
+    transform: translateY(-1px);
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.7);
+}
+
+.landing-hero__cta:active {
+    transform: translateY(0);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
+}
+
+.landing-hero__cta:focus-visible {
+    outline: 2px solid var(--lp-focus);
+    outline-offset: 4px;
+}
+
+.landing-hero__cta-icon {
+    flex-shrink: 0;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-hero__cta:hover .landing-hero__cta-icon {
+    transform: translateX(3px);
+}
+
+/* === SECTION 2: VISUAL TRANSLATION (INTERNAL PLATFORM SURFACE) === */
+.landing-translation {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    padding: clamp(6rem, 12vw, 10rem) clamp(1.25rem, 5vw, 3.5rem) clamp(4.5rem, 9vw, 8rem);
+    background: linear-gradient(
+        180deg,
+        #000000 0%,
+        #070a10 14%,
+        #0f141e 30%,
+        var(--lp-internal-bg) 48%,
+        var(--lp-internal-bg) 100%
+    );
+}
+
+.landing-translation__copy {
+    opacity: calc(0.18 + var(--section-enter, 1) * 0.82);
+    transform: translate3d(0, calc((1 - var(--section-enter, 1)) * 42px), 0);
+    transition:
+        opacity 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-translation__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    align-items: start;
+    gap: clamp(2.5rem, 6vw, 5.5rem);
+    width: 100%;
+    max-width: min(94vw, 82rem);
+    margin: 0 auto;
+}
+
+.landing-translation__title {
+    margin: 0;
+    max-width: 18ch;
+    font-family: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+    font-size: clamp(1.875rem, 3.6vw, 3.125rem);
+    font-weight: 600;
+    line-height: 1.08;
+    letter-spacing: -0.028em;
+    color: var(--lp-ink);
+    text-wrap: balance;
+}
+
+.landing-translation__lead {
+    margin: clamp(1.125rem, 2.2vw, 1.5rem) 0 0;
+    max-width: 48ch;
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-size: clamp(1rem, 1.3vw, 1.125rem);
+    font-weight: 400;
+    line-height: 1.65;
+    color: var(--lp-ink-muted);
+    text-wrap: pretty;
+}
+
+.landing-translation__pillars {
+    margin: clamp(2rem, 3.5vw, 2.75rem) 0 0;
+    padding: 0;
+    max-width: 48ch;
+}
+
+.landing-translation__pillar {
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--lp-internal-border);
+}
+
+.landing-translation__pillar:last-child {
+    border-bottom: 1px solid var(--lp-internal-border);
+}
+
+.landing-translation__pillar dt {
+    font-family: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--lp-ink);
+}
+
+.landing-translation__pillar dd {
+    margin: 0.375rem 0 0;
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 400;
+    line-height: 1.6;
+    color: var(--lp-ink-muted);
+    text-wrap: pretty;
+}
+
+.landing-translation__stage {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    opacity: calc(0.18 + var(--section-enter, 1) * 0.82);
+    transform: translate3d(0, calc((1 - var(--section-enter, 1)) * 64px), 0)
+        scale(calc(0.97 + var(--section-enter, 1) * 0.03));
+    transform-origin: center top;
+    transition:
+        opacity 380ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 380ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-translation__raw {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.9rem 1.125rem;
+    border: 1px solid rgba(224, 224, 224, 0.08);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.landing-translation__raw-label {
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--lp-ink-soft);
+}
+
+.landing-translation__raw-line {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.75rem;
+    color: rgba(243, 245, 247, 0.45);
+    letter-spacing: 0.02em;
+}
+
+.landing-translation__visual {
+    padding: clamp(1.375rem, 3vw, 2rem);
+    border: 1px solid var(--lp-internal-border-strong);
+    border-radius: 16px;
+    background: var(--lp-internal-surface);
+    box-shadow: 0 20px 44px rgba(0, 0, 0, 0.28);
+}
+
+.landing-translation__visual-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.875rem;
+}
+
+.landing-translation__visual-label {
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--lp-ink);
+}
+
+.landing-translation__states {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    padding: 0.25rem;
+    border-radius: 999px;
+    background: var(--lp-internal-bg);
+    border: 1px solid var(--lp-internal-border);
+}
+
+.landing-translation__state-btn {
+    min-height: 34px;
+    padding: 0.375rem 0.875rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--lp-ink-muted);
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+        color 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-translation__state-btn:hover {
+    color: var(--lp-ink);
+}
+
+.landing-translation__state-btn.is-active {
+    background: var(--lp-internal-surface-alt);
+    color: var(--lp-ink);
+}
+
+.landing-translation__state-btn:focus-visible {
+    outline: 2px solid var(--lp-focus);
+    outline-offset: 2px;
+}
+
+.landing-translation__duel {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.landing-translation__side {
+    display: flex;
+    align-items: baseline;
+    gap: 0.625rem;
+}
+
+.landing-translation__asset-name {
+    font-family: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+    font-size: clamp(1.125rem, 1.8vw, 1.375rem);
+    font-weight: 600;
+    color: var(--lp-ink);
+}
+
+.landing-translation__asset-share {
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.landing-translation__side--left .landing-translation__asset-share {
+    color: var(--lp-team-a);
+}
+
+.landing-translation__side--right .landing-translation__asset-share {
+    color: var(--lp-team-b);
+}
+
+.landing-translation__meter {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+    height: 14px;
+    margin-top: 0.875rem;
+    padding: 2px;
+    border-radius: 999px;
+    background: var(--lp-internal-bg);
+    border: 1px solid var(--lp-internal-border);
+    overflow: hidden;
+}
+
+.landing-translation__meter-left,
+.landing-translation__meter-right {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    transition: width 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-translation__meter-left {
+    background: var(--lp-team-a);
+}
+
+.landing-translation__meter-right {
+    background: var(--lp-team-b);
+}
+
+.landing-translation__reading {
+    margin: 1.5rem 0 0;
+    padding-top: 1.125rem;
+    border-top: 1px solid var(--lp-internal-border);
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.55;
+    color: var(--lp-ink);
+    text-wrap: pretty;
+}
+
+.landing-translation__footnote {
+    margin: 0.125rem 0 0;
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-size: 0.8125rem;
+    color: var(--lp-ink-soft);
+}
+
+@keyframes landing-hero-enter {
+    from {
+        opacity: 0.9;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 960px) {
+    .landing-translation__inner {
+        grid-template-columns: 1fr;
+    }
+
+    .landing-translation__title,
+    .landing-translation__lead,
+    .landing-translation__pillars {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .landing-hero {
+        padding: 1.25rem 1.25rem 2rem;
+    }
+
+    .landing-hero__title {
+        max-width: 100%;
+    }
+
+    .landing-translation__states {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .landing-translation__state-btn {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-hero__title-line,
+    .landing-hero__subtitle,
+    .landing-hero__actions {
+        animation: none;
+    }
+
+    .landing-hero__canvas,
+    .landing-hero__navbar,
+    .landing-hero__title,
+    .landing-hero__sub,
+    .landing-translation__copy,
+    .landing-translation__stage {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+
+    .landing-hero__brand,
+    .landing-hero__nav-link,
+    .landing-hero__nav-btn,
+    .landing-hero__cta,
+    .landing-hero__cta-icon,
+    .landing-translation__state-btn,
+    .landing-translation__meter-left,
+    .landing-translation__meter-right {
+        transition: none;
+    }
+
+    .landing-hero__cta:hover,
+    .landing-hero__cta:hover .landing-hero__cta-icon {
+        transform: none;
+    }
+}
