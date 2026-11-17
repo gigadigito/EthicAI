@@ -21,7 +21,7 @@ import {
     normalizeActivity,
     visualProfile,
     visualDensity,
-    VolumeEventDetector,
+    officialHighlightEventsForBatch,
     WHALE_OCEAN_SPECIES,
     WHALE_OCEAN_SIZE_CATEGORIES,
     DEFAULT_WHALE_OCEAN_VISUAL_BUDGET,
@@ -476,7 +476,6 @@ export class WhaleOceanRuntime {
     private readonly budget: WhaleOceanVisualBudget;
     private readonly requestedBudget: Partial<WhaleOceanVisualBudget>;
     private readonly root: HTMLElement | null;
-    private readonly detector = new VolumeEventDetector();
     private readonly symbols = new Map<string, LiveSymbolState>();
     private readonly fishGroups: FishGroup[] = [];
     private readonly spriteAtlases = new Map<string, SpriteAtlas>();
@@ -536,6 +535,10 @@ export class WhaleOceanRuntime {
     private performanceContextLosses = 0;
     private performanceQueueTimeMs = 0;
     private performanceQueueStats = { dropped: 0, coalesced: 0, expired: 0, processed: 0 };
+    private lastProjectedSeparationAt = 0;
+    private performanceSeparationTimeMs = 0;
+    private performanceSeparationRuns = 0;
+    private performanceSeparationPairs = 0;
     private geometryDebugOverlay: HTMLElement | null = null;
     private calibrationSettings: WhaleOceanCalibrationSettings | null = null;
     private calibrationTerritoryDelta = { left: 0, center: 0, right: 0 };
@@ -723,12 +726,13 @@ export class WhaleOceanRuntime {
         } else {
             this.replaying = false;
             this.setFlowStatus("LIVE", "live batch received");
-            const event = this.detector.ingest(batch);
-            if (event) this.spawnEvent(event);
-            else {
-                if (buyQuote > 0) this.enqueueFlow(symbol, "buy", buyQuote, state.baseline, now);
-                if (sellQuote > 0) this.enqueueFlow(symbol, "sell", sellQuote, state.baseline, now);
-            }
+            // Whale and Shark visuals are driven only by the Worker-owned
+            // classification of individual aggTrades. The ordinary school may
+            // still aggregate window volume, but it never becomes a fictitious
+            // official Whale or Shark because of that aggregation.
+            for (const event of officialHighlightEventsForBatch(batch)) this.spawnEvent(event);
+            if (buyQuote > 0) this.enqueueFlow(symbol, "buy", buyQuote, state.baseline, now);
+            if (sellQuote > 0) this.enqueueFlow(symbol, "sell", sellQuote, state.baseline, now);
         }
         this.trySpawnPendingFlows(now);
         this.rebalancePopulation();
@@ -1537,7 +1541,10 @@ export class WhaleOceanRuntime {
             notionalUsdt: 850_000,
             ratio: 5,
             sequence: 1,
-            eventTimeUtc: new Date().toISOString()
+            eventTimeUtc: new Date().toISOString(),
+            representedTradeCount: 1,
+            origin: "TEST",
+            visualReason: "diagnostic"
         });
         this.spawnEvent({
             id: "diagnostic-whale",
@@ -1547,7 +1554,10 @@ export class WhaleOceanRuntime {
             notionalUsdt: 2_400_000,
             ratio: 9,
             sequence: 2,
-            eventTimeUtc: new Date().toISOString()
+            eventTimeUtc: new Date().toISOString(),
+            representedTradeCount: 1,
+            origin: "TEST",
+            visualReason: "diagnostic"
         });
         this.rebalancePopulation();
     }
@@ -1713,7 +1723,13 @@ export class WhaleOceanRuntime {
         this.updateFlowActors(now);
         this.updateCalibrationTestActors(now);
         this.updateWhales(now);
-        this.resolveProjectedSpriteSeparation();
+        if (now - this.lastProjectedSeparationAt >= this.projectedSeparationIntervalMs()) {
+            const separationStartedAt = performance.now();
+            this.performanceSeparationPairs += this.resolveProjectedSpriteSeparation();
+            this.performanceSeparationTimeMs += performance.now() - separationStartedAt;
+            this.performanceSeparationRuns++;
+            this.lastProjectedSeparationAt = now;
+        }
         this.resolveScreenLabels();
         this.updateGeometryDebugOverlay();
         const queueStartedAt = performance.now();
@@ -2877,10 +2893,11 @@ export class WhaleOceanRuntime {
     }
 
     /** Keeps visible body bounds apart in CSS pixels, including across depth planes. */
-    private resolveProjectedSpriteSeparation(): void {
+    private resolveProjectedSpriteSeparation(): number {
         const visuals = this.activeOccupancyVisuals()
             .sort((a, b) => this.rectArea(this.projectedBodyRect(b.kind, b.territory, b.sprite) ?? { left: 0, right: 0, top: 0, bottom: 0 })
                 - this.rectArea(this.projectedBodyRect(a.kind, a.territory, a.sprite) ?? { left: 0, right: 0, top: 0, bottom: 0 }));
+        let comparisons = 0;
         for (let pass = 0; pass < 3; pass++) {
             let changed = false;
             for (let firstIndex = 0; firstIndex < visuals.length; firstIndex++) {
@@ -2888,6 +2905,7 @@ export class WhaleOceanRuntime {
                 const firstRect = this.projectedBodyRect(first.kind, first.territory, first.sprite);
                 if (!firstRect) continue;
                 for (let secondIndex = firstIndex + 1; secondIndex < visuals.length; secondIndex++) {
+                    comparisons++;
                     const second = visuals[secondIndex];
                     if (first.territory !== second.territory) continue;
                     const secondRect = this.projectedBodyRect(second.kind, second.territory, second.sprite);
@@ -2900,6 +2918,11 @@ export class WhaleOceanRuntime {
             }
             if (!changed) break;
         }
+        return comparisons;
+    }
+
+    private projectedSeparationIntervalMs(): number {
+        return this.quality === "Low" ? 125 : this.quality === "Medium" ? 90 : 67;
     }
 
     private shiftVisualVertically(visual: OccupancyVisual, requestedDeltaPx: number): boolean {
@@ -3079,7 +3102,10 @@ export class WhaleOceanRuntime {
         const phase = this.random() * Math.PI * 2;
         const seed = this.random();
         const quoteCurrency = this.symbols.get(event.symbol)?.quoteCurrency ?? quoteCurrencyForSymbol(event.symbol);
-        const labelText = `${formatCompactVolume(event.notionalUsdt)} ${quoteCurrency ?? "QUOTE"}`;
+        const representedTradeCount = Math.max(1, Math.floor(event.representedTradeCount ?? 1));
+        // A transport batch can represent several real trades. Do not place a
+        // batch-side dollar value beside one animal and imply it was one trade.
+        const labelText = `${event.kind.toUpperCase()}${representedTradeCount > 1 ? ` ×${representedTradeCount}` : ""}`;
         const labelWidthPx = Math.min(230, 30 + labelText.length * 8.6);
         const labelHeightPx = 24;
         const bandIndex = this.chooseBandIndex(kind, territory, event.side, size, labelWidthPx, labelHeightPx, phase, seed);
@@ -3135,7 +3161,34 @@ export class WhaleOceanRuntime {
         this.debugArenaPath("spawn", event.symbol, territory, event.side, depth, path);
         this.performanceQueueStats.processed++;
         this.debugSpawn("created", { symbol: event.symbol, side: event.side, totalNotional: event.notionalUsdt, peakNotional: event.notionalUsdt, baseline: 0, firstReceivedAt: Date.now(), lastReceivedAt: Date.now(), batchCount: 1 }, event.id, kind, "classified_event");
+        this.auditSpeciesEvent(event, territory, representedTradeCount);
         this.rebalancePopulation();
+    }
+
+    private auditSpeciesEvent(event: WhaleOceanEvent, territory: "left" | "right", representedTradeCount: number): void {
+        if (!this.options.developmentDiagnostics) return;
+        const score = this.scoreStates.get(event.symbol.trim().toUpperCase());
+        const officialSpeciesCount = score?.matchTotal[event.side][event.kind] ?? null;
+        const officialHudCount = score
+            ? score.matchTotal.buy[event.kind] + score.matchTotal.sell[event.kind]
+            : null;
+        console.info("[WhaleOcean:SpeciesAudit]", {
+            visualEntityId: event.id,
+            sourceEventId: event.id,
+            aggregateTradeIds: null,
+            symbol: event.symbol,
+            territory,
+            side: event.side.toUpperCase(),
+            individualVolume: null,
+            aggregateVolume: event.aggregateNotionalUsdt ?? event.notionalUsdt,
+            officialSpecies: event.kind,
+            visualSpecies: event.kind,
+            origin: event.origin ?? "LIVE",
+            officialHudCount,
+            officialHudCountForSide: officialSpeciesCount,
+            representedTradeCount,
+            visualReason: event.visualReason ?? "diagnostic"
+        });
     }
 
     private promotePendingEvents(now: number): void {
@@ -3534,6 +3587,9 @@ export class WhaleOceanRuntime {
             spriteManagers: this.spriteManagers.length,
             atlases: this.spriteAtlases.size,
             queueProcessingMs: Number(this.performanceQueueTimeMs.toFixed(2)),
+            projectedSeparationRuns: this.performanceSeparationRuns,
+            projectedSeparationPairs: this.performanceSeparationPairs,
+            projectedSeparationMs: Number(this.performanceSeparationTimeMs.toFixed(2)),
             webglContextLosses: this.performanceContextLosses,
             memoryUsedBytes: memory?.usedJSHeapSize ?? null,
             memoryLimitBytes: memory?.jsHeapSizeLimit ?? null
@@ -3544,6 +3600,9 @@ export class WhaleOceanRuntime {
         this.performanceFrameTimes = [];
         this.performanceQueueTimeMs = 0;
         this.performanceQueueStats = { dropped: 0, coalesced: 0, expired: 0, processed: 0 };
+        this.performanceSeparationTimeMs = 0;
+        this.performanceSeparationRuns = 0;
+        this.performanceSeparationPairs = 0;
     }
 
     private random(): number {

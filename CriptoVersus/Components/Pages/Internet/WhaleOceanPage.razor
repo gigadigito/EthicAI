@@ -394,7 +394,7 @@
             var leftPrice = match is null ? null : await Api.GetAssetPriceSnapshotAsync(leftSymbol, _lifetime.Token);
             var rightPrice = match is null ? null : await Api.GetAssetPriceSnapshotAsync(rightSymbol, _lifetime.Token);
             if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId) return;
-                var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261117-whale-ocean-hud-v1");
+                var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261117-whale-ocean-species-audit-v2");
             if (module is null)
                 throw new InvalidOperationException("Whale Ocean bootstrap module was not returned by JS interop.");
             if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId)

@@ -19,7 +19,8 @@ import {
     takerSideFromBuyerIsMaker,
     visualDensity,
     visualProfile,
-    VolumeEventDetector
+    VolumeEventDetector,
+    officialHighlightEventsForBatch
 } from "../../dist/whale-ocean/whale-ocean-model.js";
 
 test("maps every financial animal to a supplied atlas species", () => {
@@ -199,4 +200,33 @@ test("does not classify partial data as a whale and isolates symbols", () => {
     assert.equal(detector.ingest({ ...batch(7, 2_000), isPartial: true }), null);
     assert.equal(detector.ingest({ ...batch(7, 70), symbol: "ETHUSDT" }), null);
     assert.equal(detector.ingest(batch(8, 1_500), 8_000)?.symbol, "BTCUSDT");
+});
+
+test("uses Worker-owned species counts for highlights instead of reclassifying aggregate volume", () => {
+    const burstOfSmallTrades = {
+        ...batch(50, 2_000_000),
+        sourceId: "worker-a",
+        tradeCount: 100,
+        creatureCounts: {
+            buy: { small: 100, medium: 0, large: 0, shark: 0, whale: 0 },
+            sell: { small: 0, medium: 0, large: 0, shark: 0, whale: 0 }
+        }
+    };
+    assert.deepEqual(officialHighlightEventsForBatch(burstOfSmallTrades), []);
+
+    const officialHighlights = officialHighlightEventsForBatch({
+        ...burstOfSmallTrades,
+        creatureCounts: {
+            buy: { small: 100, medium: 0, large: 0, shark: 2, whale: 1 },
+            sell: { small: 0, medium: 0, large: 0, shark: 1, whale: 0 }
+        }
+    });
+    assert.deepEqual(officialHighlights.map(event => [event.side, event.kind, event.representedTradeCount]), [
+        ["buy", "shark", 2],
+        ["buy", "whale", 1],
+        ["sell", "shark", 1]
+    ]);
+    assert.ok(officialHighlights.every(event => event.visualReason?.startsWith("official_")));
+    assert.deepEqual(officialHighlightEventsForBatch({ ...burstOfSmallTrades, isReplay: true }), []);
+    assert.deepEqual(officialHighlightEventsForBatch({ ...burstOfSmallTrades, isPartial: true }), []);
 });

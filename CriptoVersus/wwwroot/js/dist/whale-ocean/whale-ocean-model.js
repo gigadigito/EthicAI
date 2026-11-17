@@ -96,6 +96,45 @@ export function animalKindForVisualTier(tier) {
 export function animalKindForEvent(kind) {
     return kind === "whale" ? "whale" : "shark";
 }
+/**
+ * Produces bounded visual highlights from the Worker-owned per-aggTrade
+ * classification. A transport batch intentionally has no individual aggTrade
+ * payload, so one visual can explicitly represent multiple official events.
+ * Aggregate quote volume must never promote small trades to a shark or whale.
+ */
+export function officialHighlightEventsForBatch(batch) {
+    if (batch.isReplay || batch.isPartial)
+        return [];
+    const symbol = batch.symbol.trim().toUpperCase();
+    if (!symbol || !Number.isFinite(batch.sequence))
+        return [];
+    const result = [];
+    for (const side of ["buy", "sell"]) {
+        const aggregateNotionalUsdt = parseQuote(side === "buy" ? batch.takerBuyQuote : batch.takerSellQuote);
+        const sideCounts = batch.creatureCounts?.[side];
+        for (const kind of ["shark", "whale"]) {
+            const representedTradeCount = safeCreatureCount(sideCounts?.[kind]);
+            if (representedTradeCount === 0)
+                continue;
+            result.push({
+                id: `official:${(batch.sourceId ?? "").trim()}:${symbol}:${batch.sequence}:${side}:${kind}`,
+                kind,
+                symbol,
+                side,
+                notionalUsdt: aggregateNotionalUsdt,
+                aggregateNotionalUsdt,
+                representedTradeCount,
+                ratio: 0,
+                sequence: batch.sequence,
+                eventTimeUtc: batch.eventTimeUtc,
+                sourceId: batch.sourceId,
+                origin: "LIVE",
+                visualReason: representedTradeCount === 1 ? "official_single_trade" : "official_batch_representation"
+            });
+        }
+    }
+    return result;
+}
 export function isLargeAnimalKind(kind) {
     return kind === "tuna" || kind === "swordfish" || kind === "shark" || kind === "whale";
 }
@@ -117,7 +156,8 @@ export function quoteCurrencyForSymbol(symbol) {
     return knownQuotes.find(quote => normalized.endsWith(quote)) ?? null;
 }
 /**
- * Maps an aggregated Money Flow lot to one of the eight non-exceptional species.
+ * Maps an aggregated Money Flow lot to one of the eight non-exceptional school species.
+ * It intentionally cannot produce the official Shark or Whale highlight species.
  * The comparison is symbol-local and has a seven-percent hysteresis band so a
  * normal fluctuation around a boundary does not make a school flicker species.
  */
@@ -216,6 +256,10 @@ export function clampVisualEntityCount(value, quality) {
 function parseQuote(value) {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+function safeCreatureCount(value) {
+    const parsed = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
 }
 function percentile(values, fraction) {
     if (values.length === 0)

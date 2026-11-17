@@ -2,6 +2,7 @@ import type { WhaleOceanCreatureCounts } from "./whale-ocean-scoreboard.js";
 
 export type WhaleOceanSide = "buy" | "sell";
 export type WhaleOceanEventKind = "shark" | "whale";
+export type WhaleOceanEventOrigin = "LIVE" | "REPLAY" | "TEST";
 export type WhaleOceanVisualTier = "micro" | "small" | "medium" | "large" | "whale";
 export type WhaleOceanFlowAnimalKind = "sardine" | "bluefish" | "mackerel" | "snook" | "grouper" | "barracuda" | "tuna" | "swordfish";
 export type WhaleOceanAnimalKind = WhaleOceanFlowAnimalKind | "shark" | "whale";
@@ -172,6 +173,14 @@ export interface WhaleOceanEvent {
     ratio: number;
     sequence: number;
     eventTimeUtc: string;
+    /** Number of real aggTrades of this official species represented by this one visual. */
+    representedTradeCount?: number;
+    /** The batch-side volume is contextual only; it is never reclassified in the browser. */
+    aggregateNotionalUsdt?: number;
+    sourceId?: string;
+    origin?: WhaleOceanEventOrigin;
+    /** Documents why the renderer chose this species without making it a scoring rule. */
+    visualReason?: "official_single_trade" | "official_batch_representation" | "diagnostic";
 }
 
 export interface WhaleOceanVisualProfile {
@@ -199,6 +208,45 @@ export function animalKindForEvent(kind: WhaleOceanEventKind): WhaleOceanAnimalK
     return kind === "whale" ? "whale" : "shark";
 }
 
+/**
+ * Produces bounded visual highlights from the Worker-owned per-aggTrade
+ * classification. A transport batch intentionally has no individual aggTrade
+ * payload, so one visual can explicitly represent multiple official events.
+ * Aggregate quote volume must never promote small trades to a shark or whale.
+ */
+export function officialHighlightEventsForBatch(batch: WhaleOceanBatch): WhaleOceanEvent[] {
+    if (batch.isReplay || batch.isPartial) return [];
+
+    const symbol = batch.symbol.trim().toUpperCase();
+    if (!symbol || !Number.isFinite(batch.sequence)) return [];
+
+    const result: WhaleOceanEvent[] = [];
+    for (const side of ["buy", "sell"] as const) {
+        const aggregateNotionalUsdt = parseQuote(side === "buy" ? batch.takerBuyQuote : batch.takerSellQuote);
+        const sideCounts = batch.creatureCounts?.[side];
+        for (const kind of ["shark", "whale"] as const) {
+            const representedTradeCount = safeCreatureCount(sideCounts?.[kind]);
+            if (representedTradeCount === 0) continue;
+            result.push({
+                id: `official:${(batch.sourceId ?? "").trim()}:${symbol}:${batch.sequence}:${side}:${kind}`,
+                kind,
+                symbol,
+                side,
+                notionalUsdt: aggregateNotionalUsdt,
+                aggregateNotionalUsdt,
+                representedTradeCount,
+                ratio: 0,
+                sequence: batch.sequence,
+                eventTimeUtc: batch.eventTimeUtc,
+                sourceId: batch.sourceId,
+                origin: "LIVE",
+                visualReason: representedTradeCount === 1 ? "official_single_trade" : "official_batch_representation"
+            });
+        }
+    }
+    return result;
+}
+
 export function isLargeAnimalKind(kind: WhaleOceanAnimalKind): boolean {
     return kind === "tuna" || kind === "swordfish" || kind === "shark" || kind === "whale";
 }
@@ -224,7 +272,8 @@ export function quoteCurrencyForSymbol(symbol: string): string | null {
 }
 
 /**
- * Maps an aggregated Money Flow lot to one of the eight non-exceptional species.
+ * Maps an aggregated Money Flow lot to one of the eight non-exceptional school species.
+ * It intentionally cannot produce the official Shark or Whale highlight species.
  * The comparison is symbol-local and has a seven-percent hysteresis band so a
  * normal fluctuation around a boundary does not make a school flicker species.
  */
@@ -332,6 +381,11 @@ export function clampVisualEntityCount(value: number, quality: "Low" | "Medium" 
 function parseQuote(value: string): number {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function safeCreatureCount(value: unknown): number {
+    const parsed = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
 }
 
 function percentile(values: readonly number[], fraction: number): number {
