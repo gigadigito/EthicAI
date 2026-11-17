@@ -86,8 +86,9 @@
 .whale-ocean__scoreboard {
     position: absolute;
     z-index: 3;
-    top: .8rem;
+    top: auto;
     right: clamp(.7rem, 2vw, 1.7rem);
+    bottom: .8rem;
     left: clamp(.7rem, 2vw, 1.7rem);
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(320px, 520px) minmax(0, 1fr);
