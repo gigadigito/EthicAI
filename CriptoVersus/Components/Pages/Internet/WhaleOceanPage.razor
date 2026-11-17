@@ -106,11 +106,32 @@
                 </aside>
             }
             <section class="whale-ocean__scoreboard" aria-label="@T("battleScoreboard")">
-                <div class="whale-ocean__scoreboard-band">
+                <div class="whale-ocean__scoreboard-topcard whale-ocean__scoreboard-topcard--left">
                     <div class="whale-ocean__score-team whale-ocean__score-team--left">
                         <div class="whale-ocean__score-heading"><strong>@DisplayTeamA</strong></div>
                         <div class="whale-ocean__score-meta"><span>@T("matchTotal") <b data-whale-ocean="left-total-trades">0</b></span><span>@T("last30Seconds") <b data-whale-ocean="left-window-trades">0</b></span></div>
                         <div class="whale-ocean__score-side"><span>@T("buy") <b data-whale-ocean="left-buy-points">0</b></span><span>@T("sell") <b data-whale-ocean="left-sell-points">0</b></span></div>
+                    </div>
+                </div>
+                <div class="whale-ocean__score-control">
+                    <div class="whale-ocean__score-values">
+                        <b><span data-whale-ocean="left-score">0</span> <small>@T("points")</small></b>
+                        <strong>VS</strong>
+                        <b><span data-whale-ocean="right-score">0</span> <small>@T("points")</small></b>
+                    </div>
+                    <span>@T("oceanControl")</span>
+                    <div class="whale-ocean__control-bar"><i data-whale-ocean="control-left-bar"></i><i data-whale-ocean="control-right-bar"></i></div>
+                    <div class="whale-ocean__control-labels"><b data-whale-ocean="control-left">—</b><b data-whale-ocean="control-right">—</b></div>
+                </div>
+                <div class="whale-ocean__scoreboard-topcard whale-ocean__scoreboard-topcard--right">
+                    <div class="whale-ocean__score-team whale-ocean__score-team--right">
+                        <div class="whale-ocean__score-heading"><strong>@DisplayTeamB</strong></div>
+                        <div class="whale-ocean__score-meta"><span>@T("last30Seconds") <b data-whale-ocean="right-window-trades">0</b></span><span>@T("matchTotal") <b data-whale-ocean="right-total-trades">0</b></span></div>
+                        <div class="whale-ocean__score-side"><span>@T("buy") <b data-whale-ocean="right-buy-points">0</b></span><span>@T("sell") <b data-whale-ocean="right-sell-points">0</b></span></div>
+                    </div>
+                </div>
+                <div class="whale-ocean__scoreboard-band">
+                    <div class="whale-ocean__score-species-team whale-ocean__score-species-team--left">
                         <div class="whale-ocean__species-grid">
                             <span title="@T("small")"><img class="whale-ocean__species-icon whale-ocean__species-icon--small" src="/images/whale-ocean/hud/whale-hud-small.png" alt="" aria-hidden="true" /><b data-whale-ocean="left-small">0</b><em>@T("small")</em></span>
                             <span title="@T("medium")"><img class="whale-ocean__species-icon whale-ocean__species-icon--medium" src="/images/whale-ocean/hud/whale-hud-medium.png" alt="" aria-hidden="true" /><b data-whale-ocean="left-medium">0</b><em>@T("medium")</em></span>
@@ -120,10 +141,7 @@
                         </div>
                         <small class="whale-ocean__score-window">@T("last30Seconds"): <b data-whale-ocean="left-window-score">0</b> @T("points")</small>
                     </div>
-                    <div class="whale-ocean__score-team whale-ocean__score-team--right">
-                        <div class="whale-ocean__score-heading"><strong>@DisplayTeamB</strong></div>
-                        <div class="whale-ocean__score-meta"><span>@T("last30Seconds") <b data-whale-ocean="right-window-trades">0</b></span><span>@T("matchTotal") <b data-whale-ocean="right-total-trades">0</b></span></div>
-                        <div class="whale-ocean__score-side"><span>@T("buy") <b data-whale-ocean="right-buy-points">0</b></span><span>@T("sell") <b data-whale-ocean="right-sell-points">0</b></span></div>
+                    <div class="whale-ocean__score-species-team whale-ocean__score-species-team--right">
                         <div class="whale-ocean__species-grid">
                             <span title="@T("whale")"><img class="whale-ocean__species-icon whale-ocean__species-icon--whale" src="/images/whale-ocean/hud/whale-hud-whale.png" alt="" aria-hidden="true" /><b data-whale-ocean="right-whale">0</b><em>@T("whale")</em></span>
                             <span title="@T("shark")"><img class="whale-ocean__species-icon whale-ocean__species-icon--shark" src="/images/whale-ocean/hud/whale-hud-shark.png" alt="" aria-hidden="true" /><b data-whale-ocean="right-shark">0</b><em>@T("shark")</em></span>
@@ -162,16 +180,6 @@
                             <span class="whale-ocean__species-count whale-ocean__species-count--right" aria-describedby="whale-ocean-team-right"><b data-whale-ocean="right-whale">0</b></span>
                         </span>
                     </div>
-                </div>
-                <div class="whale-ocean__score-control">
-                    <div class="whale-ocean__score-values">
-                        <b><span data-whale-ocean="left-score">0</span> <small>@T("points")</small></b>
-                        <strong>VS</strong>
-                        <b><span data-whale-ocean="right-score">0</span> <small>@T("points")</small></b>
-                    </div>
-                    <span>@T("oceanControl")</span>
-                    <div class="whale-ocean__control-bar"><i data-whale-ocean="control-left-bar"></i><i data-whale-ocean="control-right-bar"></i></div>
-                    <div class="whale-ocean__control-labels"><b data-whale-ocean="control-left">—</b><b data-whale-ocean="control-right">—</b></div>
                 </div>
             </section>
             <div class="whale-ocean__topbar">

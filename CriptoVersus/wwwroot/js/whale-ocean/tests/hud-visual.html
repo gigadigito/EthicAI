@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Whale Ocean HUD fixture</title>
+<link rel="stylesheet" href="/tests/whale-ocean-page.css">
+<style>
+    html, body { margin: 0; background: #020a14; }
+    .whale-ocean__stage { min-height: 100svh; background: radial-gradient(ellipse at 50% 52%, #195766 0, #082e3a 35%, #031525 78%); }
+</style>
+</head>
+<body>
+<main class="whale-ocean" data-flow-state="LIVE" data-match-state="LIVE">
+    <section class="whale-ocean__stage" aria-label="Whale Ocean HUD fixture">
+        <section class="whale-ocean__scoreboard" aria-label="Battle scoreboard">
+            <div class="whale-ocean__scoreboard-topcard whale-ocean__scoreboard-topcard--left">
+                <div class="whale-ocean__score-team whale-ocean__score-team--left">
+                    <div class="whale-ocean__score-heading"><strong>SOLUSDT</strong></div>
+                    <div class="whale-ocean__score-meta"><span>Match total <b>37</b></span><span>Last 30s <b>37</b></span></div>
+                    <div class="whale-ocean__score-side"><span>BUY <b>24</b></span><span>SELL <b>13</b></span></div>
+                </div>
+            </div>
+            <div class="whale-ocean__score-control">
+                <div class="whale-ocean__score-values"><b>3,210 <small>points</small></b><strong>VS</strong><b>302 <small>points</small></b></div>
+                <span>Ocean Control</span>
+                <div class="whale-ocean__control-bar"><i style="width:94.9%"></i><i style="width:5.1%"></i></div>
+                <div class="whale-ocean__control-labels"><b>94.9%</b><b>5.1%</b></div>
+            </div>
+            <div class="whale-ocean__scoreboard-topcard whale-ocean__scoreboard-topcard--right">
+                <div class="whale-ocean__score-team whale-ocean__score-team--right">
+                    <div class="whale-ocean__score-heading"><strong>GRAMUSDT</strong></div>
+                    <div class="whale-ocean__score-meta"><span>Last 30s <b>2</b></span><span>Match total <b>2</b></span></div>
+                    <div class="whale-ocean__score-side"><span>BUY <b>1</b></span><span>SELL <b>1</b></span></div>
+                </div>
+            </div>
+            <div class="whale-ocean__scoreboard-band">
+                <div class="whale-ocean__score-species-team whale-ocean__score-species-team--left">
+                    <div class="whale-ocean__species-grid">
+                        <span><img class="whale-ocean__species-icon" src="/images/whale-ocean/hud/whale-hud-small.png" alt="" /><b>3,069</b><em>Small fish</em></span>
+                        <span><img class="whale-ocean__species-icon" src="/images/whale-ocean/hud/whale-hud-medium.png" alt="" /><b>47</b><em>Medium fish</em></span>
+                        <span><img class="whale-ocean__species-icon" src="/images/whale-ocean/hud/whale-hud-large.png" alt="" /><b>0</b><em>Large fish</em></span>
+                        <span><img class="whale-ocean__species-icon" src="/images/whale-ocean/hud/whale-hud-shark.png" alt="" /><b>0</b><em>Shark</em></span>
+                        <span><img class="whale-ocean__species-icon" src="/images/whale-ocean/hud/whale-hud-whale.png" alt="" /><b>0</b><em>Whale</em></span>
+                    </div>
+                    <small class="whale-ocean__score-window">Last 30s: <b>37</b> points</small>
+                </div>
+                <div class="whale-ocean__score-species-team whale-ocean__score-species-team--right">
+                    <div class="whale-ocean__species-grid">
+                        <span><img class="whale-ocean__species-icon" src="/images/whale-ocean/hud/whale-hud-whale.png" alt="" /><b>0</b><em>Whale</em></span>
+                        <span><img class="whale-ocean__species-icon" src="/images/whale-ocean/hud/whale-hud-shark.png" alt="" /><b>0</b><em>Shark</em></span>
+                        <span><img class="whale-ocean__species-icon" src="/images/whale-ocean/hud/whale-hud-large.png" alt="" /><b>0</b><em>Large fish</em></span>
+                        <span><img class="whale-ocean__species-icon" src="/images/whale-ocean/hud/whale-hud-medium.png" alt="" /><b>0</b><em>Medium fish</em></span>
+                        <span><img class="whale-ocean__species-icon" src="/images/whale-ocean/hud/whale-hud-small.png" alt="" /><b>1</b><em>Small fish</em></span>
+                    </div>
+                    <small class="whale-ocean__score-window">Last 30s: <b>2</b> points</small>
+                </div>
+                <div class="whale-ocean__species-compare" role="group" aria-label="Species comparison">
+                    <span class="whale-ocean__species-compare-row"><b>3,069</b><img class="whale-ocean__species-compare-icon" src="/images/whale-ocean/hud/whale-hud-small.png" alt="Small fish" /><b>1</b></span>
+                    <span class="whale-ocean__species-compare-row"><b>47</b><img class="whale-ocean__species-compare-icon" src="/images/whale-ocean/hud/whale-hud-medium.png" alt="Medium fish" /><b>0</b></span>
+                    <span class="whale-ocean__species-compare-row"><b>0</b><img class="whale-ocean__species-compare-icon" src="/images/whale-ocean/hud/whale-hud-large.png" alt="Large fish" /><b>0</b></span>
+                    <span class="whale-ocean__species-compare-row"><b>0</b><img class="whale-ocean__species-compare-icon" src="/images/whale-ocean/hud/whale-hud-shark.png" alt="Shark" /><b>0</b></span>
+                    <span class="whale-ocean__species-compare-row"><b>0</b><img class="whale-ocean__species-compare-icon" src="/images/whale-ocean/hud/whale-hud-whale.png" alt="Whale" /><b>0</b></span>
+                </div>
+            </div>
+        </section>
+    </section>
+</main>
+</body>
+</html>
