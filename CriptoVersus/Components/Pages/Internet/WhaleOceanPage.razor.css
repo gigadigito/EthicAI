@@ -186,7 +186,7 @@
     max-width: 100%;
     min-height: 2.2em;
     color: #8db7bb;
-    font-size: clamp(.68rem, .85vw, .9rem);
+    font-size: clamp(.68rem, .8vw, .86rem);
     font-style: normal;
     line-height: 1.1;
     text-overflow: ellipsis;
@@ -668,9 +668,7 @@
         justify-content: flex-start;
     }
 
-    .whale-ocean__stage {
-        min-height: clamp(660px, calc(100svh - 4rem), 760px);
-    }
+    .whale-ocean__stage { min-height: 430px; }
 
     .whale-ocean__calibration { top: .45rem; right: .45rem; width: min(350px, calc(100% - .9rem)); max-height: 72%; }
 
@@ -695,8 +693,8 @@
     }
 
     .whale-ocean__territory {
-        top: 4.5rem;
-        bottom: auto;
+        top: auto;
+        bottom: 11.7rem;
         width: calc(50% - 1.1rem);
         padding: .55rem;
     }
@@ -739,8 +737,8 @@
     }
 
     .whale-ocean__legend {
-        top: 14rem;
-        bottom: auto;
+        top: auto;
+        bottom: 9.5rem;
         gap: .5rem;
         font-size: .57rem;
     }
@@ -769,81 +767,56 @@
         transform: translateY(-.08rem) scale(1.14);
     }
     .whale-ocean__species-grid b { font-size: .62rem; transform: scale(1.1); }
-    .whale-ocean__species-grid em { font-size: .68rem; }
-
     .whale-ocean__score-team .whale-ocean__species-grid {
         display: none;
     }
 
     .whale-ocean__species-compare {
         display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         grid-column: 1 / -1;
         grid-row: 3;
-        gap: .2rem;
+        gap: .12rem;
+        align-items: center;
         min-width: 0;
-        margin-top: .15rem;
-        padding-top: .35rem;
+        margin-top: .1rem;
+        padding-top: .25rem;
         border-top: 1px solid #2a6c72;
     }
 
-    .whale-ocean__species-compare-head,
     .whale-ocean__species-compare-row {
         display: grid;
-        grid-template-columns: minmax(2.4rem, .65fr) minmax(0, 1.7fr) minmax(2.4rem, .65fr);
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
         align-items: center;
         min-width: 0;
-        column-gap: .35rem;
-    }
-
-    .whale-ocean__species-compare-head {
-        color: #a9cbd0;
-        font-size: .56rem;
-        font-weight: 800;
-        letter-spacing: .06em;
-        text-align: center;
-        text-transform: uppercase;
-    }
-
-    .whale-ocean__species-compare-row {
-        min-height: 2.2rem;
-        border-radius: .4rem;
-        background: #071b26aa;
+        gap: .12rem;
     }
 
     .whale-ocean__species-count {
         color: #f7ffff;
-        font-size: 1.12rem;
+        font-size: clamp(.86rem, 4.6vw, 1rem);
         font-variant-numeric: tabular-nums;
         font-weight: 900;
         line-height: 1;
-        text-align: center;
     }
 
-    .whale-ocean__species-count--left { color: #ffb04d; }
-    .whale-ocean__species-count--right { color: #70f4ee; }
-
-    .whale-ocean__species-name {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        justify-content: center;
-        gap: .3rem;
-        color: #efffff;
-        font-size: .78rem;
-        font-weight: 750;
-        line-height: 1.1;
-        text-align: center;
+    .whale-ocean__species-count--left {
+        color: #ffb04d;
+        text-align: right;
     }
 
-    .whale-ocean__species-name span {
-        min-width: 0;
-        overflow-wrap: anywhere;
+    .whale-ocean__species-count--right {
+        color: #70f4ee;
+        text-align: left;
     }
 
-    .whale-ocean__species-name .whale-ocean__species-icon {
-        flex: 0 0 auto;
-        width: 2.15rem;
-        height: 1.45rem;
+    .whale-ocean__species-compare-icon {
+        display: block;
+        width: clamp(1.8rem, 8vw, 2.35rem);
+        height: 1.35rem;
+        max-width: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0 0 3px #ffffff99);
         transform: none;
     }
 

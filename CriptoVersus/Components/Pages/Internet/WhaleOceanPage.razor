@@ -138,37 +138,34 @@
                     </div>
                     <small class="whale-ocean__score-window">@T("last30Seconds"): <b data-whale-ocean="right-window-score">0</b> @T("points")</small>
                 </div>
-                <div class="whale-ocean__species-compare" role="table" aria-label="@T("speciesComparison")">
-                    <div class="whale-ocean__species-compare-head" role="row">
-                        <span role="columnheader">@DisplayTeamA</span>
-                        <span role="columnheader">@T("species")</span>
-                        <span role="columnheader">@DisplayTeamB</span>
-                    </div>
-                    <div class="whale-ocean__species-compare-row" role="row">
-                        <span class="whale-ocean__species-count whale-ocean__species-count--left" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamA @T("creatures"): </span><b data-whale-ocean="left-small">0</b></span>
-                        <span class="whale-ocean__species-name" role="cell"><img class="whale-ocean__species-icon whale-ocean__species-icon--small" src="/images/whale-ocean/hud/whale-hud-small.png" alt="" aria-hidden="true" /><span>@T("small")</span></span>
-                        <span class="whale-ocean__species-count whale-ocean__species-count--right" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamB @T("creatures"): </span><b data-whale-ocean="right-small">0</b></span>
-                    </div>
-                    <div class="whale-ocean__species-compare-row" role="row">
-                        <span class="whale-ocean__species-count whale-ocean__species-count--left" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamA @T("creatures"): </span><b data-whale-ocean="left-medium">0</b></span>
-                        <span class="whale-ocean__species-name" role="cell"><img class="whale-ocean__species-icon whale-ocean__species-icon--medium" src="/images/whale-ocean/hud/whale-hud-medium.png" alt="" aria-hidden="true" /><span>@T("medium")</span></span>
-                        <span class="whale-ocean__species-count whale-ocean__species-count--right" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamB @T("creatures"): </span><b data-whale-ocean="right-medium">0</b></span>
-                    </div>
-                    <div class="whale-ocean__species-compare-row" role="row">
-                        <span class="whale-ocean__species-count whale-ocean__species-count--left" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamA @T("creatures"): </span><b data-whale-ocean="left-large">0</b></span>
-                        <span class="whale-ocean__species-name" role="cell"><img class="whale-ocean__species-icon whale-ocean__species-icon--large" src="/images/whale-ocean/hud/whale-hud-large.png" alt="" aria-hidden="true" /><span>@T("large")</span></span>
-                        <span class="whale-ocean__species-count whale-ocean__species-count--right" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamB @T("creatures"): </span><b data-whale-ocean="right-large">0</b></span>
-                    </div>
-                    <div class="whale-ocean__species-compare-row" role="row">
-                        <span class="whale-ocean__species-count whale-ocean__species-count--left" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamA @T("creatures"): </span><b data-whale-ocean="left-shark">0</b></span>
-                        <span class="whale-ocean__species-name" role="cell"><img class="whale-ocean__species-icon whale-ocean__species-icon--shark" src="/images/whale-ocean/hud/whale-hud-shark.png" alt="" aria-hidden="true" /><span>@T("shark")</span></span>
-                        <span class="whale-ocean__species-count whale-ocean__species-count--right" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamB @T("creatures"): </span><b data-whale-ocean="right-shark">0</b></span>
-                    </div>
-                    <div class="whale-ocean__species-compare-row" role="row">
-                        <span class="whale-ocean__species-count whale-ocean__species-count--left" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamA @T("creatures"): </span><b data-whale-ocean="left-whale">0</b></span>
-                        <span class="whale-ocean__species-name" role="cell"><img class="whale-ocean__species-icon whale-ocean__species-icon--whale" src="/images/whale-ocean/hud/whale-hud-whale.png" alt="" aria-hidden="true" /><span>@T("whale")</span></span>
-                        <span class="whale-ocean__species-count whale-ocean__species-count--right" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamB @T("creatures"): </span><b data-whale-ocean="right-whale">0</b></span>
-                    </div>
+                <div class="whale-ocean__species-compare" role="group" aria-label="@T("speciesComparison")">
+                    <span class="whale-ocean__species-compare-team whale-ocean__sr-only" id="whale-ocean-team-left">@DisplayTeamA</span>
+                    <span class="whale-ocean__species-compare-team whale-ocean__sr-only" id="whale-ocean-team-right">@DisplayTeamB</span>
+                    <span class="whale-ocean__species-compare-row" title="@T("small")" role="group">
+                        <span class="whale-ocean__species-count whale-ocean__species-count--left" aria-describedby="whale-ocean-team-left"><b data-whale-ocean="left-small">0</b></span>
+                        <img class="whale-ocean__species-compare-icon whale-ocean__species-compare-icon--small" src="/images/whale-ocean/hud/whale-hud-small.png" alt="@T("small")" />
+                        <span class="whale-ocean__species-count whale-ocean__species-count--right" aria-describedby="whale-ocean-team-right"><b data-whale-ocean="right-small">0</b></span>
+                    </span>
+                    <span class="whale-ocean__species-compare-row" title="@T("medium")" role="group">
+                        <span class="whale-ocean__species-count whale-ocean__species-count--left" aria-describedby="whale-ocean-team-left"><b data-whale-ocean="left-medium">0</b></span>
+                        <img class="whale-ocean__species-compare-icon whale-ocean__species-compare-icon--medium" src="/images/whale-ocean/hud/whale-hud-medium.png" alt="@T("medium")" />
+                        <span class="whale-ocean__species-count whale-ocean__species-count--right" aria-describedby="whale-ocean-team-right"><b data-whale-ocean="right-medium">0</b></span>
+                    </span>
+                    <span class="whale-ocean__species-compare-row" title="@T("large")" role="group">
+                        <span class="whale-ocean__species-count whale-ocean__species-count--left" aria-describedby="whale-ocean-team-left"><b data-whale-ocean="left-large">0</b></span>
+                        <img class="whale-ocean__species-compare-icon whale-ocean__species-compare-icon--large" src="/images/whale-ocean/hud/whale-hud-large.png" alt="@T("large")" />
+                        <span class="whale-ocean__species-count whale-ocean__species-count--right" aria-describedby="whale-ocean-team-right"><b data-whale-ocean="right-large">0</b></span>
+                    </span>
+                    <span class="whale-ocean__species-compare-row" title="@T("shark")" role="group">
+                        <span class="whale-ocean__species-count whale-ocean__species-count--left" aria-describedby="whale-ocean-team-left"><b data-whale-ocean="left-shark">0</b></span>
+                        <img class="whale-ocean__species-compare-icon whale-ocean__species-compare-icon--shark" src="/images/whale-ocean/hud/whale-hud-shark.png" alt="@T("shark")" />
+                        <span class="whale-ocean__species-count whale-ocean__species-count--right" aria-describedby="whale-ocean-team-right"><b data-whale-ocean="right-shark">0</b></span>
+                    </span>
+                    <span class="whale-ocean__species-compare-row" title="@T("whale")" role="group">
+                        <span class="whale-ocean__species-count whale-ocean__species-count--left" aria-describedby="whale-ocean-team-left"><b data-whale-ocean="left-whale">0</b></span>
+                        <img class="whale-ocean__species-compare-icon whale-ocean__species-compare-icon--whale" src="/images/whale-ocean/hud/whale-hud-whale.png" alt="@T("whale")" />
+                        <span class="whale-ocean__species-count whale-ocean__species-count--right" aria-describedby="whale-ocean-team-right"><b data-whale-ocean="right-whale">0</b></span>
+                    </span>
                 </div>
             </section>
             <div class="whale-ocean__topbar">
@@ -397,7 +394,7 @@
             var leftPrice = match is null ? null : await Api.GetAssetPriceSnapshotAsync(leftSymbol, _lifetime.Token);
             var rightPrice = match is null ? null : await Api.GetAssetPriceSnapshotAsync(rightSymbol, _lifetime.Token);
             if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId) return;
-                var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261113-whale-ocean-depth-bands-v14");
+                var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261117-whale-ocean-hud-v1");
             if (module is null)
                 throw new InvalidOperationException("Whale Ocean bootstrap module was not returned by JS interop.");
             if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId)
