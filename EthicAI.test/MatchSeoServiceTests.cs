@@ -170,6 +170,42 @@ public sealed class MatchSeoServiceTests
         Assert.Equal("summary_large_image", metadata.TwitterCard);
     }
 
+    [Fact]
+    public void BuildExperienceMetadata_UsesLocalizedWhaleRouteAndAllAlternates()
+    {
+        var service = CreateService();
+        var match = new MatchDto { MatchId = 39, TeamA = "ADAUSDT", TeamB = "BNBUSDT" };
+
+        var metadata = service.BuildExperienceMetadata(
+            match,
+            "ada-vs-bnb",
+            "pt",
+            MatchExperienceSeo.WhaleOcean);
+
+        Assert.Equal("https://seudominio.com/pt/tv/whale-ocean/39/ada-vs-bnb", metadata.CanonicalUrl);
+        Assert.Equal(9, metadata.AlternateLinks.Count);
+        Assert.Contains("ADA vs BNB", metadata.Title);
+        Assert.Contains("Whale Ocean 3D", metadata.Title);
+        Assert.DoesNotContain("keywords", metadata.StructuredDataMarkup, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BuildExperienceMetadata_UsesCandleBattleRouteAndLocalizedCopy()
+    {
+        var service = CreateService();
+        var match = new MatchDto { MatchId = 39, TeamA = "ADAUSDT", TeamB = "BNBUSDT" };
+
+        var metadata = service.BuildExperienceMetadata(
+            match,
+            "ada-vs-bnb",
+            "pt",
+            MatchExperienceSeo.CandleBattles);
+
+        Assert.Equal("https://seudominio.com/pt/tv/candle/39/ada-vs-bnb", metadata.CanonicalUrl);
+        Assert.Contains("Candle Battles", metadata.Title);
+        Assert.Contains("candles", metadata.Description, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static MatchSeoService CreateService()
     {
         var appCultureService = new AppCultureService();

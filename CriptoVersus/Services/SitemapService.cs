@@ -226,9 +226,9 @@ public sealed class SitemapService
         var urlElements = entries
             .Where(entry => entry.IsValid)
             .GroupBy(entry => entry.Location, StringComparer.OrdinalIgnoreCase)
-            .Select(group => group.OrderByDescending(item => item.LastModifiedUtc).First())
+            .Select(group => group.OrderByDescending(item => item.LastModifiedUtc ?? DateTime.MinValue).First())
             .OrderByDescending(entry => entry.Priority)
-            .ThenByDescending(entry => entry.LastModifiedUtc)
+            .ThenByDescending(entry => entry.LastModifiedUtc ?? DateTime.MinValue)
             .ThenBy(entry => entry.Location, StringComparer.OrdinalIgnoreCase)
             .Select(entry =>
             {
@@ -236,7 +236,9 @@ public sealed class SitemapService
                     SitemapNamespace + "url",
                     new XAttribute(XNamespace.Xmlns + "xhtml", XhtmlNamespace),
                     new XElement(SitemapNamespace + "loc", entry.Location),
-                    new XElement(SitemapNamespace + "lastmod", FormatSitemapUtc(entry.LastModifiedUtc)),
+                    entry.LastModifiedUtc.HasValue
+                        ? new XElement(SitemapNamespace + "lastmod", FormatSitemapUtc(entry.LastModifiedUtc.Value))
+                        : null,
                     new XElement(SitemapNamespace + "changefreq", entry.ChangeFrequency),
                     new XElement(SitemapNamespace + "priority", entry.Priority.ToString("0.00", CultureInfo.InvariantCulture)));
 
@@ -368,7 +370,9 @@ public sealed class SitemapService
     }
 
     private static bool IsInsideRecentWindow(MatchDto match, DateTime? cutoffUtc)
-        => !cutoffUtc.HasValue || GetRelevantTimestampUtc(match) >= cutoffUtc.Value;
+        => !cutoffUtc.HasValue
+           || GetRelevantTimestampUtc(match) is not { } timestamp
+           || timestamp >= cutoffUtc.Value;
 
     private Uri GetPublicBaseUri()
     {
@@ -386,7 +390,7 @@ public sealed class SitemapService
         Uri baseUri,
         string culture,
         string relativePath,
-        DateTime lastModifiedUtc,
+        DateTime? lastModifiedUtc,
         string changeFrequency,
         decimal priority,
         Func<string?, string> alternatePathBuilder)
@@ -418,7 +422,7 @@ public sealed class SitemapService
 
         return new SitemapEntry(
             fullUri.AbsoluteUri,
-            EnsureUtc(lastModifiedUtc),
+            lastModifiedUtc.HasValue ? EnsureUtc(lastModifiedUtc.Value) : null,
             changeFrequency,
             priority,
             alternates,
@@ -428,7 +432,7 @@ public sealed class SitemapService
 
     private static SitemapEntry CreateAbsoluteEntry(
         string absoluteUrl,
-        DateTime lastModifiedUtc,
+        DateTime? lastModifiedUtc,
         string changeFrequency,
         decimal priority)
     {
@@ -437,7 +441,7 @@ public sealed class SitemapService
 
         return new SitemapEntry(
             fullUri.AbsoluteUri,
-            EnsureUtc(lastModifiedUtc),
+            lastModifiedUtc.HasValue ? EnsureUtc(lastModifiedUtc.Value) : null,
             changeFrequency,
             priority,
             [],
@@ -457,7 +461,7 @@ public sealed class SitemapService
         => !string.IsNullOrWhiteSpace(status)
            && status.Trim().Equals("Completed", StringComparison.OrdinalIgnoreCase);
 
-    private static DateTime GetRelevantTimestampUtc(MatchDto match)
+    private static DateTime? GetRelevantTimestampUtc(MatchDto match)
     {
         if (match.EndTime.HasValue)
             return EnsureUtc(match.EndTime.Value);
@@ -468,7 +472,7 @@ public sealed class SitemapService
         if (match.BettingCloseTime.HasValue)
             return match.BettingCloseTime.Value.UtcDateTime;
 
-        return DateTime.UtcNow;
+        return null;
     }
 
     private static DateTime EnsureUtc(DateTime value)
@@ -585,13 +589,13 @@ public sealed class SitemapService
 
     private sealed record SitemapEntry(
         string Location,
-        DateTime LastModifiedUtc,
+        DateTime? LastModifiedUtc,
         string ChangeFrequency,
         decimal Priority,
         IReadOnlyList<SitemapAlternate> Alternates,
         string XDefaultHref,
         bool IsValid)
     {
-        public static SitemapEntry Invalid { get; } = new(string.Empty, DateTime.UtcNow, string.Empty, 0m, [], string.Empty, false);
+        public static SitemapEntry Invalid { get; } = new(string.Empty, null, string.Empty, 0m, [], string.Empty, false);
     }
 }

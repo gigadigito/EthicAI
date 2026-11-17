@@ -4,13 +4,16 @@ public sealed class MatchRouteRedirectMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly MatchRouteRedirectResolver _resolver;
+    private readonly ILogger<MatchRouteRedirectMiddleware> _logger;
 
     public MatchRouteRedirectMiddleware(
         RequestDelegate next,
-        MatchRouteRedirectResolver resolver)
+        MatchRouteRedirectResolver resolver,
+        ILogger<MatchRouteRedirectMiddleware> logger)
     {
         _next = next;
         _resolver = resolver;
+        _logger = logger;
     }
 
     public async Task InvokeAsync(
@@ -33,15 +36,33 @@ public sealed class MatchRouteRedirectMiddleware
             return;
         }
 
-        var redirectPath = await _resolver.ResolveRedirectPathAsync(
-            path,
-            context.Request.QueryString.Value,
-            context,
-            appCultureService,
-            matchRouteLookup,
-            matchSlugHelper,
-            routeLocalization,
-            context.RequestAborted);
+        string? redirectPath = null;
+        try
+        {
+            redirectPath = await _resolver.ResolveRedirectPathAsync(
+                path,
+                context.Request.QueryString.Value,
+                context,
+                appCultureService,
+                matchRouteLookup,
+                matchSlugHelper,
+                routeLocalization,
+                context.RequestAborted);
+        }
+        catch (HttpRequestException ex) when (!context.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                ex,
+                "Skipping match route canonicalization because the API is unavailable. Path={Path}",
+                path);
+        }
+        catch (TimeoutException ex) when (!context.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                ex,
+                "Skipping match route canonicalization because the API timed out. Path={Path}",
+                path);
+        }
 
         if (!string.IsNullOrWhiteSpace(redirectPath))
         {

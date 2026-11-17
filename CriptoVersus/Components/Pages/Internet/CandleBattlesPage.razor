@@ -1,14 +1,36 @@
 @page "/{Culture}/tv/candle/{MatchId:int}/{Slug}"
 @page "/{Culture}/games/candle-battles/demo"
 @rendermode InteractiveServer
+@using DTOs
 @using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
 @inject AppCultureService AppCulture
 @inject LocalizationService L
 @inject RouteLocalizationService Routes
+@inject MatchSeoService MatchSeo
+@inject MatchSlugHelper MatchSlugHelper
+@inject IHttpContextAccessor HttpContextAccessor
+@inject ILogger<CandleBattlesPage> Logger
 @inject IConfiguration Config
 
-<PageTitle>Candle Battles · CriptoVersus</PageTitle>
-<HeadContent><meta name="description" content="@L.T("candleBattles.independent", Language)" /><link rel="canonical" href="@Canonical" /></HeadContent>
+<BasicSeoHead Title="@CurrentSeo.Title"
+              Description="@CurrentSeo.Description"
+              CanonicalUrl="@CurrentSeo.CanonicalUrl"
+              AlternateLinks="@CurrentSeo.AlternateLinks"
+              XDefaultUrl="@CurrentSeo.XDefaultUrl"
+              OgLocale="@CurrentSeo.OpenGraphLocale"
+              OgAlternateLocale="@CurrentSeo.OpenGraphAlternateLocale"
+              ImageUrl="@CurrentSeo.OpenGraphImageUrl"
+              ImageAlt="@CurrentSeo.SocialImageAlt"
+              OpenGraphTitle="@CurrentSeo.OpenGraphTitle"
+              OpenGraphDescription="@CurrentSeo.OpenGraphDescription"
+              OpenGraphUrl="@CurrentSeo.OpenGraphUrl"
+              TwitterTitle="@CurrentSeo.TwitterTitle"
+              TwitterDescription="@CurrentSeo.TwitterDescription"
+              TwitterCard="@CurrentSeo.TwitterCard"
+              JsonLd="@CurrentSeo.StructuredDataMarkup"
+              Robots="@SeoRobots"
+              RenderKeywords="false" />
 <main style="max-width:1440px;margin:16px auto;padding:0 12px">
     <nav style="display:flex;gap:16px;margin-bottom:12px">
         @if (MatchId > 0)
@@ -24,7 +46,85 @@
     [Parameter] public string Culture { get; set; } = "en";
     [Parameter] public int MatchId { get; set; }
     [Parameter] public string Slug { get; set; } = string.Empty;
+    private MatchDto? _match;
+    private int _loadedMatchId;
+    private bool _invalidCulture;
+
     private string Language => AppCulture.NormalizeRouteCulture(Culture);
-    private string Canonical => SeoDefaults.BuildPublicAbsoluteUrl(Config, MatchId > 0
-        ? Routes.BuildCandleBattlesPath(Language, MatchId, Slug) : Routes.BuildCandleBattlesDemoPath(Language));
+    private string ResolvedSlug => _match is null
+        ? (string.IsNullOrWhiteSpace(MatchSlugHelper.ParseLegacySlug(Slug)) ? "match" : MatchSlugHelper.ParseLegacySlug(Slug))
+        : MatchSlugHelper.BuildSlug(_match.TeamA, _match.TeamB);
+    private MatchSeoMetadata CurrentSeo => _match is not null
+        ? MatchSeo.BuildExperienceMetadata(_match, ResolvedSlug, Language, MatchExperienceSeo.CandleBattles)
+        : BuildUnavailableSeo();
+    private string? SeoRobots => _invalidCulture || (MatchId > 0 && _match is null)
+        ? "noindex, nofollow, noarchive"
+        : null;
+
+    private IReadOnlyList<AlternateLink> DemoAlternates => AppCulture.SupportedLanguages
+        .Select(language => new AlternateLink(
+            AppCulture.ToHrefLang(language.RouteCulture),
+            SeoDefaults.BuildPublicAbsoluteUrl(Config, Routes.BuildCandleBattlesDemoPath(language.RouteCulture))))
+        .ToArray();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _invalidCulture = !AppCulture.TryNormalizeRouteCulture(Culture, out _);
+        if (_invalidCulture)
+        {
+            MarkNotFound();
+            _match = null;
+            return;
+        }
+
+        if (MatchId <= 0)
+            return;
+
+        if (_loadedMatchId == MatchId && _match is not null)
+            return;
+
+        _loadedMatchId = MatchId;
+        _match = await Api.GetMatchByIdAsync(MatchId, includeParticipants: false);
+        if (_match is null)
+            MarkNotFound();
+    }
+
+    private MatchSeoMetadata BuildUnavailableSeo()
+    {
+        var title = MatchId > 0 ? "Candle Battles | CriptoVersus" : "Candle Battles Demo | CriptoVersus";
+        var description = L.T("candleBattles.independent", Language);
+        var canonicalPath = MatchId > 0
+            ? Routes.BuildCandleBattlesPath(Language, MatchId, ResolvedSlug)
+            : Routes.BuildCandleBattlesDemoPath(Language);
+        var canonicalUrl = SeoDefaults.BuildPublicAbsoluteUrl(Config, canonicalPath);
+
+        return new MatchSeoMetadata
+        {
+            Title = title,
+            Description = description,
+            CanonicalUrl = canonicalUrl,
+            AlternateLinks = MatchId > 0 ? [] : DemoAlternates,
+            OpenGraphTitle = title,
+            OpenGraphDescription = description,
+            OpenGraphUrl = canonicalUrl,
+            OpenGraphLocale = AppCulture.ToOgLocale(Language),
+            OpenGraphAlternateLocale = AppCulture.GetAlternateOgLocale(Language),
+            OpenGraphImageUrl = SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath),
+            TwitterImageUrl = SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath),
+            SocialImageAlt = title,
+            XDefaultUrl = SeoDefaults.BuildPublicAbsoluteUrl(Config, MatchId > 0
+                ? Routes.BuildCandleBattlesPath(AppCultureService.DefaultRouteCulture, MatchId, ResolvedSlug)
+                : Routes.BuildCandleBattlesDemoPath(AppCultureService.DefaultRouteCulture)),
+            TwitterTitle = title,
+            TwitterDescription = description,
+            TwitterCard = "summary_large_image"
+        };
+    }
+
+    private void MarkNotFound()
+    {
+        var context = HttpContextAccessor.HttpContext;
+        if (context is not null && !context.Response.HasStarted)
+            context.Response.StatusCode = 404;
+    }
 }

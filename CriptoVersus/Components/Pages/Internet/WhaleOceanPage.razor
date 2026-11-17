@@ -19,13 +19,32 @@
 @inject NavigationManager Nav
 @inject RouteLocalizationService RouteLocalization
 @inject LocalizationService Localization
+@inject MatchSeoService MatchSeo
+@inject MatchSlugHelper MatchSlugHelper
 @inject ILogger<WhaleOceanPage> Logger
 @inject IWebHostEnvironment HostEnvironment
 @inject IConfiguration Configuration
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 
-<PageTitle>@T("pageTitle", _match?.TeamA ?? "", _match?.TeamB ?? "")</PageTitle>
+<BasicSeoHead Title="@CurrentSeo.Title"
+              Description="@CurrentSeo.Description"
+              CanonicalUrl="@CurrentSeo.CanonicalUrl"
+              AlternateLinks="@CurrentSeo.AlternateLinks"
+              XDefaultUrl="@CurrentSeo.XDefaultUrl"
+              OgLocale="@CurrentSeo.OpenGraphLocale"
+              OgAlternateLocale="@CurrentSeo.OpenGraphAlternateLocale"
+              ImageUrl="@CurrentSeo.OpenGraphImageUrl"
+              ImageAlt="@CurrentSeo.SocialImageAlt"
+              OpenGraphTitle="@CurrentSeo.OpenGraphTitle"
+              OpenGraphDescription="@CurrentSeo.OpenGraphDescription"
+              OpenGraphUrl="@CurrentSeo.OpenGraphUrl"
+              TwitterTitle="@CurrentSeo.TwitterTitle"
+              TwitterDescription="@CurrentSeo.TwitterDescription"
+              TwitterCard="@CurrentSeo.TwitterCard"
+              JsonLd="@CurrentSeo.StructuredDataMarkup"
+              Robots="@SeoRobots"
+              RenderKeywords="false" />
 
 <main class="whale-ocean" data-match-state="@OfficialMatchState" data-flow-state="@FlowStatus">
     <header class="whale-ocean__header">
@@ -35,6 +54,11 @@
         </div>
         <div class="whale-ocean__actions">
             <a href="@RouteLocalization.BuildHomePath(_culture)">@T("backToHome")</a>
+            @if (_match is not null)
+            {
+                <a href="@RouteLocalization.BuildTvMatchPath(_culture, MatchId, ResolvedSlug)">@T("watchOnTv")</a>
+                <a href="@RouteLocalization.BuildCandleBattlesPath(_culture, MatchId, ResolvedSlug)">@Localization.T("candleBattles.arcade", _culture)</a>
+            }
             <button type="button" @onclick="TogglePaused">@(_paused ? T("resume") : T("pause"))</button>
             <label>@T("quality") <select @bind="_quality" @bind:after="QualityChangedAsync"><option value="Low">@T("qualityLow")</option><option value="Medium">@T("qualityMedium")</option><option value="High">@T("qualityHigh")</option></select></label>
         </div>
@@ -87,11 +111,11 @@
                     <div class="whale-ocean__score-meta"><span>@T("matchTotal") <b data-whale-ocean="left-total-trades">0</b></span><span>@T("last30Seconds") <b data-whale-ocean="left-window-trades">0</b></span></div>
                     <div class="whale-ocean__score-side"><span>@T("buy") <b data-whale-ocean="left-buy-points">0</b></span><span>@T("sell") <b data-whale-ocean="left-sell-points">0</b></span></div>
                     <div class="whale-ocean__species-grid">
-                        <span title="@T("small")"><i class="whale-ocean__species-icon whale-ocean__species-icon--small"></i><b data-whale-ocean="left-small">0</b><em>@T("small")</em></span>
-                        <span title="@T("medium")"><i class="whale-ocean__species-icon whale-ocean__species-icon--medium"></i><b data-whale-ocean="left-medium">0</b><em>@T("medium")</em></span>
-                        <span title="@T("large")"><i class="whale-ocean__species-icon whale-ocean__species-icon--large"></i><b data-whale-ocean="left-large">0</b><em>@T("large")</em></span>
-                        <span title="@T("shark")"><i class="whale-ocean__species-icon whale-ocean__species-icon--shark"></i><b data-whale-ocean="left-shark">0</b><em>@T("shark")</em></span>
-                        <span title="@T("whale")"><i class="whale-ocean__species-icon whale-ocean__species-icon--whale"></i><b data-whale-ocean="left-whale">0</b><em>@T("whale")</em></span>
+                        <span title="@T("small")"><img class="whale-ocean__species-icon whale-ocean__species-icon--small" src="/images/whale-ocean/hud/whale-hud-small.png" alt="" aria-hidden="true" /><b data-whale-ocean="left-small">0</b><em>@T("small")</em></span>
+                        <span title="@T("medium")"><img class="whale-ocean__species-icon whale-ocean__species-icon--medium" src="/images/whale-ocean/hud/whale-hud-medium.png" alt="" aria-hidden="true" /><b data-whale-ocean="left-medium">0</b><em>@T("medium")</em></span>
+                        <span title="@T("large")"><img class="whale-ocean__species-icon whale-ocean__species-icon--large" src="/images/whale-ocean/hud/whale-hud-large.png" alt="" aria-hidden="true" /><b data-whale-ocean="left-large">0</b><em>@T("large")</em></span>
+                        <span title="@T("shark")"><img class="whale-ocean__species-icon whale-ocean__species-icon--shark" src="/images/whale-ocean/hud/whale-hud-shark.png" alt="" aria-hidden="true" /><b data-whale-ocean="left-shark">0</b><em>@T("shark")</em></span>
+                        <span title="@T("whale")"><img class="whale-ocean__species-icon whale-ocean__species-icon--whale" src="/images/whale-ocean/hud/whale-hud-whale.png" alt="" aria-hidden="true" /><b data-whale-ocean="left-whale">0</b><em>@T("whale")</em></span>
                     </div>
                     <small class="whale-ocean__score-window">@T("last30Seconds"): <b data-whale-ocean="left-window-score">0</b> @T("points")</small>
                 </div>
@@ -106,13 +130,45 @@
                     <div class="whale-ocean__score-meta"><span>@T("last30Seconds") <b data-whale-ocean="right-window-trades">0</b></span><span>@T("matchTotal") <b data-whale-ocean="right-total-trades">0</b></span></div>
                     <div class="whale-ocean__score-side"><span>@T("buy") <b data-whale-ocean="right-buy-points">0</b></span><span>@T("sell") <b data-whale-ocean="right-sell-points">0</b></span></div>
                     <div class="whale-ocean__species-grid">
-                        <span title="@T("whale")"><i class="whale-ocean__species-icon whale-ocean__species-icon--whale"></i><b data-whale-ocean="right-whale">0</b><em>@T("whale")</em></span>
-                        <span title="@T("shark")"><i class="whale-ocean__species-icon whale-ocean__species-icon--shark"></i><b data-whale-ocean="right-shark">0</b><em>@T("shark")</em></span>
-                        <span title="@T("large")"><i class="whale-ocean__species-icon whale-ocean__species-icon--large"></i><b data-whale-ocean="right-large">0</b><em>@T("large")</em></span>
-                        <span title="@T("medium")"><i class="whale-ocean__species-icon whale-ocean__species-icon--medium"></i><b data-whale-ocean="right-medium">0</b><em>@T("medium")</em></span>
-                        <span title="@T("small")"><i class="whale-ocean__species-icon whale-ocean__species-icon--small"></i><b data-whale-ocean="right-small">0</b><em>@T("small")</em></span>
+                        <span title="@T("whale")"><img class="whale-ocean__species-icon whale-ocean__species-icon--whale" src="/images/whale-ocean/hud/whale-hud-whale.png" alt="" aria-hidden="true" /><b data-whale-ocean="right-whale">0</b><em>@T("whale")</em></span>
+                        <span title="@T("shark")"><img class="whale-ocean__species-icon whale-ocean__species-icon--shark" src="/images/whale-ocean/hud/whale-hud-shark.png" alt="" aria-hidden="true" /><b data-whale-ocean="right-shark">0</b><em>@T("shark")</em></span>
+                        <span title="@T("large")"><img class="whale-ocean__species-icon whale-ocean__species-icon--large" src="/images/whale-ocean/hud/whale-hud-large.png" alt="" aria-hidden="true" /><b data-whale-ocean="right-large">0</b><em>@T("large")</em></span>
+                        <span title="@T("medium")"><img class="whale-ocean__species-icon whale-ocean__species-icon--medium" src="/images/whale-ocean/hud/whale-hud-medium.png" alt="" aria-hidden="true" /><b data-whale-ocean="right-medium">0</b><em>@T("medium")</em></span>
+                        <span title="@T("small")"><img class="whale-ocean__species-icon whale-ocean__species-icon--small" src="/images/whale-ocean/hud/whale-hud-small.png" alt="" aria-hidden="true" /><b data-whale-ocean="right-small">0</b><em>@T("small")</em></span>
                     </div>
                     <small class="whale-ocean__score-window">@T("last30Seconds"): <b data-whale-ocean="right-window-score">0</b> @T("points")</small>
+                </div>
+                <div class="whale-ocean__species-compare" role="table" aria-label="@T("speciesComparison")">
+                    <div class="whale-ocean__species-compare-head" role="row">
+                        <span role="columnheader">@DisplayTeamA</span>
+                        <span role="columnheader">@T("species")</span>
+                        <span role="columnheader">@DisplayTeamB</span>
+                    </div>
+                    <div class="whale-ocean__species-compare-row" role="row">
+                        <span class="whale-ocean__species-count whale-ocean__species-count--left" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamA @T("creatures"): </span><b data-whale-ocean="left-small">0</b></span>
+                        <span class="whale-ocean__species-name" role="cell"><img class="whale-ocean__species-icon whale-ocean__species-icon--small" src="/images/whale-ocean/hud/whale-hud-small.png" alt="" aria-hidden="true" /><span>@T("small")</span></span>
+                        <span class="whale-ocean__species-count whale-ocean__species-count--right" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamB @T("creatures"): </span><b data-whale-ocean="right-small">0</b></span>
+                    </div>
+                    <div class="whale-ocean__species-compare-row" role="row">
+                        <span class="whale-ocean__species-count whale-ocean__species-count--left" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamA @T("creatures"): </span><b data-whale-ocean="left-medium">0</b></span>
+                        <span class="whale-ocean__species-name" role="cell"><img class="whale-ocean__species-icon whale-ocean__species-icon--medium" src="/images/whale-ocean/hud/whale-hud-medium.png" alt="" aria-hidden="true" /><span>@T("medium")</span></span>
+                        <span class="whale-ocean__species-count whale-ocean__species-count--right" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamB @T("creatures"): </span><b data-whale-ocean="right-medium">0</b></span>
+                    </div>
+                    <div class="whale-ocean__species-compare-row" role="row">
+                        <span class="whale-ocean__species-count whale-ocean__species-count--left" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamA @T("creatures"): </span><b data-whale-ocean="left-large">0</b></span>
+                        <span class="whale-ocean__species-name" role="cell"><img class="whale-ocean__species-icon whale-ocean__species-icon--large" src="/images/whale-ocean/hud/whale-hud-large.png" alt="" aria-hidden="true" /><span>@T("large")</span></span>
+                        <span class="whale-ocean__species-count whale-ocean__species-count--right" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamB @T("creatures"): </span><b data-whale-ocean="right-large">0</b></span>
+                    </div>
+                    <div class="whale-ocean__species-compare-row" role="row">
+                        <span class="whale-ocean__species-count whale-ocean__species-count--left" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamA @T("creatures"): </span><b data-whale-ocean="left-shark">0</b></span>
+                        <span class="whale-ocean__species-name" role="cell"><img class="whale-ocean__species-icon whale-ocean__species-icon--shark" src="/images/whale-ocean/hud/whale-hud-shark.png" alt="" aria-hidden="true" /><span>@T("shark")</span></span>
+                        <span class="whale-ocean__species-count whale-ocean__species-count--right" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamB @T("creatures"): </span><b data-whale-ocean="right-shark">0</b></span>
+                    </div>
+                    <div class="whale-ocean__species-compare-row" role="row">
+                        <span class="whale-ocean__species-count whale-ocean__species-count--left" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamA @T("creatures"): </span><b data-whale-ocean="left-whale">0</b></span>
+                        <span class="whale-ocean__species-name" role="cell"><img class="whale-ocean__species-icon whale-ocean__species-icon--whale" src="/images/whale-ocean/hud/whale-hud-whale.png" alt="" aria-hidden="true" /><span>@T("whale")</span></span>
+                        <span class="whale-ocean__species-count whale-ocean__species-count--right" role="cell"><span class="whale-ocean__sr-only">@DisplayTeamB @T("creatures"): </span><b data-whale-ocean="right-whale">0</b></span>
+                    </div>
                 </div>
             </section>
             <div class="whale-ocean__topbar">
@@ -206,6 +262,43 @@
 
     private string T(string key, params object?[] args) => Localization.T($"whaleOcean.{key}", _culture, args);
     private Dictionary<string, string> JsLabels => LabelKeys.ToDictionary(k => k, k => T(k));
+    private string ResolvedSlug => _match is null
+        ? (string.IsNullOrWhiteSpace(MatchSlugHelper.ParseLegacySlug(Slug)) ? "match" : MatchSlugHelper.ParseLegacySlug(Slug))
+        : MatchSlugHelper.BuildSlug(_match.TeamA, _match.TeamB);
+    private MatchSeoMetadata CurrentSeo => _match is not null
+        ? MatchSeo.BuildExperienceMetadata(_match, ResolvedSlug, _culture, MatchExperienceSeo.WhaleOcean)
+        : BuildUnavailableSeo();
+    private string? SeoRobots => _match is null || CalibrationEnabled ? "noindex, nofollow, noarchive" : null;
+
+    private MatchSeoMetadata BuildUnavailableSeo()
+    {
+        var canonicalPath = RouteLocalization.BuildWhaleOceanPath(_culture, MatchId, ResolvedSlug);
+        var canonicalUrl = SeoDefaults.BuildPublicAbsoluteUrl(Configuration, canonicalPath);
+        return new MatchSeoMetadata
+        {
+            Title = $"{T("title")} | CriptoVersus",
+            Description = T("tagline"),
+            CanonicalUrl = canonicalUrl,
+            AlternateLinks = MatchSeo.BuildExperienceAlternateLinks(MatchExperienceSeo.WhaleOcean, MatchId, ResolvedSlug),
+            OpenGraphTitle = $"{T("title")} | CriptoVersus",
+            OpenGraphDescription = T("tagline"),
+            OpenGraphUrl = canonicalUrl,
+            OpenGraphLocale = AppCulture.ToOgLocale(_culture),
+            OpenGraphAlternateLocale = AppCulture.GetAlternateOgLocale(_culture),
+            XDefaultUrl = SeoDefaults.BuildPublicAbsoluteUrl(Configuration, RouteLocalization.BuildWhaleOceanPath(AppCultureService.DefaultRouteCulture, MatchId, ResolvedSlug)),
+            TwitterTitle = $"{T("title")} | CriptoVersus",
+            TwitterDescription = T("tagline"),
+            TwitterCard = "summary_large_image",
+            StructuredDataMarkup = string.Empty
+        };
+    }
+
+    private void MarkNotFound()
+    {
+        var context = HttpContextAccessor.HttpContext;
+        if (context is not null && !context.Response.HasStarted)
+            context.Response.StatusCode = 404;
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -230,7 +323,10 @@
             {
                 _loadError = T("matchNotFound");
                 if (!CalibrationEnabled)
+                {
+                    MarkNotFound();
                     return;
+                }
                 _flowStatus = "BOOTSTRAP_PENDING";
                 return;
             }
@@ -301,7 +397,7 @@
             var leftPrice = match is null ? null : await Api.GetAssetPriceSnapshotAsync(leftSymbol, _lifetime.Token);
             var rightPrice = match is null ? null : await Api.GetAssetPriceSnapshotAsync(rightSymbol, _lifetime.Token);
             if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId) return;
-                var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261114-whale-ocean-calibration-v2");
+                var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261113-whale-ocean-depth-bands-v14");
             if (module is null)
                 throw new InvalidOperationException("Whale Ocean bootstrap module was not returned by JS interop.");
             if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId)
@@ -327,6 +423,7 @@
                 leftColor = "#ff9100",
                 rightColor = "#18d8d2",
                 quality = _quality,
+                geometryProfile = "reference",
                 labels,
                 developmentDiagnostics = HostEnvironment.IsDevelopment(),
                 debugWhaleOcean = DebugWhaleOceanEnabled() || CalibrationEnabled,

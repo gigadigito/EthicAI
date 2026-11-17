@@ -110,6 +110,70 @@ public sealed class MatchSeoService
         };
     }
 
+    public MatchSeoMetadata BuildExperienceMetadata(
+        MatchDto match,
+        string slug,
+        string? culture,
+        MatchExperienceSeo experience,
+        string? fallbackBaseUri = null)
+    {
+        var normalizedCulture = _appCultureService.NormalizeRouteCulture(culture);
+        var (coinA, coinB) = GetCoinLabels(match);
+        var experienceKey = experience == MatchExperienceSeo.WhaleOcean ? "whaleOcean" : "candleBattles";
+        var experienceName = experience == MatchExperienceSeo.WhaleOcean ? "Whale Ocean 3D" : "Candle Battles";
+        var path = BuildExperiencePath(experience, normalizedCulture, match.MatchId, slug);
+        var canonicalUrl = SeoDefaults.BuildPublicAbsoluteUrl(_configuration, path);
+        var title = _localizationService.T($"{experienceKey}.seoTitle", normalizedCulture, coinA, coinB);
+        var description = _localizationService.T($"{experienceKey}.seoDescription", normalizedCulture, coinA, coinB);
+        var socialImageUrl = BuildSocialImageUrl(normalizedCulture, match.MatchId, slug, fallbackBaseUri);
+
+        return new MatchSeoMetadata
+        {
+            Title = title,
+            Description = description,
+            CanonicalUrl = canonicalUrl,
+            AlternateLinks = BuildExperienceAlternateLinks(experience, match.MatchId, slug),
+            OpenGraphTitle = title,
+            OpenGraphDescription = description,
+            OpenGraphUrl = canonicalUrl,
+            OpenGraphLocale = _appCultureService.ToOgLocale(normalizedCulture),
+            OpenGraphAlternateLocale = _appCultureService.GetAlternateOgLocale(normalizedCulture),
+            OpenGraphImageUrl = socialImageUrl,
+            TwitterImageUrl = socialImageUrl,
+            SocialImageAlt = $"{coinA} vs {coinB} | {experienceName}",
+            TwitterTitle = title,
+            TwitterDescription = description,
+            XDefaultUrl = SeoDefaults.BuildPublicAbsoluteUrl(
+                _configuration,
+                BuildExperiencePath(experience, AppCultureService.DefaultRouteCulture, match.MatchId, slug)),
+            TwitterCard = "summary_large_image",
+            StructuredDataMarkup = BuildExperienceStructuredDataMarkup(
+                experienceName,
+                title,
+                description,
+                normalizedCulture,
+                canonicalUrl,
+                socialImageUrl)
+        };
+    }
+
+    public string BuildExperiencePath(MatchExperienceSeo experience, string? culture, int matchId, string slug)
+        => experience == MatchExperienceSeo.WhaleOcean
+            ? _routeLocalization.BuildWhaleOceanPath(culture, matchId, slug)
+            : _routeLocalization.BuildCandleBattlesPath(culture, matchId, slug);
+
+    public IReadOnlyList<AlternateLink> BuildExperienceAlternateLinks(
+        MatchExperienceSeo experience,
+        int matchId,
+        string slug)
+        => _languages.EnabledLanguages
+            .Select(language => new AlternateLink(
+                _routeLocalization.GetHrefLang(language.RouteCulture),
+                SeoDefaults.BuildPublicAbsoluteUrl(
+                    _configuration,
+                    BuildExperiencePath(experience, language.RouteCulture, matchId, slug))))
+            .ToArray();
+
     public string BuildSocialImageSvg(MatchDto match)
     {
         var teamA = FormatCoinLabel(match.TeamA);
@@ -308,6 +372,49 @@ public sealed class MatchSeoService
         });
     }
 
+    private string BuildExperienceStructuredDataMarkup(
+        string experienceName,
+        string title,
+        string description,
+        string culture,
+        string canonicalUrl,
+        string socialImageUrl)
+    {
+        var siteUrl = SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildHomePath(culture));
+        var webPage = new Dictionary<string, object?>
+        {
+            ["@type"] = "WebPage",
+            ["name"] = title,
+            ["description"] = description,
+            ["url"] = canonicalUrl,
+            ["inLanguage"] = _appCultureService.ToHrefLang(culture),
+            ["image"] = socialImageUrl,
+            ["about"] = new Dictionary<string, object?>
+            {
+                ["@type"] = "CreativeWork",
+                ["name"] = experienceName
+            },
+            ["isPartOf"] = new Dictionary<string, object?>
+            {
+                ["@type"] = "WebSite",
+                ["name"] = "CriptoVersus",
+                ["url"] = siteUrl
+            },
+            ["publisher"] = new Dictionary<string, object?>
+            {
+                ["@type"] = "Organization",
+                ["name"] = "CriptoVersus",
+                ["url"] = siteUrl
+            }
+        };
+
+        return JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["@context"] = "https://schema.org",
+            ["@graph"] = new[] { webPage }
+        });
+    }
+
     private string BuildAbstract(MatchDto match, string culture)
     {
         var coinA = FormatCoinLabel(match.TeamA);
@@ -407,6 +514,12 @@ public sealed class MatchSeoMetadata
     public string XDefaultUrl { get; init; } = string.Empty;
     public string TwitterCard { get; init; } = "summary_large_image";
     public string StructuredDataMarkup { get; init; } = string.Empty;
+}
+
+public enum MatchExperienceSeo
+{
+    WhaleOcean,
+    CandleBattles
 }
 
 public enum MatchSeoStatus

@@ -54,6 +54,7 @@ export async function initializeDiagnostic(canvas, mode) {
         leftColor: "#789A0C",
         rightColor: "#087F83",
         quality: "High",
+        geometryProfile: "reference",
         diagnostic: mode
     });
 }

@@ -106,6 +106,8 @@ export interface WhaleOceanRuntimeOptions {
     officialEndTimeUtc?: string | null;
     visualBudget?: Partial<WhaleOceanVisualBudget>;
     scoreboard?: WhaleOceanScoreboard | null;
+    /** The approved geometry profile is shared by DEV calibration and LIVE. */
+    geometryProfile?: "reference" | "responsive";
 }
 
 export interface WhaleOceanCalibrationSettings {
@@ -134,8 +136,8 @@ export interface WhaleOceanCalibrationState {
 
 /**
  * Reference calibration captured from the DEV Whale Ocean calibration tool.
- * It is applied only when calibration mode is enabled; production rendering
- * keeps its normal responsive defaults.
+ * It is the canonical camera/territory/path profile shared by DEV calibration
+ * and LIVE rendering; local calibration controls may still override it in DEV.
  */
 export const WHALE_OCEAN_CALIBRATION_PRESET: WhaleOceanCalibrationSettings = {
     version: 1,
@@ -250,6 +252,7 @@ interface FlowActor {
     bandIndex: number;
     verticalOffsetPx: number;
     test: boolean;
+    firstRenderedX: number | null;
 }
 
 interface PendingFlow {
@@ -275,6 +278,27 @@ interface ScreenRect {
     right: number;
     top: number;
     bottom: number;
+}
+
+interface GeometryActorDiagnostic {
+    id: string;
+    type: "TEST" | "LIVE";
+    stage: "spawn" | "first-render";
+    side: WhaleOceanSide;
+    territory: "left" | "right";
+    species: SpriteKind;
+    band: string;
+    bandIndex: number;
+    calculatedX: number;
+    appliedX: number;
+    firstRenderedX: number | null;
+    targetX: number;
+    screenX: number | null;
+    destinationScreenX: number | null;
+    depthZ: number;
+    spriteScaleWidth: number;
+    spriteScaleHeight: number;
+    configurationId: string;
 }
 
 interface OccupancyVisual {
@@ -334,6 +358,8 @@ export interface WhaleOceanVisualDiagnosticRow {
 }
 
 export interface WhaleOceanGeometryDiagnostic {
+    configurationId: string;
+    geometryProfile: "reference" | "responsive";
     viewportCss: { width: number; height: number };
     renderViewport: { width: number; height: number };
     usefulVerticalViewport: { top: number; bottom: number; height: number };
@@ -347,6 +373,17 @@ export interface WhaleOceanGeometryDiagnostic {
         labelsVisible: number;
         bandCounts: number[];
     };
+    camera: {
+        position: { x: number; y: number; z: number };
+        target: { x: number; y: number; z: number };
+        alpha: number;
+        beta: number;
+        radius: number;
+        fov: number;
+        minZ: number;
+        maxZ: number;
+    };
+    screenOffset: { x: number; y: number };
     cameraCenterWorldX: number;
     visibleWorld: VisibleHorizontalBounds;
     territories: {
@@ -386,6 +423,7 @@ interface WhaleOceanEventActor {
     eventId: string;
     bandIndex: number;
     verticalOffsetPx: number;
+    firstRenderedX: number | null;
 }
 
 interface LiveSymbolState {
@@ -417,6 +455,8 @@ const MAX_VISIBLE_VOLUME_LABELS_DESKTOP = 10;
 const MAX_VISIBLE_VOLUME_LABELS_MOBILE = 6;
 const CAMERA_FOV = 0.8;
 const CAMERA_RADIUS = 27;
+const REFERENCE_GEOMETRY_ID = "whale-ocean-reference-v1";
+const RESPONSIVE_GEOMETRY_ID = "whale-ocean-responsive-v1";
 const REFERENCE_CSS_PIXELS_PER_WORLD_UNIT = 700 / (2 * CAMERA_RADIUS * Math.tan(CAMERA_FOV / 2));
 const SCHOOL_TRANSIT_RESERVE = 4;
 const SCHOOL_OCCUPANCY_SHARE = 0.55;
@@ -484,6 +524,7 @@ export class WhaleOceanRuntime {
     private calibrationSettings: WhaleOceanCalibrationSettings | null = null;
     private calibrationTerritoryDelta = { left: 0, center: 0, right: 0 };
     private calibrationPathDelta = { spawnBuy: 0, spawnSell: 0, exitBuy: 0, exitSell: 0 };
+    private readonly geometrySamples = new Map<string, { TEST?: GeometryActorDiagnostic; LIVE?: GeometryActorDiagnostic }>();
 
     public constructor(options: WhaleOceanRuntimeOptions) {
         this.options = options;
@@ -535,17 +576,20 @@ export class WhaleOceanRuntime {
         this.scene.fogDensity = this.quality === "Low" ? 0.018 : 0.012;
         this.scene.fogColor = this.B.Color3.FromHexString("#092b42");
 
-        this.camera = new this.B.ArcRotateCamera("whale-ocean-camera", -Math.PI / 2, Math.PI / 2, CAMERA_RADIUS, new this.B.Vector3(0, 0, 0), this.scene);
-        this.camera.fov = CAMERA_FOV;
-        this.camera.lowerRadiusLimit = CAMERA_RADIUS;
-        this.camera.upperRadiusLimit = CAMERA_RADIUS;
+        this.camera = new this.B.ArcRotateCamera("whale-ocean-camera", -Math.PI / 2, 1.48, CAMERA_RADIUS, new this.B.Vector3(0, -0.5, 0), this.scene);
+        // Keep the environment's historical camera framing as the renderer-owned
+        // default. The calibration preset uses the same value and can still
+        // override it for the reference profile.
+        this.camera.fov = 0.85;
+        this.camera.lowerRadiusLimit = 8;
+        this.camera.upperRadiusLimit = 70;
         this.camera.lowerAlphaLimit = this.camera.alpha;
         this.camera.upperAlphaLimit = this.camera.alpha;
         this.camera.lowerBetaLimit = this.camera.beta;
         this.camera.upperBetaLimit = this.camera.beta;
         this.camera.detachControl();
         this.camera.minZ = 0.1;
-        this.camera.maxZ = 100;
+        this.camera.maxZ = 450;
 
         this.adaptBudgetToViewport();
 
@@ -555,7 +599,7 @@ export class WhaleOceanRuntime {
             camera: this.camera,
             engine: this.engine
         });
-        if (this.options.calibrationEnabled)
+        if (this.options.geometryProfile === "reference" || this.options.calibrationEnabled)
             this.setCalibration(this.defaultCalibrationSettings());
         await this.buildSpriteLibrary();
         if (this.disposed) return;
@@ -594,6 +638,7 @@ export class WhaleOceanRuntime {
         document.addEventListener("visibilitychange", this.visibilityHandler);
         this.updateTerritoryDivider();
         this.updateGeometryDebugOverlay();
+        this.debugGeometrySnapshot("initialized");
         if (!this.options.diagnostic) this.setFlowStatus(this.matchFinished ? "FINALIZED" : "BOOTSTRAP_PENDING", "renderer initialized");
     }
 
@@ -624,6 +669,7 @@ export class WhaleOceanRuntime {
         const sellQuote = parseNumber(batch.takerSellQuote);
         const totalQuote = buyQuote + sellQuote;
         const now = Date.now();
+        const firstLiveBatch = this.lastReceiveAt === 0 && !batch.isReplay;
         this.lastReceiveAt = now;
         state.recent.push({ at: now, buy: buyQuote, sell: sellQuote });
         while (state.recent.length > 0 && state.recent[0].at < now - this.budget.windowMs) state.recent.shift();
@@ -661,6 +707,7 @@ export class WhaleOceanRuntime {
         this.rebalancePopulation();
         this.updateHud();
         this.refreshDiagnostics(now, true);
+        if (firstLiveBatch) this.debugGeometrySnapshot("first-live-batch");
         this.debugFilter(batch, "accepted");
         this.debugSummary(now);
     }
@@ -773,7 +820,7 @@ export class WhaleOceanRuntime {
     }
 
     public setCalibration(next: WhaleOceanCalibrationSettings): void {
-        if (this.disposed || !this.options.calibrationEnabled) return;
+        if (this.disposed) return;
         const normalized = this.normalizeCalibrationSettings(next);
         this.calibrationSettings = normalized;
         // Recompute the raw viewport after changing the camera. Otherwise a
@@ -796,10 +843,10 @@ export class WhaleOceanRuntime {
         };
         this.resizeArena();
         this.updateGeometryDebugOverlay();
+        this.debugGeometrySnapshot("calibration-applied");
     }
 
     public resetCalibration(): void {
-        if (!this.options.calibrationEnabled) return;
         this.setCalibration(this.defaultCalibrationSettings());
     }
 
@@ -911,9 +958,10 @@ export class WhaleOceanRuntime {
         const actor: FlowActor = {
             id: `TEST-${this.nextFlowId++}-${index + 1}`, sprite, label, labelText: text, startedAt: performance.now(), startX: path.fromX, targetX: path.toX,
             direction: path.toX >= path.fromX ? 1 : -1, progress: 0, speedWorldPerSecond: Math.max(0.01, Math.abs(path.toX - path.fromX) / 10) * Math.max(0.05, options.speed), lastUpdatedAt: performance.now(), completed: false,
-            pathDepth: depth, side: options.side, territory: options.territory, kind: options.kind, size, intensity: 1, phase, notional: 0, quoteCurrency: null, labelWidthPx: 150, labelHeightPx: 24, bandIndex: options.bandIndex, verticalOffsetPx: (seed - 0.5) * 10, test: true
+            pathDepth: depth, side: options.side, territory: options.territory, kind: options.kind, size, intensity: 1, phase, notional: 0, quoteCurrency: null, labelWidthPx: 150, labelHeightPx: 24, bandIndex: options.bandIndex, verticalOffsetPx: (seed - 0.5) * 10, test: true, firstRenderedX: null
         };
         this.calibrationTestActors.push(actor);
+        this.debugGeometryActor("spawn", "TEST", actor.id, actor.side, actor.territory, actor.kind, actor.bandIndex, actor.pathDepth, actor.size, actor.startX, actor.targetX, actor.sprite, actor.firstRenderedX);
     }
 
     private calibrationStatusFromPaths(paths: WhaleOceanCalibrationState["paths"]): string {
@@ -1834,6 +1882,7 @@ export class WhaleOceanRuntime {
             actor.lastUpdatedAt = now;
         }
         this.debugArenaResize();
+        this.debugGeometrySnapshot("resize");
     }
 
     private debugArenaResize(): void {
@@ -1891,6 +1940,92 @@ export class WhaleOceanRuntime {
             despawnX: Number(path.toX.toFixed(3)),
             spawnScreenPx: this.projectToCss(path.fromX, 0, depth)?.x ?? null,
             despawnScreenPx: this.projectToCss(path.toX, 0, depth)?.x ?? null
+        });
+    }
+
+    private debugGeometrySnapshot(reason: "initialized" | "calibration-applied" | "resize" | "first-live-batch"): void {
+        if (this.options.debugWhaleOcean === false) return;
+        const geometry = this.geometryDiagnostics();
+        const prefix = this.options.calibrationEnabled ? "[WhaleOcean:CalibrationGeometry]" : "[WhaleOcean:LiveGeometry]";
+        console.info(prefix, {
+            reason,
+            configurationId: geometry.configurationId,
+            geometryProfile: geometry.geometryProfile,
+            camera: geometry.camera,
+            screenOffset: geometry.screenOffset,
+            viewportCss: geometry.viewportCss,
+            renderViewport: geometry.renderViewport,
+            visibleWorld: geometry.visibleWorld,
+            territories: geometry.territories
+        });
+    }
+
+    private geometryConfigurationId(): string {
+        return this.options.geometryProfile === "reference" ? REFERENCE_GEOMETRY_ID : RESPONSIVE_GEOMETRY_ID;
+    }
+
+    private debugGeometryActor(
+        stage: "spawn" | "first-render",
+        source: "TEST" | "LIVE",
+        id: string,
+        side: WhaleOceanSide,
+        territory: "left" | "right",
+        kind: SpriteKind,
+        bandIndex: number,
+        depth: number,
+        scaleWidth: number,
+        calculatedX: number,
+        targetX: number,
+        sprite: Sprite,
+        firstRenderedX: number | null
+    ): void {
+        if (this.options.debugWhaleOcean === false) return;
+        const projected = this.projectToCss(sprite.position.x, sprite.position.y, sprite.position.z);
+        const row: GeometryActorDiagnostic = {
+            id,
+            type: source,
+            stage,
+            side,
+            territory,
+            species: kind,
+            band: this.verticalBandForIndex(bandIndex, kind).name,
+            bandIndex,
+            calculatedX: Number(calculatedX.toFixed(4)),
+            appliedX: Number(sprite.position.x.toFixed(4)),
+            firstRenderedX: firstRenderedX === null ? null : Number(firstRenderedX.toFixed(4)),
+            targetX: Number(targetX.toFixed(4)),
+            screenX: projected ? Number(projected.x.toFixed(2)) : null,
+            destinationScreenX: this.projectToCss(targetX, sprite.position.y, sprite.position.z)?.x ?? null,
+            depthZ: Number(depth.toFixed(4)),
+            spriteScaleWidth: Number(scaleWidth.toFixed(4)),
+            spriteScaleHeight: Number(sprite.height.toFixed(4)),
+            configurationId: this.geometryConfigurationId()
+        };
+        const prefix = source === "TEST" ? "[WhaleOcean:CalibrationGeometry]" : "[WhaleOcean:LiveGeometry]";
+        console.info(prefix, row);
+        if (stage !== "first-render") return;
+
+        const key = `${kind}|${territory}|${side}|${bandIndex}`;
+        const pair = this.geometrySamples.get(key) ?? {};
+        pair[source] = row;
+        this.geometrySamples.set(key, pair);
+        const other = source === "TEST" ? pair.LIVE : pair.TEST;
+        if (!other) return;
+        const delta = {
+            worldX: Number((row.appliedX - other.appliedX).toFixed(4)),
+            screenX: row.screenX === null || other.screenX === null ? null : Number((row.screenX - other.screenX).toFixed(2)),
+            targetX: Number((row.targetX - other.targetX).toFixed(4)),
+            depthZ: Number((row.depthZ - other.depthZ).toFixed(4)),
+            scaleWidth: Number((row.spriteScaleWidth - other.spriteScaleWidth).toFixed(4))
+        };
+        console.info("[WhaleOcean:GeometryMismatch]", {
+            key,
+            test: source === "TEST" ? row : other,
+            live: source === "LIVE" ? row : other,
+            delta,
+            equivalentScale: Math.abs(delta.scaleWidth) < 0.0001,
+            sameConfiguration: row.configurationId === other.configurationId,
+            mismatch: Math.abs(delta.screenX ?? delta.worldX) > 0.01 || Math.abs(delta.targetX) > 0.01 || Math.abs(delta.depthZ) > 0.01
         });
     }
 
@@ -2076,6 +2211,9 @@ export class WhaleOceanRuntime {
         const screenX = (worldX: number): number | null => this.projectToCss(worldX, 0, 0)?.x ?? null;
         const depthBands = this.verticalBandLayout();
         const usefulViewport = this.usefulVerticalViewport();
+        const cameraSettings = this.readCameraSettings();
+        const cameraPosition = this.camera?.position;
+        const geometryProfile = this.options.geometryProfile ?? "responsive";
         const usefulTop = usefulViewport.top;
         const usefulBottom = usefulViewport.bottom;
         const usefulHeight = Math.max(0, usefulBottom - usefulTop);
@@ -2092,6 +2230,8 @@ export class WhaleOceanRuntime {
             : 0;
         const bandCounts = depthBands.map(band => visibleRows.filter(row => row.bandIndex === band.index).length);
         return {
+            configurationId: this.geometryConfigurationId(),
+            geometryProfile,
             viewportCss: { width, height },
             renderViewport: { width: this.engine?.getRenderWidth() ?? 0, height: this.engine?.getRenderHeight() ?? 0 },
             usefulVerticalViewport: { top: round2(usefulTop), bottom: round2(usefulBottom), height: round2(usefulHeight) },
@@ -2104,6 +2244,28 @@ export class WhaleOceanRuntime {
                 animalCount: visibleRows.length,
                 labelsVisible: rows.filter(row => row.labelState === "visible").length,
                 bandCounts
+            },
+            camera: {
+                position: {
+                    x: round2(cameraPosition?.x ?? 0),
+                    y: round2(cameraPosition?.y ?? 0),
+                    z: round2(cameraPosition?.z ?? 0)
+                },
+                target: {
+                    x: round2(cameraSettings.targetX),
+                    y: round2(cameraSettings.targetY),
+                    z: round2(cameraSettings.targetZ)
+                },
+                alpha: round2(cameraSettings.alpha),
+                beta: round2(cameraSettings.beta),
+                radius: round2(cameraSettings.radius),
+                fov: round2(cameraSettings.fov),
+                minZ: round2(this.camera?.minZ ?? 0.1),
+                maxZ: round2(this.camera?.maxZ ?? 450)
+            },
+            screenOffset: {
+                x: round2(this.calibrationSettings?.screenOffsetX ?? 0),
+                y: round2(this.calibrationSettings?.screenOffsetY ?? 0)
             },
             cameraCenterWorldX: round2(this.camera?.target.x ?? visible.center),
             visibleWorld: { left: round2(visible.left), center: round2(visible.center), right: round2(visible.right) },
@@ -2138,6 +2300,7 @@ export class WhaleOceanRuntime {
             ? Math.hypot(sprite.position.x - cameraPosition.x, sprite.position.y - cameraPosition.y, sprite.position.z - cameraPosition.z)
             : CAMERA_RADIUS;
         const projected = this.projectToCss(sprite.position.x, sprite.position.y, sprite.position.z);
+        const diagnosticProjection = this.projectToCss(sprite.position.x, sprite.position.y, sprite.position.z, true);
         const band = WHALE_OCEAN_SIZE_CATEGORIES[sizeCategoryForKind(kind)];
         const depthBand = this.verticalBandForIndex(bandIndex, kind);
         const projectedBodyRect = this.projectedBodyRect(kind, territory, sprite);
@@ -2167,13 +2330,16 @@ export class WhaleOceanRuntime {
             labelState: !label ? "none" : projected && sprite.color.a >= 0.05 ? "visible" : "hidden",
             labelCssX: projected ? round2(projected.x) : -1,
             labelCssY: projected ? round2(projected.y) : -1,
-            projectedCssX: projected ? round2(projected.x) : -1,
-            projectedCssY: projected ? round2(projected.y) : -1,
+            // Keep the raw projected coordinate for traversal diagnostics even
+            // after the animal leaves the viewport. `inViewport` remains the
+            // visibility signal used by the renderer and tests.
+            projectedCssX: diagnosticProjection ? round2(diagnosticProjection.x) : -1,
+            projectedCssY: diagnosticProjection ? round2(diagnosticProjection.y) : -1,
             labelText
         };
     }
 
-    private projectToCss(worldX: number, worldY: number, worldZ: number): { x: number; y: number } | null {
+    private projectToCss(worldX: number, worldY: number, worldZ: number, allowOutsideViewport = false): { x: number; y: number } | null {
         const B = this.B;
         const engine = this.engine;
         const camera = this.camera;
@@ -2193,7 +2359,7 @@ export class WhaleOceanRuntime {
         if (!(projected.z > 0 && projected.z < 1)) return null;
         const cssX = projected.x * (clientWidth / renderWidth) + (this.calibrationSettings?.screenOffsetX ?? 0);
         const cssY = projected.y * (clientHeight / renderHeight) + (this.calibrationSettings?.screenOffsetY ?? 0);
-        if (cssX < -120 || cssX > clientWidth + 120 || cssY < -60 || cssY > clientHeight + 60) return null;
+        if (!allowOutsideViewport && (cssX < -120 || cssX > clientWidth + 120 || cssY < -60 || cssY > clientHeight + 60)) return null;
         return { x: cssX, y: cssY };
     }
 
@@ -2515,6 +2681,7 @@ export class WhaleOceanRuntime {
             labelHeightPx,
             bandIndex,
             verticalOffsetPx,
+            firstRenderedX: null,
             test: false
         });
         this.debugArenaPath("spawn", pending.symbol, territory, pending.side, depth, path);
@@ -2756,6 +2923,10 @@ export class WhaleOceanRuntime {
             actor.sprite.position.y = vertical.y;
             actor.sprite.position.z = vertical.z;
             actor.pathDepth = vertical.z;
+            if (actor.firstRenderedX === null) {
+                actor.firstRenderedX = actor.sprite.position.x;
+                this.debugGeometryActor("first-render", actor.test ? "TEST" : "LIVE", actor.id, actor.side, actor.territory, actor.kind, actor.bandIndex, actor.pathDepth, actor.size, actor.startX, actor.targetX, actor.sprite, actor.firstRenderedX);
+            }
             actor.sprite.invertU = actor.direction < 0;
             // Entry coordinates are already constrained to the visible body
             // edge. Keep the first frame visible instead of hiding the animal
@@ -2789,6 +2960,10 @@ export class WhaleOceanRuntime {
             actor.sprite.position.y = vertical.y;
             actor.sprite.position.z = vertical.z;
             actor.pathDepth = vertical.z;
+            if (actor.firstRenderedX === null) {
+                actor.firstRenderedX = actor.sprite.position.x;
+                this.debugGeometryActor("first-render", "TEST", actor.id, actor.side, actor.territory, actor.kind, actor.bandIndex, actor.pathDepth, actor.size, actor.startX, actor.targetX, actor.sprite, actor.firstRenderedX);
+            }
             actor.sprite.invertU = actor.direction < 0;
             // Calibration must expose the exact spawn frame at the viewport
             // edge; fading from zero would make the test look misaligned.
@@ -2901,7 +3076,8 @@ export class WhaleOceanRuntime {
             quoteCurrency,
             eventId: event.id,
             bandIndex,
-            verticalOffsetPx
+            verticalOffsetPx,
+            firstRenderedX: null
         });
         this.debugArenaPath("spawn", event.symbol, territory, event.side, depth, path);
         this.debugSpawn("created", { symbol: event.symbol, side: event.side, totalNotional: event.notionalUsdt, peakNotional: event.notionalUsdt, baseline: 0, firstReceivedAt: Date.now(), lastReceivedAt: Date.now(), batchCount: 1 }, event.id, kind, "classified_event");
@@ -2955,6 +3131,10 @@ export class WhaleOceanRuntime {
             event.sprite.position.y = vertical.y;
             event.sprite.position.z = vertical.z;
             event.pathDepth = vertical.z;
+            if (event.firstRenderedX === null) {
+                event.firstRenderedX = event.sprite.position.x;
+                this.debugGeometryActor("first-render", "LIVE", event.eventId, event.side, event.territory, event.kind, event.bandIndex, event.pathDepth, event.size, event.startX, event.targetX, event.sprite, event.firstRenderedX);
+            }
             event.sprite.invertU = event.direction < 0;
             const fadeIn = Math.min(1, progress / 0.14);
             event.sprite.color.a = fadeIn;
@@ -3230,8 +3410,9 @@ export class WhaleOceanRuntime {
     }
 
     private write(key: string, value: string): void {
-        const element = this.root?.querySelector<HTMLElement>(`[data-whale-ocean="${key}"]`);
-        if (element) element.textContent = value;
+        this.root?.querySelectorAll<HTMLElement>(`[data-whale-ocean="${key}"]`).forEach(element => {
+            element.textContent = value;
+        });
     }
 
     private random(): number {

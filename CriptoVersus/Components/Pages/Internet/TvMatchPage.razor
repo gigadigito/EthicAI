@@ -23,29 +23,44 @@
 @inject NavigationManager Nav
 @inject RouteLocalizationService RouteLocalization
 @inject MatchSlugHelper MatchSlugHelper
+@inject MatchSeoService MatchSeo
 @inject ILogger<TvMatchPage> Logger
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 
 <PageTitle>@PageTitleText</PageTitle>
 <HeadContent>
+    @if (_match is null)
+    {
+        <meta name="robots" content="noindex, nofollow, noarchive" />
+    }
     <meta name="description" content="@MetaDescription" />
-    <meta name="keywords" content="@MetaKeywords" />
     <link rel="canonical" href="@CanonicalUrl" />
-    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
-    <meta property="og:title" content="@PageTitleText" />
-    <meta property="og:description" content="@MetaDescription" />
+    @if (CurrentSeo is { } seo)
+    {
+        @foreach (var alternate in seo.AlternateLinks)
+        {
+            <link rel="alternate" hreflang="@alternate.HrefLang" href="@alternate.Href" />
+        }
+        <link rel="alternate" hreflang="x-default" href="@seo.XDefaultUrl" />
+    }
+    else
+    {
+        <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
+    }
+    <meta property="og:title" content="@OgTitle" />
+    <meta property="og:description" content="@OgDescription" />
     <meta property="og:url" content="@CanonicalUrl" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="@SocialImageUrl" />
-    <meta property="og:image:alt" content="@PageTitleText" />
+    <meta property="og:image" content="@OgImageUrl" />
+    <meta property="og:image:alt" content="@OgImageAlt" />
     <meta property="og:locale" content="@AppCulture.ToOgLocale(_culture)" />
     <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(_culture)" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="@PageTitleText" />
-    <meta name="twitter:description" content="@MetaDescription" />
-    <meta name="twitter:image" content="@SocialImageUrl" />
-    <meta name="twitter:image:alt" content="@PageTitleText" />
+    <meta name="twitter:title" content="@TwitterTitle" />
+    <meta name="twitter:description" content="@TwitterDescription" />
+    <meta name="twitter:image" content="@OgImageUrl" />
+    <meta name="twitter:image:alt" content="@OgImageAlt" />
     <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
 </HeadContent>
 
@@ -216,22 +231,26 @@
     private string HomeUrl => RouteLocalization.BuildHomePath(_culture);
 
     private string PageTitleText
-        => _match is null
+        => CurrentSeo?.Title ?? (_match is null
             ? L.T("tv.seo.title", _culture)
-            : L.T("tv.seo.matchTitle", _culture, _match.TeamA, _match.TeamB);
+            : L.T("tv.seo.matchTitle", _culture, _match.TeamA, _match.TeamB));
 
     private string MetaDescription
-        => _match is null
+        => CurrentSeo?.Description ?? (_match is null
             ? L.T("tv.seo.matchDescriptionFallback", _culture)
-            : L.T("tv.seo.matchDescription", _culture, _match.TeamA, _match.TeamB);
+            : L.T("tv.seo.matchDescription", _culture, _match.TeamA, _match.TeamB));
 
     private string CanonicalUrl => BuildAbsolute(RouteLocalization.BuildTvMatchPath(_culture, MatchId, ResolvedSlug));
     private string EnglishUrl => BuildAbsolute(RouteLocalization.BuildTvMatchPath(AppCultureService.DefaultRouteCulture, MatchId, ResolvedSlug));
-    private string PortugueseUrl => BuildAbsolute(RouteLocalization.BuildTvMatchPath(AppCultureService.SecondaryRouteCulture, MatchId, ResolvedSlug));
-
-    private string MetaKeywords => _match is null
-        ? $"{SeoDefaults.GlobalKeywords}, CriptoVersus TV match, #CriptoVersus TV, crypto battle stream"
-        : $"{SeoDefaults.GlobalKeywords}, CriptoVersus TV match, #CriptoVersus TV, {_match.TeamA} vs {_match.TeamB}, crypto match stream";
+    private MatchSeoMetadata? CurrentSeo => _match is null
+        ? null
+        : MatchSeo.BuildMetadata(_match, ResolvedSlug, _culture);
+    private string OgTitle => CurrentSeo?.OpenGraphTitle ?? PageTitleText;
+    private string OgDescription => CurrentSeo?.OpenGraphDescription ?? MetaDescription;
+    private string OgImageUrl => CurrentSeo?.OpenGraphImageUrl ?? SocialImageUrl;
+    private string OgImageAlt => CurrentSeo?.SocialImageAlt ?? PageTitleText;
+    private string TwitterTitle => CurrentSeo?.TwitterTitle ?? PageTitleText;
+    private string TwitterDescription => CurrentSeo?.TwitterDescription ?? MetaDescription;
 
     private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
 
@@ -244,7 +263,6 @@
             ["description"] = MetaDescription,
             ["url"] = CanonicalUrl,
             ["image"] = SocialImageUrl,
-            ["keywords"] = MetaKeywords,
             ["inLanguage"] = _culture
         });
 
@@ -530,6 +548,7 @@
             if (MatchId <= 0)
             {
                 _loadState = TvMatchPageLoadState.NotFound;
+                MarkNotFound();
                 await InvokeAsync(StateHasChanged);
                 return;
             }
@@ -541,6 +560,7 @@
             if (match is null)
             {
                 _loadState = TvMatchPageLoadState.NotFound;
+                MarkNotFound();
                 await InvokeAsync(StateHasChanged);
                 return;
             }
@@ -958,6 +978,13 @@
     private static bool IsUnavailableForTv(MatchDto match)
         => match.EndTime is not null
            || TvProceduralCyclePolicy.IsTerminal(match.IsFinished, match.Status);
+
+    private void MarkNotFound()
+    {
+        var context = HttpContextAccessor.HttpContext;
+        if (context is not null && !context.Response.HasStarted)
+            context.Response.StatusCode = 404;
+    }
 
     private enum TvMatchPageLoadState
     {

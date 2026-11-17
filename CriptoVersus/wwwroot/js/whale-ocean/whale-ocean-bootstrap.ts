@@ -56,6 +56,7 @@ export async function initializeDiagnostic(canvas: HTMLCanvasElement, mode: "spr
         leftColor: "#789A0C",
         rightColor: "#087F83",
         quality: "High",
+        geometryProfile: "reference",
         diagnostic: mode
     });
 }

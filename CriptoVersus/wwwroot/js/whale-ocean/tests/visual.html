@@ -63,7 +63,8 @@ await bootstrap.initialize({
     rightColor: "#18d8d2",
     quality: "High",
     developmentDiagnostics: false,
-    debugWhaleOcean: false
+    debugWhaleOcean: false,
+    geometryProfile: "reference"
 });
 window.wo = {
     receive: batch => bootstrap.receive(matchId, batch),

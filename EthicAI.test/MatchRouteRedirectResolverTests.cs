@@ -78,6 +78,36 @@ public sealed class MatchRouteRedirectResolverTests
         Assert.Equal("/pt/partida/39/ada-vs-bnb", redirect);
     }
 
+    [Fact]
+    public async Task WhaleOceanWrongSlugRedirectsToOfficialLocalizedPath()
+    {
+        var redirect = await _resolver.ResolveRedirectPathAsync(
+            "/pt/tv/whale-ocean/39/ada-vs-bnb-old",
+            null,
+            BuildHttpContext("/pt/tv/whale-ocean/39/ada-vs-bnb-old"),
+            _appCultureService,
+            new FakeLookupService("ada-vs-bnb"),
+            _slugHelper,
+            _routeLocalization);
+
+        Assert.Equal("/pt/tv/whale-ocean/39/ada-vs-bnb", redirect);
+    }
+
+    [Fact]
+    public async Task CandleBattlesWrongSlugRedirectsToOfficialLocalizedPath()
+    {
+        var redirect = await _resolver.ResolveRedirectPathAsync(
+            "/en/tv/candle/39/ada-vs-bnb-old",
+            null,
+            BuildHttpContext("/en/tv/candle/39/ada-vs-bnb-old"),
+            _appCultureService,
+            new FakeLookupService("ada-vs-bnb"),
+            _slugHelper,
+            _routeLocalization);
+
+        Assert.Equal("/en/tv/candle/39/ada-vs-bnb", redirect);
+    }
+
     private sealed class FakeLookupService : IMatchRouteLookupService
     {
         private readonly string _slug;

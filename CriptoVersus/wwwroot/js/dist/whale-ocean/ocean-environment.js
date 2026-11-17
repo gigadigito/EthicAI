@@ -294,21 +294,10 @@ export function createOceanEnvironment(options) {
     scene.fogMode = B.Scene.FOGMODE_EXP2;
     scene.fogDensity = config.fogDensity;
     scene.fogColor = C3(0.008, 0.19, 0.18);
-    // The reference camera is applied to the existing Whale Ocean camera.
-    // The sun remains fixed in screen coordinates, as in the original code.
-    camera.alpha = -Math.PI / 2;
-    camera.beta = 1.48;
-    camera.radius = 27;
-    camera.target = V3(0, -0.5, 0);
-    camera.fov = 0.85;
-    camera.minZ = 0.1;
-    camera.maxZ = 450;
-    camera.lowerRadiusLimit = 8;
-    camera.upperRadiusLimit = 70;
-    camera.lowerAlphaLimit = camera.alpha;
-    camera.upperAlphaLimit = camera.alpha;
-    camera.lowerBetaLimit = camera.beta;
-    camera.upperBetaLimit = camera.beta;
+    // The renderer owns the camera geometry. The environment only consumes
+    // the camera for post-processing and material uniforms; mutating it here
+    // made DEV calibration effective while LIVE silently fell back to these
+    // defaults after the runtime had already applied its geometry.
     const ambient = new B.HemisphericLight("OceanAmbient", V3(0, 1, 0), scene);
     ambient.intensity = 0.7;
     ambient.diffuse = C3(0.30, 0.82, 0.76);

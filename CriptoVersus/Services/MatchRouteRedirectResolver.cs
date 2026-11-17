@@ -157,6 +157,77 @@ public sealed class MatchRouteRedirectResolver
                 cancellationToken);
         }
 
+        if (segments.Length == 4
+            && segments[0].Equals("tv", StringComparison.OrdinalIgnoreCase)
+            && segments[1].Equals("whale-ocean", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segments[2], out var legacyWhaleOceanId))
+        {
+            return await BuildRedirectIfMismatchAsync(
+                requestedPath: $"/tv/whale-ocean/{segments[2]}/{segments[3]}",
+                expectedPathFactory: slug => routeLocalization.BuildWhaleOceanPath(preferredCulture, legacyWhaleOceanId, slug),
+                requestedSlug: segments[3],
+                matchId: legacyWhaleOceanId,
+                queryString,
+                matchRouteLookup,
+                cancellationToken);
+        }
+
+        if (segments.Length == 5
+            && segments[1].Equals("tv", StringComparison.OrdinalIgnoreCase)
+            && segments[2].Equals("whale-ocean", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segments[3], out var localizedWhaleOceanId))
+        {
+            var normalizedCulture = appCultureService.TryNormalizeRouteCulture(segments[0], out var whaleCulture)
+                ? whaleCulture
+                : preferredCulture;
+
+            return await BuildRedirectIfMismatchAsync(
+                requestedPath: $"/{segments[0]}/tv/whale-ocean/{segments[3]}/{segments[4]}",
+                expectedPathFactory: slug => routeLocalization.BuildWhaleOceanPath(normalizedCulture, localizedWhaleOceanId, slug),
+                requestedSlug: segments[4],
+                matchId: localizedWhaleOceanId,
+                queryString,
+                matchRouteLookup,
+                cancellationToken);
+        }
+
+        if (segments.Length == 5
+            && segments[1].Equals("tv", StringComparison.OrdinalIgnoreCase)
+            && segments[2].Equals("candle", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segments[3], out var localizedCandleId))
+        {
+            var normalizedCulture = appCultureService.TryNormalizeRouteCulture(segments[0], out var candleCulture)
+                ? candleCulture
+                : preferredCulture;
+
+            return await BuildRedirectIfMismatchAsync(
+                requestedPath: $"/{segments[0]}/tv/candle/{segments[3]}/{segments[4]}",
+                expectedPathFactory: slug => routeLocalization.BuildCandleBattlesPath(normalizedCulture, localizedCandleId, slug),
+                requestedSlug: segments[4],
+                matchId: localizedCandleId,
+                queryString,
+                matchRouteLookup,
+                cancellationToken);
+        }
+
+        if (segments.Length == 4
+            && segments[1].Equals("candle", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segments[2], out var localizedCandleV2Id))
+        {
+            var normalizedCulture = appCultureService.TryNormalizeRouteCulture(segments[0], out var candleV2Culture)
+                ? candleV2Culture
+                : preferredCulture;
+
+            return await BuildRedirectIfMismatchAsync(
+                requestedPath: $"/{segments[0]}/candle/{segments[2]}/{segments[3]}",
+                expectedPathFactory: slug => routeLocalization.BuildCandleBattleV2Path(normalizedCulture, localizedCandleV2Id, slug),
+                requestedSlug: segments[3],
+                matchId: localizedCandleV2Id,
+                queryString,
+                matchRouteLookup,
+                cancellationToken);
+        }
+
         if (segments.Length is < 3 or > 4)
             return null;
 
