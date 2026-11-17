@@ -17,12 +17,14 @@ export interface OceanEnvironmentOptions {
     scene: Scene;
     camera: ArcRotateCamera;
     engine: Engine;
+    quality?: "Low" | "Medium" | "High";
 }
 
 export interface OceanEnvironment {
     update(deltaTime: number): void;
     setConfig(config: Partial<OceanEnvironmentConfig>): void;
     resize(): void;
+    setQuality?(quality: "Low" | "Medium" | "High"): void;
     dispose(): void;
 }
 
@@ -319,6 +321,7 @@ const LIGHT_FRAGMENT_SHADER = `
 
 export function createOceanEnvironment(options: OceanEnvironmentOptions): OceanEnvironment {
     const { babylon: B, scene, camera, engine } = options;
+    let quality = options.quality ?? "Medium";
     const config = { ...DEFAULT_CONFIG };
     const V3 = (x: number, y: number, z: number) => new B.Vector3(x, y, z);
     const C3 = (r: number, g: number, b: number) => new B.Color3(r, g, b);
@@ -344,7 +347,7 @@ export function createOceanEnvironment(options: OceanEnvironmentOptions): OceanE
     const surface = B.MeshBuilder.CreateGround("OceanSurface", {
         width: 320,
         height: 320,
-        subdivisions: 110
+        subdivisions: quality === "Low" ? 48 : quality === "Medium" ? 72 : 110
     }, scene);
     surface.position.y = 10;
     const surfaceMat = new B.ShaderMaterial("OceanSurfaceMaterial", scene, {
@@ -405,7 +408,8 @@ export function createOceanEnvironment(options: OceanEnvironmentOptions): OceanE
     ctx.fillRect(0, 0, 64, 64);
     particleTexture.update();
 
-    const particles = new B.ParticleSystem("OceanSediments", 250, scene);
+    const particleCapacity = quality === "Low" ? 100 : quality === "Medium" ? 160 : 250;
+    const particles = new B.ParticleSystem("OceanSediments", particleCapacity, scene);
     particles.particleTexture = particleTexture;
     particles.emitter = V3(0, 0, 0);
     particles.minEmitBox = V3(-25, -8, -30);
@@ -414,7 +418,7 @@ export function createOceanEnvironment(options: OceanEnvironmentOptions): OceanE
     particles.maxSize = 0.075;
     particles.minLifeTime = 10;
     particles.maxLifeTime = 20;
-    particles.emitRate = 12;
+    particles.emitRate = quality === "Low" ? 4 : quality === "Medium" ? 8 : 12;
     particles.color1 = new B.Color4(0.7, 1, 0.85, 0.13);
     particles.color2 = new B.Color4(0.4, 0.8, 0.8, 0.07);
     particles.colorDead = new B.Color4(0, 0, 0, 0);
@@ -439,6 +443,11 @@ export function createOceanEnvironment(options: OceanEnvironmentOptions): OceanE
             Object.assign(config, next);
             scene.fogDensity = config.fogDensity;
             floorMat.setFloat("causticStrength", config.causticIntensity);
+        },
+        setQuality(next: "Low" | "Medium" | "High"): void {
+            quality = next;
+            particles.emitRate = quality === "Low" ? 4 : quality === "Medium" ? 8 : 12;
+            surfaceMat.setFloat("time", time * config.waveSpeed);
         },
         resize(): void {
             const width = engine.getRenderWidth();

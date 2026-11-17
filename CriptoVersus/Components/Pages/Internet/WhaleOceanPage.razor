@@ -180,6 +180,7 @@
                         <strong class="whale-ocean__final-result" aria-live="polite">@FinalResultText</strong>
                     }
                     <span class="whale-ocean__renderer-status" data-whale-ocean="renderer-status" aria-hidden="true"></span>
+                    <span class="whale-ocean__renderer-error" data-whale-ocean="renderer-error" role="alert" hidden></span>
                 </div>
                 <div class="whale-ocean__state-note">@T("demoModeOff")</div>
             </div>
@@ -214,7 +215,6 @@
                 <em data-whale-ocean="right-change">@FormatPercent(_match?.PctB)</em>
                 <small>@T("windowVolume") <span data-whale-ocean="right-volume">—</span> <span data-whale-ocean="right-currency">QUOTE</span></small>
             </div>
-            <div class="whale-ocean__legend"><span class="buy">● @T("buyAggressor")</span><span class="sell">● @T("sellAggressor")</span><span>@T("events") <b data-whale-ocean="events">0</b></span></div>
             @if (HostEnvironment.IsDevelopment())
             {
                 <aside class="whale-ocean__diagnostics" data-whale-ocean="flow-diagnostics" aria-live="polite" aria-label="Money Flow development diagnostics"></aside>
@@ -255,7 +255,7 @@
     private bool _rendererInitializationFailed;
     private string _flowStatus = "BOOTSTRAP_PENDING";
     private string _renderedCulture = string.Empty;
-    private static readonly string[] LabelKeys = ["buy", "sell", "alertWhale", "alertShark"];
+    private static readonly string[] LabelKeys = ["buy", "sell", "alertWhale", "alertShark", "rendererFailed"];
 
     private string T(string key, params object?[] args) => Localization.T($"whaleOcean.{key}", _culture, args);
     private Dictionary<string, string> JsLabels => LabelKeys.ToDictionary(k => k, k => T(k));

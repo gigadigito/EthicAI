@@ -285,6 +285,7 @@ const LIGHT_FRAGMENT_SHADER = `
 `;
 export function createOceanEnvironment(options) {
     const { babylon: B, scene, camera, engine } = options;
+    let quality = options.quality ?? "Medium";
     const config = { ...DEFAULT_CONFIG };
     const V3 = (x, y, z) => new B.Vector3(x, y, z);
     const C3 = (r, g, b) => new B.Color3(r, g, b);
@@ -306,7 +307,7 @@ export function createOceanEnvironment(options) {
     const surface = B.MeshBuilder.CreateGround("OceanSurface", {
         width: 320,
         height: 320,
-        subdivisions: 110
+        subdivisions: quality === "Low" ? 48 : quality === "Medium" ? 72 : 110
     }, scene);
     surface.position.y = 10;
     const surfaceMat = new B.ShaderMaterial("OceanSurfaceMaterial", scene, {
@@ -355,7 +356,8 @@ export function createOceanEnvironment(options) {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 64, 64);
     particleTexture.update();
-    const particles = new B.ParticleSystem("OceanSediments", 250, scene);
+    const particleCapacity = quality === "Low" ? 100 : quality === "Medium" ? 160 : 250;
+    const particles = new B.ParticleSystem("OceanSediments", particleCapacity, scene);
     particles.particleTexture = particleTexture;
     particles.emitter = V3(0, 0, 0);
     particles.minEmitBox = V3(-25, -8, -30);
@@ -364,7 +366,7 @@ export function createOceanEnvironment(options) {
     particles.maxSize = 0.075;
     particles.minLifeTime = 10;
     particles.maxLifeTime = 20;
-    particles.emitRate = 12;
+    particles.emitRate = quality === "Low" ? 4 : quality === "Medium" ? 8 : 12;
     particles.color1 = new B.Color4(0.7, 1, 0.85, 0.13);
     particles.color2 = new B.Color4(0.4, 0.8, 0.8, 0.07);
     particles.colorDead = new B.Color4(0, 0, 0, 0);
@@ -390,6 +392,11 @@ export function createOceanEnvironment(options) {
             Object.assign(config, next);
             scene.fogDensity = config.fogDensity;
             floorMat.setFloat("causticStrength", config.causticIntensity);
+        },
+        setQuality(next) {
+            quality = next;
+            particles.emitRate = quality === "Low" ? 4 : quality === "Medium" ? 8 : 12;
+            surfaceMat.setFloat("time", time * config.waveSpeed);
         },
         resize() {
             const width = engine.getRenderWidth();

@@ -4,6 +4,7 @@ import { flowStatusForConnection, guardWhaleOceanFlowStatus } from "./whale-ocea
 import { cssPixelToRenderPixel, getTeamHorizontalBounds as calculateTeamHorizontalBounds, getTransitPath as calculateTransitPath, getDirectionalTransitPath as calculateDirectionalTransitPath, positionOnTransitPath, preserveTransitProgress, getUsefulOceanVerticalViewport, getWhaleOceanVerticalBands } from "./whale-ocean-geometry.js";
 import { computePressure, formatCompactVolume, normalizeActivity, visualProfile, visualDensity, VolumeEventDetector, WHALE_OCEAN_SPECIES, WHALE_OCEAN_SIZE_CATEGORIES, DEFAULT_WHALE_OCEAN_VISUAL_BUDGET, adaptiveVisualBudgetForViewport, animalKindForFinancialVolume, animalKindForEvent, depthBandForKind, depthBandIndexForKind, isLargeAnimalKind, sizeCategoryForKind, quoteCurrencyForSymbol, swimDirectionForSide } from "./whale-ocean-model.js";
 import { addCreatureCounts, cloneCreatureCounts, creaturePoints, creatureTradeCount, emptyCreatureCounts, normalizeCreatureCounts, normalizeScoreboard, oceanControl, sidePoints } from "./whale-ocean-scoreboard.js";
+import { WhaleOceanVisualEventQueue } from "./whale-ocean-visual-queue.js";
 /**
  * Reference calibration captured from the DEV Whale Ocean calibration tool.
  * It is the canonical camera/territory/path profile shared by DEV calibration
@@ -62,6 +63,8 @@ const DEPTH_WORLD_SPREAD = 2.2;
 const LABEL_COLLISION_GAP_PX = 5;
 const SPRITE_COLLISION_GAP_PX = 8;
 const MAX_PENDING_EVENT_QUEUE_DIAGNOSTIC = 32;
+const HUD_UPDATE_INTERVAL_MS = 100;
+const PERFORMANCE_LOG_INTERVAL_MS = 5000;
 export class WhaleOceanRuntime {
     constructor(options) {
         this.detector = new VolumeEventDetector();
@@ -74,26 +77,27 @@ export class WhaleOceanRuntime {
         this.calibrationTestActors = [];
         this.pendingFlows = new Map();
         this.whales = [];
-        this.pendingEvents = [];
         this.lastBatchSequence = new Map();
         this.scoreStates = new Map();
-        this.seenEventIds = new Set();
         this.B = null;
         this.engine = null;
         this.scene = null;
         this.camera = null;
         this.environment = null;
         this.renderObserver = null;
+        this.contextLostObserver = null;
+        this.contextRestoredObserver = null;
         this.resizeHandler = null;
         this.visibilityHandler = null;
         this.paused = false;
+        this.requestedPaused = false;
+        this.contextLost = false;
         this.connected = false;
         this.replaying = false;
         this.replayComplete = false;
         this.disposed = false;
         this.lastFrame = 0;
         this.frameAccumulator = 0;
-        this.alertCount = 0;
         this.randomState = 0x51f15e;
         this.lastDiagnosticsAt = 0;
         this.lastDebugSummaryAt = 0;
@@ -105,6 +109,15 @@ export class WhaleOceanRuntime {
         this.labelPlacements = [];
         this.undersizedWarnedIds = new Set();
         this.lastSizeWarningAt = 0;
+        this.hudDirty = false;
+        this.lastHudAt = 0;
+        this.performanceWindowStartedAt = 0;
+        this.performanceFrameTimes = [];
+        this.performanceFrameCount = 0;
+        this.performanceBatchCount = 0;
+        this.performanceContextLosses = 0;
+        this.performanceQueueTimeMs = 0;
+        this.performanceQueueStats = { dropped: 0, coalesced: 0, expired: 0, processed: 0 };
         this.geometryDebugOverlay = null;
         this.calibrationSettings = null;
         this.calibrationTerritoryDelta = { left: 0, center: 0, right: 0 };
@@ -122,9 +135,13 @@ export class WhaleOceanRuntime {
             maxOccupancyPerTerritory: Math.max(6, Math.min(14, requestedBudget.maxOccupancyPerTerritory ?? DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.maxOccupancyPerTerritory)),
             windowMs: Math.max(5000, Math.min(120000, Math.round(requestedBudget.windowMs ?? DEFAULT_WHALE_OCEAN_VISUAL_BUDGET.windowMs)))
         };
+        this.quality = options.quality ?? "Medium";
+        this.pendingEvents = new WhaleOceanVisualEventQueue({
+            ...this.visualQueueDefaults(this.quality, options.visualEventQueue),
+            ...(options.visualEventQueue ?? {})
+        });
         this.canvas = options.canvas;
         this.root = this.canvas.closest(".whale-ocean");
-        this.quality = options.quality ?? "Medium";
         this.labels = options.labels ?? {};
         this.matchFinished = options.matchFinished ?? false;
         this.flowStatus = this.matchFinished ? "FINALIZED" : "BOOTSTRAP_PENDING";
@@ -132,6 +149,7 @@ export class WhaleOceanRuntime {
         this.officialRawStatus = options.officialRawStatus ?? null;
         this.officialStartTimeUtc = options.officialStartTimeUtc ?? null;
         this.officialEndTimeUtc = options.officialEndTimeUtc ?? null;
+        this.performanceWindowStartedAt = performance.now();
         this.symbols.set(options.leftSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.leftPrice, quoteCurrency: quoteCurrencyForSymbol(options.leftSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
         this.symbols.set(options.rightSymbol, { buyQuote: 0, sellQuote: 0, volume: 0, price: options.rightPrice, quoteCurrency: quoteCurrencyForSymbol(options.rightSymbol), updatedAt: 0, recent: [], baseline: 0, lastActorAt: { buy: 0, sell: 0 } });
         const normalizedScoreboard = normalizeScoreboard(options.scoreboard);
@@ -151,6 +169,8 @@ export class WhaleOceanRuntime {
             powerPreference: "high-performance"
         });
         this.engine.setHardwareScalingLevel(this.quality === "Low" ? 1.6 : this.quality === "Medium" ? 1.25 : 1);
+        this.contextLostObserver = this.engine.onContextLostObservable.add(() => this.handleWebglContextLost());
+        this.contextRestoredObserver = this.engine.onContextRestoredObservable.add(() => this.handleWebglContextRestored());
         this.scene = new this.B.Scene(this.engine);
         this.scene.spritesEnabled = true;
         this.scene.clearColor = this.B.Color4.FromHexString("#031525ff");
@@ -176,7 +196,8 @@ export class WhaleOceanRuntime {
             babylon: this.B,
             scene: this.scene,
             camera: this.camera,
-            engine: this.engine
+            engine: this.engine,
+            quality: this.quality
         });
         if (this.options.geometryProfile === "reference" || this.options.calibrationEnabled)
             this.setCalibration(this.defaultCalibrationSettings());
@@ -219,6 +240,7 @@ export class WhaleOceanRuntime {
         document.addEventListener("visibilitychange", this.visibilityHandler);
         this.updateTerritoryDivider();
         this.updateGeometryDebugOverlay();
+        this.setRendererError(null);
         this.debugGeometrySnapshot("initialized");
         if (!this.options.diagnostic)
             this.setFlowStatus(this.matchFinished ? "FINALIZED" : "BOOTSTRAP_PENDING", "renderer initialized");
@@ -227,6 +249,7 @@ export class WhaleOceanRuntime {
         this.debugReceive(batch);
         if (this.disposed || this.matchFinished || batch.matchId !== this.options.matchId)
             return;
+        this.performanceBatchCount++;
         const symbol = batch.symbol.trim().toUpperCase();
         const state = this.symbols.get(symbol);
         if (!state) {
@@ -249,6 +272,7 @@ export class WhaleOceanRuntime {
         const sellQuote = parseNumber(batch.takerSellQuote);
         const totalQuote = buyQuote + sellQuote;
         const now = Date.now();
+        this.pendingEvents.maintain(now);
         const firstLiveBatch = this.lastReceiveAt === 0 && !batch.isReplay;
         this.lastReceiveAt = now;
         state.recent.push({ at: now, buy: buyQuote, sell: sellQuote });
@@ -289,7 +313,7 @@ export class WhaleOceanRuntime {
         }
         this.trySpawnPendingFlows(now);
         this.rebalancePopulation();
-        this.updateHud();
+        this.hudDirty = true;
         this.refreshDiagnostics(now, true);
         if (firstLiveBatch)
             this.debugGeometrySnapshot("first-live-batch");
@@ -297,7 +321,8 @@ export class WhaleOceanRuntime {
         this.debugSummary(now);
     }
     setPaused(paused) {
-        this.paused = paused;
+        this.requestedPaused = paused;
+        this.paused = paused || this.contextLost;
         this.setFlowStatus(paused ? "PAUSED" : this.replaying ? "REPLAY" : flowStatusForConnection(this.connected, this.hasLiveData()), paused ? "pause requested" : "pause released");
         this.write("pause", paused ? "PAUSED" : "LIVE");
     }
@@ -322,7 +347,7 @@ export class WhaleOceanRuntime {
         this.seedScoreState(this.options.leftSymbol, normalizedScoreboard.teamA);
         this.seedScoreState(this.options.rightSymbol, normalizedScoreboard.teamB);
         this.debugScoreboard("refresh", normalizedScoreboard);
-        this.updateScoreboardHud();
+        this.hudDirty = true;
     }
     setMatchFinished(finished) {
         if (this.matchFinished && !finished) {
@@ -334,7 +359,7 @@ export class WhaleOceanRuntime {
             // Preserve actors already on screen, but never release buffered input
             // into new actors after the official match end.
             this.pendingFlows.clear();
-            this.pendingEvents.length = 0;
+            this.pendingEvents.clear();
             this.setFlowStatus("FINALIZED", "official match finalized");
             return;
         }
@@ -353,6 +378,8 @@ export class WhaleOceanRuntime {
             return;
         this.quality = quality;
         this.engine?.setHardwareScalingLevel(quality === "Low" ? 1.6 : quality === "Medium" ? 1.25 : 1);
+        this.pendingEvents.configure(this.visualQueueDefaults(quality, this.options.visualEventQueue));
+        this.environment?.setQuality?.(quality);
         this.adaptBudgetToViewport();
         this.rebalancePopulation();
         this.trySpawnPendingFlows(Date.now());
@@ -564,6 +591,12 @@ export class WhaleOceanRuntime {
         if (this.visibilityHandler)
             document.removeEventListener("visibilitychange", this.visibilityHandler);
         this.engine?.stopRenderLoop();
+        if (this.contextLostObserver && this.engine)
+            this.engine.onContextLostObservable.remove(this.contextLostObserver);
+        if (this.contextRestoredObserver && this.engine)
+            this.engine.onContextRestoredObservable.remove(this.contextRestoredObserver);
+        this.contextLostObserver = null;
+        this.contextRestoredObserver = null;
         this.environment?.dispose();
         this.environment = null;
         for (const manager of this.spriteManagers)
@@ -600,7 +633,7 @@ export class WhaleOceanRuntime {
             const bounds = definition.bounds;
             if (!bounds || ![bounds.widthRatio, bounds.heightRatio, bounds.minXRatio, bounds.maxXRatio].every(Number.isFinite))
                 throw new Error(`Whale Ocean sprite manifest is missing precomputed visual bounds for ${name}.`);
-            const manager = new B.SpriteManager(`whale-ocean-sprites-${name}`, atlasUrl, Math.max(this.budget.maxVisibleAnimals, 24) + 16, { width: manifest.frameWidth, height: manifest.frameHeight }, scene, 0.01, B.Texture.NEAREST_SAMPLINGMODE);
+            const manager = new B.SpriteManager(`whale-ocean-sprites-${name}`, atlasUrl, this.spriteManagerCapacity(definition.kind), { width: manifest.frameWidth, height: manifest.frameHeight }, scene, 0.01, B.Texture.NEAREST_SAMPLINGMODE);
             manager.isPickable = false;
             manager.disableDepthWrite = true;
             manager.fogEnabled = false;
@@ -619,6 +652,19 @@ export class WhaleOceanRuntime {
             });
         });
         await Promise.all(atlasPromises);
+    }
+    /**
+     * SpriteManager capacity is per atlas, not per ocean. Reserving the global
+     * entity budget in all twenty managers multiplied the texture-side object
+     * overhead unnecessarily. These limits cover the independent school and
+     * transient/highlight budgets, including the DEV showcase actor.
+     */
+    spriteManagerCapacity(kind) {
+        if (kind === "sardine")
+            return Math.max(8, this.budget.maxSchoolAnimalsPerGroup * 2 + QUALITY_FLOW_ACTORS[this.quality] + 2);
+        if (kind === "shark" || kind === "whale")
+            return this.budget.maxLargeHighlightsPerTerritory + 2;
+        return QUALITY_FLOW_ACTORS[this.quality] + 2;
     }
     createAnimatedSprite(kind, territory, name, seed) {
         const B = this.B;
@@ -821,9 +867,9 @@ export class WhaleOceanRuntime {
         const distance = Math.abs(bandIndex - preferred);
         let penalty = distance * 0.22 + distance * distance * 0.08;
         const hasWhale = this.whales.some(event => event.kind === "whale")
-            || this.pendingEvents.some(event => event.kind === "whale");
+            || this.pendingEvents.hasPending("whale");
         const hasShark = this.whales.some(event => event.kind === "shark")
-            || this.pendingEvents.some(event => event.kind === "shark");
+            || this.pendingEvents.hasPending("shark");
         // These are soft reserves, never exclusions. When a highlight is not
         // present, the lower bands deliberately become attractive to ordinary
         // fish so the ocean does not collapse into the surface.
@@ -1077,7 +1123,7 @@ export class WhaleOceanRuntime {
             changed = true;
         }
         if (changed) {
-            this.updateHud();
+            this.hudDirty = true;
             this.debugSummary(now);
         }
     }
@@ -1148,6 +1194,10 @@ export class WhaleOceanRuntime {
         const now = performance.now();
         const elapsed = Math.min(80, now - this.lastFrame || 16);
         this.lastFrame = now;
+        this.performanceFrameCount++;
+        this.performanceFrameTimes.push(elapsed);
+        if (this.performanceFrameTimes.length > 180)
+            this.performanceFrameTimes.shift();
         this.environment?.update(elapsed / 1000);
         this.frameAccumulator += elapsed;
         if (this.frameAccumulator < 1000 / QUALITY_FPS[this.quality])
@@ -1168,11 +1218,15 @@ export class WhaleOceanRuntime {
         this.resolveProjectedSpriteSeparation();
         this.resolveScreenLabels();
         this.updateGeometryDebugOverlay();
-        this.promotePendingEvents();
+        const queueStartedAt = performance.now();
+        this.promotePendingEvents(wallClockNow);
+        this.performanceQueueTimeMs += performance.now() - queueStartedAt;
         this.trySpawnPendingFlows(wallClockNow);
+        this.flushHud(wallClockNow);
         this.refreshDiagnostics(wallClockNow);
         this.debugNoEventWarning(wallClockNow);
         this.debugSizeWarnings(wallClockNow);
+        this.recordPerformance(now);
     }
     updateFish(seconds, _factor) {
         this.rebalancePopulation();
@@ -1912,7 +1966,9 @@ export class WhaleOceanRuntime {
                 financialWindowTotal: financialTotal,
                 visuallyInTransit: represented,
                 financialMinusVisualTransit: financialTotal - represented,
-                pendingEvents: this.pendingEvents.length,
+                pendingEvents: this.pendingEvents.size,
+                pendingEventCapacity: this.pendingEvents.capacity,
+                seenEventIds: this.pendingEvents.seenSize,
                 pendingFlows: this.pendingFlows.size
             }]);
         console.info("Ocupação projetada por faixa:");
@@ -2446,22 +2502,18 @@ export class WhaleOceanRuntime {
         actor.label = null;
     }
     spawnEvent(event, allowPreviouslySeen = false) {
-        const alreadySeen = this.seenEventIds.has(event.id);
-        if (alreadySeen && !allowPreviouslySeen)
+        if (!allowPreviouslySeen && !this.pendingEvents.markSeen(event.id, Date.now()))
             return;
-        if (!alreadySeen)
-            this.seenEventIds.add(event.id);
         const territory = this.options.leftSymbol === event.symbol ? "left" : "right";
-        if (!alreadySeen)
-            this.recordEvent();
         if (this.flowActors.length + this.whales.length >= this.budget.maxVisibleAnimals || !this.canUseHighlight(territory) || this.territoryOccupancy(territory) >= this.budget.maxOccupancyPerTerritory) {
-            this.pendingEvents.push(event);
-            if (this.options.debugWhaleOcean !== false && this.pendingEvents.length <= MAX_PENDING_EVENT_QUEUE_DIAGNOSTIC)
+            const enqueueResult = this.pendingEvents.enqueue(event, Date.now());
+            if (this.options.debugWhaleOcean !== false && this.pendingEvents.size <= MAX_PENDING_EVENT_QUEUE_DIAGNOSTIC)
                 console.info("[WhaleOcean][QUEUE] highlight event deferred; source event retained", {
                     eventId: event.id,
                     symbol: event.symbol,
                     side: event.side,
-                    queueLength: this.pendingEvents.length,
+                    queueLength: this.pendingEvents.size,
+                    enqueueResult,
                     reason: this.flowActors.length + this.whales.length >= this.budget.maxVisibleAnimals
                         ? "global_entity_budget"
                         : !this.canUseHighlight(territory) ? "large_highlight_reserve" : "projected_territory_occupancy"
@@ -2524,27 +2576,17 @@ export class WhaleOceanRuntime {
             firstRenderedX: null
         });
         this.debugArenaPath("spawn", event.symbol, territory, event.side, depth, path);
+        this.performanceQueueStats.processed++;
         this.debugSpawn("created", { symbol: event.symbol, side: event.side, totalNotional: event.notionalUsdt, peakNotional: event.notionalUsdt, baseline: 0, firstReceivedAt: Date.now(), lastReceivedAt: Date.now(), batchCount: 1 }, event.id, kind, "classified_event");
         this.rebalancePopulation();
     }
-    promotePendingEvents() {
-        if (this.pendingEvents.length === 0)
-            return;
-        for (let index = 0; index < this.pendingEvents.length;) {
-            const event = this.pendingEvents[index];
-            if (Date.parse(event.eventTimeUtc) < Date.now() - this.budget.windowMs) {
-                this.pendingEvents.splice(index, 1);
-                this.debugFilter({ matchId: this.options.matchId, symbol: event.symbol, sequence: event.sequence, eventTimeUtc: event.eventTimeUtc, tradeCount: 0, takerBuyQuote: event.side === "buy" ? String(event.notionalUsdt) : "0", takerSellQuote: event.side === "sell" ? String(event.notionalUsdt) : "0", lastPrice: "0", isPartial: false }, "pending_event_expired");
-                continue;
-            }
+    promotePendingEvents(now) {
+        this.pendingEvents.drain(now, event => {
             const territory = this.options.leftSymbol === event.symbol ? "left" : "right";
-            if (this.flowActors.length + this.whales.length >= this.budget.maxVisibleAnimals || !this.canUseHighlight(territory)) {
-                index++;
-                continue;
-            }
-            this.pendingEvents.splice(index, 1);
-            this.spawnEvent(event, true);
-        }
+            return this.flowActors.length + this.whales.length < this.budget.maxVisibleAnimals
+                && this.canUseHighlight(territory)
+                && this.territoryOccupancy(territory) < this.budget.maxOccupancyPerTerritory;
+        }, event => this.spawnEvent(event, true), event => this.debugFilter({ matchId: this.options.matchId, symbol: event.symbol, sequence: event.sequence, eventTimeUtc: event.eventTimeUtc, tradeCount: 0, takerBuyQuote: event.side === "buy" ? String(event.notionalUsdt) : "0", takerSellQuote: event.side === "sell" ? String(event.notionalUsdt) : "0", lastPrice: "0", isPartial: false }, "pending_event_expired"));
     }
     updateWhales(now) {
         for (let index = this.whales.length - 1; index >= 0; index--) {
@@ -2585,10 +2627,6 @@ export class WhaleOceanRuntime {
                 this.placeScreenLabel(event.label, event.sprite.position.x, event.sprite.position.y + event.size * 0.56, event.sprite.position.z, event.sprite.color.a, this.labelBelowForKind(event.kind), this.volumeLabelPriority(event.kind, event.notional, 2), [this.projectedBodyRect(event.kind, event.territory, event.sprite)].filter((rect) => rect !== null));
         }
     }
-    recordEvent() {
-        this.alertCount++;
-        this.write("events", String(this.alertCount));
-    }
     seedScoreState(symbol, team) {
         const normalized = symbol.trim().toUpperCase();
         const state = {
@@ -2616,7 +2654,7 @@ export class WhaleOceanRuntime {
         state.recent.push({ at: eventAt, counts: cloneCreatureCounts(counts) });
         this.pruneScoreWindow(state, Date.now());
         this.debugScoreBatch(symbol, batch, counts);
-        this.updateScoreboardHud();
+        this.hudDirty = true;
     }
     pruneScoreWindow(state, now) {
         const cutoff = now - 30000;
@@ -2719,6 +2757,13 @@ export class WhaleOceanRuntime {
         this.write("left-currency", left?.quoteCurrency ?? "QUOTE");
         this.write("right-currency", right?.quoteCurrency ?? "QUOTE");
         this.updateScoreboardHud();
+        this.hudDirty = false;
+        this.lastHudAt = performance.now();
+    }
+    flushHud(now, force = false) {
+        if (!this.hudDirty || (!force && now - this.lastHudAt < HUD_UPDATE_INTERVAL_MS))
+            return;
+        this.updateHud();
     }
     hasLiveData() {
         return [...this.symbols.values()].some(state => state.updatedAt > 0);
@@ -2857,6 +2902,85 @@ export class WhaleOceanRuntime {
         this.root?.querySelectorAll(`[data-whale-ocean="${key}"]`).forEach(element => {
             element.textContent = value;
         });
+    }
+    visualQueueDefaults(quality, requested = {}) {
+        const defaults = {
+            Low: { maxPendingEvents: 24, maxProcessPerFrame: 2, maxProcessMs: 0.75, coalesceWindowMs: 1000, maxSeenEventIds: 1024 },
+            Medium: { maxPendingEvents: 48, maxProcessPerFrame: 3, maxProcessMs: 1.5, coalesceWindowMs: 900, maxSeenEventIds: 2048 },
+            High: { maxPendingEvents: 64, maxProcessPerFrame: 4, maxProcessMs: 2, coalesceWindowMs: 750, maxSeenEventIds: 4096 }
+        };
+        return {
+            ...defaults[quality],
+            seenRetentionMs: Math.max(120000, this.budget.windowMs * 4),
+            ...requested
+        };
+    }
+    handleWebglContextLost() {
+        if (this.disposed || this.contextLost)
+            return;
+        this.contextLost = true;
+        this.performanceContextLosses++;
+        this.paused = true;
+        this.setRendererError(this.text("rendererFailed", "Whale Ocean renderer unavailable."));
+        console.warn("[WhaleOcean:Performance] WebGL context lost; waiting for browser restoration.", { matchId: this.options.matchId });
+    }
+    handleWebglContextRestored() {
+        if (this.disposed || !this.contextLost)
+            return;
+        this.contextLost = false;
+        this.engine?.resize();
+        this.environment?.resize();
+        this.paused = this.requestedPaused;
+        this.setRendererError(null);
+        console.info("[WhaleOcean:Performance] WebGL context restored.", { matchId: this.options.matchId });
+    }
+    setRendererError(message) {
+        const element = this.root?.querySelector('[data-whale-ocean="renderer-error"]');
+        if (!element)
+            return;
+        element.textContent = message ?? "";
+        element.hidden = message === null;
+    }
+    recordPerformance(now) {
+        if (!this.options.developmentDiagnostics || this.performanceWindowStartedAt <= 0)
+            return;
+        const elapsed = now - this.performanceWindowStartedAt;
+        if (elapsed < PERFORMANCE_LOG_INTERVAL_MS)
+            return;
+        const queueStats = this.pendingEvents.takeStats();
+        this.performanceQueueStats.dropped += queueStats.dropped;
+        this.performanceQueueStats.coalesced += queueStats.coalesced;
+        this.performanceQueueStats.expired += queueStats.expired;
+        const sortedFrameTimes = [...this.performanceFrameTimes].sort((a, b) => a - b);
+        const p95Index = Math.min(sortedFrameTimes.length - 1, Math.max(0, Math.ceil(sortedFrameTimes.length * 0.95) - 1));
+        const memory = performance.memory;
+        console.info("[WhaleOcean:Performance]", {
+            matchId: this.options.matchId,
+            fpsAverage: Number((this.performanceFrameCount * 1000 / elapsed).toFixed(1)),
+            frameTimeP95Ms: Number((sortedFrameTimes[p95Index] ?? 0).toFixed(2)),
+            activeFish: this.fishGroups.reduce((sum, group) => sum + group.visibleCount, 0),
+            activeTransientAnimals: this.flowActors.length + this.whales.length,
+            pendingVisualEvents: this.pendingEvents.size,
+            pendingVisualEventCapacity: this.pendingEvents.capacity,
+            eventsReceivedPerSecond: Number((this.performanceBatchCount * 1000 / elapsed).toFixed(2)),
+            visualEventsProcessedPerSecond: Number((this.performanceQueueStats.processed * 1000 / elapsed).toFixed(2)),
+            visualEventsDropped: this.performanceQueueStats.dropped,
+            visualEventsCoalesced: this.performanceQueueStats.coalesced,
+            visualEventsExpired: this.performanceQueueStats.expired,
+            seenEventIds: this.pendingEvents.seenSize,
+            spriteManagers: this.spriteManagers.length,
+            atlases: this.spriteAtlases.size,
+            queueProcessingMs: Number(this.performanceQueueTimeMs.toFixed(2)),
+            webglContextLosses: this.performanceContextLosses,
+            memoryUsedBytes: memory?.usedJSHeapSize ?? null,
+            memoryLimitBytes: memory?.jsHeapSizeLimit ?? null
+        });
+        this.performanceWindowStartedAt = now;
+        this.performanceFrameCount = 0;
+        this.performanceBatchCount = 0;
+        this.performanceFrameTimes = [];
+        this.performanceQueueTimeMs = 0;
+        this.performanceQueueStats = { dropped: 0, coalesced: 0, expired: 0, processed: 0 };
     }
     random() {
         this.randomState = (this.randomState * 1664525 + 1013904223) >>> 0;

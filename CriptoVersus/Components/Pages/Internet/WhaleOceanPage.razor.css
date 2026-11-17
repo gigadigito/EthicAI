@@ -240,8 +240,7 @@
 
 .whale-ocean__topbar,
 .whale-ocean__direction,
-.whale-ocean__territory,
-.whale-ocean__legend {
+.whale-ocean__territory {
     position: absolute;
     z-index: 3;
     pointer-events: none;
@@ -332,6 +331,15 @@
 
 .whale-ocean__renderer-status {
     display: none;
+}
+
+.whale-ocean__renderer-error {
+    color: #ffc3a8;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-align: center;
+    text-transform: none;
 }
 
 .whale-ocean__state-note {
@@ -507,35 +515,6 @@
 .whale-ocean__territory > small:last-child {
     color: #7898ad;
     font-size: .64rem;
-}
-
-.whale-ocean__legend {
-    bottom: 9.3rem;
-    left: 50%;
-    display: flex;
-    flex-wrap: wrap;
-    max-width: calc(100% - 2rem);
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    row-gap: .35rem;
-    box-sizing: border-box;
-    padding: .5rem .75rem;
-    transform: translateX(-50%);
-    border: 1px solid #255069;
-    border-radius: 99px;
-    background: #031221cf;
-    color: #9ab9cf;
-    font-size: .66rem;
-    white-space: normal;
-}
-
-.whale-ocean__legend .buy {
-    color: #67f4a5;
-}
-
-.whale-ocean__legend .sell {
-    color: #ff7e66;
 }
 
 .whale-ocean__diagnostics {
@@ -734,13 +713,6 @@
 
     .whale-ocean__territory > small:last-child {
         font-size: .55rem;
-    }
-
-    .whale-ocean__legend {
-        top: auto;
-        bottom: 9.5rem;
-        gap: .5rem;
-        font-size: .57rem;
     }
 
     .whale-ocean__scoreboard {
