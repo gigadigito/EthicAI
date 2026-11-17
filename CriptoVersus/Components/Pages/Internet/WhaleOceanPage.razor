@@ -242,10 +242,25 @@
 </main>
 
 <style id="whale-ocean-hud-styles">
+    /* Ocean viewport container. The HUD anchors to .whale-ocean__stage (the canvas
+       viewport), so the stage must end at the visible content bottom instead of
+       overflowing past the app chrome. Scoped with :has() to pages rendering the stage. */
+    .app-shell:has(.whale-ocean__stage) { height: 100svh; overflow: hidden; grid-template-rows: minmax(0, 1fr); }
+    .app-main:has(.whale-ocean__stage) { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+    .app-content:has(.whale-ocean__stage) { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+    .app-content:has(.whale-ocean__stage) > .whale-ocean { flex: 1 1 auto; min-height: 0; }
+    @@media (max-width: 1366px) {
+        /* Sidebar stacks as a header above .app-main; the ocean must fit below it. */
+        .app-shell:has(.whale-ocean__stage) { grid-template-rows: auto minmax(0, 1fr); }
+    }
+
     .whale-ocean__scoreboard {
         position: absolute;
         z-index: 3;
-        inset: auto clamp(.7rem, 2vw, 1.7rem) .8rem;
+        top: auto;
+        right: clamp(.7rem, 2vw, 1.7rem);
+        bottom: .8rem;
+        left: clamp(.7rem, 2vw, 1.7rem);
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(320px, 520px) minmax(0, 1fr);
         grid-template-rows: auto auto;
@@ -265,7 +280,7 @@
         box-shadow: 0 8px 24px #0005;
     }
 
-    .whale-ocean__scoreboard-topcard { align-self: stretch; width: min(210px, 100%); min-width: 0; padding: .55rem .75rem; border-radius: .9rem; }
+    .whale-ocean__scoreboard-topcard { align-self: start; width: min(210px, 100%); min-width: 0; padding: .55rem .75rem; border-radius: .9rem; }
     .whale-ocean__scoreboard-topcard--left { grid-column: 1; justify-self: start; }
     .whale-ocean__scoreboard-topcard--right { grid-column: 3; justify-self: end; }
 
@@ -313,7 +328,7 @@
     .whale-ocean__species-compare { display: none; }
     .whale-ocean__sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
-    .whale-ocean__score-control { grid-column: 2; grid-row: 1; align-self: stretch; display: grid; align-content: center; gap: .18rem; box-sizing: border-box; padding: .38rem clamp(.7rem, 1.4vw, 1.15rem) .42rem; border-radius: .9rem; background: linear-gradient(180deg, #071c22e8, #061a1dcc); color: #e9ffff; text-align: center; }
+    .whale-ocean__score-control { grid-column: 2; grid-row: 1; align-self: start; display: grid; align-content: center; gap: .18rem; box-sizing: border-box; padding: .38rem clamp(.7rem, 1.4vw, 1.15rem) .42rem; border-radius: .9rem; background: linear-gradient(180deg, #071c22e8, #061a1dcc); color: #e9ffff; text-align: center; }
     .whale-ocean__score-values { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: baseline; gap: clamp(.55rem, 1.4vw, 1.4rem); }
     .whale-ocean__score-values b { color: #f7ffff; font-size: clamp(1.05rem, 1.8vw, 1.55rem); line-height: 1; }
     .whale-ocean__score-values b:first-child { text-align: right; }

@@ -48,7 +48,7 @@ export const WHALE_OCEAN_CALIBRATION_PRESET = {
 };
 const QUALITY_FPS = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS = { Low: 2, Medium: 4, High: 5 };
-const SPRITE_ASSET_VERSION = "20261113-whale-ocean-depth-bands-v14";
+const SPRITE_ASSET_VERSION = "20261117-whale-ocean-species-audit-v2";
 const MAX_VISIBLE_VOLUME_LABELS_DESKTOP = 10;
 const MAX_VISIBLE_VOLUME_LABELS_MOBILE = 6;
 const CAMERA_FOV = 0.8;

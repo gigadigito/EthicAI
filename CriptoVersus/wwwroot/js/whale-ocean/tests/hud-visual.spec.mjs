@@ -6,7 +6,7 @@ async function bounds(page, selector) {
     return page.locator(selector).evaluate(element => {
         const rect = element.getBoundingClientRect();
         const style = getComputedStyle(element);
-        return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, background: style.backgroundColor, borderTop: style.borderTopWidth, backdrop: style.backdropFilter };
+        return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height, background: style.backgroundColor, borderTop: style.borderTopWidth, backdrop: style.backdropFilter };
     });
 }
 
@@ -15,6 +15,7 @@ for (const viewport of [{ width: 1920, height: 1080 }, { width: 2560, height: 10
         await page.setViewportSize(viewport);
         await page.goto(fixture);
 
+        const stage = await bounds(page, '.whale-ocean__stage');
         const root = await bounds(page, '.whale-ocean__scoreboard');
         const left = await bounds(page, '.whale-ocean__scoreboard-topcard--left');
         const center = await bounds(page, '.whale-ocean__score-control');
@@ -29,6 +30,10 @@ for (const viewport of [{ width: 1920, height: 1080 }, { width: 2560, height: 10
         expect(band.left).toBeLessThanOrEqual(left.left);
         expect(band.right).toBeGreaterThanOrEqual(right.right);
         expect(band.top).toBeGreaterThan(center.top);
+        expect(stage.bottom - root.bottom).toBeCloseTo(12.8, 0);
+        expect(root.top).toBeGreaterThanOrEqual(stage.top);
+        expect(left.height).toBeLessThan(center.height);
+        expect(right.height).toBeLessThan(center.height);
         expect(await page.locator('.whale-ocean__score-species-team--left .whale-ocean__species-grid > span').count()).toBe(5);
         expect(await page.locator('.whale-ocean__score-species-team--right .whale-ocean__species-grid > span').count()).toBe(5);
         await page.screenshot({ path: testInfo.outputPath(`whale-ocean-hud-${viewport.width}x${viewport.height}.png`) });
@@ -38,6 +43,9 @@ for (const viewport of [{ width: 1920, height: 1080 }, { width: 2560, height: 10
 test('HUD keeps the compact mobile presentation', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(fixture);
+    const stage = await bounds(page, '.whale-ocean__stage');
+    const root = await bounds(page, '.whale-ocean__scoreboard');
+    expect(stage.bottom - root.bottom).toBeCloseTo(7.2, 0);
     expect(await page.locator('.whale-ocean__species-compare').evaluate(element => getComputedStyle(element).display)).toBe('grid');
     expect(await page.locator('.whale-ocean__score-species-team--left').evaluate(element => getComputedStyle(element).display)).toBe('none');
     expect(await page.locator('.whale-ocean__scoreboard-topcard--left').evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
