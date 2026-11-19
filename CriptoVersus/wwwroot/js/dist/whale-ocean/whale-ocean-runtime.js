@@ -48,7 +48,7 @@ export const WHALE_OCEAN_CALIBRATION_PRESET = {
 };
 const QUALITY_FPS = { Low: 30, Medium: 45, High: 60 };
 const QUALITY_FLOW_ACTORS = { Low: 2, Medium: 4, High: 5 };
-const SPRITE_ASSET_VERSION = "20261117-whale-ocean-species-audit-v2";
+const SPRITE_ASSET_VERSION = "20261119-whale-ocean-viewport-fit";
 const MAX_VISIBLE_VOLUME_LABELS_DESKTOP = 10;
 const MAX_VISIBLE_VOLUME_LABELS_MOBILE = 6;
 const CAMERA_FOV = 0.8;
@@ -88,6 +88,7 @@ export class WhaleOceanRuntime {
         this.contextRestoredObserver = null;
         this.resizeHandler = null;
         this.visibilityHandler = null;
+        this.chromeObserver = null;
         this.paused = false;
         this.requestedPaused = false;
         this.contextLost = false;
@@ -163,6 +164,7 @@ export class WhaleOceanRuntime {
     }
     async initialize() {
         this.debugInit();
+        this.syncChromeOffset();
         this.B = await acquireBabylon();
         if (this.disposed)
             return;
@@ -231,6 +233,7 @@ export class WhaleOceanRuntime {
                 this.scene.render();
         });
         this.resizeHandler = () => {
+            this.syncChromeOffset();
             this.engine?.resize();
             this.environment?.resize();
             this.adaptBudgetToViewport();
@@ -239,6 +242,7 @@ export class WhaleOceanRuntime {
             this.updateGeometryDebugOverlay();
         };
         window.addEventListener("resize", this.resizeHandler, { passive: true });
+        this.observeChromeResizes();
         this.visibilityHandler = () => this.setPaused(document.hidden);
         document.addEventListener("visibilitychange", this.visibilityHandler);
         this.updateTerritoryDivider();
@@ -568,6 +572,32 @@ export class WhaleOceanRuntime {
             return "DESPAWN ANTES DA BORDA: revisar saída";
         return "TRAJETÓRIAS FORA → DENTRO → FORA";
     }
+    // The ocean must fill the viewport minus the app chrome rendered above it
+    // (stacked sidebar, top bar and content padding). That chrome has no fixed
+    // height across breakpoints, so its measured size is published as
+    // --whale-ocean-chrome-top and the page CSS derives the ocean height from it
+    // with `calc(100dvh - var(--whale-ocean-chrome-top))`.
+    syncChromeOffset() {
+        const root = this.root;
+        if (!root)
+            return;
+        const chromeTop = Math.max(0, Math.round(root.getBoundingClientRect().top + window.scrollY));
+        root.style.setProperty("--whale-ocean-chrome-top", `${chromeTop}px`);
+    }
+    observeChromeResizes() {
+        if (typeof ResizeObserver === "undefined")
+            return;
+        const shell = this.canvas.closest(".app-shell");
+        const chrome = shell ? Array.from(shell.querySelectorAll(".app-sidebar, .app-topbar")) : [];
+        if (chrome.length === 0)
+            return;
+        // A single observer feeds the existing resize handler so chrome size
+        // changes (expanded menu, wallet state, wrapped top bar) re-fit the ocean
+        // and the engine without duplicate listeners.
+        this.chromeObserver = new ResizeObserver(() => this.resizeHandler?.());
+        for (const element of chrome)
+            this.chromeObserver.observe(element);
+    }
     adaptBudgetToViewport() {
         const next = adaptiveVisualBudgetForViewport(this.canvas.clientWidth, this.canvas.clientHeight, this.quality, this.requestedBudget);
         const changed = next.maxVisibleAnimals !== this.budget.maxVisibleAnimals
@@ -592,6 +622,10 @@ export class WhaleOceanRuntime {
             this.scene.onBeforeRenderObservable.remove(this.renderObserver);
         if (this.resizeHandler)
             window.removeEventListener("resize", this.resizeHandler);
+        if (this.chromeObserver) {
+            this.chromeObserver.disconnect();
+            this.chromeObserver = null;
+        }
         if (this.visibilityHandler)
             document.removeEventListener("visibilitychange", this.visibilityHandler);
         this.engine?.stopRenderLoop();

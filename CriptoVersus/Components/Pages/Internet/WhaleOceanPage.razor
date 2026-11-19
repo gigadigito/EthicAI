@@ -243,15 +243,26 @@
 
 <style id="whale-ocean-hud-styles">
     /* Ocean viewport container. The HUD anchors to .whale-ocean__stage (the canvas
-       viewport), so the stage must end at the visible content bottom instead of
-       overflowing past the app chrome. Scoped with :has() to pages rendering the stage. */
-    .app-shell:has(.whale-ocean__stage) { height: 100svh; overflow: hidden; grid-template-rows: minmax(0, 1fr); }
-    .app-main:has(.whale-ocean__stage) { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
-    .app-content:has(.whale-ocean__stage) { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
-    .app-content:has(.whale-ocean__stage) > .whale-ocean { flex: 1 1 auto; min-height: 0; }
+       viewport), so the stage must end at the visible content bottom. The ocean fills
+       the useful viewport height: only the app chrome actually rendered above it
+       (stacked sidebar, top bar and content padding) is subtracted through
+       --whale-ocean-chrome-top, which the Babylon runtime measures and keeps in sync.
+       The public footer stays in normal document flow after the ocean, so the page
+       scrolls to reach it instead of competing for the same viewport space.
+       Scoped with :has() to pages rendering the stage. */
+    .app-content:has(.whale-ocean__stage) > .whale-ocean {
+        --whale-ocean-chrome-top: 96px;
+        height: calc(100dvh - var(--whale-ocean-chrome-top));
+        min-height: 0;
+    }
+    .app-content:has(.whale-ocean__stage) .whale-ocean__stage { min-height: 0; }
     @@media (max-width: 1366px) {
-        /* Sidebar stacks as a header above .app-main; the ocean must fit below it. */
-        .app-shell:has(.whale-ocean__stage) { grid-template-rows: auto minmax(0, 1fr); }
+        /* Sidebar stacks as a header above .app-main and the top bar wraps. */
+        .app-content:has(.whale-ocean__stage) > .whale-ocean { --whale-ocean-chrome-top: 230px; }
+    }
+    @@media (max-width: 768px) {
+        /* The top bar is hidden; only the compact stacked header remains. */
+        .app-content:has(.whale-ocean__stage) > .whale-ocean { --whale-ocean-chrome-top: 58px; }
     }
 
     .whale-ocean__scoreboard {
@@ -542,7 +553,7 @@
             var leftPrice = match is null ? null : await Api.GetAssetPriceSnapshotAsync(leftSymbol, _lifetime.Token);
             var rightPrice = match is null ? null : await Api.GetAssetPriceSnapshotAsync(rightSymbol, _lifetime.Token);
             if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId) return;
-                var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261117-whale-ocean-species-audit-v2");
+                var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/whale-ocean/whale-ocean-bootstrap.js?v=20261119-whale-ocean-viewport-fit");
             if (module is null)
                 throw new InvalidOperationException("Whale Ocean bootstrap module was not returned by JS interop.");
             if (_disposed || _lifetime.IsCancellationRequested || MatchId != matchId)

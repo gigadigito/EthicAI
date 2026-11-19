@@ -84,6 +84,7 @@
                 <div class="tv-arena-pressure-gauge__gauge-shell">
                     <svg class="tv-arena-pressure-gauge__svg"
                          viewBox="0 0 420 250"
+                         preserveAspectRatio="xMidYMid meet"
                          role="img"
                          aria-label="@AriaLabel">
                         <defs>
@@ -2264,7 +2265,7 @@
 
     @@container arena-pressure (min-width: 761px) {
         .tv-arena-pressure-gauge.is-view-gauge {
-            min-height: clamp(560px, 54cqi, 760px);
+            min-height: clamp(480px, 48cqi, 680px);
             background:
                 radial-gradient(ellipse at 7% 56%, color-mix(in srgb, var(--pressure-left) 14%, transparent), transparent 31%),
                 radial-gradient(ellipse at 94% 53%, color-mix(in srgb, var(--pressure-right) 14%, transparent), transparent 33%);
@@ -2330,8 +2331,8 @@
 
         .tv-arena-pressure-gauge.is-view-gauge .tv-arena-pressure-gauge__gauge-shell {
             top: -22px;
-            width: min(100%, 950px);
-            max-width: 950px;
+            width: min(100%, 800px);
+            max-width: 800px;
             aspect-ratio: 420 / 250;
         }
 
@@ -2378,7 +2379,7 @@
         }
 
         .tv-arena-pressure-gauge.is-view-gauge .tv-arena-pressure-gauge__center-orb {
-            width: clamp(190px, 16cqi, 248px);
+            width: clamp(154px, 13.5cqi, 205px);
             border-color: rgba(164, 246, 255, .9);
             box-shadow: inset 0 0 0 8px rgba(2, 18, 32, .82), inset 0 0 22px rgba(106, 236, 255, .34), 0 0 19px rgba(77, 225, 242, .42), 0 0 42px rgba(0, 213, 223, .14);
         }
@@ -2393,12 +2394,17 @@
         }
 
         .tv-arena-pressure-gauge.is-view-gauge .tv-arena-pressure-gauge__center-copy strong {
-            font-size: clamp(1.8rem, 3.9cqi, 3rem);
+            font-size: clamp(2rem, 3.1cqi, 2.5rem);
+        }
+
+        .tv-arena-pressure-gauge.is-view-gauge .tv-arena-pressure-gauge__center-copy span {
+            font-size: clamp(.68rem, .82cqi, .75rem);
+            white-space: nowrap;
         }
 
         .tv-arena-pressure-gauge.is-view-gauge .tv-arena-pressure-gauge__center-copy em {
             padding: .24rem .62rem;
-            font-size: clamp(.52rem, .82cqi, .66rem);
+            font-size: clamp(.56rem, .72cqi, .625rem);
             letter-spacing: .12em;
         }
 
