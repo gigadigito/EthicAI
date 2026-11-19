@@ -1,0 +1,31 @@
+@using CriptoVersus.Web.Services
+@inject IWebHostEnvironment Environment
+@inject MatchPreviewOptions PreviewOptions
+
+<HeadContent><meta name="robots" content="noindex,nofollow,noarchive" /></HeadContent>
+@if (!Environment.IsDevelopment())
+{
+    <main class="match-preview-gate"><h1>Not found</h1></main>
+}
+else if (!MatchPreviewOptions.IsAllowed(PreviewOptions, Environment))
+{
+    <main class="match-preview-gate">
+        <span>DEV SANDBOX</span>
+        <h1>Match preview is disabled</h1>
+        <p>Set <code>MatchPreview:Enabled</code> to <code>true</code> in development configuration, then restart the Web app.</p>
+    </main>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
+
+<style>
+    .match-preview-gate { width:min(680px,calc(100% - 32px)); margin:48px auto; padding:24px; border:1px solid #3d4b5c; border-radius:12px; background:#131c27; color:#d7e0ea; font:15px/1.6 system-ui,sans-serif; }
+    .match-preview-gate span { display:inline-block; padding:2px 10px; border-radius:999px; background:#c1f20f; color:#101722; font-size:12px; font-weight:700; letter-spacing:.08em; }
+    .match-preview-gate code { color:#c1f20f; }
+</style>

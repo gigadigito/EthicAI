@@ -1,0 +1,18 @@
+{
+  "pageTitle": "CriptoVersus — 暗号資産市場を、もっと直感的に",
+  "navLabel": "メインナビゲーション", "navHome": "ホーム", "navAbout": "概要",
+  "titleLine1": "暗号資産市場を、", "titleLine2": "シンプルに。",
+  "subtitle": "実際の暗号資産の値動きを、視覚的で直感的なかたちで追いかけましょう。", "cta": "市場を見る",
+  "sectionTitle": "複雑なチャートを読み解けなくても、市場の動きは追えます。",
+  "sectionLead": "CriptoVersusは実際の値動きを、比較しやすい視覚表現へと変換します。",
+  "pillar1Title": "はじめての方へ", "pillar1Body": "専門用語の壁を下げ、市場の動きを掴みやすくします。",
+  "pillar2Title": "すでに市場を見ている方へ", "pillar2Body": "資産間の勢いやリズムを別の視点から整理します。",
+  "pillar3Title": "誇張のない誠実な設計", "pillar3Body": "価格予測や投資助言ではありません。",
+  "rawLabel": "断片的なテクニカル表示", "visualLabel": "動きの視覚的な翻訳",
+  "statesGroupLabel": "リズムの例", "visualFootnote": "視覚表現のイメージ例です。実際の表示は市場の動きに基づきます。",
+  "states": [
+    { "label": "均衡", "leftShare": 52, "rightShare": 48, "reading": "双方の値動きが拮抗し、偏りが少ない状態です。" },
+    { "label": "加速", "leftShare": 68, "rightShare": 32, "reading": "直近の値動きで重心が一方へ傾いています。" },
+    { "label": "転換", "leftShare": 39, "rightShare": 61, "reading": "新しい動きで勢いの向きが切り替わります。" }
+  ]
+}

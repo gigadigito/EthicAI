@@ -62,6 +62,15 @@ public sealed class RouteLocalizationServiceTests
     }
 
     [Fact]
+    public void LandingPathsStayLocalizedWhenChangingLanguage()
+    {
+        Assert.Equal("/pt/landing", _service.BuildLandingPath("pt"));
+        Assert.Equal("/ja/landing", _service.BuildLandingPath("ja"));
+        Assert.Equal("/hi/landing",
+            _service.BuildLocalizedPathForCurrentPage("hi", "/pt/landing"));
+    }
+
+    [Fact]
     public void BuildTvMatchPath_UsesLocalizedCulturePrefix()
     {
         Assert.Equal("/pt/tv/match/39/ada-vs-bnb", _service.BuildTvMatchPath("pt", 39, "ada-vs-bnb"));

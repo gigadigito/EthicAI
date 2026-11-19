@@ -1,0 +1,30 @@
+@page "/dev/match-preview"
+@using CriptoVersus.Web.Services
+@using CriptoVersus.Web.Components.Pages.Internet
+@inject IServiceProvider Services
+@inject IHostEnvironment Environment
+@inject MatchPreviewOptions PreviewOptions
+@rendermode InteractiveServer
+
+<PageTitle>Match Preview Sandbox | CriptoVersus Dev</PageTitle>
+
+<MatchPreviewDevGate>
+    @if (MatchPreviewOptions.IsAllowed(PreviewOptions, Environment))
+    {
+        <MatchPreviewDevPanel Source="@PreviewData" />
+        <div class="match-preview-page">
+            <MatchDetail @key="PreviewData.Seed" MatchId="-900001" EmitPageTitle="false" PreviewDataSource="@PreviewData" />
+        </div>
+    }
+</MatchPreviewDevGate>
+
+<style>
+    .match-preview-page { padding-bottom:24px; }
+</style>
+
+@code {
+    private IMatchPreviewDataSource PreviewData
+        => _previewData ??= Services.GetRequiredService<IMatchPreviewDataSource>();
+
+    private IMatchPreviewDataSource? _previewData;
+}

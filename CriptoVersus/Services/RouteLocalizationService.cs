@@ -47,6 +47,9 @@ public sealed class RouteLocalizationService
     public string BuildHomePath(string? culture)
         => $"/{NormalizeCulture(culture)}";
 
+    public string BuildLandingPath(string? culture)
+        => $"/{NormalizeCulture(culture)}/landing";
+
     public string BuildRoadmapPath(string? culture)
         => BuildGenericLocalizedPath(culture, "roadmap");
 
@@ -180,6 +183,13 @@ public sealed class RouteLocalizationService
 
         if (normalizedCurrent is not null && cleanPath.Equals(BuildHomePath(normalizedCurrent), StringComparison.OrdinalIgnoreCase))
             return BuildHomePath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/landing", StringComparison.OrdinalIgnoreCase)
+            || (normalizedCurrent is not null
+                && cleanPath.Equals(BuildLandingPath(normalizedCurrent), StringComparison.OrdinalIgnoreCase)))
+        {
+            return BuildLandingPath(normalizedTarget) + querySuffix;
+        }
 
         if (cleanPath.Equals("/roadmap", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/roadmap", StringComparison.OrdinalIgnoreCase)

@@ -1,0 +1,18 @@
+{
+  "pageTitle": "CriptoVersus — El mercado cripto, sin complicaciones",
+  "navLabel": "Navegación principal", "navHome": "Inicio", "navAbout": "Acerca de",
+  "titleLine1": "El mercado cripto,", "titleLine2": "sin complicaciones.",
+  "subtitle": "Sigue los movimientos reales de las criptomonedas de forma visual e intuitiva.", "cta": "Explorar el mercado",
+  "sectionTitle": "No necesitas descifrar gráficos complejos para seguir el mercado.",
+  "sectionLead": "CriptoVersus traduce las oscilaciones reales en movimientos visuales fáciles de comparar.",
+  "pillar1Title": "Para quienes empiezan", "pillar1Body": "Un primer contacto sin barreras de jerga.",
+  "pillar2Title": "Para quienes ya siguen el mercado", "pillar2Body": "Una perspectiva visual limpia sobre fuerza y ritmo entre activos.",
+  "pillar3Title": "Lectura honesta, sin promesas", "pillar3Body": "No predice precios ni garantiza resultados.",
+  "rawLabel": "Lectura técnica fragmentada", "visualLabel": "Traducción visual del movimiento",
+  "statesGroupLabel": "Ejemplos ilustrativos de ritmo", "visualFootnote": "Ejemplo visual ilustrativo. Los datos reales cambian según el mercado.",
+  "states": [
+    { "label": "Equilibrio", "leftShare": 52, "rightShare": 48, "reading": "Ambos activos se mueven a un ritmo parecido." },
+    { "label": "Aceleración", "leftShare": 68, "rightShare": 32, "reading": "La variación reciente inclina la lectura visual hacia un lado." },
+    { "label": "Giro", "leftShare": 39, "rightShare": 61, "reading": "El movimiento reciente cambia la predominancia." }
+  ]
+}

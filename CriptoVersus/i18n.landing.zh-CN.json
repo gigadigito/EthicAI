@@ -1,0 +1,18 @@
+{
+  "pageTitle": "CriptoVersus — 直观理解加密市场",
+  "navLabel": "主导航", "navHome": "首页", "navAbout": "关于",
+  "titleLine1": "加密市场，", "titleLine2": "化繁为简。",
+  "subtitle": "以更直观的视觉方式观察真实的加密货币市场波动。", "cta": "探索市场",
+  "sectionTitle": "无需先看懂复杂图表，也能开始观察市场。",
+  "sectionLead": "CriptoVersus 将真实价格波动转化为直观、易于对比的视觉动态。",
+  "pillar1Title": "适合初识市场者", "pillar1Body": "减少专业术语门槛，直观感受资产动态。",
+  "pillar2Title": "适合长期关注者", "pillar2Body": "以清爽视角观察资产之间的相对强弱与节奏。",
+  "pillar3Title": "清晰克制，不做虚假承诺", "pillar3Body": "不构成价格预测、投资建议或收益承诺。",
+  "rawLabel": "零散的技术指标", "visualLabel": "市场动态的视觉化呈现",
+  "statesGroupLabel": "节奏示例切换", "visualFootnote": "仅为视觉呈现示例，实际数据随真实市场变化。",
+  "states": [
+    { "label": "均衡", "leftShare": 52, "rightShare": 48, "reading": "双方走势相近，尚未形成明显偏向。" },
+    { "label": "加速", "leftShare": 68, "rightShare": 32, "reading": "近期波动使视觉重心倾向一侧。" },
+    { "label": "转向", "leftShare": 39, "rightShare": 61, "reading": "新的波动趋势改变双方的相对强弱。" }
+  ]
+}

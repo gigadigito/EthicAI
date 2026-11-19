@@ -1,4 +1,5 @@
 @page "/landing"
+@page "/{culture}/landing"
 @layout CriptoVersus.Web.Components.Layout.BlankLayout
 @using CriptoVersus.Web.Components.Shared
 @using CriptoVersus.Web.Services
@@ -7,16 +8,31 @@
 @inject AppCultureService AppCulture
 @inject NavigationManager Nav
 @inject RouteLocalizationService RouteLocalization
+@inject LocalizationService L
+@inject IConfiguration Config
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
 <PageTitle>@CurrentCopy.PageTitle</PageTitle>
 <HeadContent>
     <meta name="description" content="@CurrentCopy.Subtitle" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
+    <meta property="og:title" content="@CurrentCopy.PageTitle" />
+    <meta property="og:description" content="@CurrentCopy.Subtitle" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="@SocialImageUrl" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@CurrentCopy.PageTitle" />
+    <meta name="twitter:description" content="@CurrentCopy.Subtitle" />
+    <meta name="twitter:image" content="@SocialImageUrl" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" />
 </HeadContent>
+
+<LocalizedSeoAlternates />
 
 <main @ref="_pageRef" class="landing-page">
     <section class="landing-hero" aria-labelledby="landing-hero-title">
@@ -60,7 +76,7 @@
         <div class="landing-hero__sub">
             <p class="landing-hero__subtitle">@CurrentCopy.Subtitle</p>
             <div class="landing-hero__actions">
-                <a class="landing-hero__cta" href="@HomeHref">
+                <a class="landing-hero__cta" href="@HomeHref" onclick="CvAnalytics.trackLandingExploreClick('@CurrentCulture')">
                     <span>@CurrentCopy.Cta</span>
                     <svg class="landing-hero__cta-icon"
                          viewBox="0 0 20 20"
@@ -235,7 +251,7 @@
         }
     }
 
-    private static readonly IReadOnlyDictionary<string, HeroCopy> LocalizedCopy =
+    private static readonly IReadOnlyDictionary<string, HeroCopy> LegacyCopy =
         new Dictionary<string, HeroCopy>(StringComparer.OrdinalIgnoreCase)
         {
             ["pt"] = new(
@@ -483,12 +499,14 @@
                 })
         };
 
-    private string CurrentCulture => AppCulture.ResolveNavigationCulture(Nav, HttpContextAccessor.HttpContext);
+    [Parameter] public string? Culture { get; set; }
+
+    private string CurrentCulture => AppCulture.NormalizeRouteCulture(Culture
+        ?? AppCulture.ResolveNavigationCulture(Nav, HttpContextAccessor.HttpContext));
 
     private HeroCopy CurrentCopy =>
-        LocalizedCopy.TryGetValue(CurrentCulture, out var copy)
-            ? copy
-            : LocalizedCopy[AppCultureService.DefaultRouteCulture];
+        L.GetSection<HeroCopy>("landing", CurrentCulture)
+        ?? LegacyCopy[AppCultureService.DefaultRouteCulture];
 
     private IReadOnlyList<VisualState> CurrentStates => CurrentCopy.States;
 
@@ -498,4 +516,12 @@
     private string HomeHref => RouteLocalization.BuildHomePath(CurrentCulture);
 
     private string AboutHref => RouteLocalization.BuildAboutPath(CurrentCulture);
+
+    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildLandingPath(CurrentCulture));
+
+    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildLandingPath(AppCultureService.DefaultRouteCulture));
+
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
+
+   
 }

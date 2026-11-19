@@ -1,0 +1,19 @@
+{
+  "pageTitle": "CriptoVersus — O mercado cripto, sem complicação",
+  "navLabel": "Navegação principal", "navHome": "Home", "navAbout": "Sobre",
+  "titleLine1": "O mercado cripto,", "titleLine2": "sem complicação.",
+  "subtitle": "Acompanhe movimentos reais das criptomoedas de um jeito visual e intuitivo.",
+  "cta": "Explorar o mercado",
+  "sectionTitle": "Você não precisa decifrar o gráfico para acompanhar o mercado.",
+  "sectionLead": "O CriptoVersus traduz oscilações reais das criptomoedas em movimentos visuais fáceis de comparar.",
+  "pillar1Title": "Para quem está começando", "pillar1Body": "Primeiro contato sem barreiras de jargão.",
+  "pillar2Title": "Para quem já acompanha", "pillar2Body": "Uma perspectiva visual mais limpa sobre força e ritmo entre criptomoedas.",
+  "pillar3Title": "Leitura honesta, sem promessas", "pillar3Body": "A experiência não oferece previsão de preços, recomendação ou retorno garantido.",
+  "rawLabel": "Leitura técnica fragmentada", "visualLabel": "Tradução visual do movimento",
+  "statesGroupLabel": "Exemplos ilustrativos de ritmo de mercado", "visualFootnote": "Exemplo ilustrativo de leitura visual. Os dados reais variam conforme o mercado.",
+  "states": [
+    { "label": "Equilíbrio", "leftShare": 52, "rightShare": 48, "reading": "Forças próximas: os dois ativos avançam em ritmo parecido." },
+    { "label": "Aceleração", "leftShare": 68, "rightShare": 32, "reading": "A variação recente puxa a leitura visual para um dos lados." },
+    { "label": "Virada", "leftShare": 39, "rightShare": 61, "reading": "O movimento recente inverte a predominância." }
+  ]
+}

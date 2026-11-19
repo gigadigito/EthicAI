@@ -64,7 +64,7 @@ else
         <header class="app-topbar">
             <div>
                 <span class="topbar-eyebrow">@L.T("layout.topbar.eyebrow", CurrentCulture)</span>
-                <h1>@L.T("layout.topbar.title", CurrentCulture)</h1>
+                <div class="topbar-title">@L.T("layout.topbar.title", CurrentCulture)</div>
             </div>
 
             <div class="topbar-tools">
@@ -593,7 +593,7 @@ else
 
         if (!IsKnownCulture(segments[0]))
         {
-            return path is "/" or "/roadmap" or "/faq" or "/about"
+            return path is "/" or "/roadmap" or "/faq" or "/about" or "/stats" or "/tv" or "/token"
                 or "/scoring-rules" or "/risk-disclaimer" or "/tokenomics"
                 or "/how-it-works" or "/tokenomics"
                 || path.StartsWith("/match/", StringComparison.Ordinal)
@@ -605,10 +605,18 @@ else
 
         var second = segments[1];
         if (second is "roadmap" or "faq" or "about" or "scoring-rules" or "risk-disclaimer"
-            or "como-funciona" or "how-it-works" or "tokenomics")
+            or "como-funciona" or "how-it-works" or "tokenomics" or "stats" or "estatisticas"
+            or "token" or "tv")
             return true;
 
         if (segments.Length >= 3 && second is "match" or "partida" && int.TryParse(segments[2], out _))
+            return true;
+
+        if (segments.Length >= 4 && second == "tv" && (segments[2] is "match" or "candle" or "pressure" or "whale-ocean")
+            && int.TryParse(segments[3], out _))
+            return true;
+
+        if (segments.Length >= 4 && second == "candle" && int.TryParse(segments[2], out _))
             return true;
 
         return false;

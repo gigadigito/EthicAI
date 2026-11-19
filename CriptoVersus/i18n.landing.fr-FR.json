@@ -1,0 +1,18 @@
+{
+  "pageTitle": "CriptoVersus — Le marché crypto, sans complication",
+  "navLabel": "Navigation principale", "navHome": "Accueil", "navAbout": "À propos",
+  "titleLine1": "Le marché crypto,", "titleLine2": "sans complication.",
+  "subtitle": "Suivez les mouvements réels des cryptomonnaies de manière visuelle et intuitive.", "cta": "Explorer le marché",
+  "sectionTitle": "Pas besoin de décoder des graphiques complexes pour suivre le marché.",
+  "sectionLead": "CriptoVersus traduit les variations réelles en mouvements visuels faciles à comparer.",
+  "pillar1Title": "Pour débuter", "pillar1Body": "Un premier contact lisible sans jargon obligatoire.",
+  "pillar2Title": "Pour les initiés", "pillar2Body": "Un regard épuré sur la force relative et le rythme entre actifs.",
+  "pillar3Title": "Une lecture honnête", "pillar3Body": "Ce n'est ni une prédiction ni un conseil financier.",
+  "rawLabel": "Lecture technique fragmentée", "visualLabel": "Traduction visuelle du mouvement",
+  "statesGroupLabel": "Exemples illustratifs de rythme", "visualFootnote": "Exemple visuel illustratif. Les lectures réelles suivent le marché.",
+  "states": [
+    { "label": "Équilibre", "leftShare": 52, "rightShare": 48, "reading": "Les deux actifs évoluent à un rythme comparable." },
+    { "label": "Accélération", "leftShare": 68, "rightShare": 32, "reading": "La variation récente attire la lecture vers un côté." },
+    { "label": "Bascule", "leftShare": 39, "rightShare": 61, "reading": "Le mouvement récent inverse la tendance visuelle." }
+  ]
+}

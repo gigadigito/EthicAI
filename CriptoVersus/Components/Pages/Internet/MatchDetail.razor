@@ -119,7 +119,7 @@
 
 
 
-        @if (_showCommunityMatchFloatingCard)
+        @if (!IsPreview && _showCommunityMatchFloatingCard)
         {
             <aside class="community-match-floating @(_communityMatchCardExpanded ? "is-expanded" : null)"
                    role="complementary"
@@ -337,6 +337,7 @@
                                                  RightColor="#00D5DF"
                                                  RightPoints="@RightPriceBattlePoints"
                                                  RightHasPriceHistory="@RightPriceBattleHasHistory"
+                                                 IsDataLoading="@IsPreviewLoading"
                                                  Competitiveness="@ResolvePriceBattleCompetitiveness()"
                                                  BroadcastFocusLabel="@GetPresentationStatusText(_match)"
                                                  BroadcastRotationRemaining="@_remainingLive"
@@ -436,15 +437,18 @@
             </div>
         </section>
 
-        <MatchInvestmentModal @ref="_investmentModal"
-                              Culture="@CurrentCulture"
-                              ShowDebugPanel="true"
-                              InvestmentCompleted="@HandleInvestmentCompletedAsync" />
+        @if (!IsPreview)
+        {
+            <MatchInvestmentModal @ref="_investmentModal"
+                                  Culture="@CurrentCulture"
+                                  ShowDebugPanel="true"
+                                  InvestmentCompleted="@HandleInvestmentCompletedAsync" />
 
-        <MatchAlertModal @ref="_alertModal"
-                         MatchId="@_match.MatchId"
-                         Culture="@CurrentCulture"
-                         AlertStateChanged="HandleAlertStateChanged" />
+            <MatchAlertModal @ref="_alertModal"
+                             MatchId="@_match.MatchId"
+                             Culture="@CurrentCulture"
+                             AlertStateChanged="HandleAlertStateChanged" />
+        }
 
         <!-- =========================
              TECH PANEL + ACTIONS
@@ -4839,6 +4843,7 @@
     [Parameter] public string? SlugB { get; set; }
     [Parameter] public int? MatchId { get; set; }
     [Parameter] public bool EmitPageTitle { get; set; } = true;
+    [Parameter] public IMatchPreviewDataSource? PreviewDataSource { get; set; }
 
     private bool _loading = true;
     private bool _initialLoadCompleted;
@@ -4861,6 +4866,9 @@
     private int _alertAssetCurrencyId;
     private string AlertButtonLabel => _matchAlertsActive ? T("matchAlertsActive") : T("configureMatchAlerts");
     private string AlertIconClass => _matchAlertsActive ? "bi bi-bell-fill" : "bi bi-bell";
+    private bool IsPreview => PreviewDataSource is not null;
+    private bool IsPreviewLoading => IsPreview
+        && string.Equals(PreviewDataSource!.State, "loading", StringComparison.OrdinalIgnoreCase);
     private string GetFinalCardHeadline(MatchDto match)
     {
         var winnerTeamId = GetEffectiveWinnerTeamId(match);
@@ -4895,6 +4903,13 @@
         var baseSymbol = GetBaseSymbol(pair);
         if (string.IsNullOrWhiteSpace(baseSymbol))
             return string.Empty;
+
+        if (IsPreview)
+        {
+            var fill = baseSymbol.Equals("BTC", StringComparison.OrdinalIgnoreCase) ? "%23f7931a" : "%236277ff";
+            var label = Uri.EscapeDataString(baseSymbol[..Math.Min(3, baseSymbol.Length)]);
+            return $"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='{fill}'/%3E%3Ctext x='32' y='39' text-anchor='middle' font-family='Arial' font-size='22' font-weight='700' fill='white'%3E{label}%3C/text%3E%3C/svg%3E";
+        }
 
         return CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildBinanceIconUrl(baseSymbol);
     }
@@ -4993,7 +5008,8 @@
             try
             {
                 await BrowserTimeZone.EnsureInitializedAsync();
-                await HubClient.EnsureStartedAsync();
+                if (!IsPreview)
+                    await HubClient.EnsureStartedAsync();
             }
             catch (Exception ex) when (CriptoVersus.Web.Services.InteropSafety.IsDeferredInteropException(ex))
             {
@@ -5240,31 +5256,35 @@
 
             await StartOrRestartMatchClockAsync();
 
-            try
+            if (!IsPreview)
             {
-                await JS.InvokeVoidAsync("CvAnalytics.trackMatchView",
-                    _match.MatchId,
-                    _match.TeamA ?? "",
-                    _match.TeamB ?? "",
-                    _match.Status ?? "",
-                    CurrentCulture,
-                    "direct");
-            }
-            catch { }
+                try
+                {
+                    await JS.InvokeVoidAsync("CvAnalytics.trackMatchView",
+                        _match.MatchId,
+                        _match.TeamA ?? "",
+                        _match.TeamB ?? "",
+                        _match.Status ?? "",
+                        CurrentCulture,
+                        "direct");
+                }
+                catch { }
 
-            try
-            {
-                await JS.InvokeVoidAsync("CvFollowedMatches.addRecent",
-                    _match.MatchId,
-                    _match.TeamA ?? "",
-                    _match.TeamB ?? "",
-                    _match.ScoreA,
-                    _match.ScoreB,
-                    _match.Status ?? "");
+                try
+                {
+                    await JS.InvokeVoidAsync("CvFollowedMatches.addRecent",
+                        _match.MatchId,
+                        _match.TeamA ?? "",
+                        _match.TeamB ?? "",
+                        _match.ScoreA,
+                        _match.ScoreB,
+                        _match.Status ?? "");
+                }
+                catch { }
             }
-            catch { }
 
-            await CheckFollowStateAsync();
+            if (!IsPreview)
+                await CheckFollowStateAsync();
 
             _loadedRouteKey = routeKey;
             _failedRouteKey = string.Empty;
@@ -5333,10 +5353,7 @@
         _lastAppliedScoreVersion = -1;
         _clockGeneration = 0;
 
-        _reloadCts?.Cancel();
-        _reloadCts?.Dispose();
-        _reloadCts = null;
-        _reloadSeq++;
+        CancelReload();
 
         StopClock();
         StopLocalClock();
@@ -5700,7 +5717,7 @@
         var url = Nav.Uri;
         await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
 
-        if (_match is not null)
+        if (!IsPreview && _match is not null)
         {
             try
             {
@@ -5727,7 +5744,7 @@
                 _match.TeamA ?? "",
                 _match.TeamB ?? "");
 
-            if (_isFollowed)
+            if (!IsPreview && _isFollowed)
             {
                 await JS.InvokeVoidAsync("CvAnalytics.trackMatchFollow",
                     _match.MatchId,
@@ -5755,6 +5772,7 @@
 
     private async Task OpenAlertModal()
     {
+        if (IsPreview) return;
         _alertAssetSymbol = null;
         _alertAssetCurrencyId = 0;
 
@@ -5768,6 +5786,7 @@
 
     private async Task OpenAlertModalTeamA()
     {
+        if (IsPreview) return;
         _alertAssetSymbol = _match?.TeamA;
         _alertAssetCurrencyId = _match?.CurrencyIdA ?? 0;
 
@@ -5781,6 +5800,7 @@
 
     private async Task OpenAlertModalTeamB()
     {
+        if (IsPreview) return;
         _alertAssetSymbol = _match?.TeamB;
         _alertAssetCurrencyId = _match?.CurrencyIdB ?? 0;
 
@@ -5805,7 +5825,7 @@
 
     private Task OpenInvestmentAmountModalAsync(int teamId, string teamName)
     {
-        if (_match is null || _investmentModal is null)
+        if (IsPreview || _match is null || _investmentModal is null)
             return Task.CompletedTask;
 
         var side = teamId == _match.TeamAId
@@ -5841,7 +5861,7 @@
         => _investmentModal?.IsSending == true && _pendingPickTeamId == teamId;
 
     private bool CanBetOnCurrentMatch()
-        => PublicInvestmentRules.IsBettingWindowOpen(_match);
+        => !IsPreview && PublicInvestmentRules.IsBettingWindowOpen(_match);
 
     private PeriodicTimer? _timer;
     private CancellationTokenSource? _tickCts;
@@ -5855,6 +5875,7 @@
     private bool _hubWired;
     private CancellationTokenSource? _reloadCts;
     private int _reloadSeq;
+    private int _isDisposed;
     private int _clockGeneration;
     private DateTime _lastAutoReloadUtc = DateTime.MinValue;
     private string _lastMetricHistoryLogKey = string.Empty;
@@ -5865,6 +5886,12 @@
 
     protected override void OnInitialized()
     {
+        if (IsPreview)
+        {
+            PreviewDataSource!.Changed += OnPreviewChanged;
+            return;
+        }
+
         if (!_hubWired)
         {
             _hubWired = true;
@@ -5877,17 +5904,33 @@
         DebouncedReload();
     }
 
+    private void OnPreviewChanged()
+    {
+        DebouncedReload(TimeSpan.FromMilliseconds(20));
+    }
+
     private void DebouncedReload()
         => DebouncedReload(TimeSpan.FromMilliseconds(300));
 
     private void DebouncedReload(TimeSpan delay)
     {
-        _reloadCts?.Cancel();
-        _reloadCts?.Dispose();
-        _reloadCts = new CancellationTokenSource();
+        if (Volatile.Read(ref _isDisposed) != 0)
+            return;
 
-        var localSeq = ++_reloadSeq;
-        var ct = _reloadCts.Token;
+        var reloadCts = new CancellationTokenSource();
+        var ct = reloadCts.Token;
+        var previousCts = Interlocked.Exchange(ref _reloadCts, reloadCts);
+        Cancel(previousCts);
+
+        if (Volatile.Read(ref _isDisposed) != 0)
+        {
+            Interlocked.CompareExchange(ref _reloadCts, null, reloadCts);
+            Cancel(reloadCts);
+            reloadCts.Dispose();
+            return;
+        }
+
+        var localSeq = Interlocked.Increment(ref _reloadSeq);
 
         _ = Task.Run(async () =>
         {
@@ -5900,7 +5943,26 @@
                 await ReloadMatchAsync(ct);
             }
             catch (OperationCanceledException) { }
+            finally
+            {
+                try { reloadCts.Dispose(); } catch (ObjectDisposedException) { }
+            }
         });
+    }
+
+    private void CancelReload()
+    {
+        Interlocked.Increment(ref _reloadSeq);
+        Cancel(Interlocked.Exchange(ref _reloadCts, null));
+    }
+
+    private static void Cancel(CancellationTokenSource? cancellation)
+    {
+        if (cancellation is null)
+            return;
+
+        try { cancellation.Cancel(); }
+        catch (ObjectDisposedException) { }
     }
 
     private async Task ReloadMatchAsync(CancellationToken ct)
@@ -5972,6 +6034,8 @@
                 || previousBettingCloseTime != updated.BettingCloseTime;
 
             _match = updated;
+            if (IsPreview)
+                _error = null;
             _lastAppliedScoreVersion = updated.ScoreVersion;
             _title = $"{GetMatchTitleSymbol(_match.TeamA)} vs {GetMatchTitleSymbol(_match.TeamB)}";
 
@@ -6027,11 +6091,19 @@
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "MATCH_RELOAD_ERROR MatchId={MatchId} PreviousStatus={PreviousStatus} UtcNow={UtcNow:o} ThreadId={ThreadId}", previousMatch.MatchId, previousStatus, DateTime.UtcNow, Environment.CurrentManagedThreadId);
+            if (IsPreview)
+            {
+                _error = "load-failed";
+                await InvokeAsync(StateHasChanged);
+            }
         }
     }
 
     private async Task<MatchDto?> LoadRequestedMatchAsync(CancellationToken ct)
     {
+        if (PreviewDataSource is not null)
+            return await PreviewDataSource.GetMatchAsync(ct);
+
         if (MatchId is int requestedId && requestedId > 0)
             return await Api.GetMatchByIdAsync(requestedId, ct);
 
@@ -6055,8 +6127,10 @@
             DateTime.UtcNow,
             Environment.CurrentManagedThreadId);
 
-        _tickCts = new CancellationTokenSource();
-        _timer = new PeriodicTimer(TimeSpan.FromMilliseconds(250));
+        var tickCts = new CancellationTokenSource();
+        var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(250));
+        _tickCts = tickCts;
+        _timer = timer;
 
         _ = Task.Run(async () =>
         {
@@ -6064,7 +6138,7 @@
 
             try
             {
-                while (_timer is not null && await _timer.WaitForNextTickAsync(_tickCts.Token))
+                while (await timer.WaitForNextTickAsync(tickCts.Token))
                 {
                     iteration++;
                     Logger.LogInformation(
@@ -6083,7 +6157,7 @@
                     await InvokeAsync(StateHasChanged);
                 }
             }
-            catch (OperationCanceledException) when (_tickCts?.IsCancellationRequested == true)
+            catch (OperationCanceledException)
             {
                 Logger.LogInformation(
                     "CLOCK_LOOP_CANCELLED MatchId={MatchId} ClockGeneration={ClockGeneration} UtcNow={UtcNow:o} ThreadId={ThreadId}",
@@ -6156,6 +6230,7 @@
 
     public void Dispose()
     {
+        Interlocked.Exchange(ref _isDisposed, 1);
         StopClock();
         StopLocalClock();
 
@@ -6165,9 +6240,10 @@
             _hubWired = false;
         }
 
-        _reloadCts?.Cancel();
-        _reloadCts?.Dispose();
-        _reloadCts = null;
+        if (PreviewDataSource is not null)
+            PreviewDataSource.Changed -= OnPreviewChanged;
+
+        CancelReload();
     }
 
     public async ValueTask DisposeAsync()
@@ -6252,6 +6328,16 @@
         UpdateClockTexts();
         UpdateLocalClockTexts(DateTime.UtcNow);
 
+        // The preview source owns its simulated clock and publishes one
+        // coherent snapshot per step. Do not start the production wall-clock
+        // timers for that mode; doing so only creates a second clock and can
+        // race with cancellation while a preview update is being applied.
+        if (IsPreview)
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
         if (IsOngoing(match.Status))
         {
             StartClock();
@@ -6269,15 +6355,16 @@
     {
         if (_uiTimer is not null) return;
 
-        _uiCts = new CancellationTokenSource();
-
-        _uiTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
+        var uiCts = new CancellationTokenSource();
+        var uiTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
+        _uiCts = uiCts;
+        _uiTimer = uiTimer;
 
         _ = InvokeAsync(async () =>
         {
             try
             {
-                while (_uiTimer is not null && await _uiTimer.WaitForNextTickAsync(_uiCts.Token))
+                while (await uiTimer.WaitForNextTickAsync(uiCts.Token))
                 {
                     UpdateLocalClockTexts(DateTime.UtcNow);
                     StateHasChanged();
@@ -6381,19 +6468,29 @@
 
         var matchId = _match.MatchId;
         var matchVersion = _match.ScoreVersion;
-        var snapshotsTask = Api.GetMatchMetricSnapshotsAsync(matchId, 500, ct);
-        var scoreEventsTask = Api.GetMatchScoreEventsAsync(matchId, ct);
         _arenaSentimentLoading = _arenaSentimentA is null && _arenaSentimentB is null;
-        var arenaSentimentTask = Api.GetMatchArenaSentimentAsync(matchId, ct);
-
-        await Task.WhenAll(snapshotsTask, scoreEventsTask, arenaSentimentTask);
+        IReadOnlyList<MatchMetricSnapshotDto> snapshots;
+        IReadOnlyList<MatchScoreEventDto> scoreEvents;
+        ArenaSentimentPairDto? arenaSentiment;
+        if (PreviewDataSource is not null)
+        {
+            snapshots = await PreviewDataSource.GetMetricSnapshotsAsync(ct);
+            scoreEvents = await PreviewDataSource.GetScoreEventsAsync(ct);
+            arenaSentiment = await PreviewDataSource.GetArenaSentimentAsync(ct);
+        }
+        else
+        {
+            var snapshotsTask = Api.GetMatchMetricSnapshotsAsync(matchId, 500, ct);
+            var scoreEventsTask = Api.GetMatchScoreEventsAsync(matchId, ct);
+            var arenaSentimentTask = Api.GetMatchArenaSentimentAsync(matchId, ct);
+            await Task.WhenAll(snapshotsTask, scoreEventsTask, arenaSentimentTask);
+            snapshots = snapshotsTask.Result ?? [];
+            scoreEvents = scoreEventsTask.Result ?? [];
+            arenaSentiment = arenaSentimentTask.Result;
+        }
 
         if (_match is null || _match.MatchId != matchId || _match.ScoreVersion != matchVersion)
             return;
-
-        var snapshots = snapshotsTask.Result ?? [];
-        var scoreEvents = scoreEventsTask.Result ?? [];
-        var arenaSentiment = arenaSentimentTask.Result;
 
         var orderedSnapshots = snapshots
             .OrderBy(x => x.CapturedAtUtc)

@@ -175,6 +175,7 @@ Responsibilities:
 - SEO, canonical URLs, sitemaps, redirects, and social images.
 - Futurebol experimental 3D frontend.
 - Whale Ocean 3D market-flow visualization, an independent presentation module for match routes.
+- Development-only Match preview at `/dev/match-preview`, explicitly gated by `MatchPreview:Enabled`. It reuses `MatchDetail` through a scoped in-memory deterministic data source; it does not call the API, Worker, PostgreSQL or SignalR and is rejected outside Development.
 - HTTP client facade for the API.
 - Server-side SignalR client for dashboard invalidation events.
 

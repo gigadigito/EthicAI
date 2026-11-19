@@ -143,7 +143,8 @@ main {
     text-transform: uppercase;
 }
 
-.app-topbar h1 {
+.app-topbar h1,
+.app-topbar .topbar-title {
     color: #f9fafb;
     font-size: 1.25rem;
     font-weight: 800;
@@ -404,6 +405,7 @@ main {
 }
 
 .app-topbar h1,
+.app-topbar .topbar-title,
 .wallet-address {
     color: var(--cv-text-primary);
 }

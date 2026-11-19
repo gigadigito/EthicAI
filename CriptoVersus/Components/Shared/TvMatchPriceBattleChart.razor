@@ -27,7 +27,14 @@
             </div>
         }
 
-        @if (!HasEnoughChartData())
+        @if (IsDataLoading)
+        {
+            <div class="tv-price-battle__empty tv-price-battle__empty--loading">
+                <strong>@LoadingChartTitle()</strong>
+                <small>@LoadingChartDescription()</small>
+            </div>
+        }
+        else if (!HasEnoughChartData())
         {
             <div class="tv-price-battle__empty">
                 <strong>@EmptyChartTitle()</strong>
@@ -171,6 +178,7 @@
     [Parameter] public string RightColor { get; set; } = "#00D5DF";
     [Parameter] public IReadOnlyList<TvPriceChartPoint> RightPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
     [Parameter] public bool RightHasPriceHistory { get; set; }
+    [Parameter] public bool IsDataLoading { get; set; }
 
     [Parameter] public string CombinedChartId { get; set; } = $"tv-price-battle-combined-{Guid.NewGuid():N}";
 

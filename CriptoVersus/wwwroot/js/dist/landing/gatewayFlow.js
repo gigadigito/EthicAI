@@ -78,6 +78,8 @@ export function mountGatewayFlow(container, canvas, options = {}) {
     let rafId = 0;
     let lastTimestamp = 0;
     let destroyed = false;
+    let isDocumentVisible = !document.hidden;
+    let isInViewport = true;
     const reducedMotionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
     const colorSchemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
     const applyContainerVisuals = () => {
@@ -123,6 +125,19 @@ export function mountGatewayFlow(container, canvas, options = {}) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         if (paths.length === 0 || heightChanged) {
             buildPaths();
+        }
+    };
+    const canAnimate = () => !destroyed && !reducedMotionMedia.matches && isDocumentVisible && isInViewport;
+    const stopAnimation = () => {
+        if (rafId) {
+            window.cancelAnimationFrame(rafId);
+            rafId = 0;
+        }
+    };
+    const scheduleFrame = () => {
+        if (canAnimate() && !rafId) {
+            lastTimestamp = 0;
+            rafId = window.requestAnimationFrame(renderFrame);
         }
     };
     const renderFrame = (timestamp) => {
@@ -201,7 +216,7 @@ export function mountGatewayFlow(container, canvas, options = {}) {
                 ctx.fillRect(pos.x - 1.5, pos.y - 1.5, 3, 3);
             }
         }
-        if (!reducedMotionMedia.matches) {
+        if (canAnimate()) {
             rafId = window.requestAnimationFrame(renderFrame);
         }
         else {
@@ -230,17 +245,31 @@ export function mountGatewayFlow(container, canvas, options = {}) {
     };
     const handleReducedMotionChange = () => {
         if (reducedMotionMedia.matches) {
-            if (rafId) {
-                window.cancelAnimationFrame(rafId);
-                rafId = 0;
-            }
+            stopAnimation();
             renderFrame(performance.now());
         }
-        else if (!rafId) {
-            lastTimestamp = 0;
-            rafId = window.requestAnimationFrame(renderFrame);
+        else {
+            scheduleFrame();
         }
     };
+    const handleVisibilityChange = () => {
+        isDocumentVisible = !document.hidden;
+        if (isDocumentVisible) {
+            scheduleFrame();
+        }
+        else {
+            stopAnimation();
+        }
+    };
+    const intersectionObserver = new IntersectionObserver(([entry]) => {
+        isInViewport = entry?.isIntersecting ?? false;
+        if (isInViewport) {
+            scheduleFrame();
+        }
+        else {
+            stopAnimation();
+        }
+    }, { threshold: 0.01 });
     const mutationObserver = new MutationObserver(handleModeChange);
     mutationObserver.observe(document.documentElement, {
         attributes: true,
@@ -248,8 +277,10 @@ export function mountGatewayFlow(container, canvas, options = {}) {
     });
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(container);
+    intersectionObserver.observe(container);
     window.addEventListener("resize", resize);
-    window.addEventListener("click", handleClick);
+    canvas.addEventListener("click", handleClick);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     colorSchemeMedia.addEventListener("change", handleModeChange);
     reducedMotionMedia.addEventListener("change", handleReducedMotionChange);
     applyContainerVisuals();
@@ -258,7 +289,7 @@ export function mountGatewayFlow(container, canvas, options = {}) {
         renderFrame(performance.now());
     }
     else {
-        rafId = window.requestAnimationFrame(renderFrame);
+        scheduleFrame();
     }
     instances.set(container, {
         update(next) {
@@ -272,17 +303,19 @@ export function mountGatewayFlow(container, canvas, options = {}) {
             if (reducedMotionMedia.matches) {
                 renderFrame(performance.now());
             }
+            else {
+                scheduleFrame();
+            }
         },
         destroy() {
             destroyed = true;
-            if (rafId) {
-                window.cancelAnimationFrame(rafId);
-                rafId = 0;
-            }
+            stopAnimation();
             mutationObserver.disconnect();
             resizeObserver.disconnect();
+            intersectionObserver.disconnect();
             window.removeEventListener("resize", resize);
-            window.removeEventListener("click", handleClick);
+            canvas.removeEventListener("click", handleClick);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
             colorSchemeMedia.removeEventListener("change", handleModeChange);
             reducedMotionMedia.removeEventListener("change", handleReducedMotionChange);
             explosions = [];

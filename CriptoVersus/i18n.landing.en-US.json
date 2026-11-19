@@ -1,0 +1,27 @@
+{
+  "pageTitle": "CriptoVersus — Crypto markets, without the noise",
+  "navLabel": "Primary navigation",
+  "navHome": "Home",
+  "navAbout": "About",
+  "titleLine1": "Crypto markets,",
+  "titleLine2": "without the noise.",
+  "subtitle": "Follow real cryptocurrency movements in a clear, visual, and intuitive way.",
+  "cta": "Explore the market",
+  "sectionTitle": "You do not need to decode dense charts to follow the market.",
+  "sectionLead": "CriptoVersus turns real cryptocurrency swings into visual movements that are easy to compare.",
+  "pillar1Title": "For newcomers",
+  "pillar1Body": "A clear first point of contact without jargon barriers.",
+  "pillar2Title": "For active followers",
+  "pillar2Body": "A cleaner visual perspective on relative strength and pace between cryptocurrencies.",
+  "pillar3Title": "Honest framing, no false promises",
+  "pillar3Body": "Visual clarity is not price prediction, financial advice, or guaranteed return.",
+  "rawLabel": "Fragmented technical readout",
+  "visualLabel": "Visual movement translation",
+  "statesGroupLabel": "Illustrative market pace states",
+  "visualFootnote": "Illustrative visual example. Live platform readings follow real market movement.",
+  "states": [
+    { "label": "Balance", "leftShare": 52, "rightShare": 48, "reading": "Close pace: both assets move at a comparable rhythm with no dominant pull." },
+    { "label": "Momentum", "leftShare": 68, "rightShare": 32, "reading": "Recent movement clearly pulls the visual balance to one side." },
+    { "label": "Reversal", "leftShare": 39, "rightShare": 61, "reading": "New movement shifts relative strength to the opposite side." }
+  ]
+}

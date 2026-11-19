@@ -129,8 +129,31 @@ var CvAnalytics = (function () {
         });
     }
 
-    function trackHomeView() {
-        trackEvent('home_view', {});
+    function trackHomeView(source) {
+        trackEvent('home_view', { source: source || consumeLandingEntry() || 'direct' });
+    }
+
+    function trackLandingView(locale) {
+        trackEvent('landing_view', { locale: locale || 'unknown' });
+    }
+
+    function trackLandingExploreClick(locale) {
+        try {
+            sessionStorage.setItem('cv_landing_entry', '1');
+        } catch (e) { }
+
+        trackEvent('landing_explore_click', { locale: locale || 'unknown' });
+    }
+
+    function consumeLandingEntry() {
+        try {
+            if (sessionStorage.getItem('cv_landing_entry') === '1') {
+                sessionStorage.removeItem('cv_landing_entry');
+                return 'landing';
+            }
+        } catch (e) { }
+
+        return null;
     }
 
     function trackPushNotificationClicked(matchId, alertType) {
@@ -161,6 +184,8 @@ var CvAnalytics = (function () {
         trackMatchFollow: trackMatchFollow,
         trackReturnToFollowedMatch: trackReturnToFollowedMatch,
         trackHomeView: trackHomeView,
+        trackLandingView: trackLandingView,
+        trackLandingExploreClick: trackLandingExploreClick,
         trackPushNotificationClicked: trackPushNotificationClicked,
         markAsInternal: markAsInternal
     };

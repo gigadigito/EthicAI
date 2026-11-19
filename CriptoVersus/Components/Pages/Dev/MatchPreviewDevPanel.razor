@@ -1,0 +1,66 @@
+@using CriptoVersus.Web.Services
+@implements IDisposable
+
+<aside class="match-preview-panel" aria-label="Match preview controls">
+    <header>
+        <strong>DEV · SIMULATED DATA</strong>
+        <span>Session-local data. No API, Worker, SignalR or database calls.</span>
+        <button class="match-preview-panel__collapse" type="button" @onclick="ToggleCollapsed" aria-expanded="@(!_collapsed)">@(_collapsed ? "Show controls" : "Hide controls")</button>
+    </header>
+    @if (!_collapsed)
+    {
+        <div class="match-preview-panel__group">
+            <button type="button" @onclick="Toggle">@(Source.IsPlaying ? "Pause" : "Play")</button>
+            <button type="button" @onclick="Restart">Restart</button>
+            <button type="button" @onclick="Advance">Advance event</button>
+            <button type="button" @onclick="ResetSeed">Reset same seed</button>
+            <label>Speed <select value="@Source.Speed" @onchange="SetSpeed"><option value="1">1x</option><option value="2">2x</option><option value="5">5x</option><option value="10">10x</option></select></label>
+        </div>
+        <div class="match-preview-panel__group">
+            <label>Scenario <select value="@Source.Scenario" @onchange="SetScenario">
+                <option value="bull">Market up</option><option value="bear">Market down</option><option value="sideways">Sideways</option>
+                <option value="high-volatility">High volatility</option><option value="low-volatility">Low volatility</option><option value="high-volume">High volume</option>
+                <option value="balanced">Balanced match</option><option value="comeback">Lead reversal</option>
+            </select></label>
+            <label>State <select value="@Source.State" @onchange="SetState">
+                <option value="waiting">Waiting to start</option><option value="active">Active</option><option value="completed">Completed</option>
+                <option value="loading">Loading</option><option value="failure">Simulated failure</option><option value="no-data">No data</option><option value="partial">Partial data</option>
+            </select></label>
+            <label>Seed <input type="number" value="@Source.Seed" @onchange="SetSeed" /></label>
+        </div>
+    }
+</aside>
+
+@code {
+    [Parameter, EditorRequired] public IMatchPreviewDataSource Source { get; set; } = default!;
+    private bool _collapsed;
+
+    protected override void OnInitialized() => Source.Changed += OnSourceChanged;
+
+    private void OnSourceChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void ToggleCollapsed() => _collapsed = !_collapsed;
+    private void Toggle() { if (Source.IsPlaying) Source.Pause(); else Source.Play(); }
+    private void Restart() => Source.Restart();
+    private void Advance() => Source.Advance();
+    private void ResetSeed() => Source.SetSeed(Source.Seed);
+    private void SetSpeed(ChangeEventArgs args) => Source.SetSpeed(int.TryParse(args.Value?.ToString(), out var speed) ? speed : 1);
+    private void SetScenario(ChangeEventArgs args) => Source.SetScenario(args.Value?.ToString() ?? "balanced");
+    private void SetState(ChangeEventArgs args) => Source.SetState(args.Value?.ToString() ?? "active");
+    private void SetSeed(ChangeEventArgs args) => Source.SetSeed(int.TryParse(args.Value?.ToString(), out var seed) ? seed : Source.Seed);
+
+    public void Dispose() => Source.Changed -= OnSourceChanged;
+}
+
+<style>
+    .match-preview-panel { width:min(1600px,calc(100% - 24px)); margin:12px auto; padding:10px 14px; border:1px solid #3d4b5c; border-radius:10px; background:#131c27; color:#d7e0ea; font:13px/1.45 system-ui,sans-serif; }
+    .match-preview-panel header { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+    .match-preview-panel__collapse { margin-left:auto; }
+    .match-preview-panel header strong { padding:2px 8px; border-radius:999px; background:#c1f20f; color:#101722; font-size:11px; letter-spacing:.07em; }
+    .match-preview-panel header span { color:#9fb2c6; }
+    .match-preview-panel__group { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px; }
+    .match-preview-panel button, .match-preview-panel select, .match-preview-panel input { border:1px solid #3b4c60; border-radius:6px; background:#0f1722; color:#e7eef6; padding:4px 8px; font:inherit; }
+    .match-preview-panel button { cursor:pointer; background:#223142; }
+    .match-preview-panel label { display:flex; gap:5px; align-items:center; color:#aebdcb; }
+    @@media (max-width:640px) { .match-preview-panel { width:calc(100% - 16px); } .match-preview-panel label { width:100%; justify-content:space-between; } }
+</style>

@@ -5,7 +5,7 @@
       "title": "Match market",
       "login": "Connect",
       "connectWallet": "Conectar carteira",
-      "language": "Language",
+      "language": "Idioma",
       "english": "English",
       "portuguese": "Português"
     },
@@ -1487,7 +1487,7 @@
     "featuredMatch": "Partida em destaque",
     "criptoversusLiveCryptoMatchArena": "CriptoVersus | Arena de partidas cripto ao vivo",
     "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explore partidas cripto ao vivo, placares públicos, moedas em alta e batalhas de mercado no CriptoVersus com páginas públicas prontas para SEO.",
-    "seoDescription": "CriptoVersus e uma plataforma gamificada de visualizacao de dados de mercado onde sinais publicos de cripto viram simulacoes em estilo futebol para analise educacional.",
+    "seoDescription": "CriptoVersus é uma plataforma gamificada de visualização de dados de mercado onde sinais públicos de cripto viram simulações em estilo futebol para análise educacional.",
     "heroTitle": "Batalhas cripto ao vivo em uma arena visual gamificada.",
     "heroDescription": "Dados públicos de mercado viram batalhas cripto em estilo futebol: os ativos competem, o placar muda e você acompanha a arena ao vivo.",
     "heroSemanticLabel": "Destaques da mec?nica da arena",
@@ -1496,7 +1496,7 @@
     "heroSemantic3": "Assista à arena ou abra a partida",
     "heroSemantic4": "Simulacoes cripto em tempo real com placar gamificado",
     "heroSemantic5": "Analise competitiva da arena baseada em desempenho real de mercado",
-    "marketDataDisclaimer": "O CriptoVersus e uma plataforma gamificada de visualizacao de dados de mercado. Os placares sao gerados a partir de sinais publicos de mercado e nao devem ser interpretados como recomendacao financeira, indicacao de investimento ou garantia de resultado.",
+    "marketDataDisclaimer": "O CriptoVersus é uma plataforma gamificada de visualização de dados de mercado. Os placares são gerados a partir de sinais públicos de mercado e não devem ser interpretados como recomendação financeira, indicação de investimento ou garantia de resultado.",
     "sections": {
       "basics": {
         "eyebrow": "Sobre o CriptoVersus",
@@ -1541,7 +1541,7 @@
     },
     "faqTitle": "FAQ do CriptoVersus",
     "faqSubtitle": "Respostas diretas para buscadores, sistemas de IA e usuarios que querem entender a simulacao educacional e o modelo de placar por tras de cada batalha.",
-    "structuredDataAbstract": "CriptoVersus e uma arena gamificada de visualizacao de dados de mercado com selecao de lado, placar da partida, simulacoes publicas e analise educacional guiada pelo desempenho real de mercado.",
+    "structuredDataAbstract": "CriptoVersus é uma arena gamificada de visualização de dados de mercado com seleção de lado, placar da partida, simulações públicas e análise educacional guiada pelo desempenho real de mercado.",
     "faq": {
       "onlyScoreboard": {
         "question": "O CriptoVersus e apenas um placar de criptomoedas?",
@@ -1569,8 +1569,8 @@
       }
     },
     "liveMatchRealtimeSummary": "Current score {0} x {1}. Price movement and public match signals update in real time.",
-    "featuredMatchScoreSummary": "Match #{0} • score {1} x {2}",
-    "structuredDataDescription": "Simulacao publica de dados de mercado cripto entre {0} e {1} no CriptoVersus."
+    "featuredMatchScoreSummary": "Partida #{0} • placar {1} x {2}",
+    "structuredDataDescription": "Simulação pública de dados de mercado cripto entre {0} e {1} no CriptoVersus."
   },
   "matchDetail": {
     "loadingMatch": "Carregando partida...",

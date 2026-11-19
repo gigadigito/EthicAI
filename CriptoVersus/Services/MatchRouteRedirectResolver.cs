@@ -2,6 +2,13 @@ namespace CriptoVersus.Web.Services;
 
 public sealed class MatchRouteRedirectResolver
 {
+    private readonly LandingEntryOptions _landingEntry;
+
+    public MatchRouteRedirectResolver(Microsoft.Extensions.Options.IOptions<LandingEntryOptions>? landingEntryOptions = null)
+    {
+        _landingEntry = landingEntryOptions?.Value ?? new LandingEntryOptions();
+    }
+
     public async Task<string?> ResolveRedirectPathAsync(
         string path,
         string? queryString,
@@ -16,7 +23,22 @@ public sealed class MatchRouteRedirectResolver
         var cleanPath = path.Split('?', '#')[0];
 
         if (cleanPath == "/")
-            return AppendQueryString(routeLocalization.BuildHomePath(preferredCulture), queryString);
+        {
+            var shouldShowLanding = _landingEntry.Enabled
+                && _landingEntry.ShowToFirstTimeVisitors
+                && !httpContext.Request.Cookies.ContainsKey(LandingEntryOptions.SeenCookieName);
+
+            var targetPath = shouldShowLanding
+                ? routeLocalization.BuildLandingPath(preferredCulture)
+                : routeLocalization.BuildHomePath(preferredCulture);
+
+            return AppendQueryString(targetPath, queryString);
+        }
+
+        // The culture-less entry point selects the visitor's language. Localized landing routes
+        // are first-class pages and intentionally fall through to the component router.
+        if (cleanPath.Equals("/landing", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildLandingPath(preferredCulture), queryString);
 
         if (cleanPath.Equals("/roadmap", StringComparison.OrdinalIgnoreCase))
             return AppendQueryString(routeLocalization.BuildRoadmapPath(preferredCulture), queryString);

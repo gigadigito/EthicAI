@@ -1,0 +1,18 @@
+{
+  "pageTitle": "CriptoVersus — Der Kryptomarkt, klarer gedacht",
+  "navLabel": "Hauptnavigation", "navHome": "Startseite", "navAbout": "Über uns",
+  "titleLine1": "Der Kryptomarkt,", "titleLine2": "ohne Umwege.",
+  "subtitle": "Verfolgen Sie reale Kryptobewegungen auf eine visuelle und intuitive Art.", "cta": "Markt entdecken",
+  "sectionTitle": "Sie müssen keine dichten Charts entschlüsseln, um den Markt zu verfolgen.",
+  "sectionLead": "CriptoVersus übersetzt reale Krypto-Schwankungen in klare, vergleichbare Bewegungen.",
+  "pillar1Title": "Für den Einstieg", "pillar1Body": "Ein verständlicher erster Zugang ohne Fachjargon.",
+  "pillar2Title": "Für Marktkenner", "pillar2Body": "Ein ruhiger visueller Blick auf relative Stärke und Dynamik.",
+  "pillar3Title": "Klare Einordnung", "pillar3Body": "Keine Preisversprechen und keine Anlageberatung.",
+  "rawLabel": "Fragmentierte Rohdaten", "visualLabel": "Visuelle Übersetzung der Bewegung",
+  "statesGroupLabel": "Illustrative Marktphasen", "visualFootnote": "Illustratives Beispiel. Reale Ansichten basieren auf aktuellen Marktbewegungen.",
+  "states": [
+    { "label": "Balance", "leftShare": 52, "rightShare": 48, "reading": "Beide Assets bewegen sich ohne klare Dominanz." },
+    { "label": "Dynamik", "leftShare": 68, "rightShare": 32, "reading": "Die jüngste Bewegung zieht das Gleichgewicht zu einer Seite." },
+    { "label": "Umschwung", "leftShare": 39, "rightShare": 61, "reading": "Neue Impulse kehren die relative Stärke um." }
+  ]
+}

@@ -69,6 +69,8 @@ builder.Services.AddScoped<TokenMarketService>();
 builder.Services.AddScoped<TeamInvestmentContextResolver>();
 builder.Services.Configure<SitemapOptions>(
     builder.Configuration.GetSection(SitemapOptions.SectionName));
+builder.Services.Configure<LandingEntryOptions>(
+    builder.Configuration.GetSection(LandingEntryOptions.SectionName));
 builder.Services.Configure<TvBroadcastOptions>(
     builder.Configuration.GetSection(TvBroadcastOptions.SectionName));
 builder.Services.Configure<FuturebolOptions>(
@@ -79,6 +81,8 @@ builder.Services.Configure<CriptoVersusBlockchainOptions>(
     builder.Configuration.GetSection(CriptoVersusBlockchainOptions.SectionName));
 builder.Services.Configure<CandleBattleMockOptions>(
     builder.Configuration.GetSection(CandleBattleMockOptions.SectionName));
+builder.Services.Configure<MatchPreviewOptions>(
+    builder.Configuration.GetSection(MatchPreviewOptions.SectionName));
 
 // Candle Battle data source composition: the mock is opt-in, Development-only
 // and impossible to enable from any request. Production always gets the real
@@ -96,6 +100,15 @@ builder.Services.AddScoped<ICandleBattleDataSource>(sp => CandleBattleMockOption
         candleBattleMockOptions, sp.GetRequiredService<IHostEnvironment>())
     ? sp.GetRequiredService<MockCandleBattleDataSource>()
     : sp.GetRequiredService<RealCandleBattleDataSource>());
+
+var matchPreviewOptions = builder.Configuration
+    .GetSection(MatchPreviewOptions.SectionName).Get<MatchPreviewOptions>()
+    ?? new MatchPreviewOptions();
+if (matchPreviewOptions.Enabled && !builder.Environment.IsDevelopment())
+    Console.WriteLine("MATCH PREVIEW ignorado: disponivel apenas em Development.");
+builder.Services.AddSingleton(matchPreviewOptions);
+builder.Services.AddScoped<MatchPreviewDataSource>();
+builder.Services.AddScoped<IMatchPreviewDataSource>(sp => sp.GetRequiredService<MatchPreviewDataSource>());
 
 
 builder.Services.AddServerSideBlazor()
@@ -126,13 +139,14 @@ CultureInfo.DefaultThreadCurrentUICulture = defaultCultureInfo;
 
 var mediaContentTypeProvider = CreateMediaContentTypeProvider();
 
-// Candle Battle mock routes (/dev/candle-battle/*) are development tooling:
-// outside Development the path answers 404 before any component runs.
+// Development-only tooling routes are rejected before components run in every
+// non-Development environment. Their individual option gates remain explicit.
 if (!app.Environment.IsDevelopment())
 {
     app.Use(async (context, next) =>
     {
-        if (context.Request.Path.StartsWithSegments("/dev/candle-battle"))
+        if (context.Request.Path.StartsWithSegments("/dev/candle-battle")
+            || context.Request.Path.StartsWithSegments("/dev/match-preview"))
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;
             return;
