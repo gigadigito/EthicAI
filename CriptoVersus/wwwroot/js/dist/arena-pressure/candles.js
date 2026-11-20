@@ -10,6 +10,12 @@ const HAND_OFFSETS_Y = [4, 6, 8, 6, 4, 2, 2, 3];
 const LEFT_TEAM_MAX_X = 300;
 const RIGHT_TEAM_MIN_X = 660;
 export class CandleTeamManager {
+    setCharactersVisible(visible) {
+        for (const candle of [...this.leftCandles, ...this.rightCandles]) {
+            candle.sprite.setVisible(visible);
+            candle.shadow.setVisible(visible);
+        }
+    }
     constructor(scene, reducedMotion = false) {
         this.leftCandles = [];
         this.rightCandles = [];

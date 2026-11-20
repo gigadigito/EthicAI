@@ -3106,6 +3106,16 @@
     "sellPressure": "Pressão Vendedora"
   },
   "arenaPressure": {
+    "remainingTime": "TEMPO RESTANTE",
+    "pending": "AGUARDANDO",
+    "startsAt": "INÍCIO EM",
+    "processing": "PROCESSANDO RESULTADO",
+    "cancelled": "CANCELADA",
+    "leftVictory": "VITÓRIA DO LIMÃO",
+    "rightVictory": "VITÓRIA DO PETRÓLEO",
+    "draw": "EMPATE",
+    "resultPending": "RESULTADO PENDENTE",
+    "endedAt": "ENCERRADA EM",
     "title": "ARENA PRESSURE",
     "leftPressure": "PRESSÃO ESQUERDA",
     "rightPressure": "PRESSÃO DIREITA",

@@ -1,0 +1,162 @@
+@page "/dev/arena-pressure-preview"
+@rendermode InteractiveServer
+@using CriptoVersus.Components.Shared
+@using CriptoVersus.Web.Services
+@using DTOs
+@inject IWebHostEnvironment Environment
+@inject IConfiguration Configuration
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>Arena Pressure DEV Sandbox</PageTitle>
+<HeadContent><meta name="robots" content="noindex,nofollow,noarchive" /></HeadContent>
+
+@if (Allowed)
+{
+    <main class="arena-dev">
+        <div class="arena-dev__preview" style="@PreviewStyle" @ref="_previewElement">
+            <ArenaPressureGameHost @key="_cycleGeneration" PreviewMode="true" PreviewLeftPressure="@Simulator.LeftPercent" PreviewMatch="@PreviewMatch" PreviewNowUtc="@Simulator.NowUtc" Culture="pt-BR" />
+        </div>
+        <details class="arena-dev__panel" open>
+            <summary>Controles DEV</summary>
+            <div class="arena-dev__controls">
+                <button @onclick="TogglePlay">@(_playing ? "Pause" : "Play")</button>
+                <button @onclick="Reset">Reiniciar</button>
+                <button @onclick="Step">Avançar tick</button>
+                <label>Velocidade <select @bind="_speed"><option value="0.25">0.25x</option><option value="0.5">0.5x</option><option value="1">1x</option><option value="2">2x</option><option value="5">5x</option></select></label>
+                <label>Seed <input type="number" @bind="_seed" /></label>
+                <label>Cenário <select @bind="_scenario" @bind:after="Reset"><option>Equilibrado</option><option>BUY dominante</option><option>SELL dominante</option><option>Alta volatilidade</option><option>Baixa atividade</option><option>Reversão BUY → SELL</option><option>Reversão SELL → BUY</option><option>Extremos</option></select></label>
+                <label>Viewport <select @bind="_viewport"><option value="fluid">Fluido</option><option value="1920x1080">Desktop 1920 × 1080</option><option value="1366x768">Notebook 1366 × 768</option><option value="768x1024">Tablet 768 × 1024</option><option value="390x844">Mobile 390 × 844</option><option value="360x640">Mobile compacto 360 × 640</option></select></label>
+                <label><input type="checkbox" @bind="_automatic" /> Movimento automático</label>
+                <label>BUY @Simulator.Buy <input type="range" min="0" max="100" value="@Simulator.Buy" @oninput="SetBuy" /></label>
+                <label>SELL @Simulator.Sell <input type="range" min="0" max="100" value="@Simulator.Sell" @oninput="SetSell" /></label>
+                <label>Intensidade @Simulator.Intensity <input type="range" min="0" max="100" @bind="Simulator.Intensity" @bind:event="oninput" /></label>
+                <label>Volatilidade @Simulator.Volatility <input type="range" min="0" max="100" @bind="Simulator.Volatility" @bind:event="oninput" /></label>
+                <button @onclick="() => Set(50, 50)">Equilíbrio</button>
+                <button @onclick="() => Set(100, 0)">Máximo BUY</button>
+                <button @onclick="() => Set(0, 100)">Máximo SELL</button>
+                <button @onclick="() => Order(true)">Ordem BUY</button>
+                <button @onclick="() => Order(false)">Ordem SELL</button>
+                <button @onclick="() => Order(true, 40)">Sequência BUY</button>
+                <button @onclick="() => Order(false, 40)">Sequência SELL</button>
+                <button @onclick="Reverse">Reversão abrupta</button>
+                <label>Duração (min) <input type="number" min="1" max="1440" value="@Simulator.DurationMinutes" @onchange="SetDuration" /></label>
+                <button @onclick="StartMatch">Iniciar partida</button>
+                <button @onclick="Simulator.Pending">Aguardando início</button>
+                <button @onclick="() => Simulator.Advance(TimeSpan.FromMinutes(1))">Avançar 1 min</button>
+                <button @onclick="() => Simulator.Advance(TimeSpan.FromMinutes(5))">Avançar 5 min</button>
+                <button @onclick="NearEnd">Aproximar encerramento</button>
+                <button @onclick="() => Simulator.Finish(null)">Forçar empate</button>
+                <button @onclick="() => Simulator.Finish(0)">Vitória Limão</button>
+                <button @onclick="() => Simulator.Finish(1)">Vitória Petróleo</button>
+                <button @onclick="Simulator.Cancel">Cancelar</button>
+                <button @onclick="ResetLifecycle">Reiniciar ciclo</button>
+            </div>
+            <output>Tick @Simulator.Tick · Tempo @TimeSpan.FromMilliseconds(Simulator.Tick * ArenaPressurePreviewSimulator.TickMilliseconds).ToString(@"mm\:ss") · @_scenario · Seed @Simulator.Seed · BUY @Simulator.Buy · SELL @Simulator.Sell · Pressão @Simulator.LeftPercent% / @Simulator.RightPercent% · @GaugeState · Área @_width × @_height px<br />@_diagnostics</output>
+        </details>
+    </main>
+}
+
+<style>
+    .arena-dev { min-height:100vh; padding:1rem; background:#07101d; color:#e6edf7; display:grid; align-content:start; gap:1rem; }
+    .arena-dev__preview { width:100%; max-width:100%; margin:auto; resize:horizontal; overflow:auto; }
+    .arena-dev__panel { border:1px solid #43546c; border-radius:10px; padding:1rem; background:#111e30; }
+    .arena-dev__panel summary { cursor:pointer; font-weight:700; }
+    .arena-dev__controls { display:flex; flex-wrap:wrap; align-items:center; gap:.7rem; margin:1rem 0; }
+    .arena-dev__controls label { display:grid; gap:.2rem; font-size:.85rem; }
+    .arena-dev__controls button, .arena-dev__controls select, .arena-dev__controls input { accent-color:#ff9100; background:#182c43; color:#fff; border:1px solid #526780; border-radius:6px; padding:.35rem; }
+    .arena-dev output { display:block; font: .85rem/1.5 ui-monospace,monospace; }
+</style>
+
+@code {
+    private readonly ArenaPressurePreviewSimulator Simulator = new();
+    private readonly CancellationTokenSource _lifetime = new();
+    private Task? _loop;
+    private bool _playing;
+    private int _cycleGeneration;
+    private bool _automatic = true;
+    private int _seed = 20261120;
+    private string _scenario = "Equilibrado";
+    private string _speed = "1";
+    private string _viewport = "fluid";
+    private ElementReference _previewElement;
+    private IJSObjectReference? _measureModule;
+    private int _width;
+    private int _height;
+    private string _diagnostics = "Aguardando canvas";
+    private bool Allowed => Environment.IsDevelopment() && Configuration.GetValue<bool>("ArenaPressure:Preview:Enabled");
+    private string PreviewStyle => _viewport == "fluid" ? "" : $"width:min(100%, {_viewport.Split('x')[0]}px); min-height:{_viewport.Split('x')[1]}px";
+    private string GaugeState => Simulator.LeftPercent > 52 ? "BUY dominante" : Simulator.LeftPercent < 48 ? "SELL dominante" : "Equilibrado";
+    private MatchDto PreviewMatch => new()
+    {
+        MatchId = 0, TeamAId = 1, TeamBId = 2, TeamA = "Limão", TeamB = "Petróleo",
+        Status = Simulator.MatchStatus, StartTime = Simulator.StartUtc.UtcDateTime,
+        ScheduledEndTimeUtc = Simulator.StartUtc.AddMinutes(Simulator.DurationMinutes).UtcDateTime,
+        EndTime = Simulator.EndUtc?.UtcDateTime, WinnerTeamId = Simulator.WinnerSide switch { 0 => 1, 1 => 2, _ => null },
+        ScoreA = Simulator.ScoreA, ScoreB = Simulator.ScoreB
+    };
+    private void SetDuration(ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var minutes)) Simulator.SetDuration(minutes); }
+    private void NearEnd() { Simulator.Advance(Simulator.StartUtc.AddMinutes(Simulator.DurationMinutes) - Simulator.NowUtc - TimeSpan.FromSeconds(10)); Simulator.SetPressure(80, 20); }
+    private void StartMatch() { Simulator.Start(); _cycleGeneration++; }
+    private void ResetLifecycle() { Simulator.ResetLifecycle(); _playing = false; _cycleGeneration++; }
+
+    protected override void OnInitialized() => _loop = RunAsync(_lifetime.Token);
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Allowed)
+            _measureModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/arena-pressure/preview-measure.mjs");
+    }
+    private async Task RunAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(ArenaPressurePreviewSimulator.TickMilliseconds));
+        try
+        {
+            var accumulated = 0d;
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                if (_measureModule is not null)
+                {
+                    try
+                    {
+                        var size = await _measureModule.InvokeAsync<PreviewSize>("measure", ct, _previewElement);
+                        var diagnostics = $"Viewport {size.ViewportWidth} × {size.ViewportHeight} · Lógico 960 × 540 · Palco {size.StageWidth} × {size.StageHeight} · Canvas {size.CanvasWidth} × {size.CanvasHeight} · Escala global {size.GlobalScale:0.###} · Personagens {size.CharacterScale:0.###} · Corda Y {size.RopeY:0.#} · Mão Y {size.HandY:0.#} · Δ {size.HandDelta:0.#}";
+                        if (_diagnostics != diagnostics) { _diagnostics = diagnostics; await InvokeAsync(StateHasChanged); }
+                        if (_width != size.Width || _height != size.Height)
+                        {
+                            _width = size.Width;
+                            _height = size.Height;
+                            if (!_playing || !_automatic) await InvokeAsync(StateHasChanged);
+                        }
+                    }
+                    catch (JSDisconnectedException) { return; }
+                }
+                if (!_playing) continue;
+                Simulator.Advance(TimeSpan.FromMilliseconds(ArenaPressurePreviewSimulator.TickMilliseconds * double.Parse(_speed, System.Globalization.CultureInfo.InvariantCulture)));
+                if (!_automatic) { await InvokeAsync(StateHasChanged); continue; }
+                accumulated += double.Parse(_speed, System.Globalization.CultureInfo.InvariantCulture);
+                while (accumulated >= 1) { Simulator.TickOnce(); accumulated--; }
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+    private void TogglePlay() => _playing = !_playing;
+    private void Reset() { Simulator.Reset(_seed, _scenario); ResetLifecycle(); }
+    private void Step() { Simulator.Advance(TimeSpan.FromMilliseconds(ArenaPressurePreviewSimulator.TickMilliseconds)); Simulator.TickOnce(); }
+    private void Set(int buy, int sell) => Simulator.SetPressure(buy, sell);
+    private void SetBuy(ChangeEventArgs e) => Set(int.Parse(e.Value?.ToString() ?? "50"), Simulator.Sell);
+    private void SetSell(ChangeEventArgs e) => Set(Simulator.Buy, int.Parse(e.Value?.ToString() ?? "50"));
+    private void Order(bool buy, int quantity = 12) => Simulator.Order(buy, quantity);
+    private void Reverse() => Set(Simulator.Sell, Simulator.Buy);
+    private sealed record PreviewSize(int Width, int Height, int StageWidth, int StageHeight, int CanvasWidth, int CanvasHeight, double GlobalScale, double CharacterScale, double HandY, double RopeY, double HandDelta, int ViewportWidth, int ViewportHeight);
+    public async ValueTask DisposeAsync()
+    {
+        _lifetime.Cancel();
+        if (_loop is not null) await _loop;
+        if (_measureModule is not null)
+        {
+            try { await _measureModule.DisposeAsync(); } catch (JSDisconnectedException) { }
+        }
+        _lifetime.Dispose();
+    }
+}

@@ -3107,6 +3107,16 @@
     "sellPressure": "卖方压力"
   },
   "arenaPressure": {
+    "remainingTime": "剩余时间",
+    "pending": "等待中",
+    "startsAt": "开始时间",
+    "processing": "正在处理结果",
+    "cancelled": "已取消",
+    "leftVictory": "柠檬获胜",
+    "rightVictory": "石油获胜",
+    "draw": "平局",
+    "resultPending": "等待结果",
+    "endedAt": "结束时间",
     "title": "ARENA PRESSURE",
     "leftPressure": "左侧压力",
     "rightPressure": "右侧压力",

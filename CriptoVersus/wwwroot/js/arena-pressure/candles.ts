@@ -41,6 +41,13 @@ export class CandleTeamManager {
     private readonly reducedMotion: boolean;
     private previousLeftPressure: number = 50;
 
+    public setCharactersVisible(visible: boolean): void {
+        for (const candle of [...this.leftCandles, ...this.rightCandles]) {
+            candle.sprite.setVisible(visible);
+            candle.shadow.setVisible(visible);
+        }
+    }
+
     constructor(scene: Phaser.Scene, reducedMotion: boolean = false) {
         this.scene = scene;
         this.reducedMotion = reducedMotion;

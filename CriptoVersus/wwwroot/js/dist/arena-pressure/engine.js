@@ -1,6 +1,8 @@
 import { ARENA_COLORS, clampPercent, DEFAULT_LABELS, determineDominance, normalizePressure, resolveHistoryDuration, sampleHistory } from './model.js';
 import { WheelMechanism } from './wheel.js';
 import { CandleTeamManager } from './candles.js';
+import { PressureArt } from './pressure-art.js';
+import { PRESSURE_SPRITE_KEYS } from './pressure-visual.js';
 import { RopeRenderer } from './rope.js';
 import { ArenaPressureHud } from './hud.js';
 import { ArenaParticleSystem } from './particles.js';
@@ -21,6 +23,7 @@ export class ArenaPressureEngine {
         this.leftSymbol = 'LSK';
         this.rightSymbol = 'BMT';
         this.isFinished = false;
+        this.officialResult = null;
         this.isDisposed = false;
         this.playheadSeconds = 0;
         this.playing = true;
@@ -36,6 +39,7 @@ export class ArenaPressureEngine {
         this.leftSymbol = options.leftSymbol || 'LSK';
         this.rightSymbol = options.rightSymbol || 'BMT';
         this.isFinished = Boolean(options.isFinished);
+        this.officialResult = options.officialResult ?? null;
         this.history = Array.isArray(options.history) ? options.history : [];
         this.historyDurationSeconds = resolveHistoryDuration(this.history, options.historyDurationSeconds);
         this.mode = this.history.length > 0 ? 'replay' : 'live';
@@ -80,7 +84,8 @@ export class ArenaPressureEngine {
             scene: {
                 preload() {
                     this.load.on('loaderror', (file) => {
-                        loadFailure = new Error(`arena_pressure_asset_load_failed:${file?.key ?? 'unknown'}`);
+                        if (!file?.key?.startsWith('buy_state_') && !file?.key?.startsWith('sell_state_'))
+                            loadFailure = new Error(`arena_pressure_asset_load_failed:${file?.key ?? 'unknown'}`);
                     });
                     this.load.image('arena-bg', baseUrl + 'arena-background.webp');
                     this.load.spritesheet('orange', baseUrl + 'orange-pull-sheet.png', {
@@ -91,6 +96,9 @@ export class ArenaPressureEngine {
                         frameWidth: 112,
                         frameHeight: 160
                     });
+                    for (const key of PRESSURE_SPRITE_KEYS) {
+                        this.load.image(key, baseUrl + 'pressure-states/runtime/' + key + '.png');
+                    }
                     // Only the Phaser layers the scene actually draws. The replacement
                     // wheel loads its transparent PNG pack into a CanvasTexture so the
                     // pedestal, shell, LEDs, hub and rope caps can move independently.
@@ -114,6 +122,7 @@ export class ArenaPressureEngine {
                         // Fixed mechanism + teams + ropes + effects + HUD
                         self.wheel = new WheelMechanism(this, 480, 277, 410, self.options.spriteBaseUrl || '/games/arena-pressure/sprites/', self.reducedMotion);
                         self.candles = new CandleTeamManager(this, self.reducedMotion);
+                        self.pressureArt = new PressureArt(this, self.candles, self.reducedMotion, self.currentPressure);
                         self.rope = new RopeRenderer(this, 9);
                         self.logos = new TeamLogoRenderer(this, self.leftSymbol, self.rightSymbol);
                         self.particles = new ArenaParticleSystem(this, self.reducedMotion);
@@ -145,16 +154,23 @@ export class ArenaPressureEngine {
                     self.wheel.update(self.currentPressure, self.targetPressure, safeDelta, pressureDelta, self.playing);
                     // 3. Character pull teams
                     self.candles.update(time, self.currentPressure, 100 - self.currentPressure, self.isFinished);
+                    self.pressureArt?.update(time, self.currentPressure, 100 - self.currentPressure);
+                    if (self.options.diagnostics && Math.floor(time / 250) !== Math.floor((time - safeDelta) / 250)) {
+                        const grips = self.pressureArt?.getRopeGripPoints('buy');
+                        self.host.dataset.arenaCharacterScale = String(self.pressureArt?.getCharacterScale('buy') ?? 1);
+                        self.host.dataset.arenaHandY = String(grips?.[0]?.y ?? 0);
+                        self.host.dataset.arenaRopeY = '350';
+                    }
                     self.logos.setSymbols(self.leftSymbol, self.rightSymbol);
                     self.logos.update(time, self.candles.getTeamBadgeAnchor('left'), self.candles.getTeamBadgeAnchor('right'));
                     // 4. Ropes anchored to the fixed wheel cleats and to the moving hands
                     const leftAnchor = self.wheel.getLeftAnchor();
                     const rightAnchor = self.wheel.getRightAnchor();
-                    const leftGrips = self.candles.getRopeGripPoints('left');
-                    const rightGrips = self.candles.getRopeGripPoints('right');
+                    const leftGrips = self.pressureArt?.getRopeGripPoints('buy') ?? self.candles.getRopeGripPoints('left');
+                    const rightGrips = self.pressureArt?.getRopeGripPoints('sell') ?? self.candles.getRopeGripPoints('right');
                     self.rope.render(time, leftAnchor, rightAnchor, leftGrips, rightGrips, self.currentPressure, 100 - self.currentPressure);
                     // 5. HUD (values, dominance, proportion gauge)
-                    self.hud.update(self.currentPressure, dominance, self.leftSymbol, self.rightSymbol, self.isFinished);
+                    self.hud.update(self.currentPressure, dominance, self.leftSymbol, self.rightSymbol, self.isFinished, self.officialResult);
                     // 6. Pooled strain effects
                     self.particles.update(safeDelta);
                     if (self.currentPressure >= 68) {
@@ -223,14 +239,24 @@ export class ArenaPressureEngine {
     }
     /**
      * Updates the target pressure from real Match Arena data. Never re-creates the game.
+     * Once the match is finished the gauge freezes at its last valid state; late
+     * updates can only refine the confirmed official result, never move the pressure
+     * or replace a confirmed winner with an older state.
      */
-    updatePressure(leftPercent, isFinished = false) {
+    updatePressure(leftPercent, isFinished = false, officialResult = null) {
         if (this.isDisposed) {
+            return;
+        }
+        if (this.isFinished) {
+            if (isFinished && officialResult !== null) {
+                this.officialResult = officialResult;
+            }
             return;
         }
         const normalized = normalizePressure(leftPercent, 100 - leftPercent);
         this.targetPressure = normalized.left;
         this.isFinished = isFinished;
+        this.officialResult = officialResult;
     }
     /**
      * Sets dynamic team symbols.
@@ -255,7 +281,7 @@ export class ArenaPressureEngine {
         switch (action) {
             case 'setPressure':
                 if (typeof value === 'number') {
-                    this.updatePressure(value, this.isFinished);
+                    this.updatePressure(value, this.isFinished, this.officialResult);
                 }
                 break;
             case 'play':
@@ -334,12 +360,14 @@ export class ArenaPressureEngine {
         this.logos?.destroy();
         this.rope?.destroy();
         this.candles?.destroy();
+        this.pressureArt?.destroy();
         this.wheel?.destroy();
         this.particles = undefined;
         this.hud = undefined;
         this.logos = undefined;
         this.rope = undefined;
         this.candles = undefined;
+        this.pressureArt = undefined;
         this.wheel = undefined;
         this.scene = undefined;
         if (this.game) {

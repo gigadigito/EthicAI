@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8"><title>Arena Pressure Visual Check</title>
+<style>body{margin:0;background:#07101d;color:white;font:16px sans-serif}#stage{width:min(100vw,960px);height:min(56.25vw,540px);margin:1rem auto}nav{text-align:center}button{padding:1rem;margin:.3rem}</style>
+<div id="stage"></div><nav><button id="balanced">50/50</button><button id="sell">20/80</button><button id="buy">90/10</button></nav>
+<script type="module">
+import {create} from '/js/dist/arena-pressure/engine.20261120a.js';
+import {PRESSURE_SPRITE_KEYS} from '/js/dist/arena-pressure/pressure-visual.20261120a.js';
+const engine = await create(document.getElementById('stage'), { initialLeft:50, initialRight:50, leftSymbol:'BUY', rightSymbol:'SELL' });
+const missing = PRESSURE_SPRITE_KEYS.filter(key => !engine.scene.textures.exists(key));
+document.body.insertAdjacentHTML('beforeend', `<pre>art=${engine.pressureArt?.available}; loaded=${PRESSURE_SPRITE_KEYS.length-missing.length}; missing=${missing.join(',')}; old=${engine.candles.leftCandles[0].sprite.visible}; new=${engine.pressureArt.active.buy?.texture.key}; alpha=${engine.pressureArt.active.buy?.alpha}</pre>`);
+document.getElementById('balanced').onclick=()=>engine.updatePressure(50);
+document.getElementById('sell').onclick=()=>engine.updatePressure(20);
+document.getElementById('buy').onclick=()=>engine.updatePressure(90);
+</script>

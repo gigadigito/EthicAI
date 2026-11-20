@@ -24,6 +24,11 @@ export const DEFAULT_LABELS = {
     balanced: 'BALANCED',
     live: 'LIVE',
     finished: 'FINISHED',
+    leftVictory: 'LEMON WINS',
+    rightVictory: 'OIL WINS',
+    draw: 'DRAW',
+    resultPending: 'RESULT PENDING',
+    cancelled: 'CANCELLED',
     pressureEngine: 'PRESSURE ENGINE'
 };
 /**

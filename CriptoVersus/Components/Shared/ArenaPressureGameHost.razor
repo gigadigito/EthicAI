@@ -21,20 +21,23 @@
             </span>
         </div>
         <div class="arena-pressure__badges">
-            @if (IsFinished)
-            {
-                <span class="arena-pressure__badge arena-pressure__badge--finished">@T("finished")</span>
-            }
-            else
-            {
-                <span class="arena-pressure__badge arena-pressure__badge--live">@T("live")</span>
-            }
             @if (MatchId > 0)
             {
                 <a class="arena-pressure__link" href="@MatchUrl">@T("watchOnTv")</a>
             }
         </div>
     </header>
+
+    <div class="arena-pressure__lifecycle">
+        <strong role="status" aria-live="polite">@T(LifecycleState)</strong>
+        @if (LifecycleState == "live" && ActiveMatch?.ScheduledEndTimeUtc is not null) { <span>@T("remainingTime") @ArenaPressureLifecycle.Clock(ActiveMatch?.ScheduledEndTimeUtc, _clockUtc)</span> }
+        @if (LifecycleState == "pending" && ActiveMatch?.StartTime is { } start) { <span>@T("startsAt") @ArenaPressureLifecycle.Utc(start).ToString("dd/MM/yyyy HH:mm:ss") UTC</span> }
+        @if (LifecycleState == "finished")
+        {
+            <strong class="arena-pressure__result">@T(ArenaPressureLifecycle.Result(ActiveMatch!)) · @ActiveMatch!.ScoreA × @ActiveMatch!.ScoreB</strong>
+            @if (ActiveMatch!.EndTime is { } ended) { <span>@T("endedAt") @ArenaPressureLifecycle.Utc(ended).ToString("dd/MM/yyyy HH:mm:ss") UTC</span> }
+        }
+    </div>
 
     <div class="arena-pressure__stage" @ref="_stage" role="img" aria-label="@T("stageAria")">
         @if (_failed)
@@ -72,9 +75,9 @@
         </div>
     }
 
-    <footer class="arena-pressure__footer" role="status" aria-live="polite">
+    <footer class="arena-pressure__footer">
         <span>@(_hasHistory ? T("historyCaption") : T("liveCaption"))</span>
-        <span>@_status</span>
+        <span>@(_failed ? _status : Scoreline)</span>
     </footer>
 </section>
 
@@ -93,6 +96,8 @@
         flex-wrap: wrap;
         gap: 0.5rem 1rem;
     }
+    .arena-pressure__lifecycle { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:.35rem 1rem; font-size:.82rem; font-variant-numeric:tabular-nums; text-align:center; }
+    .arena-pressure__result { color:#f4c66b; }
 
     .arena-pressure__brand {
         display: flex;
@@ -165,6 +170,9 @@
     .arena-pressure__stage {
         position: relative;
         width: 100%;
+        max-width: min(1440px, calc((100dvh - 12rem) * 16 / 9));
+        margin-inline: auto;
+        box-sizing: border-box;
         aspect-ratio: 16 / 9;
         background: #09111f;
         border: 1px solid rgba(48, 66, 92, 0.85);
@@ -174,8 +182,12 @@
 
     .arena-pressure__stage canvas {
         display: block;
-        width: 100% !important;
-        height: 100% !important;
+    }
+
+    @@media (max-width: 1499px) {
+        .arena-pressure__stage {
+            max-width: min(1440px, calc((100dvh - 18rem) * 16 / 9));
+        }
     }
 
     .arena-pressure__error {
@@ -269,13 +281,18 @@
     [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
     [Parameter] public MatchDto? Match { get; set; }
     [Parameter] public TvHotMatchDto? HotMatch { get; set; }
+    [Parameter] public bool PreviewMode { get; set; }
+    [Parameter] public int PreviewLeftPressure { get; set; } = 50;
+    [Parameter] public MatchDto? PreviewMatch { get; set; }
+    [Parameter] public DateTimeOffset? PreviewNowUtc { get; set; }
 
     private const int LiveRefreshIntervalSeconds = 5;
 
     private static readonly string[] LabelKeys =
     [
         "title", "leftPressure", "rightPressure", "leftDominance", "rightDominance",
-        "balanced", "live", "finished", "pressureEngine"
+        "balanced", "live", "finished", "leftVictory", "rightVictory", "draw",
+        "resultPending", "cancelled", "pressureEngine"
     ];
 
     private ElementReference _stage;
@@ -295,13 +312,57 @@
     private double _matchSpanSeconds;
     private string _speed = "1";
     private string _status = string.Empty;
+    private (int Pressure, string State, string? Result)? _lastPreviewFrame;
+    private DateTimeOffset _clockUtc = DateTimeOffset.UtcNow;
+    private TimeSpan _serverClockOffset;
+    private MatchDto? _clockSource;
+    private Task? _clockLoop;
+    private MatchDto? ActiveMatch => PreviewMode ? PreviewMatch : Match;
+    private string LifecycleState => ActiveMatch is null ? "pending" : ArenaPressureLifecycle.State(ActiveMatch, _clockUtc);
+    private bool IsFinished => ActiveMatch is not null && LifecycleState is "finished" or "cancelled";
+    private string? OfficialResult => LifecycleState switch
+    {
+        "cancelled" => "cancelled",
+        "finished" => ArenaPressureLifecycle.Result(ActiveMatch!) switch
+        {
+            "leftVictory" => "left",
+            "rightVictory" => "right",
+            "draw" => "draw",
+            _ => "pending"
+        },
+        _ => null
+    };
+    private string Scoreline => ActiveMatch is null
+        ? T(LifecycleState)
+        : $"{DisplayLeftSymbol} {ActiveMatch.ScoreA} × {ActiveMatch.ScoreB} {DisplayRightSymbol}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Only fresh match payloads re-seed the server clock offset; a parent
+        // re-render carrying an older payload must not move the countdown.
+        if (!PreviewMode && Match is not null && !ReferenceEquals(Match, _clockSource))
+        {
+            _clockSource = Match;
+            if (Match.ServerTimeUtc is { } serverTime)
+            {
+                _serverClockOffset = serverTime - DateTimeOffset.UtcNow;
+                _clockUtc = DateTimeOffset.UtcNow + _serverClockOffset;
+            }
+        }
+        if (PreviewMode && PreviewNowUtc.HasValue) _clockUtc = PreviewNowUtc.Value;
+        var previewFrame = (PreviewLeftPressure, LifecycleState, OfficialResult);
+        if (PreviewMode && _engine is not null && !_disposed && _lastPreviewFrame != previewFrame)
+        {
+            try { await _engine.InvokeVoidAsync("updatePressure", PreviewLeftPressure, IsFinished, OfficialResult); }
+            catch (JSDisconnectedException) { }
+            _lastPreviewFrame = previewFrame;
+        }
+    }
 
     private string T(string key) => L.T($"arenaPressure.{key}", Culture);
-    private string DisplayLeftSymbol => !string.IsNullOrWhiteSpace(Match?.TeamA) ? Match!.TeamA : (HotMatch?.LeftSymbol ?? "--");
-    private string DisplayRightSymbol => !string.IsNullOrWhiteSpace(Match?.TeamB) ? Match!.TeamB : (HotMatch?.RightSymbol ?? "--");
+    private string DisplayLeftSymbol => PreviewMode ? "BUY" : !string.IsNullOrWhiteSpace(Match?.TeamA) ? Match!.TeamA : (HotMatch?.LeftSymbol ?? "--");
+    private string DisplayRightSymbol => PreviewMode ? "SELL" : !string.IsNullOrWhiteSpace(Match?.TeamB) ? Match!.TeamB : (HotMatch?.RightSymbol ?? "--");
     private string MatchUrl => RouteLocalization.BuildTvMatchPath(Culture, MatchId, MatchSlug());
-    private bool IsFinished => Match is not null
-        && (Match.EndTime is not null || TvProceduralCyclePolicy.IsTerminal(Match.IsFinished, Match.Status));
 
     private string MatchSlug()
         => Match is null
@@ -311,7 +372,12 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
+        {
+            // The countdown runs independently of the Phaser engine so the lifecycle
+            // line stays accurate even when the canvas fails to initialize.
+            _clockLoop ??= RunClockAsync(_lifetime.Token);
             await (_initialization = InitializeAsync());
+        }
     }
 
     private async Task InitializeAsync()
@@ -319,15 +385,17 @@
         var stage = "module_import";
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/arena-pressure/engine.20261106a.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/arena-pressure/engine.20261120e.js");
             if (_disposed) return;
 
             stage = "history_load";
-            var history = await LoadHistoryAsync(_lifetime.Token);
+            var history = PreviewMode ? [] : await LoadHistoryAsync(_lifetime.Token);
             if (_disposed) return;
 
             stage = "engine_initialization";
-            var pair = ArenaPressureSource.GetPair(Match, HotMatch);
+            var pair = PreviewMode
+                ? (Left: Math.Clamp(PreviewLeftPressure, 0, 100), Right: 100 - Math.Clamp(PreviewLeftPressure, 0, 100))
+                : ArenaPressureSource.GetPair(Match, HotMatch);
             _hasHistory = history.Count > 0;
             _matchSpanSeconds = history.Count > 0 ? history[^1].SecondsFromStart : 0;
 
@@ -343,6 +411,7 @@
                 new
                 {
                     baseUrl = "/games/arena-pressure/assets/",
+                    diagnostics = PreviewMode,
                     spriteBaseUrl = "/games/arena-pressure/sprites/",
                     initialLeft = pair.Left,
                     initialRight = pair.Right,
@@ -352,7 +421,8 @@
                     labels = LabelKeys.ToDictionary(k => k, T),
                     reducedMotion = false,
                     isFinished = IsFinished,
-                    isLive = !IsFinished,
+                    isLive = LifecycleState == "live",
+                    officialResult = OfficialResult,
                     history = scaledHistory,
                     historyDurationSeconds = _durationSeconds
                 });
@@ -435,7 +505,10 @@
         try
         {
             while (!_disposed && await timer.WaitForNextTickAsync(ct))
+            {
+                if (IsFinished) return;
                 await InvokeAsync(RefreshPressureAsync);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -508,7 +581,7 @@
                 return;
 
             TvHotMatchDto? hotMatch = HotMatch;
-            if (!match.IsFinished && match.EndTime is null)
+            if (ArenaPressureLifecycle.State(match, DateTimeOffset.UtcNow) == "live")
             {
                 try
                 {
@@ -528,16 +601,19 @@
             }
 
             Match = match;
+            _clockSource = match;
             HotMatch = hotMatch;
+            if (match.ServerTimeUtc is { } serverTime)
+                _serverClockOffset = serverTime - DateTimeOffset.UtcNow;
+            _clockUtc = DateTimeOffset.UtcNow + _serverClockOffset;
 
             var pair = ArenaPressureSource.GetPair(match, hotMatch);
-            await _engine.InvokeVoidAsync("updatePressure", pair.Left, IsFinished);
+            await _engine.InvokeVoidAsync("updatePressure", pair.Left, IsFinished, OfficialResult);
             _status = IsFinished ? T("finished") : T("live");
 
             if (IsFinished)
             {
                 Hub.DashboardChanged -= OnDashboardChanged;
-                _liveLoop = null;
             }
         }
         catch (OperationCanceledException)
@@ -614,6 +690,20 @@
         return $"{total / 60:00}:{total % 60:00}";
     }
 
+    private async Task RunClockAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                if (!PreviewMode) _clockUtc = DateTimeOffset.UtcNow + _serverClockOffset;
+                if (!_disposed) await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
     /// <summary>Real match seconds represented by the current replay playhead.</summary>
     private double MatchSeconds
         => _durationSeconds > 0d ? (_playheadSeconds / _durationSeconds) * _matchSpanSeconds : 0d;
@@ -661,6 +751,10 @@
         if (_transportLoop is not null)
         {
             try { await _transportLoop; } catch (OperationCanceledException) { }
+        }
+        if (_clockLoop is not null)
+        {
+            try { await _clockLoop; } catch (OperationCanceledException) { }
         }
 
         await _refresh.WaitAsync();

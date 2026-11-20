@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { ARENA_COLORS, DEFAULT_LABELS, DominanceKind, formatDisplaySymbol } from './model.js';
+import { ARENA_COLORS, ArenaPressureResult, DEFAULT_LABELS, DominanceKind, formatDisplaySymbol } from './model.js';
 
 export class ArenaPressureHud {
     private readonly scene: Phaser.Scene;
@@ -154,7 +154,8 @@ export class ArenaPressureHud {
         dominance: DominanceKind,
         leftSymbol: string,
         rightSymbol: string,
-        isFinished: boolean = false
+        isFinished: boolean = false,
+        officialResult: ArenaPressureResult = null
     ): void {
         const leftVal = Math.round(currentPressure);
         const rightVal = 100 - leftVal;
@@ -169,15 +170,14 @@ export class ArenaPressureHud {
         let statusString = this.labels.balanced;
         let statusColor = '#ffffff';
         if (isFinished) {
-            // A finished match keeps the real final pressure visible and marks the winner.
-            statusString = dominance === 'balanced'
-                ? this.labels.finished
-                : (dominance === 'left' ? this.labels.leftDominance : this.labels.rightDominance);
-            statusColor = dominance === 'left'
-                ? ARENA_COLORS.leftHex
-                : dominance === 'right'
-                    ? ARENA_COLORS.rightHex
-                    : '#ffffff';
+            statusString = officialResult === 'left' ? this.labels.leftVictory
+                : officialResult === 'right' ? this.labels.rightVictory
+                : officialResult === 'draw' ? this.labels.draw
+                : officialResult === 'pending' ? this.labels.resultPending
+                : officialResult === 'cancelled' ? this.labels.cancelled
+                : this.labels.finished;
+            statusColor = officialResult === 'left' ? ARENA_COLORS.leftHex
+                : officialResult === 'right' ? ARENA_COLORS.rightHex : '#ffffff';
         } else if (dominance === 'left') {
             statusString = this.labels.leftDominance;
             statusColor = ARENA_COLORS.leftHex;

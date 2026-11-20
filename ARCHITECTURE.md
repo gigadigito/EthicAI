@@ -27,6 +27,10 @@ The active and related projects are:
 
 ## High-Level Architecture
 
+### Arena Pressure match lifecycle
+
+The Worker owns match completion. Its `CriptoVersusWorker:MatchDurationMinutes` option defaults to 90 minutes; `Worker.GetMatchDuration()` enforces a positive value. The API's match DTO exposes `ScheduledEndTimeUtc` as `StartTime` plus that configured duration. This is a projected deadline, whereas `EndTime` is the persisted effective UTC completion or cancellation instant. The Web countdown uses the projection and refreshes its display locally each second; existing dashboard events and the five-second recovery refresh fetch authoritative status and pressure. The DEV sandbox supplies the same host component with a simulated match and clock, without API access. Official `WinnerTeamId`, scores, status, and `EndTime` are used for the final presentation; gauge pressure never decides the winner.
+
 ```mermaid
 flowchart LR
     Browser[Browser]

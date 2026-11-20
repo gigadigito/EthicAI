@@ -1,6 +1,8 @@
 import { ARENA_COLORS, clampPercent, DEFAULT_LABELS, determineDominance, normalizePressure, resolveHistoryDuration, sampleHistory } from './model.20261106a.js';
 import { WheelMechanism } from './wheel.20261106a.js';
 import { CandleTeamManager } from './candles.20261106a.js';
+import { PressureArt } from './pressure-art.20261106a.js';
+import { PRESSURE_SPRITE_KEYS } from './pressure-visual.20261106a.js';
 import { RopeRenderer } from './rope.20261106a.js';
 import { ArenaPressureHud } from './hud.20261106a.js';
 import { ArenaParticleSystem } from './particles.20261106a.js';
@@ -80,7 +82,8 @@ export class ArenaPressureEngine {
             scene: {
                 preload() {
                     this.load.on('loaderror', (file) => {
-                        loadFailure = new Error(`arena_pressure_asset_load_failed:${file?.key ?? 'unknown'}`);
+                        if (!file?.key?.startsWith('buy_state_') && !file?.key?.startsWith('sell_state_'))
+                            loadFailure = new Error(`arena_pressure_asset_load_failed:${file?.key ?? 'unknown'}`);
                     });
                     this.load.image('arena-bg', baseUrl + 'arena-background.webp');
                     this.load.spritesheet('orange', baseUrl + 'orange-pull-sheet.png', {
@@ -91,6 +94,9 @@ export class ArenaPressureEngine {
                         frameWidth: 112,
                         frameHeight: 160
                     });
+                    for (const key of PRESSURE_SPRITE_KEYS) {
+                        this.load.image(key, baseUrl + 'pressure-states/runtime/' + key + '.png');
+                    }
                     // Only the Phaser layers the scene actually draws. The replacement
                     // wheel loads its transparent PNG pack into a CanvasTexture so the
                     // pedestal, shell, LEDs, hub and rope caps can move independently.
@@ -114,6 +120,7 @@ export class ArenaPressureEngine {
                         // Fixed mechanism + teams + ropes + effects + HUD
                         self.wheel = new WheelMechanism(this, 480, 277, 410, self.options.spriteBaseUrl || '/games/arena-pressure/sprites/', self.reducedMotion);
                         self.candles = new CandleTeamManager(this, self.reducedMotion);
+                        self.pressureArt = new PressureArt(this, self.candles, self.reducedMotion, self.currentPressure);
                         self.rope = new RopeRenderer(this, 9);
                         self.logos = new TeamLogoRenderer(this, self.leftSymbol, self.rightSymbol);
                         self.particles = new ArenaParticleSystem(this, self.reducedMotion);
@@ -145,6 +152,7 @@ export class ArenaPressureEngine {
                     self.wheel.update(self.currentPressure, self.targetPressure, safeDelta, pressureDelta, self.playing);
                     // 3. Character pull teams
                     self.candles.update(time, self.currentPressure, 100 - self.currentPressure, self.isFinished);
+                    self.pressureArt?.update(time, self.currentPressure, 100 - self.currentPressure);
                     self.logos.setSymbols(self.leftSymbol, self.rightSymbol);
                     self.logos.update(time, self.candles.getTeamBadgeAnchor('left'), self.candles.getTeamBadgeAnchor('right'));
                     // 4. Ropes anchored to the fixed wheel cleats and to the moving hands
@@ -334,12 +342,14 @@ export class ArenaPressureEngine {
         this.logos?.destroy();
         this.rope?.destroy();
         this.candles?.destroy();
+        this.pressureArt?.destroy();
         this.wheel?.destroy();
         this.particles = undefined;
         this.hud = undefined;
         this.logos = undefined;
         this.rope = undefined;
         this.candles = undefined;
+        this.pressureArt = undefined;
         this.wheel = undefined;
         this.scene = undefined;
         if (this.game) {

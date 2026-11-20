@@ -107,7 +107,7 @@ export class ArenaPressureHud {
     /**
      * Updates dynamic HUD values, proportion bar, and dominance banner.
      */
-    update(currentPressure, dominance, leftSymbol, rightSymbol, isFinished = false) {
+    update(currentPressure, dominance, leftSymbol, rightSymbol, isFinished = false, officialResult = null) {
         const leftVal = Math.round(currentPressure);
         const rightVal = 100 - leftVal;
         // Texts
@@ -118,15 +118,14 @@ export class ArenaPressureHud {
         let statusString = this.labels.balanced;
         let statusColor = '#ffffff';
         if (isFinished) {
-            // A finished match keeps the real final pressure visible and marks the winner.
-            statusString = dominance === 'balanced'
-                ? this.labels.finished
-                : (dominance === 'left' ? this.labels.leftDominance : this.labels.rightDominance);
-            statusColor = dominance === 'left'
-                ? ARENA_COLORS.leftHex
-                : dominance === 'right'
-                    ? ARENA_COLORS.rightHex
-                    : '#ffffff';
+            statusString = officialResult === 'left' ? this.labels.leftVictory
+                : officialResult === 'right' ? this.labels.rightVictory
+                    : officialResult === 'draw' ? this.labels.draw
+                        : officialResult === 'pending' ? this.labels.resultPending
+                            : officialResult === 'cancelled' ? this.labels.cancelled
+                                : this.labels.finished;
+            statusColor = officialResult === 'left' ? ARENA_COLORS.leftHex
+                : officialResult === 'right' ? ARENA_COLORS.rightHex : '#ffffff';
         }
         else if (dominance === 'left') {
             statusString = this.labels.leftDominance;

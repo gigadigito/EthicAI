@@ -98,7 +98,7 @@
                href="@_followedMatchCard.MatchUrl"
                @onclick="TrackFollowedMatchReturn"
                @onclick:preventDefault="false">
-                @(_followedMatchCard.IsLive ? T("continue") : T("seeResult"))
+                @(_followedMatchCard.IsLive? T("continue") : T("seeResult"))
             </a>
         </div>
     }
@@ -222,12 +222,15 @@
                                       CandleUrl="@GetCandleTvUrl(hero)"
                                       MatchUrl="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
                                       WhaleUrl="@GetWhaleOceanUrl(hero)"
+                                      PressureUrl="@GetPressureUrl(hero)"
                                       CandleText="@ArenaText("candle")"
                                       MatchText="@ArenaText("match")"
                                       WhaleText="@ArenaText("whale")"
+                                      PressureText="@GetPressureText()"
                                       CandleAriaLabel="@ArenaText("candleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)"
                                       MatchAriaLabel="@ArenaText("matchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)"
-                                      WhaleAriaLabel="@ArenaText("whaleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)" />
+                                      WhaleAriaLabel="@ArenaText("whaleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)"
+                                      PressureAriaLabel="@GetPressureAriaLabel(GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)" />
                 </article>
             }
             else if (HeroFallbackMatch is not null)
@@ -310,12 +313,15 @@
                                       CandleUrl="@GetCandleTvUrl(hero)"
                                       MatchUrl="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
                                       WhaleUrl="@GetWhaleOceanUrl(hero)"
+                                      PressureUrl="@GetPressureUrl(hero)"
                                       CandleText="@ArenaText("candle")"
                                       MatchText="@ArenaText("match")"
                                       WhaleText="@ArenaText("whale")"
+                                      PressureText="@GetPressureText()"
                                       CandleAriaLabel="@ArenaText("candleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)"
                                       MatchAriaLabel="@ArenaText("matchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)"
-                                      WhaleAriaLabel="@ArenaText("whaleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)" />
+                                      WhaleAriaLabel="@ArenaText("whaleAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)"
+                                      PressureAriaLabel="@GetPressureAriaLabel(GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)" />
                 </article>
             }
 
@@ -436,12 +442,15 @@
                                               CandleUrl="@GetCandleTvUrl(match)"
                                               MatchUrl="@GetPublicMatchUrl(match)"
                                               WhaleUrl="@GetWhaleOceanUrl(match)"
+                                              PressureUrl="@GetPressureUrl(match)"
                                               CandleText="@ArenaText("candle")"
                                               MatchText="@ArenaText("match")"
                                               WhaleText="@ArenaText("whale")"
+                                              PressureText="@GetPressureText()"
                                               CandleAriaLabel="@ArenaText("candleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"
                                               MatchAriaLabel="@ArenaText("matchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"
-                                              WhaleAriaLabel="@ArenaText("whaleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)" />
+                                              WhaleAriaLabel="@ArenaText("whaleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"
+                                              PressureAriaLabel="@GetPressureAriaLabel(GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)" />
                         </div>
                     </article>
                 }
@@ -517,12 +526,15 @@
                                           CandleUrl="@GetCandleTvUrl(match)"
                                           MatchUrl="@GetPublicMatchUrl(match)"
                                           WhaleUrl="@GetWhaleOceanUrl(match)"
+                                          PressureUrl="@GetPressureUrl(match)"
                                           CandleText="@ArenaText("candle")"
                                           MatchText="@ArenaText("match")"
                                           WhaleText="@ArenaText("whale")"
+                                          PressureText="@GetPressureText()"
                                           CandleAriaLabel="@ArenaText("candleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"
                                           MatchAriaLabel="@ArenaText("matchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"
-                                          WhaleAriaLabel="@ArenaText("whaleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)" />
+                                          WhaleAriaLabel="@ArenaText("whaleAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"
+                                          PressureAriaLabel="@GetPressureAriaLabel(GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)" />
                     </div>
                 </article>
             }
@@ -860,7 +872,27 @@
             match.MatchId,
             string.IsNullOrWhiteSpace(slug) ? $"match-{match.MatchId}" : slug);
     }
+    private string GetPressureUrl(HotMatchDto match)
+    {
+        var slug = !string.IsNullOrWhiteSpace(match.Slug)
+            ? match.Slug
+            : MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
 
+        return RouteLocalization.BuildArenaPressurePath(
+            CurrentCulture,
+            match.MatchId,
+            string.IsNullOrWhiteSpace(slug) ? $"match-{match.MatchId}" : slug);
+    }
+
+    private string GetPressureUrl(MatchDto match)
+    {
+        var slug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
+
+        return RouteLocalization.BuildArenaPressurePath(
+            CurrentCulture,
+            match.MatchId,
+            string.IsNullOrWhiteSpace(slug) ? $"match-{match.MatchId}" : slug);
+    }
     private MatchDto ToMatchCard(HotMatchDto match)
         => match.MatchSnapshot ?? new MatchDto
         {
@@ -1039,6 +1071,37 @@
 
         return args.Length == 0 ? template : string.Format(template, args);
     }
+    // Usa os recursos i18n quando disponíveis; fallback até as novas chaves serem publicadas.
+    private string GetPressureText()
+    {
+        var localized = L.T("publicHome.arena.pressure", CurrentCulture);
+        return string.IsNullOrWhiteSpace(localized)
+            || string.Equals(localized, "publicHome.arena.pressure", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(localized, "pressure", StringComparison.OrdinalIgnoreCase)
+            ? "Pressure"
+            : localized;
+    }
+
+    private string GetPressureAriaLabel(string teamA, string teamB, int matchId)
+    {
+        var localized = L.T("publicHome.arena.pressureAria", CurrentCulture);
+        var fallback = $"{GetPressureText()}: {teamA} vs {teamB} (#{matchId})";
+
+        if (string.IsNullOrWhiteSpace(localized)
+            || string.Equals(localized, "publicHome.arena.pressureAria", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(localized, "pressureAria", StringComparison.OrdinalIgnoreCase))
+            return fallback;
+
+        try
+        {
+            return string.Format(localized, teamA, teamB, matchId);
+        }
+        catch (FormatException)
+        {
+            return fallback;
+        }
+    }
+
     private string GetMatchStateLabel(MatchDto match)
         => match.IsFinished ? ArenaText("finalResultShort") : ArenaText("liveNow");
 
@@ -1893,9 +1956,9 @@
 }
 
 <style>
-        .public-home-arena img[class*="__logo"] {
-            box-sizing: border-box;
-        }
+    .public-home-arena img[class*="__logo"] {
+        box-sizing: border-box;
+    }
 
     .home-landing {
         width: 100%;
@@ -2481,9 +2544,9 @@
         font-size: 1.2rem;
     }
 
-    .arena-match-grid .arena-scoreboard--card strong {
-        font-size: 1.4rem;
-    }
+        .arena-match-grid .arena-scoreboard--card strong {
+            font-size: 1.4rem;
+        }
 
     .arena-match-grid .arena-vs-badge--compact {
         min-width: 2rem;
@@ -3176,10 +3239,10 @@
             grid-template-columns: 1fr;
         }
 
-        .arena-match-grid .arena-match-card__body {
-            grid-template-columns: 1fr;
-            justify-items: stretch;
-        }
+            .arena-match-grid .arena-match-card__body {
+                grid-template-columns: 1fr;
+                justify-items: stretch;
+            }
 
         .arena-match-card__body {
             grid-template-columns: 1fr;
@@ -3263,9 +3326,9 @@
             font-size: 1.05rem;
         }
 
-        .arena-match-grid .arena-scoreboard--card strong {
-            font-size: 1.2rem;
-        }
+            .arena-match-grid .arena-scoreboard--card strong {
+                font-size: 1.2rem;
+            }
 
         .home-hot-hero__cta-group,
         .arena-featured-battle__actions,
@@ -3408,7 +3471,7 @@
         }
 
     /* O componente também renderiza o modal. Ele precisa usar a viewport inteira,
-               sem herdar largura, altura ou posicionamento do convite flutuante. */
+                   sem herdar largura, altura ou posicionamento do convite flutuante. */
     .community-match-floating > .modal-backdrop,
     .community-match-floating ::deep .modal-backdrop {
         position: fixed !important;
@@ -3603,381 +3666,376 @@
         }
 
         .public-home-arena .home-hero,
-    .public-home-arena .home-section,
-    .public-home-arena .home-anchor-nav {
-        border: 1px solid var(--cv-border);
-        border-radius: 18px;
-        background: var(--cv-bg-dark);
-        box-shadow: 0 18px 48px rgba(0, 0, 0, .2);
-    }
+        .public-home-arena .home-section,
+        .public-home-arena .home-anchor-nav {
+            border: 1px solid var(--cv-border);
+            border-radius: 18px;
+            background: var(--cv-bg-dark);
+            box-shadow: 0 18px 48px rgba(0, 0, 0, .2);
+        }
 
-    .public-home-arena .home-hero {
-        position: relative;
-        grid-template-columns: minmax(0, 1.1fr) minmax(420px, .9fr);
-        gap: clamp(1.5rem, 3vw, 3.5rem);
-        min-height: 430px;
-        padding: clamp(1.5rem, 3vw, 3rem);
-        isolation: isolate;
-    }
+        .public-home-arena .home-hero {
+            position: relative;
+            grid-template-columns: minmax(0, 1.1fr) minmax(420px, .9fr);
+            gap: clamp(1.5rem, 3vw, 3.5rem);
+            min-height: 430px;
+            padding: clamp(1.5rem, 3vw, 3rem);
+            isolation: isolate;
+        }
 
-    .public-home-arena .home-hero::before {
-        position: absolute;
-        z-index: -1;
-        inset: 0;
-        content: "";
-        pointer-events: none;
-        background:
-            linear-gradient(90deg, rgba(195, 254, 12, .06), transparent 32%),
-            repeating-linear-gradient(90deg, transparent 0 39px, rgba(224, 224, 224, .025) 40px),
-            repeating-linear-gradient(0deg, transparent 0 39px, rgba(224, 224, 224, .018) 40px);
-        opacity: .8;
-    }
+            .public-home-arena .home-hero::before {
+                position: absolute;
+                z-index: -1;
+                inset: 0;
+                content: "";
+                pointer-events: none;
+                background: linear-gradient(90deg, rgba(195, 254, 12, .06), transparent 32%), repeating-linear-gradient(90deg, transparent 0 39px, rgba(224, 224, 224, .025) 40px), repeating-linear-gradient(0deg, transparent 0 39px, rgba(224, 224, 224, .018) 40px);
+                opacity: .8;
+            }
 
-    .public-home-arena .home-hero__copy {
-        align-self: center;
-        max-width: 47rem;
-    }
+        .public-home-arena .home-hero__copy {
+            align-self: center;
+            max-width: 47rem;
+        }
 
-    .public-home-arena .home-hero__eyebrow,
-    .public-home-arena .home-section__header h2 {
-        color: var(--cv-accent);
-        font-size: .72rem;
-        font-weight: 700;
-        letter-spacing: .13em;
-    }
+        .public-home-arena .home-hero__eyebrow,
+        .public-home-arena .home-section__header h2 {
+            color: var(--cv-accent);
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .13em;
+        }
 
-    .public-home-arena .home-hero h1 {
-        max-width: 13ch;
-        margin-block: .8rem 1.15rem;
-        color: var(--cv-text-primary);
-        font-size: clamp(2.25rem, 4.2vw, 4.5rem);
-        font-weight: 700;
-        letter-spacing: -.055em;
-        line-height: .98;
-    }
+        .public-home-arena .home-hero h1 {
+            max-width: 13ch;
+            margin-block: .8rem 1.15rem;
+            color: var(--cv-text-primary);
+            font-size: clamp(2.25rem, 4.2vw, 4.5rem);
+            font-weight: 700;
+            letter-spacing: -.055em;
+            line-height: .98;
+        }
 
-    .public-home-arena .home-hero p,
-    .public-home-arena .home-section__header p,
-    .public-home-arena .home-feature-grid p,
-    .public-home-arena .home-coin-card p {
-        color: var(--cv-text-muted);
-        font-size: 1rem;
-        line-height: 1.65;
-    }
+        .public-home-arena .home-hero p,
+        .public-home-arena .home-section__header p,
+        .public-home-arena .home-feature-grid p,
+        .public-home-arena .home-coin-card p {
+            color: var(--cv-text-muted);
+            font-size: 1rem;
+            line-height: 1.65;
+        }
 
-    .public-home-arena .home-hero__semantic-list {
-        gap: .5rem;
-        margin-top: 1.45rem;
-    }
+        .public-home-arena .home-hero__semantic-list {
+            gap: .5rem;
+            margin-top: 1.45rem;
+        }
 
-    .public-home-arena .home-hero__semantic-list li {
-        border-color: rgba(224, 224, 224, .11);
-        border-radius: 8px;
-        background: rgba(224, 224, 224, .035);
-        color: var(--cv-text-neutral);
-        font-size: .78rem;
-        font-weight: 500;
-    }
+            .public-home-arena .home-hero__semantic-list li {
+                border-color: rgba(224, 224, 224, .11);
+                border-radius: 8px;
+                background: rgba(224, 224, 224, .035);
+                color: var(--cv-text-neutral);
+                font-size: .78rem;
+                font-weight: 500;
+            }
 
-    .public-home-arena .home-hero__actions {
-        margin-top: 1.75rem;
-        align-items: center;
-        gap: .9rem;
-    }
+        .public-home-arena .home-hero__actions {
+            margin-top: 1.75rem;
+            align-items: center;
+            gap: .9rem;
+        }
 
-    .public-home-arena .home-cta {
-        min-height: 2.9rem;
-        border-radius: 8px;
-        font-size: .86rem;
-        font-weight: 700;
-        letter-spacing: .01em;
-        transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, color .16s ease, transform .16s ease;
-    }
+        .public-home-arena .home-cta {
+            min-height: 2.9rem;
+            border-radius: 8px;
+            font-size: .86rem;
+            font-weight: 700;
+            letter-spacing: .01em;
+            transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, color .16s ease, transform .16s ease;
+        }
 
-    .public-home-arena .home-cta--secondary {
-        border-color: var(--cv-accent);
-        background: var(--cv-accent);
-        color: #12151e;
-        box-shadow: none;
-    }
+        .public-home-arena .home-cta--secondary {
+            border-color: var(--cv-accent);
+            background: var(--cv-accent);
+            color: #12151e;
+            box-shadow: none;
+        }
 
-    .public-home-arena .home-cta--secondary:hover,
-    .public-home-arena .home-cta--secondary:focus-visible {
-        border-color: var(--cv-accent-alt);
-        background: var(--cv-accent-alt);
-        color: #12151e;
-        box-shadow: 0 8px 20px rgba(195, 254, 12, .13);
-        transform: translateY(-1px);
-    }
+            .public-home-arena .home-cta--secondary:hover,
+            .public-home-arena .home-cta--secondary:focus-visible {
+                border-color: var(--cv-accent-alt);
+                background: var(--cv-accent-alt);
+                color: #12151e;
+                box-shadow: 0 8px 20px rgba(195, 254, 12, .13);
+                transform: translateY(-1px);
+            }
 
-    .public-home-arena .home-cta--tertiary {
-        border-bottom: 0;
-        color: var(--cv-text-primary);
-        text-decoration: underline;
-        text-decoration-color: rgba(195, 254, 12, .55);
-        text-decoration-thickness: 1px;
-        text-underline-offset: .3rem;
-    }
+        .public-home-arena .home-cta--tertiary {
+            border-bottom: 0;
+            color: var(--cv-text-primary);
+            text-decoration: underline;
+            text-decoration-color: rgba(195, 254, 12, .55);
+            text-decoration-thickness: 1px;
+            text-underline-offset: .3rem;
+        }
 
-    .public-home-arena .home-cta--tertiary:hover,
-    .public-home-arena .home-cta--tertiary:focus-visible {
-        color: var(--cv-accent);
-    }
+            .public-home-arena .home-cta--tertiary:hover,
+            .public-home-arena .home-cta--tertiary:focus-visible {
+                color: var(--cv-accent);
+            }
 
-    .public-home-arena :is(a, button):focus-visible {
-        outline: 2px solid var(--cv-accent);
-        outline-offset: 3px;
-    }
+        .public-home-arena :is(a, button):focus-visible {
+            outline: 2px solid var(--cv-accent);
+            outline-offset: 3px;
+        }
 
-    .public-home-arena .home-hero__visual {
-        align-self: center;
-        gap: .85rem;
-    }
+        .public-home-arena .home-hero__visual {
+            align-self: center;
+            gap: .85rem;
+        }
 
-    .public-home-arena .home-hot-hero,
-    .public-home-arena .arena-featured-battle,
-    .public-home-arena .arena-match-card {
-        border-color: rgba(224, 224, 224, .12);
-        border-radius: 14px;
-        background:
-            linear-gradient(135deg, rgba(195, 254, 12, .045), transparent 34%),
-            #202329;
-        box-shadow: none;
-    }
+        .public-home-arena .home-hot-hero,
+        .public-home-arena .arena-featured-battle,
+        .public-home-arena .arena-match-card {
+            border-color: rgba(224, 224, 224, .12);
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(195, 254, 12, .045), transparent 34%), #202329;
+            box-shadow: none;
+        }
 
-    .public-home-arena .home-hot-hero {
-        gap: 1.1rem;
-        padding: clamp(1rem, 2vw, 1.5rem);
-    }
+        .public-home-arena .home-hot-hero {
+            gap: 1.1rem;
+            padding: clamp(1rem, 2vw, 1.5rem);
+        }
 
-    .public-home-arena .home-hot-hero__header,
-    .public-home-arena .arena-match-card__header,
-    .public-home-arena .arena-match-card__footer {
-        padding-bottom: .7rem;
-        border-bottom: 1px solid rgba(224, 224, 224, .09);
-    }
+        .public-home-arena .home-hot-hero__header,
+        .public-home-arena .arena-match-card__header,
+        .public-home-arena .arena-match-card__footer {
+            padding-bottom: .7rem;
+            border-bottom: 1px solid rgba(224, 224, 224, .09);
+        }
 
-    .public-home-arena .arena-chip,
-    .public-home-arena .arena-live-pill,
-    .public-home-arena .arena-vs-badge {
-        border-color: rgba(195, 254, 12, .3);
-        background: rgba(195, 254, 12, .1);
-        color: var(--cv-accent);
-        box-shadow: none;
-    }
+        .public-home-arena .arena-chip,
+        .public-home-arena .arena-live-pill,
+        .public-home-arena .arena-vs-badge {
+            border-color: rgba(195, 254, 12, .3);
+            background: rgba(195, 254, 12, .1);
+            color: var(--cv-accent);
+            box-shadow: none;
+        }
 
-    .public-home-arena .arena-chip--neutral,
-    .public-home-arena .arena-chip--muted {
-        border-color: rgba(224, 224, 224, .14);
-        background: rgba(224, 224, 224, .06);
-        color: var(--cv-text-neutral);
-    }
+        .public-home-arena .arena-chip--neutral,
+        .public-home-arena .arena-chip--muted {
+            border-color: rgba(224, 224, 224, .14);
+            background: rgba(224, 224, 224, .06);
+            color: var(--cv-text-neutral);
+        }
 
-    .public-home-arena .arena-meta,
-    .public-home-arena .arena-status-subtext,
-    .public-home-arena .home-hot-hero__center small {
-        color: var(--cv-text-soft);
-    }
+        .public-home-arena .arena-meta,
+        .public-home-arena .arena-status-subtext,
+        .public-home-arena .home-hot-hero__center small {
+            color: var(--cv-text-soft);
+        }
 
-    .public-home-arena .home-hot-hero__logo,
-    .public-home-arena .arena-match-card__logo,
-    .public-home-arena .arena-featured-battle__logo {
-        border: 1px solid rgba(224, 224, 224, .15) !important;
-        border-radius: 10px;
-        background: #181a1e;
-        box-shadow: none !important;
-    }
+        .public-home-arena .home-hot-hero__logo,
+        .public-home-arena .arena-match-card__logo,
+        .public-home-arena .arena-featured-battle__logo {
+            border: 1px solid rgba(224, 224, 224, .15) !important;
+            border-radius: 10px;
+            background: #181a1e;
+            box-shadow: none !important;
+        }
 
-    .public-home-arena .home-hot-hero__team strong,
-    .public-home-arena .arena-match-card__team-copy strong,
-    .public-home-arena .arena-featured-battle__team strong {
-        color: var(--cv-text-primary);
-        letter-spacing: -.02em;
-    }
+        .public-home-arena .home-hot-hero__team strong,
+        .public-home-arena .arena-match-card__team-copy strong,
+        .public-home-arena .arena-featured-battle__team strong {
+            color: var(--cv-text-primary);
+            letter-spacing: -.02em;
+        }
 
-    .public-home-arena .arena-score-number,
-    .public-home-arena .arena-scoreboard strong {
-        color: var(--cv-text-primary);
-        font-variant-numeric: tabular-nums;
-    }
+        .public-home-arena .arena-score-number,
+        .public-home-arena .arena-scoreboard strong {
+            color: var(--cv-text-primary);
+            font-variant-numeric: tabular-nums;
+        }
 
-    .public-home-arena .arena-energy-bar {
-        border: 1px solid rgba(224, 224, 224, .1);
-        background: #12151e;
-    }
+        .public-home-arena .arena-energy-bar {
+            border: 1px solid rgba(224, 224, 224, .1);
+            background: #12151e;
+        }
 
-    .public-home-arena .arena-energy-bar__side--left {
-        background: #737a82;
-        box-shadow: none;
-    }
+        .public-home-arena .arena-energy-bar__side--left {
+            background: #737a82;
+            box-shadow: none;
+        }
 
-    .public-home-arena .arena-energy-bar__side--right {
-        background: var(--cv-accent);
-        box-shadow: none;
-    }
+        .public-home-arena .arena-energy-bar__side--right {
+            background: var(--cv-accent);
+            box-shadow: none;
+        }
 
-    .public-home-arena .home-hot-hero__metrics article,
-    .public-home-arena .arena-match-card__metric,
-    .public-home-arena .arena-featured-battle__metric {
-        border-color: rgba(224, 224, 224, .09);
-        border-radius: 10px;
-        background: #181a1e;
-    }
+        .public-home-arena .home-hot-hero__metrics article,
+        .public-home-arena .arena-match-card__metric,
+        .public-home-arena .arena-featured-battle__metric {
+            border-color: rgba(224, 224, 224, .09);
+            border-radius: 10px;
+            background: #181a1e;
+        }
 
-    .public-home-arena .home-hot-hero__metrics span,
-    .public-home-arena .arena-match-card__metric span,
-    .public-home-arena .arena-featured-battle__metric span {
-        color: var(--cv-text-soft);
-        font-size: .66rem;
-    }
+            .public-home-arena .home-hot-hero__metrics span,
+            .public-home-arena .arena-match-card__metric span,
+            .public-home-arena .arena-featured-battle__metric span {
+                color: var(--cv-text-soft);
+                font-size: .66rem;
+            }
 
-    .public-home-arena .home-hot-hero__metrics strong,
-    .public-home-arena .arena-match-card__metric strong,
-    .public-home-arena .arena-featured-battle__metric strong {
-        color: var(--cv-text-primary);
-        white-space: nowrap;
-    }
+            .public-home-arena .home-hot-hero__metrics strong,
+            .public-home-arena .arena-match-card__metric strong,
+            .public-home-arena .arena-featured-battle__metric strong {
+                color: var(--cv-text-primary);
+                white-space: nowrap;
+            }
 
-    .public-home-arena .home-hot-hero__cta--primary,
-    .public-home-arena .arena-cta-button,
-    .public-home-arena .arena-cta-link--primary {
-        border-color: var(--cv-accent);
-        background: var(--cv-accent);
-        color: #12151e;
-        box-shadow: none;
-    }
+        .public-home-arena .home-hot-hero__cta--primary,
+        .public-home-arena .arena-cta-button,
+        .public-home-arena .arena-cta-link--primary {
+            border-color: var(--cv-accent);
+            background: var(--cv-accent);
+            color: #12151e;
+            box-shadow: none;
+        }
 
-    .public-home-arena .home-hot-hero__cta--secondary,
-    .public-home-arena .arena-cta-link,
-    .public-home-arena .arena-cta-button--secondary {
-        border-color: rgba(224, 224, 224, .18);
-        background: #2a2c30;
-        color: var(--cv-text-primary);
-        box-shadow: none;
-    }
+        .public-home-arena .home-hot-hero__cta--secondary,
+        .public-home-arena .arena-cta-link,
+        .public-home-arena .arena-cta-button--secondary {
+            border-color: rgba(224, 224, 224, .18);
+            background: #2a2c30;
+            color: var(--cv-text-primary);
+            box-shadow: none;
+        }
 
-    .public-home-arena .home-hot-hero__cta-group > a,
-    .public-home-arena .arena-featured-battle__actions > a,
-    .public-home-arena .arena-match-card__actions > a {
-        border-radius: 8px;
-        font-weight: 700;
-        gap: .5rem;
-        transition: background-color .16s ease, border-color .16s ease, transform .16s ease;
-    }
+        .public-home-arena .home-hot-hero__cta-group > a,
+        .public-home-arena .arena-featured-battle__actions > a,
+        .public-home-arena .arena-match-card__actions > a {
+            border-radius: 8px;
+            font-weight: 700;
+            gap: .5rem;
+            transition: background-color .16s ease, border-color .16s ease, transform .16s ease;
+        }
 
-    .public-home-arena .home-hot-hero__cta-group > a:hover,
-    .public-home-arena .arena-featured-battle__actions > a:hover,
-    .public-home-arena .arena-match-card__actions > a:hover {
-        transform: translateY(-1px);
-    }
+            .public-home-arena .home-hot-hero__cta-group > a:hover,
+            .public-home-arena .arena-featured-battle__actions > a:hover,
+            .public-home-arena .arena-match-card__actions > a:hover {
+                transform: translateY(-1px);
+            }
 
-    .public-home-arena .home-hero__stats {
-        border: 1px solid rgba(224, 224, 224, .1);
-        border-radius: 12px;
-        background: #12151e;
-    }
+        .public-home-arena .home-hero__stats {
+            border: 1px solid rgba(224, 224, 224, .1);
+            border-radius: 12px;
+            background: #12151e;
+        }
 
-    .public-home-arena .home-hero__stats article {
-        padding: .85rem .95rem;
-        background: transparent;
-    }
+            .public-home-arena .home-hero__stats article {
+                padding: .85rem .95rem;
+                background: transparent;
+            }
 
-    .public-home-arena .home-hero__stats span {
-        color: var(--cv-text-soft);
-        font-size: .62rem;
-        font-weight: 600;
-    }
+            .public-home-arena .home-hero__stats span {
+                color: var(--cv-text-soft);
+                font-size: .62rem;
+                font-weight: 600;
+            }
 
-    .public-home-arena .home-hero__stats strong {
-        color: var(--cv-text-primary);
-        font-size: 1.55rem;
-    }
+            .public-home-arena .home-hero__stats strong {
+                color: var(--cv-text-primary);
+                font-size: 1.55rem;
+            }
 
-    .public-home-arena .home-anchor-nav {
-        gap: .35rem;
-        padding: .55rem;
-        box-shadow: none;
-    }
+        .public-home-arena .home-anchor-nav {
+            gap: .35rem;
+            padding: .55rem;
+            box-shadow: none;
+        }
 
-    .public-home-arena .home-anchor-nav a {
-        border: 1px solid transparent;
-        border-radius: 7px;
-        color: var(--cv-text-muted);
-        font-size: .78rem;
-        font-weight: 600;
-        transition: color .16s ease, background-color .16s ease, border-color .16s ease;
-    }
+            .public-home-arena .home-anchor-nav a {
+                border: 1px solid transparent;
+                border-radius: 7px;
+                color: var(--cv-text-muted);
+                font-size: .78rem;
+                font-weight: 600;
+                transition: color .16s ease, background-color .16s ease, border-color .16s ease;
+            }
 
-    .public-home-arena .home-anchor-nav a:hover,
-    .public-home-arena .home-anchor-nav a:focus-visible {
-        border-color: rgba(195, 254, 12, .24);
-        background: rgba(195, 254, 12, .08);
-        color: var(--cv-accent);
-    }
+                .public-home-arena .home-anchor-nav a:hover,
+                .public-home-arena .home-anchor-nav a:focus-visible {
+                    border-color: rgba(195, 254, 12, .24);
+                    background: rgba(195, 254, 12, .08);
+                    color: var(--cv-accent);
+                }
 
-    .public-home-arena .home-section {
-        gap: 1.35rem;
-        padding: clamp(1.1rem, 2.5vw, 1.75rem);
-    }
+        .public-home-arena .home-section {
+            gap: 1.35rem;
+            padding: clamp(1.1rem, 2.5vw, 1.75rem);
+        }
 
-    .public-home-arena .home-section__header {
-        max-width: 70ch;
-    }
+        .public-home-arena .home-section__header {
+            max-width: 70ch;
+        }
 
-    .public-home-arena .home-section__header h2 {
-        margin-bottom: .6rem;
-        font-size: .74rem;
-    }
+            .public-home-arena .home-section__header h2 {
+                margin-bottom: .6rem;
+                font-size: .74rem;
+            }
 
-    .public-home-arena .home-section__header p {
-        margin: 0;
-        color: var(--cv-text-neutral);
-        font-size: clamp(1.1rem, 2vw, 1.45rem);
-        line-height: 1.3;
-    }
+            .public-home-arena .home-section__header p {
+                margin: 0;
+                color: var(--cv-text-neutral);
+                font-size: clamp(1.1rem, 2vw, 1.45rem);
+                line-height: 1.3;
+            }
 
-    .public-home-arena .home-coin-card,
-    .public-home-arena .home-feature-grid article,
-    .public-home-arena .home-faq-card,
-    .public-home-arena .home-live-empty {
-        border-color: rgba(224, 224, 224, .1);
-        border-radius: 12px;
-        background: #202329;
-        box-shadow: none;
-    }
+        .public-home-arena .home-coin-card,
+        .public-home-arena .home-feature-grid article,
+        .public-home-arena .home-faq-card,
+        .public-home-arena .home-live-empty {
+            border-color: rgba(224, 224, 224, .1);
+            border-radius: 12px;
+            background: #202329;
+            box-shadow: none;
+        }
 
-    .public-home-arena .home-coin-card:hover,
-    .public-home-arena .arena-match-card:hover {
-        border-color: rgba(195, 254, 12, .3);
-        box-shadow: 0 12px 26px rgba(0, 0, 0, .15);
-        transform: translateY(-2px);
-    }
+            .public-home-arena .home-coin-card:hover,
+            .public-home-arena .arena-match-card:hover {
+                border-color: rgba(195, 254, 12, .3);
+                box-shadow: 0 12px 26px rgba(0, 0, 0, .15);
+                transform: translateY(-2px);
+            }
 
-    .public-home-arena .home-link-grid a {
-        border-color: rgba(224, 224, 224, .12);
-        border-radius: 10px;
-        background: #202329;
-        color: var(--cv-text-primary);
-        font-weight: 600;
-    }
+        .public-home-arena .home-link-grid a {
+            border-color: rgba(224, 224, 224, .12);
+            border-radius: 10px;
+            background: #202329;
+            color: var(--cv-text-primary);
+            font-weight: 600;
+        }
 
-    .public-home-arena .home-link-grid a:hover,
-    .public-home-arena .home-link-grid a:focus-visible {
-        border-color: rgba(195, 254, 12, .38);
-        background: rgba(195, 254, 12, .08);
-        color: var(--cv-accent);
-    }
+            .public-home-arena .home-link-grid a:hover,
+            .public-home-arena .home-link-grid a:focus-visible {
+                border-color: rgba(195, 254, 12, .38);
+                background: rgba(195, 254, 12, .08);
+                color: var(--cv-accent);
+            }
 
-    .public-home-arena .is-up,
-    .public-home-arena .arena-positive {
-        color: var(--cv-accent) !important;
-    }
+        .public-home-arena .is-up,
+        .public-home-arena .arena-positive {
+            color: var(--cv-accent) !important;
+        }
 
-    .public-home-arena .arena-featured-battle,
-    .public-home-arena .arena-vs-badge,
-    .public-home-arena .arena-live-pill__dot {
-        animation: none;
-    }
+        .public-home-arena .arena-featured-battle,
+        .public-home-arena .arena-vs-badge,
+        .public-home-arena .arena-live-pill__dot {
+            animation: none;
+        }
 
     @@media (max-width: 960px) {
         .public-home-arena .home-hero {
@@ -3985,9 +4043,9 @@
             min-height: auto;
         }
 
-        .public-home-arena .home-hero h1 {
-            max-width: 17ch;
-        }
+            .public-home-arena .home-hero h1 {
+                max-width: 17ch;
+            }
     }
 
     @@media (max-width: 768px) {
@@ -4007,9 +4065,9 @@
             grid-template-columns: 1fr;
         }
 
-        .public-home-arena .home-hero__stats article:not(:last-child) {
-            border-bottom: 1px solid rgba(224, 224, 224, .09);
-        }
+            .public-home-arena .home-hero__stats article:not(:last-child) {
+                border-bottom: 1px solid rgba(224, 224, 224, .09);
+            }
     }
 
     @@media (max-width: 480px) {
@@ -4025,11 +4083,11 @@
             flex-direction: column;
         }
 
-        .public-home-arena .home-hero__actions .home-cta,
-        .public-home-arena .home-hot-hero__cta-group > a,
-        .public-home-arena .arena-match-card__actions > a {
-            width: 100%;
-        }
+            .public-home-arena .home-hero__actions .home-cta,
+            .public-home-arena .home-hot-hero__cta-group > a,
+            .public-home-arena .arena-match-card__actions > a {
+                width: 100%;
+            }
 
         .public-home-arena .home-hot-hero,
         .public-home-arena .arena-match-card {
@@ -4070,147 +4128,244 @@
         --team-a-rgb: 193, 242, 15;
         --team-b-color: #185957;
         --team-b-rgb: 24, 89, 87;
-        background:
-            radial-gradient(circle at 8% 4%, rgba(24, 89, 87, .22), transparent 27rem),
-            radial-gradient(circle at 92% 12%, rgba(193, 242, 15, .08), transparent 24rem),
-            var(--cv-bg-deep);
+        background: radial-gradient(circle at 8% 4%, rgba(24, 89, 87, .22), transparent 27rem), radial-gradient(circle at 92% 12%, rgba(193, 242, 15, .08), transparent 24rem), var(--cv-bg-deep);
         color: var(--cv-text-primary);
     }
 
-    .public-home-arena .home-hot-hero,
-    .public-home-arena .arena-match-card,
-    .public-home-arena .arena-section,
-    .public-home-arena .home-section-card {
-        background-color: var(--cv-surface);
-        border-color: rgba(243, 245, 247, .12);
+        .public-home-arena .home-hot-hero,
+        .public-home-arena .arena-match-card,
+        .public-home-arena .arena-section,
+        .public-home-arena .home-section-card {
+            background-color: var(--cv-surface);
+            border-color: rgba(243, 245, 247, .12);
+        }
+
+        .public-home-arena .home-hot-hero__team--a,
+        .public-home-arena .arena-match-card__team--a,
+        .public-home-arena .arena-energy-bar__side--left {
+            --team-color: #c1f20f;
+            background-color: #c1f20f;
+            border-color: #c1f20f;
+        }
+
+        .public-home-arena .home-hot-hero__team--b,
+        .public-home-arena .arena-match-card__team--b,
+        .public-home-arena .arena-energy-bar__side--right {
+            --team-color: #185957;
+            background-color: #185957;
+            border-color: #185957;
+        }
+
+        .public-home-arena .home-hot-hero__cta--primary,
+        .public-home-arena .arena-cta-link--primary,
+        .public-home-arena .arena-cta-link {
+            color: #171c26;
+            background: #c1f20f;
+            border-color: #c1f20f;
+            box-shadow: none;
+        }
+
+        .public-home-arena .home-hot-hero__cta--secondary,
+        .public-home-arena .arena-cta-button,
+        .public-home-arena .arena-cta-button--secondary {
+            color: #f3f5f7;
+            background: #185957;
+            border-color: #185957;
+            box-shadow: none;
+        }
+
+        .public-home-arena .home-hot-hero__cta--primary:hover,
+        .public-home-arena .home-hot-hero__cta--primary:focus-visible,
+        .public-home-arena .arena-cta-link:hover,
+        .public-home-arena .arena-cta-link:focus-visible {
+            color: #171c26;
+            background: #d4ff52;
+            border-color: #d4ff52;
+        }
+
+        .public-home-arena .home-hot-hero__cta--secondary:hover,
+        .public-home-arena .home-hot-hero__cta--secondary:focus-visible,
+        .public-home-arena .arena-cta-button:hover,
+        .public-home-arena .arena-cta-button:focus-visible {
+            color: #f3f5f7;
+            background: #216f6c;
+            border-color: #63aaa6;
+        }
+
+        .public-home-arena .home-cta--primary,
+        .public-home-arena .arena-chip--live,
+        .public-home-arena .arena-status--live {
+            color: #171c26;
+            background-color: #c1f20f;
+            border-color: #c1f20f;
+        }
+
+        .public-home-arena .home-cta--secondary,
+        .public-home-arena .arena-chip--secondary {
+            color: #f3f5f7;
+            background-color: #185957;
+            border-color: #185957;
+        }
+
+        .public-home-arena :focus-visible {
+            outline-color: #c1f20f;
+        }
+
+        /* HomeMatchActions: três experiências compactas em cima; Match é o CTA principal abaixo. */
+        .public-home-arena .home-match-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+            min-width: 0;
+            gap: .5rem;
+        }
+
+        .public-home-arena .home-match-actions__secondary {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            align-items: stretch;
+            gap: .35rem;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .public-home-arena .home-match-actions__primary {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .public-home-arena .home-match-actions .home-match-actions__link {
+            box-sizing: border-box;
+            display: inline-flex;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: center;
+            gap: .3rem;
+            min-width: 0;
+            margin: 0;
+            border-radius: 8px;
+            text-align: center;
+            text-decoration: none;
+            font-weight: 700;
+            letter-spacing: 0;
+            line-height: 1.15;
+            white-space: nowrap;
+            transition: background-color .16s ease, border-color .16s ease, transform .16s ease;
+        }
+
+        .public-home-arena .home-match-actions__secondary > .home-match-actions__link {
+            width: 100%;
+            height: 2.25rem;
+            min-height: 2.25rem;
+            padding: 0 .25rem;
+            font-size: .7rem;
+        }
+
+        .public-home-arena .home-match-actions__primary > .home-match-actions__link--match {
+            width: 44%;
+            max-width: 16rem;
+            height: 2.85rem;
+            min-height: 2.85rem;
+            padding: 0 .65rem;
+            font-size: .9rem;
+            color: #171c26;
+            background: #c1f20f;
+            border-color: #c1f20f;
+            box-shadow: 0 6px 18px rgba(193, 242, 15, .12);
+        }
+
+            .public-home-arena .home-match-actions__primary > .home-match-actions__link--match:is(:visited, :active) {
+                color: #171c26;
+            }
+
+            .public-home-arena .home-match-actions__primary > .home-match-actions__link--match:is(:hover, :focus-visible) {
+                color: #171c26;
+                background: #d4ff52;
+                border-color: #d4ff52;
+                box-shadow: 0 8px 22px rgba(193, 242, 15, .2);
+            }
+
+        .public-home-arena .home-match-actions .home-match-actions__link > span {
+            display: block;
+            overflow: hidden;
+            min-width: 0;
+            text-overflow: ellipsis;
+        }
+
+        .public-home-arena .home-match-actions .bi {
+            flex: 0 0 auto;
+            font-size: .85rem;
+            line-height: 1;
+        }
+
+        .public-home-arena .home-match-actions__primary .bi {
+            font-size: 1rem;
+        }
+
+        .public-home-arena .home-match-actions__whale-icon {
+            width: .9rem;
+            height: .66rem;
+            flex: 0 0 auto;
+            fill: currentColor;
+        }
+
+        .public-home-arena .home-match-actions__link--whale,
+        .public-home-arena .home-match-actions__link--whale:visited,
+        .public-home-arena .home-match-actions__link--pressure,
+        .public-home-arena .home-match-actions__link--pressure:visited,
+        .public-home-arena .home-match-actions__link--candle,
+        .public-home-arena .home-match-actions__link--candle:visited {
+            color: #fff;
+            background: #075b59;
+            border-color: #075b59;
+            box-shadow: none;
+        }
+
+            .public-home-arena .home-match-actions__link--whale:is(:hover, :focus-visible, :active),
+            .public-home-arena .home-match-actions__link--pressure:is(:hover, :focus-visible, :active),
+            .public-home-arena .home-match-actions__link--candle:is(:hover, :focus-visible, :active) {
+                color: #fff;
+                background: #087873;
+                border-color: #087873;
+                box-shadow: 0 0 0 2px rgba(8, 120, 115, .22);
+            }
+
+        /* Cards pequenos: respeita o espaço reduzido no grid de quatro colunas. */
+        .public-home-arena .arena-match-card__actions.home-match-actions {
+            gap: .38rem;
+        }
+
+            .public-home-arena .arena-match-card__actions.home-match-actions .home-match-actions__secondary > a {
+                height: 2.15rem;
+                min-height: 2.15rem;
+                padding: 0 .15rem;
+                font-size: .68rem;
+            }
+
+            .public-home-arena .arena-match-card__actions.home-match-actions .home-match-actions__primary > a {
+                height: 2.55rem;
+                min-height: 2.55rem;
+                font-size: .85rem;
+            }
+
+    @@media (max-width: 480px) {
+        .public-home-arena .home-match-actions__secondary {
+            gap: .25rem;
+        }
+
+            .public-home-arena .home-match-actions__secondary > .home-match-actions__link {
+                padding-inline: .12rem;
+                font-size: .66rem;
+            }
+
+        .public-home-arena .home-match-actions__primary > .home-match-actions__link--match {
+            width: 50%;
+            min-height: 2.65rem;
+        }
     }
 
-    .public-home-arena .home-hot-hero__team--a,
-    .public-home-arena .arena-match-card__team--a,
-    .public-home-arena .arena-energy-bar__side--left {
-        --team-color: #c1f20f;
-        background-color: #c1f20f;
-        border-color: #c1f20f;
-    }
-
-    .public-home-arena .home-hot-hero__team--b,
-    .public-home-arena .arena-match-card__team--b,
-    .public-home-arena .arena-energy-bar__side--right {
-        --team-color: #185957;
-        background-color: #185957;
-        border-color: #185957;
-    }
-
-    .public-home-arena .home-hot-hero__cta--primary,
-    .public-home-arena .arena-cta-link--primary,
-    .public-home-arena .arena-cta-link {
-        color: #171c26;
-        background: #c1f20f;
-        border-color: #c1f20f;
-        box-shadow: none;
-    }
-
-    .public-home-arena .home-hot-hero__cta--secondary,
-    .public-home-arena .arena-cta-button,
-    .public-home-arena .arena-cta-button--secondary {
-        color: #f3f5f7;
-        background: #185957;
-        border-color: #185957;
-        box-shadow: none;
-    }
-
-    .public-home-arena .home-hot-hero__cta--primary:hover,
-    .public-home-arena .home-hot-hero__cta--primary:focus-visible,
-    .public-home-arena .arena-cta-link:hover,
-    .public-home-arena .arena-cta-link:focus-visible {
-        color: #171c26;
-        background: #d4ff52;
-        border-color: #d4ff52;
-    }
-
-    .public-home-arena .home-hot-hero__cta--secondary:hover,
-    .public-home-arena .home-hot-hero__cta--secondary:focus-visible,
-    .public-home-arena .arena-cta-button:hover,
-    .public-home-arena .arena-cta-button:focus-visible {
-        color: #f3f5f7;
-        background: #216f6c;
-        border-color: #63aaa6;
-    }
-
-    .public-home-arena .home-cta--primary,
-    .public-home-arena .arena-chip--live,
-    .public-home-arena .arena-status--live {
-        color: #171c26;
-        background-color: #c1f20f;
-        border-color: #c1f20f;
-    }
-
-    .public-home-arena .home-cta--secondary,
-    .public-home-arena .arena-chip--secondary {
-        color: #f3f5f7;
-        background-color: #185957;
-        border-color: #185957;
-    }
-
-    .public-home-arena :focus-visible {
-        outline-color: #c1f20f;
-    }
-
-    .public-home-arena .home-match-actions {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        align-items: stretch;
-        width: 100%;
-        gap: 5px;
-    }
-
-    .public-home-arena .home-match-actions > a {
-        box-sizing: border-box;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        width: 100%;
-        min-width: 0;
-        flex: none;
-        height: 2.25rem;
-        min-height: 2.25rem;
-        padding: 0 .2rem;
-        border-radius: 8px;
-        font-size: .7rem;
-        font-weight: 700;
-        letter-spacing: 0;
-        line-height: 1;
-        white-space: nowrap;
-    }
-
-    .public-home-arena .home-match-actions .bi {
-        flex: 0 0 auto;
-        font-size: .78rem;
-        line-height: 1;
-    }
-
-    .public-home-arena .home-match-actions__link--whale,
-    .public-home-arena .home-match-actions__link--whale:visited {
-        color: #fff;
-        background: #075b59;
-        border-color: #075b59;
-        box-shadow: none;
-    }
-
-    .public-home-arena .home-match-actions__link--whale:hover,
-    .public-home-arena .home-match-actions__link--whale:focus-visible,
-    .public-home-arena .home-match-actions__link--whale:active {
-        color: #fff;
-        background: #087873;
-        border-color: #087873;
-        box-shadow: 0 0 0 2px rgba(8, 120, 115, .22);
-    }
-
-    .public-home-arena .home-match-actions__whale-icon {
-        width: .85rem;
-        height: .66rem;
-        flex: 0 0 auto;
-        fill: currentColor;
-    }
 </style>

@@ -5,6 +5,13 @@
 
 export type DominanceKind = 'left' | 'right' | 'balanced';
 
+/**
+ * Official match outcome as confirmed by the backend. 'pending' means the match is
+ * finished but no winner/draw has been confirmed yet; 'cancelled' is an interrupted
+ * match. Null means no official result is available yet.
+ */
+export type ArenaPressureResult = 'left' | 'right' | 'draw' | 'pending' | 'cancelled' | null;
+
 export interface RopePoint {
     x: number;
     y: number;
@@ -34,6 +41,7 @@ export interface ArenaPressureVisualState {
 }
 
 export interface ArenaPressureOptions {
+    diagnostics?: boolean;
     baseUrl?: string;
     /** Root containing the modular Arena Pressure sprite pack and manifest. */
     spriteBaseUrl?: string;
@@ -46,6 +54,7 @@ export interface ArenaPressureOptions {
     reducedMotion?: boolean;
     isFinished?: boolean;
     isLive?: boolean;
+    officialResult?: ArenaPressureResult;
     /** Real reconstructed pressure history. Absent in live mode. */
     history?: ArenaPressureHistoryPoint[];
     /** Total replay duration in seconds. Defaults to the last history sample. */
@@ -84,6 +93,11 @@ export const DEFAULT_LABELS: Record<string, string> = {
     balanced: 'BALANCED',
     live: 'LIVE',
     finished: 'FINISHED',
+    leftVictory: 'LEMON WINS',
+    rightVictory: 'OIL WINS',
+    draw: 'DRAW',
+    resultPending: 'RESULT PENDING',
+    cancelled: 'CANCELLED',
     pressureEngine: 'PRESSURE ENGINE'
 };
 

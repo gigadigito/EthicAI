@@ -3105,6 +3105,16 @@
     "sellPressure": "Pression vendeuse"
   },
   "arenaPressure": {
+    "remainingTime": "TEMPS RESTANT",
+    "pending": "EN ATTENTE",
+    "startsAt": "DÉBUT À",
+    "processing": "RÉSULTAT EN COURS",
+    "cancelled": "ANNULÉE",
+    "leftVictory": "VICTOIRE DU CITRON",
+    "rightVictory": "VICTOIRE DU PÉTROLE",
+    "draw": "ÉGALITÉ",
+    "resultPending": "RÉSULTAT EN ATTENTE",
+    "endedAt": "TERMINÉE LE",
     "title": "ARENA PRESSURE",
     "leftPressure": "PRESSION GAUCHE",
     "rightPressure": "PRESSION DROITE",

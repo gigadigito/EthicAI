@@ -3105,6 +3105,16 @@
     "sellPressure": "Verkaufsdruck"
   },
   "arenaPressure": {
+    "remainingTime": "VERBLEIBENDE ZEIT",
+    "pending": "WARTET",
+    "startsAt": "BEGINNT UM",
+    "processing": "ERGEBNIS WIRD VERARBEITET",
+    "cancelled": "ABGESAGT",
+    "leftVictory": "ZITRONE GEWINNT",
+    "rightVictory": "ÖL GEWINNT",
+    "draw": "UNENTSCHIEDEN",
+    "resultPending": "ERGEBNIS AUSSTEHEND",
+    "endedAt": "BEENDET AM",
     "title": "ARENA PRESSURE",
     "leftPressure": "DRUCK LINKS",
     "rightPressure": "DRUCK RECHTS",

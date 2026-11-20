@@ -7,8 +7,8 @@ const modules = new URL('wwwroot/js/dist/arena-pressure/', root);
 await mkdir(modules, { recursive: true });
 await writeFile(new URL('package.json', modules), JSON.stringify({ type: 'module' }, null, 2));
 
-const revision = '20261106a';
-const runtimeFiles = ['model.js', 'rope.js', 'wheel.js', 'candles.js', 'particles.js', 'hud.js', 'logos.js', 'engine.js'];
+const revision = '20261120e';
+const runtimeFiles = ['model.js', 'rope.js', 'wheel.js', 'candles.js', 'pressure-visual.js', 'pressure-art.js', 'particles.js', 'hud.js', 'logos.js', 'engine.js'];
 
 for (const file of runtimeFiles) {
     const url = new URL(file, modules);

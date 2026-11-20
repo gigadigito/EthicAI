@@ -3105,6 +3105,16 @@
     "seoDescription": "लाइव प्रतिस्पर्धी कैंडल अरीना में आधिकारिक क्रिप्टो मैच पॉइंट को ब्लॉक बनते देखें।"
   },
   "arenaPressure": {
+    "remainingTime": "शेष समय",
+    "pending": "प्रतीक्षा",
+    "startsAt": "शुरू होगा",
+    "processing": "परिणाम संसाधित हो रहा है",
+    "cancelled": "रद्द",
+    "leftVictory": "नींबू की जीत",
+    "rightVictory": "तेल की जीत",
+    "draw": "ड्रा",
+    "resultPending": "परिणाम लंबित",
+    "endedAt": "समाप्ति",
     "title": "अरीना प्रेशर",
     "leftPressure": "बायां प्रेशर",
     "rightPressure": "दायां प्रेशर",

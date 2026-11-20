@@ -631,6 +631,8 @@ namespace CriptoVersus.API.Controllers
                 Status = match.Status.ToString(),
                 StartTime = AsUtc(match.StartTime),
                 EndTime = AsUtc(match.EndTime),
+                ScheduledEndTimeUtc = AsUtc(match.StartTime)?.AddMinutes(matchDurationMinutes),
+                ServerTimeUtc = new DateTimeOffset(DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc)),
                 ElapsedMinutes = elapsed,
                 RemainingMinutes = finished ? 0 : Math.Max(0, matchDurationMinutes - elapsed),
                 IsFinished = finished,

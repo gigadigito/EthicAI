@@ -139,6 +139,18 @@ CultureInfo.DefaultThreadCurrentUICulture = defaultCultureInfo;
 
 var mediaContentTypeProvider = CreateMediaContentTypeProvider();
 
+// The Arena Pressure preview is rejected before component rendering unless explicitly enabled.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/dev/arena-pressure-preview")
+        && (!app.Environment.IsDevelopment() || !app.Configuration.GetValue<bool>("ArenaPressure:Preview:Enabled")))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+    await next();
+});
+
 // Development-only tooling routes are rejected before components run in every
 // non-Development environment. Their individual option gates remain explicit.
 if (!app.Environment.IsDevelopment())

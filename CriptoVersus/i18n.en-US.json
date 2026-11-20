@@ -3106,6 +3106,16 @@
     "sellPressure": "Sell Pressure"
   },
   "arenaPressure": {
+    "remainingTime": "TIME REMAINING",
+    "pending": "WAITING",
+    "startsAt": "STARTS AT",
+    "processing": "PROCESSING RESULT",
+    "cancelled": "CANCELLED",
+    "leftVictory": "LEMON WINS",
+    "rightVictory": "OIL WINS",
+    "draw": "DRAW",
+    "resultPending": "RESULT PENDING",
+    "endedAt": "ENDED AT",
     "title": "ARENA PRESSURE",
     "leftPressure": "LEFT PRESSURE",
     "rightPressure": "RIGHT PRESSURE",

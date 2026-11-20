@@ -24,6 +24,8 @@ namespace DTOs
         public string Status { get; set; } = string.Empty;
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
+        public DateTime? ScheduledEndTimeUtc { get; set; }
+        public DateTimeOffset? ServerTimeUtc { get; set; }
         public DateTimeOffset? BettingCloseTime { get; set; }
 
         public int ElapsedMinutes { get; set; }
