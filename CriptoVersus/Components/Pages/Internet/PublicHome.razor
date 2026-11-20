@@ -3471,7 +3471,7 @@
         }
 
     /* O componente também renderiza o modal. Ele precisa usar a viewport inteira,
-                   sem herdar largura, altura ou posicionamento do convite flutuante. */
+                       sem herdar largura, altura ou posicionamento do convite flutuante. */
     .community-match-floating > .modal-backdrop,
     .community-match-floating ::deep .modal-backdrop {
         position: fixed !important;
@@ -4213,6 +4213,8 @@
 
         /* HomeMatchActions: três experiências compactas em cima; Match é o CTA principal abaixo. */
         .public-home-arena .home-match-actions {
+            /* Destaque: 2,25rem; cards compactos: 2,15rem (mesma altura nos quatro botões). */
+            --home-match-action-height: 2.25rem;
             display: flex;
             flex-direction: column;
             align-items: stretch;
@@ -4247,6 +4249,10 @@
             gap: .3rem;
             min-width: 0;
             margin: 0;
+            height: var(--home-match-action-height);
+            min-height: var(--home-match-action-height);
+            max-height: var(--home-match-action-height);
+            padding-block: 0;
             border-radius: 8px;
             text-align: center;
             text-decoration: none;
@@ -4259,8 +4265,9 @@
 
         .public-home-arena .home-match-actions__secondary > .home-match-actions__link {
             width: 100%;
-            height: 2.25rem;
-            min-height: 2.25rem;
+            height: var(--home-match-action-height);
+            min-height: var(--home-match-action-height);
+            max-height: var(--home-match-action-height);
             padding: 0 .25rem;
             font-size: .7rem;
         }
@@ -4270,8 +4277,9 @@
         .home-match-actions__link--match {
             width: 66%;
             max-width: none;
-            height: 2.25rem;
-            min-height: 2.25rem;
+            height: var(--home-match-action-height);
+            min-height: var(--home-match-action-height);
+            max-height: var(--home-match-action-height);
             padding: 0 .65rem;
             font-size: .9rem;
             color: #171c26;
@@ -4339,19 +4347,22 @@
 
         /* Cards pequenos: respeita o espaço reduzido no grid de quatro colunas. */
         .public-home-arena .arena-match-card__actions.home-match-actions {
+            --home-match-action-height: 2.15rem;
             gap: .38rem;
         }
 
             .public-home-arena .arena-match-card__actions.home-match-actions .home-match-actions__secondary > a {
-                height: 2.15rem;
-                min-height: 2.15rem;
+                height: var(--home-match-action-height);
+                min-height: var(--home-match-action-height);
+                max-height: var(--home-match-action-height);
                 padding: 0 .15rem;
                 font-size: .68rem;
             }
 
             .public-home-arena .arena-match-card__actions.home-match-actions .home-match-actions__primary > a {
-                height: 2.55rem;
-                min-height: 2.55rem;
+                height: var(--home-match-action-height);
+                min-height: var(--home-match-action-height);
+                max-height: var(--home-match-action-height);
                 font-size: .85rem;
             }
 
@@ -4366,8 +4377,10 @@
             }
 
         .public-home-arena .home-match-actions__primary > .home-match-actions__link--match {
-            width: 50%;
-            min-height: 2.65rem;
+            width: 70%;
+            height: var(--home-match-action-height);
+            min-height: var(--home-match-action-height);
+            max-height: var(--home-match-action-height);
         }
     }
 
