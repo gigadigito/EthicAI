@@ -139,6 +139,19 @@ CultureInfo.DefaultThreadCurrentUICulture = defaultCultureInfo;
 
 var mediaContentTypeProvider = CreateMediaContentTypeProvider();
 
+// The capture surface is local in Development. Other environments are fail-closed
+// unless explicitly enabled and authenticated through a header (never a URL token).
+app.Use(async (context, next) =>
+{
+    if (string.Equals(context.Request.Query["mode"], "videoCapture", StringComparison.Ordinal)
+        && !ArenaPressureCaptureAccess.IsAuthorized(context, app.Environment, app.Configuration))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+    await next();
+});
+
 // The Arena Pressure preview is rejected before component rendering unless explicitly enabled.
 app.Use(async (context, next) =>
 {

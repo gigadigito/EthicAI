@@ -13,6 +13,7 @@
 @inject IConfiguration Config
 @inject LocalizationService L
 @inject ILogger<ArenaPressureGamePage> Logger
+@inject IWebHostEnvironment Environment
 @implements IDisposable
 
 <PageTitle>@PageTitle</PageTitle>
@@ -36,14 +37,15 @@
 </HeadContent>
 <LocalizedSeoAlternates />
 
-<main class="arena-pressure-page">
+<main class="arena-pressure-page @(IsVideoCapture ? "arena-pressure-page--video-capture" : null)">
     @if (_match is not null && _loadState == ArenaPressurePageLoadState.Loaded)
     {
         <ArenaPressureGameHost @key="MatchId"
                                MatchId="MatchId"
                                Culture="@_culture"
                                Match="@_match"
-                               HotMatch="@_hotMatch" />
+                               HotMatch="@_hotMatch"
+                               VideoCapture="@IsVideoCapture" />
     }
     else
     {
@@ -81,6 +83,17 @@
     private string _activeRouteKey = string.Empty;
     private bool _isDisposed;
     private ArenaPressurePageLoadState _loadState = ArenaPressurePageLoadState.Loading;
+    private bool IsVideoCapture
+        => ArenaPressureCaptureAccess.IsEnabled(Environment, Config)
+           && string.Equals(Query("mode"), "videoCapture", StringComparison.Ordinal)
+           && string.Equals(Query("speed"), "4", StringComparison.Ordinal);
+
+    private string? Query(string key)
+    {
+        var query = new Uri(Nav.Uri).Query;
+        return Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(query)
+            .TryGetValue(key, out var value) ? value.ToString() : null;
+    }
 
     private string T(string key) => L.T($"arenaPressure.{key}", _culture);
 
@@ -177,7 +190,8 @@
 
             if (!PathsEquivalent(currentPath, expectedPath))
             {
-                Nav.NavigateTo(expectedPath, replace: true);
+                var suffix = IsVideoCapture ? "?mode=videoCapture&speed=4" : string.Empty;
+                Nav.NavigateTo(expectedPath + suffix, replace: true);
                 return;
             }
 
@@ -253,6 +267,24 @@
         max-width: 1440px;
         margin: 0 auto;
         padding: 1rem 0.75rem 2rem;
+    }
+
+    html:has(.arena-pressure-page--video-capture),
+    html:has(.arena-pressure-page--video-capture) body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #09111f;
+    }
+
+    .tv-layout-shell:has(.arena-pressure-page--video-capture),
+    .arena-pressure-page--video-capture {
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+        margin: 0;
+        padding: 0;
     }
 
     .arena-pressure-page__state {

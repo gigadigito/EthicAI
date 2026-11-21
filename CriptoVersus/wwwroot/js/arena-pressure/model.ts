@@ -59,6 +59,10 @@ export interface ArenaPressureOptions {
     history?: ArenaPressureHistoryPoint[];
     /** Total replay duration in seconds. Defaults to the last history sample. */
     historyDurationSeconds?: number;
+    /** Development-only external video capture surface. */
+    videoCapture?: boolean;
+    /** Final-result hold used by the capture completion contract. */
+    captureFinalHoldMs?: number;
 }
 
 /**

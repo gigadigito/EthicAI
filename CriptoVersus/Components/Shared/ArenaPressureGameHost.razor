@@ -10,7 +10,11 @@
 @inject ILogger<ArenaPressureGameHost> Logger
 @implements IAsyncDisposable
 
-<section class="arena-pressure" aria-label="@T("title")">
+<section class="arena-pressure @(VideoCapture ? "arena-pressure--video-capture" : null)"
+         data-capture-state="@(VideoCapture ? (_failed ? "error" : "loading") : null)"
+         aria-label="@T("title")">
+    @if (!VideoCapture)
+    {
     <header class="arena-pressure__toolbar">
         <div class="arena-pressure__brand">
             <strong>@T("title")</strong>
@@ -38,6 +42,7 @@
             @if (ActiveMatch!.EndTime is { } ended) { <span>@T("endedAt") @ArenaPressureLifecycle.Utc(ended).ToString("dd/MM/yyyy HH:mm:ss") UTC</span> }
         }
     </div>
+    }
 
     <div class="arena-pressure__stage" @ref="_stage" role="img" aria-label="@T("stageAria")">
         @if (_failed)
@@ -49,7 +54,7 @@
         }
     </div>
 
-    @if (_hasHistory)
+    @if (_hasHistory && !VideoCapture)
     {
         <div class="arena-pressure__transport">
             <button type="button" @onclick="TogglePlaybackAsync" aria-label="@(_playing ? T("pause") : T("play"))">
@@ -75,10 +80,13 @@
         </div>
     }
 
+    @if (!VideoCapture)
+    {
     <footer class="arena-pressure__footer">
         <span>@(_hasHistory ? T("historyCaption") : T("liveCaption"))</span>
         <span>@(_failed ? _status : Scoreline)</span>
     </footer>
+    }
 </section>
 
 <style>
@@ -87,6 +95,24 @@
         display: grid;
         gap: 0.65rem;
         color: #e6edf7;
+    }
+
+    .arena-pressure--video-capture {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+        overflow: hidden;
+        background: #09111f;
+    }
+
+    .arena-pressure--video-capture .arena-pressure__stage {
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+        margin: 0;
+        aspect-ratio: 16 / 9;
+        border: 0;
+        border-radius: 0;
     }
 
     .arena-pressure__toolbar {
@@ -285,6 +311,7 @@
     [Parameter] public int PreviewLeftPressure { get; set; } = 50;
     [Parameter] public MatchDto? PreviewMatch { get; set; }
     [Parameter] public DateTimeOffset? PreviewNowUtc { get; set; }
+    [Parameter] public bool VideoCapture { get; set; }
 
     private const int LiveRefreshIntervalSeconds = 5;
 
@@ -401,8 +428,9 @@
 
             // A match can span hours or days; the replay compresses that into a short
             // watchable window while the transport still reports the real match clock.
-            _durationSeconds = ResolvePlaybackSeconds(_matchSpanSeconds);
-            _playing = _hasHistory;
+            _durationSeconds = VideoCapture ? _matchSpanSeconds : ResolvePlaybackSeconds(_matchSpanSeconds);
+            _playing = _hasHistory && !VideoCapture;
+            _speed = VideoCapture ? "4" : "1";
             var scaledHistory = _hasHistory
                 ? history.Select(p => new { t = ScaleToPlayback(p.SecondsFromStart, _matchSpanSeconds, _durationSeconds), l = p.LeftPercent }).ToArray()
                 : [];
@@ -424,7 +452,9 @@
                     isLive = LifecycleState == "live",
                     officialResult = OfficialResult,
                     history = scaledHistory,
-                    historyDurationSeconds = _durationSeconds
+                    historyDurationSeconds = _durationSeconds,
+                    videoCapture = VideoCapture,
+                    captureFinalHoldMs = 2000
                 });
 
             if (_disposed) return;
@@ -438,7 +468,7 @@
                 _transportLoop ??= RunTransportLoopAsync(_lifetime.Token);
             }
 
-            if (!IsFinished && MatchId > 0)
+            if (!VideoCapture && !IsFinished && MatchId > 0)
             {
                 Hub.DashboardChanged -= OnDashboardChanged;
                 Hub.DashboardChanged += OnDashboardChanged;

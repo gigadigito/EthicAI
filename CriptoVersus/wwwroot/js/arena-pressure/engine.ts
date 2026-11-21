@@ -28,7 +28,24 @@ export async function create(
     const Phaser: typeof PhaserTypes = await import(phaserUrl);
     const engine = new ArenaPressureEngine(host, options, Phaser);
     await engine.ready;
+    if (options.videoCapture) {
+        engine.installVideoCaptureControl();
+    }
     return engine;
+}
+
+type CaptureStatus = 'ready' | 'recording' | 'completed' | 'error';
+
+interface ArenaPressureCaptureControl {
+    readonly version: 1;
+    start(): boolean;
+    getState(): ReturnType<ArenaPressureEngine['getCaptureState']>;
+}
+
+declare global {
+    interface Window {
+        __arenaPressureCapture?: ArenaPressureCaptureControl;
+    }
 }
 
 type EngineMode = 'live' | 'replay';
@@ -72,6 +89,9 @@ export class ArenaPressureEngine {
     private playheadSeconds: number = 0;
     private playing: boolean = true;
     private speed: number = 1;
+    private captureStatus: CaptureStatus = 'ready';
+    private captureCompletedAt: number | null = null;
+    private captureControl?: ArenaPressureCaptureControl;
 
     private visibilityHandler?: () => void;
     private autoPaused: boolean = false;
@@ -109,6 +129,10 @@ export class ArenaPressureEngine {
         }
         this.currentPressure = this.targetPressure;
         this.previousPressureSample = this.targetPressure;
+        if (options.videoCapture) {
+            this.playing = false;
+            this.speed = 4;
+        }
 
         this.ready = new Promise<void>((resolve, reject) => {
             this.readyResolve = resolve;
@@ -315,8 +339,9 @@ export class ArenaPressureEngine {
         this.playheadSeconds += (deltaMs / 1000) * this.speed;
         if (this.playheadSeconds >= this.historyDurationSeconds) {
             this.playheadSeconds = this.historyDurationSeconds;
-            if (this.isFinished) {
-                this.playing = false;
+            this.playing = false;
+            if (this.captureStatus === 'recording' && this.captureCompletedAt === null) {
+                this.captureCompletedAt = performance.now();
             }
         }
 
@@ -480,6 +505,61 @@ export class ArenaPressureEngine {
         };
     }
 
+    public installVideoCaptureControl(): void {
+        if (typeof window === 'undefined' || !this.options.videoCapture || this.captureControl) {
+            return;
+        }
+
+        const control: ArenaPressureCaptureControl = {
+            version: 1,
+            start: () => {
+                if (this.captureStatus !== 'ready' || this.mode !== 'replay' || this.history.length === 0) {
+                    return false;
+                }
+                this.command('pause');
+                this.command('seek', 0);
+                this.command('speed', 4);
+                this.captureCompletedAt = null;
+                this.captureStatus = 'recording';
+                this.command('play');
+                return true;
+            },
+            getState: () => this.getCaptureState()
+        };
+        this.captureControl = control;
+        window.__arenaPressureCapture = control;
+        this.host.dataset.captureState = 'ready';
+    }
+
+    public getCaptureState(): {
+        status: CaptureStatus;
+        playheadSeconds: number;
+        durationSeconds: number;
+        speed: number;
+        historyPoints: number;
+        isFinished: boolean;
+        finalFrameStable: boolean;
+    } {
+        const holdMs = Math.max(250, this.options.captureFinalHoldMs ?? 2000);
+        const finalFrameStable = this.captureCompletedAt !== null
+            && performance.now() - this.captureCompletedAt >= holdMs;
+        if (this.captureStatus === 'recording' && finalFrameStable) {
+            this.captureStatus = 'completed';
+            this.host.dataset.captureState = 'completed';
+        } else if (this.captureStatus === 'recording') {
+            this.host.dataset.captureState = 'recording';
+        }
+        return {
+            status: this.captureStatus,
+            playheadSeconds: this.playheadSeconds,
+            durationSeconds: this.historyDurationSeconds,
+            speed: this.speed,
+            historyPoints: this.history.length,
+            isFinished: this.isFinished,
+            finalFrameStable
+        };
+    }
+
     /**
      * Destroys the Phaser instance and releases every resource.
      */
@@ -488,6 +568,11 @@ export class ArenaPressureEngine {
             return;
         }
         this.isDisposed = true;
+
+        if (typeof window !== 'undefined' && window.__arenaPressureCapture === this.captureControl) {
+            delete window.__arenaPressureCapture;
+        }
+        this.captureControl = undefined;
 
 
         if (this.visibilityHandler && typeof document !== 'undefined') {

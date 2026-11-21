@@ -10,7 +10,9 @@
     "test:whale-ocean:visual": "npm run ts:build && playwright test -c playwright.whale-ocean.config.mjs",
     "test:candle-battles": "npm run ts:build && node --test wwwroot/js/candle-battles/tests/model.test.mjs wwwroot/js/candle-battles/tests/dialogue-engine.test.mjs wwwroot/js/candle-battles/tests/social-readiness.test.mjs wwwroot/js/candle-battles/tests/combat-animations.test.mjs wwwroot/js/candle-battles/tests/character-behavior.test.mjs wwwroot/js/candle-battles/tests/money-flow.test.mjs wwwroot/js/candle-battles/tests/money-flow-visual.test.mjs wwwroot/js/candle-battles/tests/money-flow-collectors.test.mjs wwwroot/js/candle-battles/tests/money-flow-collector-animation.test.mjs wwwroot/js/candle-battles/tests/money-flow-choreography.test.mjs",
     "test:candle-battles:visual": "npm run ts:build && playwright test -c playwright.candle-battles.config.mjs",
-    "test:arena-pressure": "npm run ts:build && node --test wwwroot/js/arena-pressure/tests/model.test.mjs wwwroot/js/arena-pressure/tests/wheel.test.mjs wwwroot/js/arena-pressure/tests/pressure-visual.test.mjs wwwroot/js/arena-pressure/tests/pressure-art.test.mjs"
+    "test:arena-pressure": "npm run ts:build && node --test wwwroot/js/arena-pressure/tests/model.test.mjs wwwroot/js/arena-pressure/tests/wheel.test.mjs wwwroot/js/arena-pressure/tests/pressure-visual.test.mjs wwwroot/js/arena-pressure/tests/pressure-art.test.mjs",
+    "capture:arena-pressure": "node tools/arena-pressure/capture-video.mjs",
+    "capture:arena-pressure:browserless": "node tools/arena-pressure/capture-browserless.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

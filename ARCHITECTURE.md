@@ -180,6 +180,7 @@ Responsibilities:
 - Futurebol experimental 3D frontend.
 - Whale Ocean 3D market-flow visualization, an independent presentation module for match routes.
 - Development-only Match preview at `/dev/match-preview`, explicitly gated by `MatchPreview:Enabled`. It reuses `MatchDetail` through a scoped in-memory deterministic data source; it does not call the API, Worker, PostgreSQL or SignalR and is rejected outside Development.
+- Arena Pressure video capture reuses the public historical replay at `/{culture}/tv/pressure/{matchId}/{slug}?mode=videoCapture&speed=4`. The Web host loads real score events and metric snapshots through the existing API client and exposes a restricted browser control contract only in capture mode. Development permits the local workflow; every other environment is disabled by default and requires `ArenaPressureCapture:Enabled`, a configured access key, and the `X-Arena-Capture-Key` request header, compared in constant time. `CriptoVersus/tools/arena-pressure/capture-video.mjs` drives the local contract. The independent `capture-browserless.mjs` client streams a hard-limited ten-second, 1280×720 VP8 preview from the existing Browserless v1 `/screencast`, validates effective frame timing, and converts it with FFmpeg to H.264. Artifacts remain under the Git-ignored `.codex-artifacts-local` directory. Neither tool has publication integration.
 - HTTP client facade for the API.
 - Server-side SignalR client for dashboard invalidation events.
 
