@@ -1,4 +1,4 @@
-import { ARENA_COLORS, clampPercent, DEFAULT_LABELS, determineDominance, normalizePressure, resolveHistoryDuration, sampleHistory } from './model.js';
+import { ARENA_COLORS, clampPercent, DEFAULT_LABELS, determineDominance, normalizePressure, resolveHistoryDuration, resolveCapturePlayhead, sampleHistory } from './model.js';
 import { WheelMechanism } from './wheel.js';
 import { CandleTeamManager } from './candles.js';
 import { PressureArt } from './pressure-art.js';
@@ -33,6 +33,8 @@ export class ArenaPressureEngine {
         this.speed = 1;
         this.captureStatus = 'ready';
         this.captureCompletedAt = null;
+        this.captureClockStartedAt = null;
+        this.captureClockStartPlayhead = 0;
         this.autoPaused = false;
         this.host = host;
         this.options = options;
@@ -203,7 +205,12 @@ export class ArenaPressureEngine {
         if (!this.playing) {
             return;
         }
-        this.playheadSeconds += (deltaMs / 1000) * this.speed;
+        if (this.captureStatus === 'recording' && this.captureClockStartedAt !== null) {
+            this.playheadSeconds = resolveCapturePlayhead(this.captureClockStartPlayhead, this.captureClockStartedAt, performance.now(), this.speed, this.historyDurationSeconds);
+        }
+        else {
+            this.playheadSeconds += (deltaMs / 1000) * this.speed;
+        }
         if (this.playheadSeconds >= this.historyDurationSeconds) {
             this.playheadSeconds = this.historyDurationSeconds;
             this.playing = false;
@@ -367,6 +374,8 @@ export class ArenaPressureEngine {
                 this.command('seek', 0);
                 this.command('speed', 4);
                 this.captureCompletedAt = null;
+                this.captureClockStartPlayhead = this.playheadSeconds;
+                this.captureClockStartedAt = performance.now();
                 this.captureStatus = 'recording';
                 this.command('play');
                 return true;

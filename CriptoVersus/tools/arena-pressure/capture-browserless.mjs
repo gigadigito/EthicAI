@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
+import { browserlessFunction } from './browserless-capture-function.mjs';
 
 const MATCH_ID = 46156;
 const DURATION_SECONDS = 10;
@@ -14,6 +15,8 @@ const HEIGHT = 720;
 const FPS = 30;
 const MAX_WEBM_BYTES = 100 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 55_000;
+const REMOTE_EXECUTION_BUDGET_MS = 44_000;
+const CAPTURE_ROUTE_CULTURES = new Set(['en', 'pt', 'zh', 'es', 'fr', 'de', 'it', 'ja', 'hi']);
 const toolRoot = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(toolRoot, '..', '..', '..');
 const defaultOutput = resolve(repositoryRoot, '.codex-artifacts-local', 'arena-pressure');
@@ -105,45 +108,6 @@ async function frameLuma(ffmpeg, input, atSeconds) {
     return match ? Number(match[1]) : null;
 }
 
-const browserlessFunction = String.raw`
-module.exports = async ({ page, context, startScreencast, stopScreencast }) => {
-    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-    await page.setViewport({ width: context.width, height: context.height, deviceScaleFactor: 1 });
-    await page.setExtraHTTPHeaders({ 'X-Arena-Capture-Key': context.captureKey });
-    const response = await page.goto(context.targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    if (!response || !response.ok()) throw new Error('Replay navigation failed.');
-    await page.waitForFunction(
-        () => window.__arenaPressureCapture?.getState?.().status === 'ready',
-        { timeout: 30000, polling: 100 }
-    );
-    const ready = await page.evaluate(() => window.__arenaPressureCapture.getState());
-    if (!ready.isFinished || ready.historyPoints < 2 || ready.speed !== 4) {
-        throw new Error('Replay is not a ready completed historical match at 4x.');
-    }
-    await page.evaluate(async () => {
-        if (document.fonts?.ready) await document.fonts.ready;
-        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    });
-    startScreencast();
-    const started = await page.evaluate(() => ({
-        accepted: window.__arenaPressureCapture.start(),
-        state: window.__arenaPressureCapture.getState()
-    }));
-    if (!started.accepted || started.state.playheadSeconds > 0.25) {
-        stopScreencast();
-        throw new Error('Replay did not start at its historical origin.');
-    }
-    await sleep(context.durationMs);
-    const ended = await page.evaluate(() => window.__arenaPressureCapture.getState());
-    const advanced = ended.playheadSeconds - started.state.playheadSeconds;
-    const expected = Math.min(ended.durationSeconds, context.durationMs / 1000 * 4);
-    if (ended.speed !== 4 || Math.abs(advanced - expected) > 4.5) {
-        stopScreencast();
-        throw new Error('Replay logical clock did not advance at 4x.');
-    }
-    stopScreencast();
-};`;
-
 const args = parseArgs(process.argv.slice(2));
 requirePrototypeValue('match-id', args['match-id'], MATCH_ID);
 requirePrototypeValue('duration', args.duration, DURATION_SECONDS);
@@ -172,11 +136,27 @@ const mp4Path = resolve(outputRoot, `${prefix}.mp4`);
 const reportPath = resolve(outputRoot, `${prefix}.json`);
 const logPath = resolve(outputRoot, `${prefix}.log`);
 const lockPath = resolve(outputRoot, 'browserless-preview.lock');
-const targetUrl = new URL(`/${args.culture ?? 'en'}/tv/pressure/${MATCH_ID}/match`, allowedOrigin.origin);
+const routeCulture = args.culture ?? 'en';
+if (!CAPTURE_ROUTE_CULTURES.has(routeCulture)) {
+    throw new Error('--culture must be a supported CriptoVersus route culture.');
+}
+const targetUrl = new URL(`/${routeCulture}/tv/pressure/${MATCH_ID}/match`, allowedOrigin.origin);
 targetUrl.searchParams.set('mode', 'videoCapture');
 targetUrl.searchParams.set('speed', String(SPEED));
+if (targetUrl.protocol !== 'https:') {
+    throw new Error('ARENA_PRESSURE_CAPTURE_BASE_URL must use HTTPS.');
+}
+const authorizedNavigation = {
+    href: targetUrl.href,
+    protocol: targetUrl.protocol,
+    hostname: targetUrl.hostname,
+    port: targetUrl.port,
+    pathname: targetUrl.pathname,
+    search: targetUrl.search
+};
 
 let lockHandle;
+let browserlessTimeout;
 const notes = [];
 const startedAt = new Date();
 const initialRss = process.memoryUsage().rss;
@@ -195,28 +175,28 @@ try {
     await run(ffprobe, ['-version']);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(new Error('Browserless request exceeded 55 seconds.')), REQUEST_TIMEOUT_MS);
+    browserlessTimeout = setTimeout(() => controller.abort(new Error('Browserless request exceeded 55 seconds.')), REQUEST_TIMEOUT_MS);
     log(`Requesting ${DURATION_SECONDS}s Browserless screencast for match ${MATCH_ID} at ${WIDTH}x${HEIGHT}.`);
-    let response;
-    try {
-        response = await fetch(browserlessEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                code: browserlessFunction,
-                context: {
-                    targetUrl: targetUrl.toString(),
-                    captureKey,
-                    width: WIDTH,
-                    height: HEIGHT,
-                    durationMs: DURATION_SECONDS * 1000
-                }
-            }),
-            signal: controller.signal
-        });
-    } finally {
-        clearTimeout(timeout);
-    }
+    const response = await fetch(browserlessEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            code: browserlessFunction,
+            context: {
+                targetUrl: targetUrl.toString(),
+                authorizedNavigation,
+                captureKey,
+                width: WIDTH,
+                height: HEIGHT,
+                durationMs: DURATION_SECONDS * 1000,
+                executionBudgetMs: REMOTE_EXECUTION_BUDGET_MS,
+                navigationTimeoutMs: 15_000,
+                phaserTimeoutMs: 15_000,
+                visualPreparationTimeoutMs: 4_000
+            }
+        }),
+        signal: controller.signal
+    });
     if (!response.ok || !response.body) throw new Error(`Browserless screencast failed with HTTP ${response.status}.`);
     const contentType = response.headers.get('content-type') ?? '';
     if (!contentType.toLowerCase().includes('video/webm')) {
@@ -231,6 +211,8 @@ try {
         }
     });
     await pipeline(Readable.fromWeb(response.body), limiter, createWriteStream(webmPartial, { flags: 'wx' }));
+    clearTimeout(browserlessTimeout);
+    browserlessTimeout = undefined;
     log(`WebM received by streaming (${received} bytes).`);
 
     const webmProbe = await probe(ffprobe, webmPartial, true);
@@ -314,10 +296,13 @@ try {
     log(`Outputs: ${webmPath}; ${mp4Path}; ${reportPath}`);
 } catch (error) {
     process.exitCode = 1;
-    notes.push(`${new Date().toISOString()} FATAL ${error.stack ?? error.message}`);
-    console.error(error.message);
+    const diagnostic = String(error.stack ?? error.message ?? error).split(captureKey).join('[REDACTED]');
+    const publicMessage = String(error.message ?? error).split(captureKey).join('[REDACTED]');
+    notes.push(`${new Date().toISOString()} FATAL ${diagnostic}`);
+    console.error(publicMessage);
     console.error(`Diagnostic log: ${logPath}`);
 } finally {
+    if (browserlessTimeout) clearTimeout(browserlessTimeout);
     await rm(webmPartial, { force: true }).catch(() => {});
     await rm(mp4Partial, { force: true }).catch(() => {});
     if (lockHandle) await lockHandle.close().catch(() => {});

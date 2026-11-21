@@ -9,6 +9,7 @@ import {
     determineDominance,
     normalizePressure,
     resolveHistoryDuration,
+    resolveCapturePlayhead,
     sampleHistory
 } from './model.js';
 import { WheelMechanism } from './wheel.js';
@@ -91,6 +92,8 @@ export class ArenaPressureEngine {
     private speed: number = 1;
     private captureStatus: CaptureStatus = 'ready';
     private captureCompletedAt: number | null = null;
+    private captureClockStartedAt: number | null = null;
+    private captureClockStartPlayhead: number = 0;
     private captureControl?: ArenaPressureCaptureControl;
 
     private visibilityHandler?: () => void;
@@ -336,7 +339,17 @@ export class ArenaPressureEngine {
             return;
         }
 
-        this.playheadSeconds += (deltaMs / 1000) * this.speed;
+        if (this.captureStatus === 'recording' && this.captureClockStartedAt !== null) {
+            this.playheadSeconds = resolveCapturePlayhead(
+                this.captureClockStartPlayhead,
+                this.captureClockStartedAt,
+                performance.now(),
+                this.speed,
+                this.historyDurationSeconds
+            );
+        } else {
+            this.playheadSeconds += (deltaMs / 1000) * this.speed;
+        }
         if (this.playheadSeconds >= this.historyDurationSeconds) {
             this.playheadSeconds = this.historyDurationSeconds;
             this.playing = false;
@@ -520,6 +533,8 @@ export class ArenaPressureEngine {
                 this.command('seek', 0);
                 this.command('speed', 4);
                 this.captureCompletedAt = null;
+                this.captureClockStartPlayhead = this.playheadSeconds;
+                this.captureClockStartedAt = performance.now();
                 this.captureStatus = 'recording';
                 this.command('play');
                 return true;

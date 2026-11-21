@@ -74,6 +74,22 @@ export interface ArenaPressureHistoryPoint {
     l: number;
 }
 
+/**
+ * Resolves the historical position for deterministic video capture from a
+ * monotonic clock. Rendering cadence must not slow the replay timeline.
+ */
+export function resolveCapturePlayhead(
+    startPlayheadSeconds: number,
+    startedAtMs: number,
+    nowMs: number,
+    speed: number,
+    durationSeconds: number
+): number {
+    const elapsedSeconds = Math.max(0, nowMs - startedAtMs) / 1000;
+    const position = startPlayheadSeconds + elapsedSeconds * speed;
+    return Math.max(0, Math.min(durationSeconds, position));
+}
+
 export const ARENA_COLORS = {
     left: 0xff9100,
     leftHex: '#ff9100',

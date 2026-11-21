@@ -7,6 +7,7 @@ import {
     formatDisplaySymbol,
     sampleHistory,
     resolveHistoryDuration,
+    resolveCapturePlayhead,
     clampPercent
 } from '../../dist/arena-pressure/model.js';
 
@@ -106,6 +107,23 @@ test('resolveHistoryDuration prefers the explicit duration and never returns zer
     assert.equal(resolveHistoryDuration(history, undefined), 30);
     assert.equal(resolveHistoryDuration([], undefined), 1);
     assert.equal(resolveHistoryDuration(history, 0), 30);
+});
+
+test('capture playhead advances at 4x from monotonic elapsed time', () => {
+    assert.equal(resolveCapturePlayhead(0, 1_000, 11_000, 4, 100), 40);
+    assert.equal(resolveCapturePlayhead(5, 1_000, 3_500, 4, 100), 15);
+});
+
+test('capture playhead is independent of delayed and irregular render frames', () => {
+    const frames = [1_016, 1_081, 1_497, 3_003, 8_777, 11_000];
+    const positions = frames.map(now => resolveCapturePlayhead(0, 1_000, now, 4, 100));
+    assert.equal(positions.at(-1), 40);
+    assert.deepEqual(positions, [0.064, 0.324, 1.988, 8.012, 31.108, 40]);
+});
+
+test('capture playhead clamps at the historical ending', () => {
+    assert.equal(resolveCapturePlayhead(0, 1_000, 11_000, 4, 27.5), 27.5);
+    assert.equal(resolveCapturePlayhead(12, 1_000, 11_000, 4, 30), 30);
 });
 
 test('clampPercent rejects non finite input and bounds the range', () => {
