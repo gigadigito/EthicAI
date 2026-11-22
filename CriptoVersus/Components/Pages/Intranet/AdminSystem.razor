@@ -210,7 +210,7 @@
             {
                 _adminModule ??= await JS.InvokeAsync<IJSObjectReference>(
                     "import",
-                    "./js/solanaAdmin.js?v=20260505-rpc-config");
+                    "/js/solanaAdmin.js?v=20260505-rpc-config");
 
                 _chain = await _adminModule.InvokeAsync<ChainOverview>(
                     "getProgramOverview",

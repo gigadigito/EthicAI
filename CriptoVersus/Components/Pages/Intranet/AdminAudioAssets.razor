@@ -347,7 +347,7 @@
             return;
         }
 
-        _audioModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/adminAudioAssets.js?v=20260605-audio-admin-debug");
+        _audioModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/adminAudioAssets.js?v=20260605-audio-admin-debug");
         await LoadAllAsync();
     }
 

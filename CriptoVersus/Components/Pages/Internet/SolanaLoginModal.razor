@@ -131,7 +131,7 @@
         {
             module = await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/solanawallet.js");
+                "/js/solanawallet.js");
         }
     }
 
@@ -141,7 +141,7 @@
         {
             walletActionsModule = await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/solanaWalletActions.js?v=20260505-rpc-config");
+                "/js/solanaWalletActions.js?v=20260505-rpc-config");
         }
     }
 

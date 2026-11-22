@@ -1881,7 +1881,7 @@
     {
         _investmentDiagnosticsModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/solanaInvestDiagnostics.js?v=20260505-rpc-config");
+            "/js/solanaInvestDiagnostics.js?v=20260505-rpc-config");
 
         var blockchainMode = Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";
         var programId = string.Equals(blockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
@@ -1924,7 +1924,7 @@
         {
             _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/solanaWalletActions.js?v=20260505-rpc-config");
+                "/js/solanaWalletActions.js?v=20260505-rpc-config");
 
             _actionMessage = T("actions.validatingConnectedWallet");
             await InvokeAsync(StateHasChanged);
@@ -2044,7 +2044,7 @@
         {
             _walletBalanceModule ??= await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/solanaWalletBalance.js?v=20260513-wallet-guard");
+                "/js/solanaWalletBalance.js?v=20260513-wallet-guard");
 
             var guard = await _walletBalanceModule.InvokeAsync<WalletBalanceGuardResult>(
                 "getMaxSpendableSol",

@@ -562,7 +562,7 @@
 
         try
         {
-            _walletBalanceModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/solanaWalletBalance.js?v=20260513-wallet-guard");
+            _walletBalanceModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/solanaWalletBalance.js?v=20260513-wallet-guard");
             var result = await _walletBalanceModule.InvokeAsync<WalletBalanceGuardResult>(
                 "getMaxSpendableSol",
                 new
@@ -593,7 +593,7 @@
 
     private async Task<WalletBalanceGuardResult> ValidateWalletBalanceBeforeSendAsync(decimal amountSol)
     {
-        _walletBalanceModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/solanaWalletBalance.js?v=20260513-wallet-guard");
+        _walletBalanceModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/solanaWalletBalance.js?v=20260513-wallet-guard");
         return await _walletBalanceModule.InvokeAsync<WalletBalanceGuardResult>(
             "validateWalletHasEnoughSol",
             amountSol,
@@ -657,7 +657,7 @@
             throw new InvalidOperationException("Partida nao carregada para investimento on-chain.");
 
         var blockchainMode = Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";
-        _bettingModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/solanaInvestDiagnostics.js?v=20260505-rpc-config");
+        _bettingModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/solanaInvestDiagnostics.js?v=20260505-rpc-config");
         var programId = string.Equals(blockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
             ? Config["CriptoVersusBlockchain:FutureFullOnChainProgramId"]
             : Config["CriptoVersusBlockchain:CurrentHybridProgramId"] ?? Config["OnChainBetting:ProgramId"];

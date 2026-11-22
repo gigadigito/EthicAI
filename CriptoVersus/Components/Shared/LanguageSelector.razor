@@ -302,7 +302,7 @@
         _module ??=
             await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/languageSelector.js");
+                "/js/languageSelector.js");
 
         _selfReference ??=
             DotNetObjectReference.Create(this);

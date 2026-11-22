@@ -415,7 +415,7 @@ else
         {
             _cultureModule ??= await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/culturePreference.mjs");
+                "/js/culturePreference.mjs");
 
             var module = _cultureModule;
             if (module is null) return;
@@ -433,7 +433,7 @@ else
         {
             _appVersionModule ??= await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/appVersion.js");
+                "/js/appVersion.js");
 
             var module = _appVersionModule;
             if (module is null) return;
@@ -483,18 +483,20 @@ else
     {
         try
         {
-            _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
-                "import",
-                "./js/solanaWalletActions.js?v=20260506");
-
-            var module = _walletActionsModule;
-            if (module is null) return;
             if (string.IsNullOrWhiteSpace(authToken) || string.IsNullOrWhiteSpace(walletPublicKey))
             {
-                await module.InvokeVoidAsync("unregisterWalletObserver");
+                if (_walletActionsModule is not null)
+                    await _walletActionsModule.InvokeVoidAsync("unregisterWalletObserver");
+
                 return;
             }
 
+            _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "/js/solanaWalletActions.js?v=20260506");
+
+            var module = _walletActionsModule;
+            if (module is null) return;
             _walletObserverRef ??= DotNetObjectReference.Create(this);
 
             await module.InvokeAsync<bool>(
@@ -507,6 +509,7 @@ else
                 });
         }
         catch (JSDisconnectedException) { }
+        catch (JSException) { }
         catch (InvalidOperationException) { }
     }
 

@@ -1415,7 +1415,7 @@ else
         {
             WalletBalanceModule ??= await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/solanaWalletBalance.js?v=20260513-wallet-guard");
+                "/js/solanaWalletBalance.js?v=20260513-wallet-guard");
 
             var result = await WalletBalanceModule.InvokeAsync<WalletBalanceGuardResult>(
                 "getMaxSpendableSol",
@@ -1449,7 +1449,7 @@ else
     {
         WalletBalanceModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/solanaWalletBalance.js?v=20260513-wallet-guard");
+            "/js/solanaWalletBalance.js?v=20260513-wallet-guard");
 
         return await WalletBalanceModule.InvokeAsync<WalletBalanceGuardResult>(
             "validateWalletHasEnoughSol",
@@ -1576,7 +1576,7 @@ else
 
         BettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/solanaInvestDiagnostics.js?v=20260505-rpc-config");
+            "/js/solanaInvestDiagnostics.js?v=20260505-rpc-config");
 
         var programId = string.Equals(blockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
             ? Config["CriptoVersusBlockchain:FutureFullOnChainProgramId"]
