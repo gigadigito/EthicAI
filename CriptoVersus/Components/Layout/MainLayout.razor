@@ -10,9 +10,21 @@
 @inject LocalizationService L
 @inject RouteLocalizationService RouteLocalization
 @inject PublishedVersionService PublishedVersion
+@inject IConfiguration Config
+@inject IWebHostEnvironment Environment
+@inject IHttpContextAccessor HttpContextAccessor
+@inject PersistentComponentState PersistentState
 @implements IAsyncDisposable
 
-@if (IsTvRoute)
+@if (_isAuthorizedVideoCapture)
+{
+    <main class="arena-capture-layout" data-arena-capture-layout="authorized">
+        <CascadingValue Name="ArenaPressureAuthorizedVideoCapture" Value="true" IsFixed="true">
+            @Body
+        </CascadingValue>
+    </main>
+}
+else if (IsTvRoute)
 {
     <main class="tv-layout-shell">
         @Body
@@ -124,19 +136,19 @@ else
 </div>
 }
 
-@if (ShowWalletUi)
+@if (!_isAuthorizedVideoCapture && ShowWalletUi)
 {
     <SolanaWalletModal @ref="loginModal"
                        OnLoginSucceeded="HandleLoginSucceededAsync"
                        OnSessionChanged="HandleSessionChangedAsync" />
 }
 
-@if (IsPublicSeoRoute)
+@if (!_isAuthorizedVideoCapture && IsPublicSeoRoute)
 {
     <LocalizedSeoAlternates />
 }
 
-@if (_showPostLoginPrompt)
+@if (!_isAuthorizedVideoCapture && _showPostLoginPrompt)
 {
     <div class="post-login-overlay" @onclick="StayOnCurrentPage">
         <div class="post-login-dialog" @onclick:stopPropagation="true" role="dialog" aria-modal="true" aria-labelledby="post-login-title">
@@ -156,7 +168,7 @@ else
     </div>
 }
 
-@if (_interactiveChromeReady && !IsPublicSeoRoute)
+@if (!_isAuthorizedVideoCapture && _interactiveChromeReady && !IsPublicSeoRoute)
 {
     <div id="blazor-error-ui" data-nosnippet>
         An unhandled error has occurred.
@@ -165,11 +177,23 @@ else
     </div>
 }
 
-<div id="html5-toast" class="toast-message" style="display:none;" aria-live="polite" aria-atomic="true">
-    <span id="html5-toast-text"></span>
-</div>
+@if (!_isAuthorizedVideoCapture)
+{
+    <div id="html5-toast" class="toast-message" style="display:none;" aria-live="polite" aria-atomic="true">
+        <span id="html5-toast-text"></span>
+    </div>
+}
 
 <style>
+    .arena-capture-layout {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: #09111f;
+    }
+
     .tv-layout-shell {
         min-height: 100vh;
         overflow: hidden;
@@ -368,6 +392,8 @@ else
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private bool _interactiveChromeReady;
     private bool _showPostLoginPrompt;
+    private bool _isAuthorizedVideoCapture;
+    private PersistingComponentStateSubscription? _captureStateSubscription;
     private bool IsPublicSeoRoute => IsPublicRoute(Nav.Uri);
     private bool IsPublicHomeRoute => IsHomeRoute(Nav.Uri);
     private bool IsTvRoute => IsTvModeRoute(Nav.Uri);
@@ -377,6 +403,30 @@ else
     private bool IsLoggedIn
         => !string.IsNullOrWhiteSpace(authToken)
             && !string.IsNullOrWhiteSpace(walletPublicKey);
+
+    protected override void OnInitialized()
+    {
+        var requested = ArenaPressurePageRouting.IsVideoCaptureRequest(new Uri(Nav.Uri));
+        var restored = PersistentState.TryTakeFromJson<bool>(
+            ArenaPressurePageRouting.AuthorizedCaptureStateKey,
+            out var persistedAuthorization);
+        var context = HttpContextAccessor.HttpContext;
+        var requestAuthorized = context is not null
+                                && ArenaPressureCaptureAccess.IsAuthorized(context, Environment, Config);
+
+        _isAuthorizedVideoCapture = ArenaPressurePageRouting.ResolveAuthorizedVideoCapture(
+            requested,
+            restored ? persistedAuthorization : null,
+            requestAuthorized);
+
+        _captureStateSubscription = PersistentState.RegisterOnPersisting(() =>
+        {
+            PersistentState.PersistAsJson(
+                ArenaPressurePageRouting.AuthorizedCaptureStateKey,
+                _isAuthorizedVideoCapture);
+            return Task.CompletedTask;
+        }, RenderMode.InteractiveServer);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -667,6 +717,9 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        _captureStateSubscription?.Dispose();
+        _captureStateSubscription = null;
+
         var walletModule = _walletActionsModule;
         _walletActionsModule = null;
         if (walletModule is not null)

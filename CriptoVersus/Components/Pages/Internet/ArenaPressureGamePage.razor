@@ -13,9 +13,6 @@
 @inject IConfiguration Config
 @inject LocalizationService L
 @inject ILogger<ArenaPressureGamePage> Logger
-@inject IWebHostEnvironment Environment
-@inject IHttpContextAccessor HttpContextAccessor
-@inject PersistentComponentState PersistentState
 @implements IDisposable
 
 <PageTitle>@PageTitle</PageTitle>
@@ -78,37 +75,16 @@
     [Parameter] public string? Culture { get; set; }
     [Parameter] public int MatchId { get; set; }
     [Parameter] public string? Slug { get; set; }
+    [CascadingParameter(Name = "ArenaPressureAuthorizedVideoCapture")]
+    public bool AuthorizedVideoCapture { get; set; }
 
     private string _culture = AppCultureService.DefaultRouteCulture;
     private MatchDto? _match;
     private TvHotMatchDto? _hotMatch;
     private string _activeRouteKey = string.Empty;
     private bool _isDisposed;
-    private bool _isAuthorizedVideoCapture;
-    private PersistingComponentStateSubscription? _captureStateSubscription;
     private ArenaPressurePageLoadState _loadState = ArenaPressurePageLoadState.Loading;
-    private bool IsVideoCapture => _isAuthorizedVideoCapture;
-
-    protected override void OnInitialized()
-    {
-        const string stateKey = "arena-pressure-authorized-video-capture";
-        var requested = ArenaPressurePageRouting.IsVideoCaptureRequest(new Uri(Nav.Uri));
-
-        var restored = PersistentState.TryTakeFromJson<bool>(stateKey, out var persistedAuthorization);
-        var context = HttpContextAccessor.HttpContext;
-        var requestAuthorized = context is not null
-                                && ArenaPressureCaptureAccess.IsAuthorized(context, Environment, Config);
-        _isAuthorizedVideoCapture = ArenaPressurePageRouting.ResolveAuthorizedVideoCapture(
-            requested,
-            restored ? persistedAuthorization : null,
-            requestAuthorized);
-
-        _captureStateSubscription = PersistentState.RegisterOnPersisting(() =>
-        {
-            PersistentState.PersistAsJson(stateKey, _isAuthorizedVideoCapture);
-            return Task.CompletedTask;
-        }, RenderMode.InteractiveServer);
-    }
+    private bool IsVideoCapture => AuthorizedVideoCapture;
 
     private string T(string key) => L.T($"arenaPressure.{key}", _culture);
 
@@ -256,7 +232,6 @@
     public void Dispose()
     {
         _isDisposed = true;
-        _captureStateSubscription?.Dispose();
     }
 
     private enum ArenaPressurePageLoadState
@@ -275,16 +250,6 @@
         padding: 1rem 0.75rem 2rem;
     }
 
-    html:has(.arena-pressure-page--video-capture),
-    html:has(.arena-pressure-page--video-capture) body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-        background: #09111f;
-    }
-
-    .tv-layout-shell:has(.arena-pressure-page--video-capture),
     .arena-pressure-page--video-capture {
         width: 100vw;
         height: 100vh;

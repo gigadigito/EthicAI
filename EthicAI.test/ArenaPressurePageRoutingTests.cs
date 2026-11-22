@@ -4,12 +4,22 @@ namespace EthicAI.test;
 
 public sealed class ArenaPressurePageRoutingTests
 {
+    [Fact]
+    public void CaptureAuthorizationState_UsesOneSharedPersistentKey()
+    {
+        Assert.Equal(
+            "arena-pressure-authorized-video-capture",
+            ArenaPressurePageRouting.AuthorizedCaptureStateKey);
+    }
+
     [Theory]
     [InlineData("https://example.test/en/tv/pressure/46156/match?mode=videoCapture&speed=4", true)]
     [InlineData("https://example.test/en/tv/pressure/46156/match?mode=videoCapture", false)]
     [InlineData("https://example.test/en/tv/pressure/46156/match?mode=videoCapture&speed=1", false)]
     [InlineData("https://example.test/en/tv/pressure/46156/match?mode=VideoCapture&speed=4", false)]
     [InlineData("https://example.test/en/tv/pressure/46156/match", false)]
+    [InlineData("https://example.test/en/tv/match/46156/match?mode=videoCapture&speed=4", false)]
+    [InlineData("https://example.test/en/faq?mode=videoCapture&speed=4", false)]
     public void CaptureRequest_RequiresExactTechnicalQuery(string uri, bool expected)
     {
         Assert.Equal(expected, ArenaPressurePageRouting.IsVideoCaptureRequest(new Uri(uri)));
