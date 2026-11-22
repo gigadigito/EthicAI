@@ -6,6 +6,7 @@ import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import { browserlessFunction } from './browserless-capture-function.mjs';
+import { parseBrowserlessArgs, parseMatchId } from './capture-browserless-options.mjs';
 import {
     convertWebmToMp4,
     preserveFailedWebm,
@@ -13,7 +14,6 @@ import {
     validateWebm
 } from './capture-media.mjs';
 
-const MATCH_ID = 46156;
 const DURATION_SECONDS = 10;
 const SPEED = 4;
 const WIDTH = 1280;
@@ -30,25 +30,14 @@ const defaultOutput = resolve(repositoryRoot, '.codex-artifacts-local', 'arena-p
 function usage(message) {
     if (message) console.error(message);
     console.error('Usage: node tools/arena-pressure/capture-browserless.mjs ' +
-        '--match-id 46156 [--base-url <allowed-origin>] [--duration 10] [--speed 4] ' +
-        '[--width 1280] [--height 720] [--output <directory>]');
+        '--match-id <positive-integer> [--base-url <allowed-origin>] [--culture en] ' +
+        '[--duration 10] [--speed 4] [--width 1280] [--height 720] [--output <directory>]');
     process.exit(2);
 }
 
-function parseArgs(values) {
-    const parsed = {};
-    for (let index = 0; index < values.length; index += 2) {
-        const name = values[index];
-        const value = values[index + 1];
-        if (!name?.startsWith('--') || value === undefined) usage(`Invalid argument: ${name ?? ''}`);
-        parsed[name.slice(2)] = value;
-    }
-    return parsed;
-}
-
-function requirePrototypeValue(name, actual, expected) {
+function requireFixedValue(name, actual, expected) {
     if (String(actual ?? expected) !== String(expected)) {
-        usage(`Phase 2 prototype requires --${name} ${expected}.`);
+        usage(`--${name} must be ${expected} for this capture profile.`);
     }
 }
 
@@ -107,12 +96,18 @@ async function frameLuma(ffmpeg, input, atSeconds) {
     return match ? Number(match[1]) : null;
 }
 
-const args = parseArgs(process.argv.slice(2));
-requirePrototypeValue('match-id', args['match-id'], MATCH_ID);
-requirePrototypeValue('duration', args.duration, DURATION_SECONDS);
-requirePrototypeValue('speed', args.speed, SPEED);
-requirePrototypeValue('width', args.width, WIDTH);
-requirePrototypeValue('height', args.height, HEIGHT);
+let args;
+let matchId;
+try {
+    args = parseBrowserlessArgs(process.argv.slice(2));
+    matchId = parseMatchId(args['match-id']);
+} catch (error) {
+    usage(error.message);
+}
+requireFixedValue('duration', args.duration, DURATION_SECONDS);
+requireFixedValue('speed', args.speed, SPEED);
+requireFixedValue('width', args.width, WIDTH);
+requireFixedValue('height', args.height, HEIGHT);
 
 const browserlessEndpoint = safeUrl(process.env.ARENA_PRESSURE_BROWSERLESS_URL, 'ARENA_PRESSURE_BROWSERLESS_URL');
 browserlessEndpoint.pathname = '/screencast';
@@ -128,7 +123,7 @@ const ffmpeg = process.env.FFMPEG_PATH ?? 'ffmpeg';
 const ffprobe = process.env.FFPROBE_PATH ?? 'ffprobe';
 const outputRoot = resolve(args.output ?? defaultOutput);
 const runId = new Date().toISOString().replace(/[-:.]/g, '');
-const prefix = `arena-pressure-match-${MATCH_ID}-preview-${runId}`;
+const prefix = `arena-pressure-match-${matchId}-preview-${runId}`;
 const webmPartial = resolve(outputRoot, `${prefix}.webm.partial`);
 const webmFailed = resolve(outputRoot, `${prefix}.failed.webm`);
 const webmPath = resolve(outputRoot, `${prefix}.webm`);
@@ -141,7 +136,7 @@ const routeCulture = args.culture ?? 'en';
 if (!CAPTURE_ROUTE_CULTURES.has(routeCulture)) {
     throw new Error('--culture must be a supported CriptoVersus route culture.');
 }
-const targetUrl = new URL(`/${routeCulture}/tv/pressure/${MATCH_ID}/match`, allowedOrigin.origin);
+const targetUrl = new URL(`/${routeCulture}/tv/pressure/${matchId}/match`, allowedOrigin.origin);
 targetUrl.searchParams.set('mode', 'videoCapture');
 targetUrl.searchParams.set('speed', String(SPEED));
 if (targetUrl.protocol !== 'https:') {
@@ -179,7 +174,7 @@ try {
 
     const controller = new AbortController();
     browserlessTimeout = setTimeout(() => controller.abort(new Error('Browserless request exceeded 55 seconds.')), REQUEST_TIMEOUT_MS);
-    log(`Requesting ${DURATION_SECONDS}s Browserless screencast for match ${MATCH_ID} at ${WIDTH}x${HEIGHT}.`);
+    log(`Requesting ${DURATION_SECONDS}s Browserless screencast for match ${matchId} at ${WIDTH}x${HEIGHT}.`);
     const response = await fetch(browserlessEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -258,7 +253,7 @@ try {
     const report = {
         schemaVersion: 1,
         status: 'validated',
-        matchId: MATCH_ID,
+        matchId,
         captureDurationSeconds: webmDuration,
         captureDurationSource: webmValidation.duration.source,
         replaySpeed: SPEED,

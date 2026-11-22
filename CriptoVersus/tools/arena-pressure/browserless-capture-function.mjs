@@ -38,10 +38,26 @@ export async function browserlessFunctionHandler({ page, context, startScreencas
         }
     };
     const expected = context.authorizedNavigation;
+    const allowedPath = /^\/(?:en|pt|zh|es|fr|de|it|ja|hi)\/tv\/pressure\/[1-9]\d*\/match$/;
+    const expectedOrigin = expected
+        ? `${expected.protocol}//${expected.hostname}${expected.port ? `:${expected.port}` : ''}`
+        : '';
+    const reconstructedHref = expected
+        ? `${expectedOrigin}${expected.pathname}${expected.search}`
+        : '';
 
     if (!expected
         || expected.protocol !== 'https:'
+        || typeof expected.hostname !== 'string'
+        || !expected.hostname
+        || typeof expected.port !== 'string'
+        || typeof expected.pathname !== 'string'
+        || !allowedPath.test(expected.pathname)
+        || expected.search !== '?mode=videoCapture&speed=4'
         || typeof expected.href !== 'string'
+        || expected.href !== reconstructedHref
+        || typeof context.captureKey !== 'string'
+        || !context.captureKey.trim()
         || context.targetUrl !== expected.href) {
         throw fail('Capture target does not match the authorized HTTPS navigation contract.', 'TARGET_CONTRACT');
     }
@@ -120,7 +136,7 @@ export async function browserlessFunctionHandler({ page, context, startScreencas
         }
         if (securityViolation) throw securityViolation;
         if (!initialNavigationHandled || !response || !response.ok()) {
-            throw fail('Replay navigation failed.', 'NAV_FAILED');
+            throw fail('Historical Arena Pressure match was not found or could not be loaded.', 'MATCH_UNAVAILABLE');
         }
         diagnostic('NAV_OK');
 
@@ -149,9 +165,12 @@ export async function browserlessFunctionHandler({ page, context, startScreencas
         }
         if (securityViolation) throw securityViolation;
         const ready = await page.evaluate(() => window.__arenaPressureCapture.getState());
-        if (!ready.isFinished || ready.historyPoints < 2 || ready.speed !== 4) {
-            throw fail('Replay is not a ready completed historical match at 4x.', 'PHASER_INVALID_STATE');
-        }
+        if (!ready.isFinished)
+            throw fail('Arena Pressure match is not completed.', 'MATCH_NOT_FINISHED');
+        if (!Number.isSafeInteger(ready.historyPoints) || ready.historyPoints < 2)
+            throw fail('Arena Pressure match has no usable historical replay.', 'HISTORY_UNAVAILABLE');
+        if (ready.speed !== 4)
+            throw fail('Arena Pressure historical replay is not ready at 4x.', 'PHASER_INVALID_STATE');
         diagnostic('PHASER_READY', `historyPoints=${Number(ready.historyPoints)}`);
 
         stage = 'VISUAL_PREPARATION';

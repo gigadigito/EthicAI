@@ -4,15 +4,20 @@ import vm from 'node:vm';
 import { browserlessFunction, browserlessFunctionHandler } from './browserless-capture-function.mjs';
 
 const secret = 'test-secret-never-log';
-const targetUrl = 'https://capture.example:8443/en/tv/pressure/46156/match?mode=videoCapture&speed=4';
-const authorizedNavigation = {
-    href: targetUrl,
-    protocol: 'https:',
-    hostname: 'capture.example',
-    port: '8443',
-    pathname: '/en/tv/pressure/46156/match',
-    search: '?mode=videoCapture&speed=4'
-};
+function navigationFor(matchId = 46156) {
+    const pathname = `/en/tv/pressure/${matchId}/match`;
+    const search = '?mode=videoCapture&speed=4';
+    return {
+        href: `https://capture.example:8443${pathname}${search}`,
+        protocol: 'https:',
+        hostname: 'capture.example',
+        port: '8443',
+        pathname,
+        search
+    };
+}
+const authorizedNavigation = navigationFor();
+const targetUrl = authorizedNavigation.href;
 
 class FakeRequest {
     constructor(page, { url, method = 'GET', navigation = false, headers = {} }) {
@@ -38,6 +43,8 @@ class FakePage {
         navigationNever = false,
         phaserNever = false,
         fontsNever = false,
+        responseOk = true,
+        readyState = null,
         replayAccepted = true,
         clockStartMs = 1_000,
         clockEndMs = 1_001,
@@ -50,6 +57,8 @@ class FakePage {
         this.navigationNever = navigationNever;
         this.phaserNever = phaserNever;
         this.fontsNever = fontsNever;
+        this.responseOk = responseOk;
+        this.readyState = readyState ?? { isFinished: true, historyPoints: 10, speed: 4 };
         this.replayAccepted = replayAccepted;
         this.clockStartMs = clockStartMs;
         this.clockEndMs = clockEndMs;
@@ -98,7 +107,7 @@ class FakePage {
             });
         }
         if (this.navigationNever) return new Promise(() => {});
-        return { ok: () => true };
+        return { ok: () => this.responseOk };
     }
     async waitForFunction() {
         if (this.phaserNever) return new Promise(() => {});
@@ -106,7 +115,7 @@ class FakePage {
     }
     async evaluate() {
         this.evaluateCall += 1;
-        if (this.evaluateCall === 1) return { isFinished: true, historyPoints: 10, speed: 4 };
+        if (this.evaluateCall === 1) return this.readyState;
         if (this.evaluateCall === 2) {
             if (this.fontsNever) return new Promise(() => {});
             return undefined;
@@ -187,6 +196,20 @@ test('sends the key only on the exact initial navigation and strips it from all 
     assert.equal(page.requests.filter(request => header(request, 'X-Arena-Capture-Key') === secret).length, 1);
 });
 
+test('captures match 46324 with the same exact-navigation authorization contract', async () => {
+    const navigation = navigationFor(46324);
+    const page = new FakePage();
+    await browserlessFunctionHandler({
+        page,
+        context: context({ targetUrl: navigation.href, authorizedNavigation: navigation }),
+        startScreencast() {},
+        stopScreencast() {}
+    });
+
+    assert.equal(page.requests[0].url(), navigation.href);
+    assert.equal(header(page.requests[0], 'X-Arena-Capture-Key'), secret);
+});
+
 test('blocks and sanitizes a cross-origin redirect', async () => {
     const page = new FakePage({ redirect: 'https://attacker.example/steal' });
 
@@ -243,6 +266,49 @@ test('rejects URL contract changes before any request is emitted', async () => {
         );
         assert.equal(page.requests.length, 0);
     }
+});
+
+test('rejects arbitrary paths even when target and authorization fields agree', async () => {
+    for (const pathname of ['/en/tv/pressure/46324/../../faq', '/en/tv/match/46324/match', '/en/tv/pressure/0/match']) {
+        const navigation = {
+            ...navigationFor(46324),
+            pathname,
+            href: `https://capture.example:8443${pathname}?mode=videoCapture&speed=4`
+        };
+        const page = new FakePage();
+        await assert.rejects(
+            browserlessFunctionHandler({
+                page,
+                context: context({ targetUrl: navigation.href, authorizedNavigation: navigation }),
+                startScreencast() {},
+                stopScreencast() {}
+            }),
+            error => error.captureCode === 'TARGET_CONTRACT'
+        );
+        assert.equal(page.requests.length, 0);
+    }
+});
+
+test('reports unavailable matches and unusable history explicitly', async () => {
+    await assert.rejects(
+        browserlessFunctionHandler({
+            page: new FakePage({ responseOk: false }),
+            context: context(),
+            startScreencast() {},
+            stopScreencast() {}
+        }),
+        error => error.captureCode === 'MATCH_UNAVAILABLE'
+    );
+
+    await assert.rejects(
+        browserlessFunctionHandler({
+            page: new FakePage({ readyState: { isFinished: true, historyPoints: 0, speed: 4 } }),
+            context: context(),
+            startScreencast() {},
+            stopScreencast() {}
+        }),
+        error => error.captureCode === 'HISTORY_UNAVAILABLE'
+    );
 });
 
 test('serialized Browserless v1 function is self-contained and does not set global headers', () => {
