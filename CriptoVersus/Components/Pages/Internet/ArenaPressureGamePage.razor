@@ -14,6 +14,8 @@
 @inject LocalizationService L
 @inject ILogger<ArenaPressureGamePage> Logger
 @inject IWebHostEnvironment Environment
+@inject IHttpContextAccessor HttpContextAccessor
+@inject PersistentComponentState PersistentState
 @implements IDisposable
 
 <PageTitle>@PageTitle</PageTitle>
@@ -82,17 +84,30 @@
     private TvHotMatchDto? _hotMatch;
     private string _activeRouteKey = string.Empty;
     private bool _isDisposed;
+    private bool _isAuthorizedVideoCapture;
+    private PersistingComponentStateSubscription? _captureStateSubscription;
     private ArenaPressurePageLoadState _loadState = ArenaPressurePageLoadState.Loading;
-    private bool IsVideoCapture
-        => ArenaPressureCaptureAccess.IsEnabled(Environment, Config)
-           && string.Equals(Query("mode"), "videoCapture", StringComparison.Ordinal)
-           && string.Equals(Query("speed"), "4", StringComparison.Ordinal);
+    private bool IsVideoCapture => _isAuthorizedVideoCapture;
 
-    private string? Query(string key)
+    protected override void OnInitialized()
     {
-        var query = new Uri(Nav.Uri).Query;
-        return Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(query)
-            .TryGetValue(key, out var value) ? value.ToString() : null;
+        const string stateKey = "arena-pressure-authorized-video-capture";
+        var requested = ArenaPressurePageRouting.IsVideoCaptureRequest(new Uri(Nav.Uri));
+
+        var restored = PersistentState.TryTakeFromJson<bool>(stateKey, out var persistedAuthorization);
+        var context = HttpContextAccessor.HttpContext;
+        var requestAuthorized = context is not null
+                                && ArenaPressureCaptureAccess.IsAuthorized(context, Environment, Config);
+        _isAuthorizedVideoCapture = ArenaPressurePageRouting.ResolveAuthorizedVideoCapture(
+            requested,
+            restored ? persistedAuthorization : null,
+            requestAuthorized);
+
+        _captureStateSubscription = PersistentState.RegisterOnPersisting(() =>
+        {
+            PersistentState.PersistAsJson(stateKey, _isAuthorizedVideoCapture);
+            return Task.CompletedTask;
+        }, RenderMode.InteractiveServer);
     }
 
     private string T(string key) => L.T($"arenaPressure.{key}", _culture);
@@ -188,16 +203,21 @@
 
             var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
 
-            if (!PathsEquivalent(currentPath, expectedPath))
+            if (ArenaPressurePageRouting.ShouldRedirectToCanonical(IsVideoCapture, currentPath, expectedPath))
             {
-                var suffix = IsVideoCapture ? "?mode=videoCapture&speed=4" : string.Empty;
-                Nav.NavigateTo(expectedPath + suffix, replace: true);
+                Nav.NavigateTo(expectedPath, replace: true);
                 return;
             }
 
             _match = match;
             _hotMatch = await ResolveHotMatchAsync(match);
             _loadState = ArenaPressurePageLoadState.Loaded;
+        }
+        catch (Microsoft.AspNetCore.Components.NavigationException)
+        {
+            // NavigateTo throws during static SSR after issuing the canonical redirect.
+            // It is control flow, not a failed match/API load.
+            throw;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -233,24 +253,10 @@
         await LoadMatchAsync();
     }
 
-    private static bool PathsEquivalent(string left, string right)
-        => SafeUnescape(left).Equals(SafeUnescape(right), StringComparison.OrdinalIgnoreCase);
-
-    private static string SafeUnescape(string value)
-    {
-        try
-        {
-            return Uri.UnescapeDataString(value);
-        }
-        catch
-        {
-            return value;
-        }
-    }
-
     public void Dispose()
     {
         _isDisposed = true;
+        _captureStateSubscription?.Dispose();
     }
 
     private enum ArenaPressurePageLoadState

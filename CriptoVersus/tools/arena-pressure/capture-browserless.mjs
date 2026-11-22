@@ -6,6 +6,12 @@ import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import { browserlessFunction } from './browserless-capture-function.mjs';
+import {
+    convertWebmToMp4,
+    preserveFailedWebm,
+    validateMp4,
+    validateWebm
+} from './capture-media.mjs';
 
 const MATCH_ID = 46156;
 const DURATION_SECONDS = 10;
@@ -69,13 +75,6 @@ function run(command, args) {
     });
 }
 
-function parseFrameTimes(text) {
-    return text.split(/\r?\n/)
-        .map(line => Number(line.trim().replace(/,$/, '')))
-        .filter(Number.isFinite)
-        .sort((left, right) => left - right);
-}
-
 function timingMetrics(times) {
     const gaps = times.slice(1).map((time, index) => time - times[index]).filter(gap => gap >= 0);
     const span = times.length > 1 ? times.at(-1) - times[0] : 0;
@@ -90,11 +89,11 @@ function timingMetrics(times) {
 
 async function probe(ffprobe, path, includeFrames = false) {
     const entries = includeFrames
-        ? 'format=format_name,duration,size:stream=codec_name,width,height,avg_frame_rate,pix_fmt,nb_frames:frame=best_effort_timestamp_time'
-        : 'format=format_name,duration,size:stream=codec_name,width,height,avg_frame_rate,pix_fmt,nb_frames';
+        ? 'format=format_name,duration,size:stream=codec_name,width,height,avg_frame_rate,pix_fmt,nb_frames,nb_read_frames:frame=best_effort_timestamp_time,pkt_pts_time,pkt_dts_time,pkt_duration_time:packet=pts_time,dts_time,duration_time'
+        : 'format=format_name,duration,size:stream=codec_name,width,height,avg_frame_rate,pix_fmt,nb_frames,nb_read_frames';
     const result = await run(ffprobe, [
-        '-v', 'error', '-select_streams', 'v:0', '-show_entries', entries,
-        '-of', includeFrames ? 'json' : 'json', path
+        '-v', 'error', '-select_streams', 'v:0', ...(includeFrames ? [] : ['-count_frames']),
+        '-show_entries', entries, '-of', 'json', path
     ]);
     return JSON.parse(result.stdout);
 }
@@ -128,8 +127,10 @@ if (!captureKey?.trim()) throw new Error('ARENA_PRESSURE_CAPTURE_KEY is required
 const ffmpeg = process.env.FFMPEG_PATH ?? 'ffmpeg';
 const ffprobe = process.env.FFPROBE_PATH ?? 'ffprobe';
 const outputRoot = resolve(args.output ?? defaultOutput);
-const prefix = `arena-pressure-match-${MATCH_ID}-preview`;
+const runId = new Date().toISOString().replace(/[-:.]/g, '');
+const prefix = `arena-pressure-match-${MATCH_ID}-preview-${runId}`;
 const webmPartial = resolve(outputRoot, `${prefix}.webm.partial`);
+const webmFailed = resolve(outputRoot, `${prefix}.failed.webm`);
 const webmPath = resolve(outputRoot, `${prefix}.webm`);
 const mp4Partial = resolve(outputRoot, `${prefix}.mp4.partial`);
 const mp4Path = resolve(outputRoot, `${prefix}.mp4`);
@@ -157,6 +158,8 @@ const authorizedNavigation = {
 
 let lockHandle;
 let browserlessTimeout;
+let receivedWebm = false;
+let publishedWebm = false;
 const notes = [];
 const startedAt = new Date();
 const initialRss = process.memoryUsage().rss;
@@ -211,51 +214,43 @@ try {
         }
     });
     await pipeline(Readable.fromWeb(response.body), limiter, createWriteStream(webmPartial, { flags: 'wx' }));
+    receivedWebm = true;
     clearTimeout(browserlessTimeout);
     browserlessTimeout = undefined;
     log(`WebM received by streaming (${received} bytes).`);
 
     const webmProbe = await probe(ffprobe, webmPartial, true);
-    const webmStream = webmProbe.streams?.[0];
-    const webmDuration = Number(webmProbe.format?.duration);
-    const frameTimes = (webmProbe.frames ?? [])
-        .map(frame => Number(frame.best_effort_timestamp_time))
-        .filter(Number.isFinite);
-    const timing = timingMetrics(frameTimes);
-    const webmFailures = [];
-    if (!String(webmProbe.format?.format_name).includes('webm')) webmFailures.push('container is not WebM');
-    if (webmStream?.codec_name !== 'vp8') webmFailures.push(`codec is ${webmStream?.codec_name}`);
-    if (webmStream?.width !== WIDTH || webmStream?.height !== HEIGHT) webmFailures.push('resolution is not 1280x720');
-    if (!Number.isFinite(webmDuration) || Math.abs(webmDuration - DURATION_SECONDS) > 2) webmFailures.push(`duration is ${webmDuration}s`);
-    if (timing.frameCount < 2) webmFailures.push('fewer than two timestamped frames');
-    if (webmFailures.length) throw new Error(`WebM validation failed: ${webmFailures.join('; ')}.`);
-    await rm(webmPath, { force: true });
+    const webmValidation = validateWebm(webmProbe, {
+        width: WIDTH, height: HEIGHT, expectedDuration: DURATION_SECONDS
+    });
+    const webmStream = webmValidation.stream;
+    const webmDuration = webmValidation.duration.seconds;
+    const timing = timingMetrics(webmValidation.times);
+    if (webmValidation.failures.length) {
+        throw new Error(`WebM validation failed: ${webmValidation.failures.join('; ')}.`);
+    }
+    // A full decode catches corrupt/truncated clusters that metadata probing alone can miss.
+    await run(ffmpeg, ['-v', 'error', '-i', webmPartial, '-map', '0:v:0', '-f', 'null', '-']);
     await rename(webmPartial, webmPath);
+    publishedWebm = true;
 
     const conversionStarted = Date.now();
-    await run(ffmpeg, [
-        '-y', '-hide_banner', '-loglevel', 'warning', '-i', webmPath, '-an',
-        '-vf', `scale=${WIDTH}:${HEIGHT}:flags=lanczos,setsar=1,fps=${FPS}`,
-        '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
-        '-movflags', '+faststart', '-f', 'mp4', mp4Partial
-    ]);
+    await convertWebmToMp4(run, ffmpeg, webmPath, mp4Partial, { width: WIDTH, height: HEIGHT, fps: FPS });
     await run(ffmpeg, ['-v', 'error', '-i', mp4Partial, '-f', 'null', '-']);
     const mp4Probe = await probe(ffprobe, mp4Partial);
-    const mp4Stream = mp4Probe.streams?.[0];
-    const mp4Duration = Number(mp4Probe.format?.duration);
-    const mp4Failures = [];
-    if (!String(mp4Probe.format?.format_name).includes('mp4')) mp4Failures.push('container is not MP4');
-    if (mp4Stream?.codec_name !== 'h264') mp4Failures.push('codec is not H.264');
-    if (mp4Stream?.width !== WIDTH || mp4Stream?.height !== HEIGHT) mp4Failures.push('resolution is not 1280x720');
-    if (mp4Stream?.avg_frame_rate !== '30/1') mp4Failures.push(`frame rate is ${mp4Stream?.avg_frame_rate}`);
-    if (mp4Stream?.pix_fmt !== 'yuv420p') mp4Failures.push(`pixel format is ${mp4Stream?.pix_fmt}`);
-    if (!Number.isFinite(mp4Duration) || Math.abs(mp4Duration - DURATION_SECONDS) > 2) mp4Failures.push(`duration is ${mp4Duration}s`);
-    const firstLuma = await frameLuma(ffmpeg, mp4Partial, 0.1);
-    const lastLuma = await frameLuma(ffmpeg, mp4Partial, Math.max(0, mp4Duration - 0.2));
-    if (firstLuma === null || firstLuma < 2) mp4Failures.push(`first frame is blank/unreadable (YAVG=${firstLuma})`);
-    if (lastLuma === null || lastLuma < 2) mp4Failures.push(`last frame is blank/unreadable (YAVG=${lastLuma})`);
+    const mp4Validation = validateMp4(mp4Probe, {
+        width: WIDTH, height: HEIGHT, expectedDuration: DURATION_SECONDS, fps: FPS
+    });
+    const mp4Stream = mp4Validation.stream;
+    const mp4Duration = mp4Validation.duration.seconds;
+    const mp4Failures = [...mp4Validation.failures];
+    if (mp4Duration !== null) {
+        const firstLuma = await frameLuma(ffmpeg, mp4Partial, 0.1);
+        const lastLuma = await frameLuma(ffmpeg, mp4Partial, Math.max(0, mp4Duration - 0.2));
+        if (firstLuma === null || firstLuma < 2) mp4Failures.push(`first frame is blank/unreadable (YAVG=${firstLuma})`);
+        if (lastLuma === null || lastLuma < 2) mp4Failures.push(`last frame is blank/unreadable (YAVG=${lastLuma})`);
+    }
     if (mp4Failures.length) throw new Error(`MP4 validation failed: ${mp4Failures.join('; ')}.`);
-    await rm(mp4Path, { force: true });
     await rename(mp4Partial, mp4Path);
 
     const webmSize = (await stat(webmPath)).size;
@@ -265,6 +260,7 @@ try {
         status: 'validated',
         matchId: MATCH_ID,
         captureDurationSeconds: webmDuration,
+        captureDurationSource: webmValidation.duration.source,
         replaySpeed: SPEED,
         playheadStart: 0,
         playheadEnd: null,
@@ -296,6 +292,11 @@ try {
     log(`Outputs: ${webmPath}; ${mp4Path}; ${reportPath}`);
 } catch (error) {
     process.exitCode = 1;
+    if (receivedWebm && !publishedWebm) {
+        await preserveFailedWebm(webmPartial, webmFailed)
+            .then(() => notes.push(`${new Date().toISOString()} Preserved failed WebM: ${webmFailed}`))
+            .catch(preserveError => notes.push(`${new Date().toISOString()} Could not preserve failed WebM: ${preserveError.message}`));
+    }
     const diagnostic = String(error.stack ?? error.message ?? error).split(captureKey).join('[REDACTED]');
     const publicMessage = String(error.message ?? error).split(captureKey).join('[REDACTED]');
     notes.push(`${new Date().toISOString()} FATAL ${diagnostic}`);
@@ -303,7 +304,7 @@ try {
     console.error(`Diagnostic log: ${logPath}`);
 } finally {
     if (browserlessTimeout) clearTimeout(browserlessTimeout);
-    await rm(webmPartial, { force: true }).catch(() => {});
+    if (!receivedWebm) await rm(webmPartial, { force: true }).catch(() => {});
     await rm(mp4Partial, { force: true }).catch(() => {});
     if (lockHandle) await lockHandle.close().catch(() => {});
     if (lockHandle) await rm(lockPath, { force: true }).catch(() => {});
