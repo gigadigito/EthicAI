@@ -69,8 +69,8 @@ The independent Browserless v1 client is
 `CriptoVersus/tools/arena-pressure/capture-browserless.mjs`. It calls the existing
 `POST /screencast` endpoint, waits for the real Phaser replay contract to reach
 `ready`, starts Browserless recording before calling `start()`, and records exactly
-ten wall-clock seconds at logical speed 4×. The prototype is hard-limited to match
-46156, 1280×720, ten seconds, and 4×; other values are rejected.
+ten wall-clock seconds at logical speed 4×. It accepts any positive integer
+`--match-id` and enforces the fixed 1280×720, ten-second, 4× preview profile.
 
 Outside Development, the Web capture surface remains disabled by default. Enabling
 it requires both `ArenaPressureCapture:Enabled=true` and a nonempty
@@ -80,28 +80,150 @@ return 404. The key is never accepted in the replay URL.
 
 Required environment-variable names for the client:
 
-- `ARENA_PRESSURE_BROWSERLESS_URL`: authenticated Browserless base URL. Its query is
-  preserved, but it is never printed in logs.
-- `ARENA_PRESSURE_CAPTURE_BASE_URL`: the one allowed CriptoVersus origin.
+- `ARENA_PRESSURE_BROWSERLESS_URL`: authenticated Browserless base URL. Its query and
+  credentials are never printed in logs.
+- `ARENA_PRESSURE_CAPTURE_BASE_URL`: the one allowed CriptoVersus origin (HTTPS).
 - `ARENA_PRESSURE_CAPTURE_KEY`: value matching the Web capture access key.
 - Optional `FFMPEG_PATH` and `FFPROBE_PATH`.
 
 Example (values are intentionally omitted):
 
 ```powershell
-npm run capture:arena-pressure:browserless -- --match-id 46156 --duration 10 --speed 4 --width 1280 --height 720
+npm run capture:arena-pressure:browserless -- --match-id 12345 --duration 10 --speed 4 --width 1280 --height 720
 ```
 
-The response is streamed to disk with a 100 MiB ceiling. The tool keeps the VP8 WebM,
-converts it to H.264/MP4 at 30 FPS with `yuv420p` and `faststart`, and emits a JSON
-report with frame timestamps, effective capture FPS, maximum frame gap, long-gap
-counts, sizes, elapsed times, and client RSS. Output names are:
+The response is streamed to disk with a 100 MiB ceiling and handed to the shared
+media pipeline in `CriptoVersus/tools/arena-pressure/capture-media.mjs`
+(`processWebmToMp4`), which is compatible with Node.js 18.19.0+ (zero `node_modules`)
+and both FFmpeg/FFprobe 4.4.2 and 8.x:
+
+1. **WebM probing & validation**: runs `ffprobe` in a single pass with `-count_frames`
+   and parses both `packets_and_frames` and separate `frames`/`packets` payloads,
+   handling FFmpeg 4.x (`pkt_pts_time`, `pkt_duration_time`) and 7/8+ (`pts_time`,
+   `duration_time`) field names. Validates WebM container, VP8 or VP9 video codec,
+   exact dimensions, at least one real decoded video frame, positive duration
+   (resolved from `format`, `frame_timestamps`, or `packet_timestamps`) within
+   tolerance, and a full-stream decode check (`ffmpeg -v error -xerror ... -f null -`
+   rejecting non-zero exit codes or non-empty stderr).
+2. **WebM preservation**: once validated, the WebM is published atomically without
+   overwriting existing files. If WebM validation or decode fails, the exact received
+   bytes are preserved as `<prefix>.failed.webm`.
+3. **MP4 transcoding & validation**: converts the WebM using
+   `-fflags +genpts -map 0:v:0 -vf scale=1280:720:flags=lanczos,setsar=1,fps=30 -c:v libx264 -preset veryfast -threads 2 -crf 23 -pix_fmt yuv420p -an -movflags +faststart -f mp4`
+   (tuned for 4 GB RAM VPS hosts), verifies full MP4 decode, validates container,
+   H.264 codec, resolution, `30/1` frame rate, `yuv420p`, decoded frame count,
+   duration, and nonblank first/last frame luma (`YAVG >= 2`), and publishes the MP4
+   without overwriting existing files.
+
+Output names are timestamped per run (`<runId>` in UTC):
 
 ```text
-arena-pressure-match-46156-preview.webm
-arena-pressure-match-46156-preview.mp4
-arena-pressure-match-46156-preview.json
-arena-pressure-match-46156-preview.log
+arena-pressure-match-<matchId>-preview-<runId>.webm
+arena-pressure-match-<matchId>-preview-<runId>.mp4
+arena-pressure-match-<matchId>-preview-<runId>.json
+arena-pressure-match-<matchId>-preview-<runId>.log
+```
+
+### Pipeline observability markers
+
+Both `capture-browserless.mjs` and `reprocess-webm.mjs` emit structured, secret-free
+stage markers from the shared pipeline:
+
+- `[VIDEO:RECEIVED] bytes=<size>`
+- `[VIDEO:PROBE] codec=<codec> width=<width> height=<height>`
+- `[VIDEO:FRAMES] count=<count>`
+- `[VIDEO:DURATION] method=<format|frame_timestamps|packet_timestamps|unavailable> seconds=<seconds>`
+- `[VIDEO:VALIDATED]`
+- `[PERF:WEBM] frames=<count> durationSeconds=<d> effectiveFps=<efps> averageFps=<afps> avgGapMs=<ms> p50GapMs=<ms> p95GapMs=<ms> maxGapMs=<ms> over50ms=<n> over100ms=<n> over200ms=<n> windowFpsMin=<n> windowFpsMax=<n>`
+- `[VIDEO:TRANSCODE_START]`
+- `[VIDEO:TRANSCODE_COMPLETE]`
+- `[VIDEO:MP4_VALIDATED]`
+- `[VIDEO:FAILED] stage=<stage> reason=<reason> exitCode=<code-or-na>`
+
+Additionally, during Browserless captures (`browserless-capture-function.mjs` +
+`engine.ts`), the Browserless process stdout emits secret-free performance diagnostics:
+
+- `[PERF:PHASER] renderer=... updateFps=... renderFps=... avgFrameMs=... p95FrameMs=... avgRenderMs=... avgWheelMs=... avgGapMs=... p95GapMs=... maxGapMs=... overBudgetFrames=... longTasks=... webglContextLost=...`
+- `[PERF:BROWSERLESS] wallElapsedMs=... screencastMode=browserless_v1_rest frameEvents=unavailable_in_v1_response`
+
+In `videoCapture` mode, `engine.ts` uses `Phaser.CANVAS` by default (avoiding
+CPU SwiftShader WebGL overhead in headless containers without GPU), scales the
+internal wheel canvas (`0.5`), skips redundant wheel/HUD/badge redraws when visual
+inputs are unchanged, and `ArenaPressureGameHost.razor` skips the hidden UI clock
+and transport polling loops. Public interactive rendering remains `Phaser.AUTO`.
+
+### Controlled FPS diagnostics (`diagnose-browserless-fps.mjs`)
+
+Use `diagnose-browserless-fps.mjs` (zero `node_modules`) to separate Browserless
+`/screencast` capture ceilings from Phaser scene cost:
+
+1. **Offline WebM cadence analysis** (inspects any existing `.webm`/`.failed.webm`
+   timestamps, percentiles, gap thresholds, and 1-second FPS windows):
+
+```powershell
+npm run diagnose:arena-pressure:fps -- --analyze-webm /path/to/capture.webm
+```
+
+2. **Synthetic Canvas2D Browserless benchmark** (streams a self-contained 60 FPS
+   Canvas2D page via `page.setContent` with zero backend requests, e.g. at `1280x720`
+   and `640x360`, preserving outputs without overwriting existing files):
+
+```powershell
+npm run diagnose:arena-pressure:fps -- --synthetic --width 1280 --height 720 --duration 10 --output /tmp/arena-pressure-phase2/out
+```
+
+### Reprocessing preserved `.failed.webm` files
+
+`CriptoVersus/tools/arena-pressure/reprocess-webm.mjs` runs the exact same
+`processWebmToMp4` validation and transcoding pipeline on an existing `.webm` or
+`.failed.webm` file without launching a browser or requiring capture secrets. It
+never modifies or deletes the input file and never overwrites an existing output MP4.
+
+From `CriptoVersus`:
+
+```powershell
+npm run reprocess:arena-pressure:webm -- --input /path/to/capture.failed.webm
+```
+
+Optional flags: `--output <mp4-path>` (defaults to replacing `.failed.webm` or
+`.webm` with `.mp4` in the same directory), `--duration <seconds|auto>` (default
+`10`), `--tolerance <seconds>` (default `2`), `--width 1280`, `--height 720`,
+`--fps 30`, `--threads 2`. Respects `FFMPEG_PATH` and `FFPROBE_PATH`. Exit codes:
+`0` on success, `1` on validation/transcode failure, `2` on CLI usage error.
+
+### VPS hot-update without restarting Browserless
+
+The Phase 2 client and reprocessing CLI have zero `node_modules` dependencies and
+run on Node.js 18.19.0+ with FFmpeg/FFprobe 4.4.2+. Standalone runtime files:
+
+1. `CriptoVersus/tools/arena-pressure/capture-media.mjs`
+2. `CriptoVersus/tools/arena-pressure/capture-browserless.mjs`
+3. `CriptoVersus/tools/arena-pressure/reprocess-webm.mjs`
+4. `CriptoVersus/tools/arena-pressure/diagnose-browserless-fps.mjs`
+5. `CriptoVersus/tools/arena-pressure/capture-browserless-options.mjs`
+6. `CriptoVersus/tools/arena-pressure/browserless-capture-function.mjs`
+
+To update `/tmp/arena-pressure-phase2/` inside a running container without restarting
+Browserless or touching `/tmp/arena-pressure-phase2/out/`:
+
+```bash
+for file in capture-media.mjs capture-browserless.mjs reprocess-webm.mjs diagnose-browserless-fps.mjs capture-browserless-options.mjs browserless-capture-function.mjs; do
+  docker cp "CriptoVersus/tools/arena-pressure/$file" "<container>:/tmp/arena-pressure-phase2/$file"
+done
+docker exec "<container>" chmod 644 /tmp/arena-pressure-phase2/*.mjs
+```
+
+Operational checks before running:
+
+- Confirm no stale `/tmp/arena-pressure-phase2/out/browserless-preview.lock` exists.
+- Always pass `--output /tmp/arena-pressure-phase2/out` to `capture-browserless.mjs`
+  when running via `docker exec` so artifacts do not default outside the workspace.
+- Reprocess any preserved `.failed.webm` directly in place (the source `.failed.webm`
+  remains untouched and an existing `.mp4` will never be overwritten):
+
+```bash
+docker exec "<container>" node /tmp/arena-pressure-phase2/reprocess-webm.mjs \
+  --input /tmp/arena-pressure-phase2/out/<capture>.failed.webm
 ```
 
 Browserless v1 returns only the WebM body from `/screencast`; it does not return the

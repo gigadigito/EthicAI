@@ -229,7 +229,10 @@ export async function browserlessFunctionHandler({ page, context, startScreencas
         if (securityViolation) throw securityViolation;
         const endedSnapshot = await page.evaluate(() => ({
             state: window.__arenaPressureCapture.getState(),
-            monotonicMs: performance.now()
+            monotonicMs: performance.now(),
+            perf: typeof window.__arenaPressureCapture.getPerfMetrics === 'function'
+                ? window.__arenaPressureCapture.getPerfMetrics()
+                : null
         }));
         const ended = endedSnapshot.state;
         const wallElapsedMs = Math.max(0, endedSnapshot.monotonicMs - started.monotonicMs);
@@ -246,6 +249,31 @@ export async function browserlessFunctionHandler({ page, context, startScreencas
             + ` durationSeconds=${Number(ended.durationSeconds).toFixed(3)} status=${String(ended.status)}`
             + ` wallElapsedMs=${wallElapsedMs.toFixed(0)} actualAdvance=${actualAdvance.toFixed(3)}`
             + ` expectedAdvance=${expectedAdvance.toFixed(3)} deviationSeconds=${deviationSeconds.toFixed(3)}`
+        );
+        if (endedSnapshot.perf) {
+            const p = endedSnapshot.perf;
+            const num = (value, digits = 2) => (Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : 'na');
+            const intOrNa = value => (Number.isFinite(Number(value)) ? Number(value) : 'na');
+            console.log(
+                `[PERF:PHASER] renderer=${String(p.renderer ?? 'UNKNOWN')}`
+                + ` updateFps=${num(p.updateFps)}`
+                + ` renderFps=${num(p.renderFps)}`
+                + ` updateFrames=${intOrNa(p.updateFrames)}`
+                + ` renderFrames=${intOrNa(p.renderFrames)}`
+                + ` avgFrameMs=${num(p.avgFrameMs)}`
+                + ` p95FrameMs=${num(p.p95FrameMs)}`
+                + ` avgRenderMs=${num(p.avgRenderMs)}`
+                + ` avgWheelMs=${num(p.avgWheelMs)}`
+                + ` avgGapMs=${num(p.avgGapMs, 1)}`
+                + ` p95GapMs=${num(p.p95GapMs, 1)}`
+                + ` maxGapMs=${num(p.maxGapMs, 1)}`
+                + ` overBudgetFrames=${intOrNa(p.overBudgetFrames)}`
+                + ` longTasks=${intOrNa(p.longTasks)}`
+                + ` webglContextLost=${intOrNa(p.webglContextLost)}`
+            );
+        }
+        console.log(
+            `[PERF:BROWSERLESS] wallElapsedMs=${wallElapsedMs.toFixed(0)} screencastMode=browserless_v1_rest frameEvents=unavailable_in_v1_response`
         );
         const clockValues = [
             started.state.playheadSeconds,

@@ -63,6 +63,8 @@ export interface ArenaPressureOptions {
     videoCapture?: boolean;
     /** Final-result hold used by the capture completion contract. */
     captureFinalHoldMs?: number;
+    /** Optional Phaser renderer override ('auto', 'canvas', or 'webgl'). */
+    renderer?: 'auto' | 'canvas' | 'webgl';
 }
 
 /**

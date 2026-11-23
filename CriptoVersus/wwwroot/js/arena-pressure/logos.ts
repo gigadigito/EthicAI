@@ -149,7 +149,6 @@ export class TeamLogoRenderer {
         const x = anchor.x;
         const y = anchor.y + COIN_BADGE_Y_OFFSET;
         badge.frame.setPosition(x, y);
-        this.drawFrame(badge);
         badge.image?.setPosition(x, y);
         badge.fallback?.setPosition(x, y);
     }

@@ -49,7 +49,8 @@ class FakePage {
         clockStartMs = 1_000,
         clockEndMs = 1_001,
         startState = null,
-        endState = null
+        endState = null,
+        perfMetrics = null
     } = {}) {
         this.resources = resources;
         this.redirect = redirect;
@@ -74,6 +75,7 @@ class FakePage {
             durationSeconds: 100,
             speed: 4
         };
+        this.perfMetrics = perfMetrics;
         this.requests = [];
         this.requestHandler = null;
         this.main = {};
@@ -123,7 +125,7 @@ class FakePage {
         if (this.evaluateCall === 3) {
             return { accepted: this.replayAccepted, state: this.startState, monotonicMs: this.clockStartMs };
         }
-        return { state: this.endState, monotonicMs: this.clockEndMs };
+        return { state: this.endState, monotonicMs: this.clockEndMs, perf: this.perfMetrics };
     }
 }
 
@@ -534,4 +536,53 @@ test('rejects divergence between configured and effective replay speed', async (
         && entry.includes('deviationSeconds=-20.000')));
     assert(diagnostics.some(entry => entry.includes('[CAPTURE:FAILED] stage=SCREENCAST')
         && entry.includes('reason=REPLAY_CLOCK')));
+});
+
+test('emits [PERF:PHASER] and [PERF:BROWSERLESS] when capture perf metrics are exposed', async () => {
+    const page = new FakePage({
+        clockStartMs: 1_000,
+        clockEndMs: 11_000,
+        startState: {
+            status: 'recording', playheadSeconds: 0, durationSeconds: 100, speed: 4
+        },
+        endState: {
+            status: 'recording', playheadSeconds: 40, durationSeconds: 100, speed: 4
+        },
+        perfMetrics: {
+            renderer: 'CANVAS',
+            updateFps: 58.4,
+            renderFps: 58.2,
+            updateFrames: 584,
+            renderFrames: 582,
+            avgFrameMs: 4.12,
+            p95FrameMs: 7.5,
+            avgRenderMs: 3.1,
+            avgWheelMs: 0.15,
+            avgGapMs: 17.1,
+            p95GapMs: 24.0,
+            maxGapMs: 34.5,
+            overBudgetFrames: 2,
+            longTasks: 0,
+            webglContextLost: 0
+        }
+    });
+    const diagnostics = await captureDiagnostics(async () => {
+        await browserlessFunctionHandler({
+            page,
+            context: context({ durationMs: 1 }),
+            startScreencast() {},
+            stopScreencast() {}
+        });
+    });
+
+    assert(diagnostics.some(entry => entry.includes('[PERF:PHASER]')
+        && entry.includes('renderer=CANVAS')
+        && entry.includes('updateFps=58.40')
+        && entry.includes('renderFps=58.20')
+        && entry.includes('avgWheelMs=0.15')
+        && entry.includes('webglContextLost=0')));
+    assert(diagnostics.some(entry => entry.includes('[PERF:BROWSERLESS]')
+        && entry.includes('wallElapsedMs=10000')
+        && entry.includes('screencastMode=browserless_v1_rest')
+        && entry.includes('frameEvents=unavailable_in_v1_response')));
 });

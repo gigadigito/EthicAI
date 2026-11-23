@@ -1,17 +1,17 @@
 import { createWriteStream } from 'node:fs';
-import { mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, open, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { spawn } from 'node:child_process';
 import { browserlessFunction } from './browserless-capture-function.mjs';
 import { parseBrowserlessArgs, parseMatchId } from './capture-browserless-options.mjs';
 import {
-    convertWebmToMp4,
     preserveFailedWebm,
-    validateMp4,
-    validateWebm
+    processWebmToMp4,
+    publishWithoutOverwrite,
+    redactSecret,
+    runCommand
 } from './capture-media.mjs';
 
 const DURATION_SECONDS = 10;
@@ -50,50 +50,34 @@ function safeUrl(value, variableName) {
     return url;
 }
 
-function run(command, args) {
-    return new Promise((resolvePromise, reject) => {
-        const child = spawn(command, args, { windowsHide: true, shell: false });
-        let stdout = '';
-        let stderr = '';
-        child.stdout.on('data', chunk => { stdout += chunk; });
-        child.stderr.on('data', chunk => { stderr += chunk; });
-        child.on('error', reject);
-        child.on('close', code => code === 0
-            ? resolvePromise({ stdout, stderr })
-            : reject(new Error(`${command} exited with ${code}: ${stderr.slice(-2000)}`)));
-    });
-}
-
-function timingMetrics(times) {
-    const gaps = times.slice(1).map((time, index) => time - times[index]).filter(gap => gap >= 0);
-    const span = times.length > 1 ? times.at(-1) - times[0] : 0;
-    return {
-        frameCount: times.length,
-        effectiveCaptureFps: span > 0 ? (times.length - 1) / span : 0,
-        maximumFrameGap: gaps.length ? Math.max(...gaps) : 0,
-        intervalsOver100Ms: gaps.filter(gap => gap > 0.1).length,
-        intervalsOver200Ms: gaps.filter(gap => gap > 0.2).length
+function collectSecrets(captureKey, browserlessEndpoint, rawBrowserlessUrl) {
+    const items = [];
+    const add = value => {
+        if (typeof value === 'string' && value.length >= 4 && !items.includes(value)) {
+            items.push(value);
+        }
     };
-}
-
-async function probe(ffprobe, path, includeFrames = false) {
-    const entries = includeFrames
-        ? 'format=format_name,duration,size:stream=codec_name,width,height,avg_frame_rate,pix_fmt,nb_frames,nb_read_frames:frame=best_effort_timestamp_time,pkt_pts_time,pkt_dts_time,pkt_duration_time:packet=pts_time,dts_time,duration_time'
-        : 'format=format_name,duration,size:stream=codec_name,width,height,avg_frame_rate,pix_fmt,nb_frames,nb_read_frames';
-    const result = await run(ffprobe, [
-        '-v', 'error', '-select_streams', 'v:0', ...(includeFrames ? [] : ['-count_frames']),
-        '-show_entries', entries, '-of', 'json', path
-    ]);
-    return JSON.parse(result.stdout);
-}
-
-async function frameLuma(ffmpeg, input, atSeconds) {
-    const result = await run(ffmpeg, [
-        '-hide_banner', '-ss', String(Math.max(0, atSeconds)), '-i', input,
-        '-frames:v', '1', '-vf', 'signalstats,metadata=print', '-f', 'null', '-'
-    ]);
-    const match = result.stderr.match(/lavfi\.signalstats\.YAVG=([\d.]+)/);
-    return match ? Number(match[1]) : null;
+    if (typeof captureKey === 'string' && captureKey.length > 0) {
+        items.push(captureKey);
+    }
+    if (browserlessEndpoint?.search) {
+        items.push(browserlessEndpoint.search);
+    }
+    if (browserlessEndpoint?.searchParams) {
+        for (const value of browserlessEndpoint.searchParams.values()) {
+            add(value);
+        }
+    }
+    if (rawBrowserlessUrl) {
+        try {
+            const raw = new URL(rawBrowserlessUrl);
+            add(raw.username);
+            add(raw.password);
+        } catch {
+            // Raw URL was already validated by safeUrl before reaching here.
+        }
+    }
+    return items;
 }
 
 let args;
@@ -109,7 +93,8 @@ requireFixedValue('speed', args.speed, SPEED);
 requireFixedValue('width', args.width, WIDTH);
 requireFixedValue('height', args.height, HEIGHT);
 
-const browserlessEndpoint = safeUrl(process.env.ARENA_PRESSURE_BROWSERLESS_URL, 'ARENA_PRESSURE_BROWSERLESS_URL');
+const rawBrowserlessUrl = process.env.ARENA_PRESSURE_BROWSERLESS_URL;
+const browserlessEndpoint = safeUrl(rawBrowserlessUrl, 'ARENA_PRESSURE_BROWSERLESS_URL');
 browserlessEndpoint.pathname = '/screencast';
 const allowedOrigin = safeUrl(process.env.ARENA_PRESSURE_CAPTURE_BASE_URL, 'ARENA_PRESSURE_CAPTURE_BASE_URL');
 const requestedBase = safeUrl(args['base-url'] ?? allowedOrigin.origin, '--base-url');
@@ -118,6 +103,7 @@ if (requestedBase.origin !== allowedOrigin.origin) {
 }
 const captureKey = process.env.ARENA_PRESSURE_CAPTURE_KEY;
 if (!captureKey?.trim()) throw new Error('ARENA_PRESSURE_CAPTURE_KEY is required.');
+const secrets = collectSecrets(captureKey, browserlessEndpoint, rawBrowserlessUrl);
 
 const ffmpeg = process.env.FFMPEG_PATH ?? 'ffmpeg';
 const ffprobe = process.env.FFPROBE_PATH ?? 'ffprobe';
@@ -159,21 +145,24 @@ const notes = [];
 const startedAt = new Date();
 const initialRss = process.memoryUsage().rss;
 const log = message => {
-    const line = `${new Date().toISOString()} ${message}`;
+    const line = `${new Date().toISOString()} ${redactSecret(message, secrets)}`;
     notes.push(line);
     console.log(line);
 };
 
 try {
     await mkdir(outputRoot, { recursive: true });
-    lockHandle = await import('node:fs/promises').then(fs => fs.open(lockPath, 'wx'))
+    lockHandle = await open(lockPath, 'wx')
         .catch(() => { throw new Error(`Another Browserless preview capture is active (${lockPath}).`); });
     await lockHandle.writeFile(JSON.stringify({ pid: process.pid, startedAt: startedAt.toISOString() }));
-    await run(ffmpeg, ['-version']);
-    await run(ffprobe, ['-version']);
+    await runCommand(ffmpeg, ['-version']);
+    await runCommand(ffprobe, ['-version']);
 
     const controller = new AbortController();
-    browserlessTimeout = setTimeout(() => controller.abort(new Error('Browserless request exceeded 55 seconds.')), REQUEST_TIMEOUT_MS);
+    browserlessTimeout = setTimeout(
+        () => controller.abort(new Error('Browserless request exceeded 55 seconds.')),
+        REQUEST_TIMEOUT_MS
+    );
     log(`Requesting ${DURATION_SECONDS}s Browserless screencast for match ${matchId} at ${WIDTH}x${HEIGHT}.`);
     const response = await fetch(browserlessEndpoint, {
         method: 'POST',
@@ -195,7 +184,9 @@ try {
         }),
         signal: controller.signal
     });
-    if (!response.ok || !response.body) throw new Error(`Browserless screencast failed with HTTP ${response.status}.`);
+    if (!response.ok || !response.body) {
+        throw new Error(`Browserless screencast failed with HTTP ${response.status}.`);
+    }
     const contentType = response.headers.get('content-type') ?? '';
     if (!contentType.toLowerCase().includes('video/webm')) {
         throw new Error(`Browserless returned unexpected content type ${contentType || '(missing)'}.`);
@@ -205,7 +196,10 @@ try {
     const limiter = new Transform({
         transform(chunk, encoding, callback) {
             received += chunk.length;
-            callback(received <= MAX_WEBM_BYTES ? null : new Error('WebM exceeded the 100 MiB safety limit.'), chunk);
+            callback(
+                received <= MAX_WEBM_BYTES ? null : new Error('WebM exceeded the 100 MiB safety limit.'),
+                chunk
+            );
         }
     });
     await pipeline(Readable.fromWeb(response.body), limiter, createWriteStream(webmPartial, { flags: 'wx' }));
@@ -214,48 +208,35 @@ try {
     browserlessTimeout = undefined;
     log(`WebM received by streaming (${received} bytes).`);
 
-    const webmProbe = await probe(ffprobe, webmPartial, true);
-    const webmValidation = validateWebm(webmProbe, {
-        width: WIDTH, height: HEIGHT, expectedDuration: DURATION_SECONDS
+    const processed = await processWebmToMp4({
+        inputPath: webmPartial,
+        outputPath: mp4Path,
+        mp4PartialPath: mp4Partial,
+        width: WIDTH,
+        height: HEIGHT,
+        fps: FPS,
+        expectedDuration: DURATION_SECONDS,
+        ffmpeg,
+        ffprobe,
+        run: runCommand,
+        log,
+        secrets,
+        onWebmValidated: async () => {
+            await publishWithoutOverwrite(webmPartial, webmPath);
+            publishedWebm = true;
+            return webmPath;
+        }
     });
-    const webmStream = webmValidation.stream;
-    const webmDuration = webmValidation.duration.seconds;
-    const timing = timingMetrics(webmValidation.times);
-    if (webmValidation.failures.length) {
-        throw new Error(`WebM validation failed: ${webmValidation.failures.join('; ')}.`);
-    }
-    // A full decode catches corrupt/truncated clusters that metadata probing alone can miss.
-    await run(ffmpeg, ['-v', 'error', '-i', webmPartial, '-map', '0:v:0', '-f', 'null', '-']);
-    await rename(webmPartial, webmPath);
-    publishedWebm = true;
 
-    const conversionStarted = Date.now();
-    await convertWebmToMp4(run, ffmpeg, webmPath, mp4Partial, { width: WIDTH, height: HEIGHT, fps: FPS });
-    await run(ffmpeg, ['-v', 'error', '-i', mp4Partial, '-f', 'null', '-']);
-    const mp4Probe = await probe(ffprobe, mp4Partial);
-    const mp4Validation = validateMp4(mp4Probe, {
-        width: WIDTH, height: HEIGHT, expectedDuration: DURATION_SECONDS, fps: FPS
-    });
-    const mp4Stream = mp4Validation.stream;
-    const mp4Duration = mp4Validation.duration.seconds;
-    const mp4Failures = [...mp4Validation.failures];
-    if (mp4Duration !== null) {
-        const firstLuma = await frameLuma(ffmpeg, mp4Partial, 0.1);
-        const lastLuma = await frameLuma(ffmpeg, mp4Partial, Math.max(0, mp4Duration - 0.2));
-        if (firstLuma === null || firstLuma < 2) mp4Failures.push(`first frame is blank/unreadable (YAVG=${firstLuma})`);
-        if (lastLuma === null || lastLuma < 2) mp4Failures.push(`last frame is blank/unreadable (YAVG=${lastLuma})`);
-    }
-    if (mp4Failures.length) throw new Error(`MP4 validation failed: ${mp4Failures.join('; ')}.`);
-    await rename(mp4Partial, mp4Path);
-
-    const webmSize = (await stat(webmPath)).size;
-    const mp4Size = (await stat(mp4Path)).size;
+    const webmStream = processed.webmValidation.stream;
+    const mp4Stream = processed.mp4Validation.stream;
+    const timing = processed.timing;
     const report = {
         schemaVersion: 1,
         status: 'validated',
         matchId,
-        captureDurationSeconds: webmDuration,
-        captureDurationSource: webmValidation.duration.source,
+        captureDurationSeconds: processed.webmValidation.duration.seconds,
+        captureDurationSource: processed.webmValidation.duration.source,
         replaySpeed: SPEED,
         playheadStart: 0,
         playheadEnd: null,
@@ -268,14 +249,25 @@ try {
         outputCodec: mp4Stream.codec_name,
         outputFps: mp4Stream.avg_frame_rate,
         outputPixelFormat: mp4Stream.pix_fmt,
+        firstTimestampSeconds: timing.firstTimestampSeconds,
+        lastTimestampSeconds: timing.lastTimestampSeconds,
         effectiveCaptureFps: timing.effectiveCaptureFps,
+        averageFps: timing.averageFps,
         maximumFrameGap: timing.maximumFrameGap,
+        averageFrameGapMs: timing.averageFrameGapMs,
+        p50FrameGapMs: timing.p50FrameGapMs,
+        p95FrameGapMs: timing.p95FrameGapMs,
+        maxFrameGapMs: timing.maxFrameGapMs,
+        intervalsOver50Ms: timing.intervalsOver50Ms,
         intervalsOver100Ms: timing.intervalsOver100Ms,
         intervalsOver200Ms: timing.intervalsOver200Ms,
-        capturedFrameCount: timing.frameCount,
-        webmBytes: webmSize,
-        mp4Bytes: mp4Size,
-        conversionDurationSeconds: (Date.now() - conversionStarted) / 1000,
+        windowFpsMin: timing.windowFpsMin,
+        windowFpsMax: timing.windowFpsMax,
+        windowFps: timing.windowFps,
+        capturedFrameCount: processed.webmValidation.frameCount,
+        webmBytes: processed.webmBytes,
+        mp4Bytes: processed.mp4Bytes,
+        conversionDurationSeconds: processed.conversionDurationSeconds,
         totalDurationSeconds: (Date.now() - startedAt.getTime()) / 1000,
         clientRssBeforeBytes: initialRss,
         clientRssAfterBytes: process.memoryUsage().rss,
@@ -283,17 +275,22 @@ try {
         generatedAtUtc: new Date().toISOString()
     };
     await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-    log(`Validated ${timing.frameCount} VP8 frames at ${timing.effectiveCaptureFps.toFixed(2)} effective FPS; maximum gap ${timing.maximumFrameGap.toFixed(3)}s.`);
+    log(
+        `Validated ${processed.webmValidation.frameCount} ${String(webmStream.codec_name).toUpperCase()} frames ` +
+        `at ${timing.effectiveCaptureFps.toFixed(2)} effective FPS; maximum gap ${timing.maximumFrameGap.toFixed(3)}s.`
+    );
     log(`Outputs: ${webmPath}; ${mp4Path}; ${reportPath}`);
 } catch (error) {
     process.exitCode = 1;
     if (receivedWebm && !publishedWebm) {
         await preserveFailedWebm(webmPartial, webmFailed)
             .then(() => notes.push(`${new Date().toISOString()} Preserved failed WebM: ${webmFailed}`))
-            .catch(preserveError => notes.push(`${new Date().toISOString()} Could not preserve failed WebM: ${preserveError.message}`));
+            .catch(preserveError => notes.push(
+                `${new Date().toISOString()} Could not preserve failed WebM: ${redactSecret(preserveError.message, secrets)}`
+            ));
     }
-    const diagnostic = String(error.stack ?? error.message ?? error).split(captureKey).join('[REDACTED]');
-    const publicMessage = String(error.message ?? error).split(captureKey).join('[REDACTED]');
+    const diagnostic = redactSecret(error?.stack ?? error?.message ?? error, secrets);
+    const publicMessage = redactSecret(error?.message ?? error, secrets);
     notes.push(`${new Date().toISOString()} FATAL ${diagnostic}`);
     console.error(publicMessage);
     console.error(`Diagnostic log: ${logPath}`);

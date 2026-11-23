@@ -19,6 +19,11 @@ export class ArenaPressureHud {
     private readonly statusText: Phaser.GameObjects.Text;
 
     private labels: Record<string, string>;
+    private lastLeftVal: number | null = null;
+    private lastSymbolsKey = '';
+    private lastStatusText = '';
+    private lastStatusColor = '';
+    private lastBottomKey = '';
 
     constructor(
         scene: Phaser.Scene,
@@ -161,11 +166,18 @@ export class ArenaPressureHud {
         const rightVal = 100 - leftVal;
 
         // Texts
-        this.leftPercentText.setText(`${leftVal}%`);
-        this.rightPercentText.setText(`${rightVal}%`);
+        if (leftVal !== this.lastLeftVal) {
+            this.leftPercentText.setText(`${leftVal}%`);
+            this.rightPercentText.setText(`${rightVal}%`);
+            this.lastLeftVal = leftVal;
+        }
 
-        this.leftSymbolText.setText(`${formatDisplaySymbol(leftSymbol)} / USDT`);
-        this.rightSymbolText.setText(`${formatDisplaySymbol(rightSymbol)} / USDT`);
+        const symbolsKey = `${leftSymbol}|${rightSymbol}`;
+        if (symbolsKey !== this.lastSymbolsKey) {
+            this.leftSymbolText.setText(`${formatDisplaySymbol(leftSymbol)} / USDT`);
+            this.rightSymbolText.setText(`${formatDisplaySymbol(rightSymbol)} / USDT`);
+            this.lastSymbolsKey = symbolsKey;
+        }
 
         let statusString = this.labels.balanced;
         let statusColor = '#ffffff';
@@ -186,8 +198,20 @@ export class ArenaPressureHud {
             statusColor = ARENA_COLORS.rightHex;
         }
 
-        this.statusText.setText(statusString);
-        this.statusText.setColor(statusColor);
+        if (statusString !== this.lastStatusText) {
+            this.statusText.setText(statusString);
+            this.lastStatusText = statusString;
+        }
+        if (statusColor !== this.lastStatusColor) {
+            this.statusText.setColor(statusColor);
+            this.lastStatusColor = statusColor;
+        }
+
+        const bottomKey = `${Math.round(currentPressure * 4)}|${dominance}`;
+        if (bottomKey === this.lastBottomKey) {
+            return;
+        }
+        this.lastBottomKey = bottomKey;
 
         // Draw Bottom Dynamic Bar & Frames
         const g = this.bottomG;
@@ -245,6 +269,7 @@ export class ArenaPressureHud {
         this.titleText.setText(this.labels.title || 'ARENA PRESSURE');
         this.leftLabelText.setText(this.labels.leftPressure || 'LEFT PRESSURE');
         this.rightLabelText.setText(this.labels.rightPressure || 'RIGHT PRESSURE');
+        this.lastStatusText = '';
     }
 
     public destroy(): void {

@@ -154,6 +154,7 @@ export class WheelMechanism {
     private readonly scene: Phaser.Scene;
     private readonly assetRoot: string;
     private readonly reducedMotion: boolean;
+    private readonly canvasScale: number;
     private readonly canvas: HTMLCanvasElement;
     private readonly context: CanvasRenderingContext2D;
     private readonly textureKey: string;
@@ -167,6 +168,7 @@ export class WheelMechanism {
     private currentHubAngle = 0;
     private hubColor: HubColor = 'neutral';
     private lastReadyHubPath = 'hub/frames/neutral/angulo_+00.png';
+    private lastRenderKey = '';
     private lastPressure = 50;
     private currentRingOrangeShare = 0.5;
     private mechanicalState: WheelMechanicalState = {
@@ -182,7 +184,8 @@ export class WheelMechanism {
         y = 277,
         size = 410,
         assetRoot = '/games/arena-pressure/sprites/',
-        reducedMotion = false
+        reducedMotion = false,
+        canvasScale = 1
     ) {
         this.scene = scene;
         this.x = x;
@@ -190,9 +193,10 @@ export class WheelMechanism {
         this.size = size;
         this.assetRoot = assetRoot.replace(/\/?$/, '/');
         this.reducedMotion = reducedMotion;
+        this.canvasScale = clamp(Number.isFinite(canvasScale) ? canvasScale : 1, 0.25, 1);
         this.canvas = document.createElement('canvas');
-        this.canvas.width = SOURCE_SIZE;
-        this.canvas.height = SOURCE_SIZE;
+        this.canvas.width = Math.max(1, Math.round(SOURCE_SIZE * this.canvasScale));
+        this.canvas.height = Math.max(1, Math.round(SOURCE_SIZE * this.canvasScale));
         const context = this.canvas.getContext('2d');
         if (!context) throw new Error('arena_pressure_canvas_context_unavailable');
         this.context = context;
@@ -257,6 +261,7 @@ export class WheelMechanism {
             image.onload = () => {
                 if (!this.destroyed) {
                     this.images.set(path, image);
+                    this.lastRenderKey = '';
                     this.render(this.lastPressure);
                 }
                 resolve(image);
@@ -283,10 +288,14 @@ export class WheelMechanism {
         const sprite = this.manifest.sprites[path];
         if (!image || !sprite) return;
 
-        this.context.save();
-        this.context.globalAlpha = clamp(alpha, 0, 1);
+        if (alpha < 1) {
+            this.context.save();
+            this.context.globalAlpha = clamp(alpha, 0, 1);
+            this.context.drawImage(image, sprite.x, sprite.y, sprite.width, sprite.height);
+            this.context.restore();
+            return;
+        }
         this.context.drawImage(image, sprite.x, sprite.y, sprite.width, sprite.height);
-        this.context.restore();
     }
 
     private drawFullRingSprite(
@@ -300,21 +309,24 @@ export class WheelMechanism {
         const sprite = this.manifest.sprites[path];
         if (!image || !sprite) return;
 
-        const pivot = this.manifest.full_ring_v2?.wheel_pivot ?? [SOURCE_CENTER_X, SOURCE_CENTER_Y];
-        this.context.save();
         // Full-sector sprites retain their hand-cut silhouette. Only the sector that
         // contains the pressure boundary receives an angular clip.
-        if (sectorStart > sectorIndex + 0.0001 || sectorEnd < sectorIndex + 1 - 0.0001) {
+        const needsClip = sectorStart > sectorIndex + 0.0001 || sectorEnd < sectorIndex + 1 - 0.0001;
+        if (needsClip) {
+            const pivot = this.manifest.full_ring_v2?.wheel_pivot ?? [SOURCE_CENTER_X, SOURCE_CENTER_Y];
             const startAngle = Math.PI / 2 + (sectorStart / FULL_RING_SEGMENT_COUNT) * Math.PI * 2;
             const endAngle = Math.PI / 2 + (sectorEnd / FULL_RING_SEGMENT_COUNT) * Math.PI * 2;
+            this.context.save();
             this.context.beginPath();
             this.context.moveTo(pivot[0], pivot[1]);
             this.context.arc(pivot[0], pivot[1], 1600, startAngle, endAngle, false);
             this.context.closePath();
             this.context.clip();
+            this.context.drawImage(image, sprite.x, sprite.y, sprite.width, sprite.height);
+            this.context.restore();
+            return;
         }
         this.context.drawImage(image, sprite.x, sprite.y, sprite.width, sprite.height);
-        this.context.restore();
     }
 
     private drawFullRingLights(wobbleDegrees: number): void {
@@ -363,11 +375,19 @@ export class WheelMechanism {
             leftPressure,
             this.reducedMotion
         );
-        const wobblePath = `wheel/wobble/inclinacao_${wobbleName(wobble)}.png`;
+        const wobbleKey = wobbleName(wobble);
+        const wobblePath = `wheel/wobble/inclinacao_${wobbleKey}.png`;
         const targetHubPath = `hub/frames/${this.hubColor}/angulo_${signedAngleName(this.currentHubAngle)}.png`;
         this.ensureHubFrame(targetHubPath);
+        const readyHubPath = this.images.has(targetHubPath) ? targetHubPath : this.lastReadyHubPath;
+        const renderKey = `${wobbleKey}|${Math.round(wobble * 10)}|${Math.round(this.currentRingOrangeShare * 360)}|${Math.round(leftPressure * 2)}|${readyHubPath}`;
+        if (renderKey === this.lastRenderKey) return;
+        this.lastRenderKey = renderKey;
+        this.lastReadyHubPath = readyHubPath;
 
-        this.context.clearRect(0, 0, SOURCE_SIZE, SOURCE_SIZE);
+        this.context.setTransform(1, 0, 0, 1, 0, 0);
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.context.setTransform(this.canvasScale, 0, 0, this.canvasScale, 0, 0);
         this.drawSprite('base/suporte_fixo.png');
         this.drawSprite(wobblePath);
 
@@ -391,8 +411,7 @@ export class WheelMechanism {
         this.drawSprite('lights/special/right_suporte.png', (100 - leftPressure) / 100);
 
         // Each hub frame already contains its crown. Never layer a second crown.
-        if (this.images.has(targetHubPath)) this.lastReadyHubPath = targetHubPath;
-        this.drawSprite(this.lastReadyHubPath);
+        this.drawSprite(readyHubPath);
 
         // Rope end caps remain fixed to the original source coordinates.
         this.drawSprite('base/cordas_extremidades.png');

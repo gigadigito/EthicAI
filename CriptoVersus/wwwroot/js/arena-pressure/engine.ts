@@ -37,10 +37,101 @@ export async function create(
 
 type CaptureStatus = 'ready' | 'recording' | 'completed' | 'error';
 
+export interface ArenaPressurePerfMetrics {
+    renderer: 'WEBGL' | 'CANVAS' | 'UNKNOWN';
+    glRenderer: string;
+    webglContextLost: number;
+    updateFrames: number;
+    updateFps: number;
+    renderFrames: number;
+    renderFps: number;
+    avgFrameMs: number;
+    p50FrameMs: number;
+    p95FrameMs: number;
+    maxFrameMs: number;
+    avgUpdateMs: number;
+    p95UpdateMs: number;
+    avgRenderMs: number;
+    p95RenderMs: number;
+    avgWheelMs: number;
+    avgGapMs: number;
+    p50GapMs: number;
+    p95GapMs: number;
+    maxGapMs: number;
+    avgDeltaMs: number;
+    maxDeltaMs: number;
+    overBudgetFrames: number;
+    longTasks: number;
+    longTaskTotalMs: number;
+}
+
 interface ArenaPressureCaptureControl {
     readonly version: 1;
     start(): boolean;
     getState(): ReturnType<ArenaPressureEngine['getCaptureState']>;
+    getPerfMetrics?(): ArenaPressurePerfMetrics;
+}
+
+interface PerfCollectorState {
+    webglContextLost: number;
+    updateFrames: number;
+    firstUpdateMs: number | null;
+    lastUpdateMs: number | null;
+    renderFrames: number;
+    firstRenderMs: number | null;
+    lastRenderMs: number | null;
+    renderStartMs: number;
+    pendingUpdateMs: number;
+    pendingGapMs: number;
+    updateWorkMs: number[];
+    renderWorkMs: number[];
+    frameWorkMs: number[];
+    wheelWorkMs: number[];
+    gapsMs: number[];
+    deltasMs: number[];
+    overBudgetFrames: number;
+    longTasks: number;
+    longTaskTotalMs: number;
+}
+
+function createPerfCollectorState(): PerfCollectorState {
+    return {
+        webglContextLost: 0,
+        updateFrames: 0,
+        firstUpdateMs: null,
+        lastUpdateMs: null,
+        renderFrames: 0,
+        firstRenderMs: null,
+        lastRenderMs: null,
+        renderStartMs: 0,
+        pendingUpdateMs: 0,
+        pendingGapMs: 0,
+        updateWorkMs: [],
+        renderWorkMs: [],
+        frameWorkMs: [],
+        wheelWorkMs: [],
+        gapsMs: [],
+        deltasMs: [],
+        overBudgetFrames: 0,
+        longTasks: 0,
+        longTaskTotalMs: 0
+    };
+}
+
+function summarizeValues(values: number[]): { avg: number; p50: number; p95: number; max: number } {
+    if (values.length === 0) return { avg: 0, p50: 0, p95: 0, max: 0 };
+    const sorted = values.slice().sort((left, right) => left - right);
+    const sum = sorted.reduce((acc, value) => acc + value, 0);
+    const pick = (ratio: number): number => {
+        const index = Math.min(sorted.length - 1, Math.floor(ratio * (sorted.length - 1)));
+        return sorted[index];
+    };
+    return {
+        avg: sum / sorted.length,
+        p50: pick(0.5),
+        p95: pick(0.95),
+        max: sorted[sorted.length - 1]
+    };
 }
 
 declare global {
@@ -98,6 +189,12 @@ export class ArenaPressureEngine {
 
     private visibilityHandler?: () => void;
     private autoPaused: boolean = false;
+    private perfCollector: PerfCollectorState = createPerfCollectorState();
+    private preRenderHandler?: () => void;
+    private postRenderHandler?: () => void;
+    private contextLostTarget?: HTMLCanvasElement;
+    private contextLostHandler?: () => void;
+    private longTaskObserver?: PerformanceObserver;
 
     constructor(
         host: HTMLElement,
@@ -149,9 +246,15 @@ export class ArenaPressureEngine {
         const baseUrl = this.options.baseUrl || '/games/arena-pressure/assets/';
         const self = this;
         let loadFailure: Error | null = null;
+        const requestedRenderer = this.options.renderer ?? (this.options.videoCapture ? 'canvas' : 'auto');
+        const phaserType = requestedRenderer === 'canvas'
+            ? this.Phaser.CANVAS
+            : requestedRenderer === 'webgl'
+                ? this.Phaser.WEBGL
+                : this.Phaser.AUTO;
 
         this.game = new this.Phaser.Game({
-            type: this.Phaser.AUTO,
+            type: phaserType,
             parent: this.host,
             width: 960,
             height: 540,
@@ -210,13 +313,15 @@ export class ArenaPressureEngine {
                         this.add.image(480, 270, 'arena-bg').setDisplaySize(960, 540);
 
                         // Fixed mechanism + teams + ropes + effects + HUD
+                        const wheelCanvasScale = self.options.videoCapture ? 0.5 : 1;
                          self.wheel = new WheelMechanism(
                              this,
                              480,
                              277,
                              410,
                              self.options.spriteBaseUrl || '/games/arena-pressure/sprites/',
-                             self.reducedMotion
+                             self.reducedMotion,
+                             wheelCanvasScale
                          );
                         self.candles = new CandleTeamManager(this, self.reducedMotion);
                         self.pressureArt = new PressureArt(this, self.candles, self.reducedMotion, self.currentPressure);
@@ -244,6 +349,22 @@ export class ArenaPressureEngine {
                         return;
                     }
 
+                    const collectPerf = Boolean(self.options.videoCapture && self.captureStatus === 'recording');
+                    const updateStartedAt = collectPerf ? performance.now() : 0;
+                    let gapMs = 0;
+                    if (collectPerf) {
+                        const perf = self.perfCollector;
+                        if (perf.lastUpdateMs !== null) {
+                            gapMs = Math.max(0, updateStartedAt - perf.lastUpdateMs);
+                            perf.gapsMs.push(gapMs);
+                        } else {
+                            perf.firstUpdateMs = updateStartedAt;
+                        }
+                        perf.lastUpdateMs = updateStartedAt;
+                        perf.updateFrames += 1;
+                        perf.deltasMs.push(delta);
+                    }
+
                     const safeDelta = Math.min(64, Math.max(0, delta));
 
                     // 1. Resolve the pressure for this frame.
@@ -260,6 +381,7 @@ export class ArenaPressureEngine {
                     // The wheel receives the change in the real pressure sample, not the
                     // current dominance. Stable 70/30 pressure therefore coasts to rest.
                     const pressureDelta = self.consumePressureSampleDelta();
+                    const wheelStartedAt = collectPerf ? performance.now() : 0;
                     self.wheel.update(
                         self.currentPressure,
                         self.targetPressure,
@@ -267,6 +389,9 @@ export class ArenaPressureEngine {
                         pressureDelta,
                         self.playing
                     );
+                    if (collectPerf) {
+                        self.perfCollector.wheelWorkMs.push(Math.max(0, performance.now() - wheelStartedAt));
+                    }
 
                     // 3. Character pull teams
                     self.candles.update(
@@ -325,9 +450,20 @@ export class ArenaPressureEngine {
                     if (Math.abs(self.currentPressure - 50) > 25 && Math.random() < 0.05) {
                         self.particles.emitWheelSmoke(self.wheel.x, self.wheel.y);
                     }
+
+                    if (collectPerf) {
+                        const updateWork = Math.max(0, performance.now() - updateStartedAt);
+                        self.perfCollector.updateWorkMs.push(updateWork);
+                        self.perfCollector.pendingUpdateMs = updateWork;
+                        self.perfCollector.pendingGapMs = gapMs;
+                    }
                 }
             }
         });
+
+        if (this.options.videoCapture) {
+            this.installPerfCollector();
+        }
     }
 
     /**
@@ -518,6 +654,139 @@ export class ArenaPressureEngine {
         };
     }
 
+    private installPerfCollector(): void {
+        const game = this.game;
+        if (!game) return;
+
+        this.preRenderHandler = () => {
+            if (this.captureStatus !== 'recording') return;
+            this.perfCollector.renderStartMs = performance.now();
+        };
+        this.postRenderHandler = () => {
+            if (this.captureStatus !== 'recording') return;
+            const now = performance.now();
+            const perf = this.perfCollector;
+            const renderMs = perf.renderStartMs > 0 ? Math.max(0, now - perf.renderStartMs) : 0;
+            perf.renderStartMs = 0;
+            perf.renderFrames += 1;
+            if (perf.firstRenderMs === null) {
+                perf.firstRenderMs = now;
+            }
+            perf.lastRenderMs = now;
+            perf.renderWorkMs.push(renderMs);
+            const totalFrameMs = perf.pendingUpdateMs + renderMs;
+            perf.frameWorkMs.push(totalFrameMs);
+            if (perf.pendingGapMs > 33.33 || totalFrameMs > 33.33) {
+                perf.overBudgetFrames += 1;
+            }
+            perf.pendingUpdateMs = 0;
+            perf.pendingGapMs = 0;
+        };
+
+        game.events.on('prerender', this.preRenderHandler);
+        game.events.on('postrender', this.postRenderHandler);
+
+        if (game.canvas) {
+            this.contextLostTarget = game.canvas;
+            this.contextLostHandler = () => {
+                this.perfCollector.webglContextLost += 1;
+            };
+            game.canvas.addEventListener('webglcontextlost', this.contextLostHandler);
+        }
+
+        if (typeof PerformanceObserver !== 'undefined') {
+            try {
+                const supported = PerformanceObserver.supportedEntryTypes ?? [];
+                if (supported.includes('longtask')) {
+                    this.longTaskObserver = new PerformanceObserver(list => {
+                        if (this.captureStatus !== 'recording') return;
+                        for (const entry of list.getEntries()) {
+                            this.perfCollector.longTasks += 1;
+                            this.perfCollector.longTaskTotalMs += Math.max(0, entry.duration);
+                        }
+                    });
+                    this.longTaskObserver.observe({ entryTypes: ['longtask'] });
+                }
+            } catch {
+                this.longTaskObserver = undefined;
+            }
+        }
+    }
+
+    private resolveRendererInfo(): { renderer: 'WEBGL' | 'CANVAS' | 'UNKNOWN'; glRenderer: string } {
+        const rendererType = this.game?.renderer?.type;
+        if (rendererType === this.Phaser.CANVAS) {
+            return { renderer: 'CANVAS', glRenderer: 'canvas-2d' };
+        }
+        if (rendererType !== this.Phaser.WEBGL) {
+            return { renderer: 'UNKNOWN', glRenderer: 'unknown' };
+        }
+        let glRenderer = 'webgl';
+        try {
+            const rendererObj = this.game?.renderer as { gl?: WebGLRenderingContext } | undefined;
+            const gl = rendererObj?.gl
+                ?? (this.game?.canvas?.getContext('webgl') as WebGLRenderingContext | null)
+                ?? (this.game?.canvas?.getContext('webgl2') as WebGLRenderingContext | null);
+            if (gl) {
+                const ext = gl.getExtension('WEBGL_debug_renderer_info');
+                const value = ext
+                    ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
+                    : gl.getParameter(gl.RENDERER);
+                if (typeof value === 'string' && value.trim()) {
+                    glRenderer = value.trim();
+                }
+            }
+        } catch {
+            // Keep generic webgl label if renderer debug info is blocked.
+        }
+        return { renderer: 'WEBGL', glRenderer };
+    }
+
+    public getPerfMetrics(): ArenaPressurePerfMetrics {
+        const perf = this.perfCollector;
+        const { renderer, glRenderer } = this.resolveRendererInfo();
+        const updateSpanSeconds = perf.updateFrames > 1 && perf.firstUpdateMs !== null && perf.lastUpdateMs !== null
+            ? Math.max(0, (perf.lastUpdateMs - perf.firstUpdateMs) / 1000)
+            : 0;
+        const renderSpanSeconds = perf.renderFrames > 1 && perf.firstRenderMs !== null && perf.lastRenderMs !== null
+            ? Math.max(0, (perf.lastRenderMs - perf.firstRenderMs) / 1000)
+            : 0;
+        const frameWork = summarizeValues(perf.frameWorkMs);
+        const updateWork = summarizeValues(perf.updateWorkMs);
+        const renderWork = summarizeValues(perf.renderWorkMs);
+        const wheelWork = summarizeValues(perf.wheelWorkMs);
+        const gaps = summarizeValues(perf.gapsMs);
+        const deltas = summarizeValues(perf.deltasMs);
+
+        return {
+            renderer,
+            glRenderer,
+            webglContextLost: perf.webglContextLost,
+            updateFrames: perf.updateFrames,
+            updateFps: updateSpanSeconds > 0 ? (perf.updateFrames - 1) / updateSpanSeconds : 0,
+            renderFrames: perf.renderFrames,
+            renderFps: renderSpanSeconds > 0 ? (perf.renderFrames - 1) / renderSpanSeconds : 0,
+            avgFrameMs: frameWork.avg,
+            p50FrameMs: frameWork.p50,
+            p95FrameMs: frameWork.p95,
+            maxFrameMs: frameWork.max,
+            avgUpdateMs: updateWork.avg,
+            p95UpdateMs: updateWork.p95,
+            avgRenderMs: renderWork.avg,
+            p95RenderMs: renderWork.p95,
+            avgWheelMs: wheelWork.avg,
+            avgGapMs: gaps.avg,
+            p50GapMs: gaps.p50,
+            p95GapMs: gaps.p95,
+            maxGapMs: gaps.max,
+            avgDeltaMs: deltas.avg,
+            maxDeltaMs: deltas.max,
+            overBudgetFrames: perf.overBudgetFrames,
+            longTasks: perf.longTasks,
+            longTaskTotalMs: perf.longTaskTotalMs
+        };
+    }
+
     public installVideoCaptureControl(): void {
         if (typeof window === 'undefined' || !this.options.videoCapture || this.captureControl) {
             return;
@@ -532,6 +801,7 @@ export class ArenaPressureEngine {
                 this.command('pause');
                 this.command('seek', 0);
                 this.command('speed', 4);
+                this.perfCollector = createPerfCollectorState();
                 this.captureCompletedAt = null;
                 this.captureClockStartPlayhead = this.playheadSeconds;
                 this.captureClockStartedAt = performance.now();
@@ -539,7 +809,8 @@ export class ArenaPressureEngine {
                 this.command('play');
                 return true;
             },
-            getState: () => this.getCaptureState()
+            getState: () => this.getCaptureState(),
+            getPerfMetrics: () => this.getPerfMetrics()
         };
         this.captureControl = control;
         window.__arenaPressureCapture = control;
@@ -594,6 +865,26 @@ export class ArenaPressureEngine {
             document.removeEventListener('visibilitychange', this.visibilityHandler);
         }
         this.visibilityHandler = undefined;
+
+        if (this.game && this.preRenderHandler) {
+            this.game.events.off('prerender', this.preRenderHandler);
+        }
+        if (this.game && this.postRenderHandler) {
+            this.game.events.off('postrender', this.postRenderHandler);
+        }
+        this.preRenderHandler = undefined;
+        this.postRenderHandler = undefined;
+
+        if (this.contextLostTarget && this.contextLostHandler) {
+            this.contextLostTarget.removeEventListener('webglcontextlost', this.contextLostHandler);
+        }
+        this.contextLostTarget = undefined;
+        this.contextLostHandler = undefined;
+
+        if (this.longTaskObserver) {
+            this.longTaskObserver.disconnect();
+            this.longTaskObserver = undefined;
+        }
 
         this.particles?.destroy();
         this.hud?.destroy();

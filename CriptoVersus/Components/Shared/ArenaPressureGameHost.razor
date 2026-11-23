@@ -402,7 +402,7 @@
         {
             // The countdown runs independently of the Phaser engine so the lifecycle
             // line stays accurate even when the canvas fails to initialize.
-            _clockLoop ??= RunClockAsync(_lifetime.Token);
+            if (!VideoCapture) _clockLoop ??= RunClockAsync(_lifetime.Token);
             await (_initialization = InitializeAsync());
         }
     }
@@ -461,7 +461,7 @@
             _failed = false;
             _status = IsFinished ? T("finished") : T("live");
 
-            if (_hasHistory)
+            if (_hasHistory && !VideoCapture)
             {
                 // Transport only: keeps the scrubber in sync with the replay clock.
                 // It never recomputes pressure, so it cannot race the live update path.

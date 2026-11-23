@@ -1,6 +1,11 @@
 import { ARENA_COLORS, DEFAULT_LABELS, formatDisplaySymbol } from './model.20261121a.js';
 export class ArenaPressureHud {
     constructor(scene, labels = DEFAULT_LABELS, leftSymbol = 'LSK', rightSymbol = 'BMT') {
+        this.lastLeftVal = null;
+        this.lastSymbolsKey = '';
+        this.lastStatusText = '';
+        this.lastStatusColor = '';
+        this.lastBottomKey = '';
         this.scene = scene;
         this.labels = { ...DEFAULT_LABELS, ...labels };
         this.topG = scene.add.graphics().setDepth(20);
@@ -111,10 +116,17 @@ export class ArenaPressureHud {
         const leftVal = Math.round(currentPressure);
         const rightVal = 100 - leftVal;
         // Texts
-        this.leftPercentText.setText(`${leftVal}%`);
-        this.rightPercentText.setText(`${rightVal}%`);
-        this.leftSymbolText.setText(`${formatDisplaySymbol(leftSymbol)} / USDT`);
-        this.rightSymbolText.setText(`${formatDisplaySymbol(rightSymbol)} / USDT`);
+        if (leftVal !== this.lastLeftVal) {
+            this.leftPercentText.setText(`${leftVal}%`);
+            this.rightPercentText.setText(`${rightVal}%`);
+            this.lastLeftVal = leftVal;
+        }
+        const symbolsKey = `${leftSymbol}|${rightSymbol}`;
+        if (symbolsKey !== this.lastSymbolsKey) {
+            this.leftSymbolText.setText(`${formatDisplaySymbol(leftSymbol)} / USDT`);
+            this.rightSymbolText.setText(`${formatDisplaySymbol(rightSymbol)} / USDT`);
+            this.lastSymbolsKey = symbolsKey;
+        }
         let statusString = this.labels.balanced;
         let statusColor = '#ffffff';
         if (isFinished) {
@@ -135,8 +147,19 @@ export class ArenaPressureHud {
             statusString = this.labels.rightDominance;
             statusColor = ARENA_COLORS.rightHex;
         }
-        this.statusText.setText(statusString);
-        this.statusText.setColor(statusColor);
+        if (statusString !== this.lastStatusText) {
+            this.statusText.setText(statusString);
+            this.lastStatusText = statusString;
+        }
+        if (statusColor !== this.lastStatusColor) {
+            this.statusText.setColor(statusColor);
+            this.lastStatusColor = statusColor;
+        }
+        const bottomKey = `${Math.round(currentPressure * 4)}|${dominance}`;
+        if (bottomKey === this.lastBottomKey) {
+            return;
+        }
+        this.lastBottomKey = bottomKey;
         // Draw Bottom Dynamic Bar & Frames
         const g = this.bottomG;
         g.clear();
@@ -184,6 +207,7 @@ export class ArenaPressureHud {
         this.titleText.setText(this.labels.title || 'ARENA PRESSURE');
         this.leftLabelText.setText(this.labels.leftPressure || 'LEFT PRESSURE');
         this.rightLabelText.setText(this.labels.rightPressure || 'RIGHT PRESSURE');
+        this.lastStatusText = '';
     }
     destroy() {
         this.topG.destroy();
