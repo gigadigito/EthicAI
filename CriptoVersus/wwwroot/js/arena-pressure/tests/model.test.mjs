@@ -8,6 +8,9 @@ import {
     sampleHistory,
     resolveHistoryDuration,
     resolveCapturePlayhead,
+    clampCaptureSpeed,
+    CAPTURE_MIN_SPEED,
+    CAPTURE_MAX_SPEED,
     clampPercent
 } from '../../dist/arena-pressure/model.js';
 
@@ -131,4 +134,34 @@ test('clampPercent rejects non finite input and bounds the range', () => {
     assert.equal(clampPercent(-20), 0);
     assert.equal(clampPercent(140), 100);
     assert.equal(clampPercent(57.4), 57.4);
+});
+
+test('clampCaptureSpeed validates and bounds dynamic capture speeds', () => {
+    assert.equal(clampCaptureSpeed(0), null);
+    assert.equal(clampCaptureSpeed(-4), null);
+    assert.equal(clampCaptureSpeed(Number.NaN), null);
+    assert.equal(clampCaptureSpeed(Number.POSITIVE_INFINITY), null);
+    assert.equal(clampCaptureSpeed(0.02), CAPTURE_MIN_SPEED);
+    assert.equal(clampCaptureSpeed(45.1051), 45.1051);
+    assert.equal(clampCaptureSpeed(25000), CAPTURE_MAX_SPEED);
+});
+
+test('capture playhead supports non-zero segment offsets and dynamic speeds across contiguous segments', () => {
+    const historicalDuration = 5412.612;
+    const speed = historicalDuration / 120; // 45.1051x
+    const seg1Start = 0;
+    const seg1End = resolveCapturePlayhead(seg1Start, 1_000, 11_000, speed, historicalDuration);
+    assert.ok(Math.abs(seg1End - 451.051) < 1e-6);
+
+    const seg2Start = 451.051;
+    const seg2End = resolveCapturePlayhead(seg2Start, 2_000, 12_000, speed, historicalDuration);
+    assert.ok(Math.abs(seg2End - 902.102) < 1e-6);
+
+    const seg12Start = 4961.561;
+    const seg12End = resolveCapturePlayhead(seg12Start, 3_000, 13_500, speed, historicalDuration);
+    assert.equal(seg12End, historicalDuration);
+
+    // Slow dynamic speed (0.5x) and high dynamic speed (120x)
+    assert.equal(resolveCapturePlayhead(10, 1_000, 11_000, 0.5, 100), 15);
+    assert.equal(resolveCapturePlayhead(100, 1_000, 6_000, 120, 1000), 700);
 });

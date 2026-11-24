@@ -36,7 +36,8 @@
 </HeadContent>
 <LocalizedSeoAlternates />
 
-<main class="arena-pressure-page @(IsVideoCapture ? "arena-pressure-page--video-capture" : null)">
+<main class="arena-pressure-page @(IsVideoCapture ? "arena-pressure-page--video-capture" : null)"
+      data-arena-pressure-page-state="@_loadState.ToString().ToLowerInvariant()">
     @if (_match is not null && _loadState == ArenaPressurePageLoadState.Loaded)
     {
         <ArenaPressureGameHost @key="MatchId"

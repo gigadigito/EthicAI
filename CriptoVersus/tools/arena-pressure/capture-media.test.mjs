@@ -7,7 +7,11 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
+    buildConcatManifest,
     buildProbeArgs,
+    checkMp4Faststart,
+    checkSegmentsConcatCompatible,
+    concatenateMp4Segments,
     convertWebmToMp4,
     extractProbeEntries,
     finiteNumber,
@@ -21,7 +25,9 @@ import {
     redactSecret,
     runCommand,
     timingMetrics,
+    validateExistingSegmentMp4,
     validateMp4,
+    validateTimestampContinuity,
     validateWebm,
     verifyVideoDecode
 } from './capture-media.mjs';
@@ -875,6 +881,268 @@ test('real FFprobe: diagnose-browserless-fps --analyze-webm prints full [PERF:WE
         assert.match(runResult.stdout, /\[VIDEO:PROBE\] codec=vp8 width=320 height=180/);
         assert.match(runResult.stdout, /\[PERF:WEBM\] frames=\d+ durationSeconds=[\d.]+ effectiveFps=[\d.]+ averageFps=[\d.]+/);
         assert.match(runResult.stdout, /\[PERF:WEBM_WINDOWS\] 0s:\d+ 1s:\d+/);
+    } finally {
+        await rm(directory, { recursive: true, force: true });
+    }
+});
+
+test('buildConcatManifest, checkSegmentsConcatCompatible, and validateTimestampContinuity validate boundaries cleanly', () => {
+    const manifest = buildConcatManifest(['C:\\tmp\\seg\'1.mp4', '/tmp/seg2.mp4']);
+    assert.match(manifest, /^ffconcat version 1\.0/);
+    assert.match(manifest, /file 'C:\/tmp\/seg'\\''1\.mp4'/);
+    assert.match(manifest, /file '\/tmp\/seg2\.mp4'/);
+
+    const compatOk = checkSegmentsConcatCompatible([
+        { streams: [{ codec_name: 'h264', width: 1280, height: 720, pix_fmt: 'yuv420p', avg_frame_rate: '30/1', time_base: '1/30000' }] },
+        { streams: [{ codec_name: 'h264', width: 1280, height: 720, pix_fmt: 'yuv420p', avg_frame_rate: '30/1', time_base: '1/30000' }] }
+    ], { width: 1280, height: 720, fps: 30 });
+    assert.equal(compatOk.compatible, true);
+
+    const compatMismatch = checkSegmentsConcatCompatible([
+        { streams: [{ codec_name: 'h264', width: 1280, height: 720, pix_fmt: 'yuv420p', avg_frame_rate: '30/1', time_base: '1/30000' }] },
+        { streams: [{ codec_name: 'h264', width: 1280, height: 720, pix_fmt: 'yuv420p', avg_frame_rate: '30/1', time_base: '1/15360' }] }
+    ], { width: 1280, height: 720, fps: 30 });
+    assert.equal(compatMismatch.compatible, false);
+    assert.match(compatMismatch.reasons.join('; '), /time_base/);
+
+    assert.equal(validateTimestampContinuity([0, 0.033333, 0.066667, 0.1], 30).valid, true);
+    assert.equal(validateTimestampContinuity([0, 0.066, 0.033], 30).valid, false);
+    assert.equal(validateTimestampContinuity([0, 0.033, 0.25], 30).valid, false);
+});
+
+test('real FFmpeg/FFprobe: normalizes slightly short and slightly long WebMs to exact frame counts and rejects truncated WebM', { skip: !FFMPEG_AVAILABLE }, async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'arena-pressure-norm-'));
+    try {
+        const shortWebm = join(directory, 'short.webm');
+        const shortMp4 = join(directory, 'short.mp4');
+        await generateStreamingWebm(shortWebm, [
+            '-hide_banner', '-loglevel', 'error',
+            '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=25:duration=1.8',
+            '-c:v', 'libvpx', '-b:v', '300k', '-deadline', 'realtime', '-cpu-used', '8',
+            '-f', 'webm', '-live', '1', 'pipe:1'
+        ]);
+        const shortRes = await processWebmToMp4({
+            inputPath: shortWebm,
+            outputPath: shortMp4,
+            width: 320,
+            height: 180,
+            fps: 30,
+            expectedDuration: 2.5,
+            toleranceSeconds: 2.5,
+            exactFrames: 60,
+            maxPadFrames: 30,
+            normalizeTimestamps: true,
+            videoTrackTimescale: 30000,
+            keyint: 30,
+            h264Profile: 'high',
+            mp4ExpectedDuration: 2.0,
+            mp4ToleranceSeconds: 0.05,
+            minWebmDurationSeconds: 1.0,
+            ffmpeg: FFMPEG,
+            ffprobe: FFPROBE
+        });
+        assert.equal(shortRes.mp4Validation.frames, 60);
+        assert.ok(Math.abs(shortRes.mp4Validation.duration.seconds - 2.0) < 0.04);
+        assert.equal(shortRes.mp4Validation.stream.time_base, '1/30000');
+
+        const longWebm = join(directory, 'long.webm');
+        const longMp4 = join(directory, 'long.mp4');
+        await generateStreamingWebm(longWebm, [
+            '-hide_banner', '-loglevel', 'error',
+            '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=30:duration=2.45',
+            '-c:v', 'libvpx', '-b:v', '300k', '-deadline', 'realtime', '-cpu-used', '8',
+            '-f', 'webm', '-live', '1', 'pipe:1'
+        ]);
+        const longRes = await processWebmToMp4({
+            inputPath: longWebm,
+            outputPath: longMp4,
+            width: 320,
+            height: 180,
+            fps: 30,
+            expectedDuration: 2.5,
+            toleranceSeconds: 2.0,
+            exactFrames: 60,
+            maxPadFrames: 30,
+            normalizeTimestamps: true,
+            videoTrackTimescale: 30000,
+            keyint: 30,
+            h264Profile: 'high',
+            mp4ExpectedDuration: 2.0,
+            mp4ToleranceSeconds: 0.05,
+            minWebmDurationSeconds: 1.0,
+            ffmpeg: FFMPEG,
+            ffprobe: FFPROBE
+        });
+        assert.equal(longRes.mp4Validation.frames, 60);
+        assert.ok(Math.abs(longRes.mp4Validation.duration.seconds - 2.0) < 0.04);
+
+        const validSeg = await validateExistingSegmentMp4({
+            filePath: shortMp4,
+            width: 320,
+            height: 180,
+            fps: 30,
+            expectedFrames: 60,
+            expectedDuration: 2.0,
+            ffmpeg: FFMPEG,
+            ffprobe: FFPROBE
+        });
+        assert.equal(validSeg.valid, true);
+
+        const wrongFramesSeg = await validateExistingSegmentMp4({
+            filePath: shortMp4,
+            width: 320,
+            height: 180,
+            fps: 30,
+            expectedFrames: 90,
+            expectedDuration: 2.0,
+            ffmpeg: FFMPEG,
+            ffprobe: FFPROBE
+        });
+        assert.equal(wrongFramesSeg.valid, false);
+
+        const tooShortWebm = join(directory, 'too-short.webm');
+        await generateStreamingWebm(tooShortWebm, [
+            '-hide_banner', '-loglevel', 'error',
+            '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=25:duration=0.4',
+            '-c:v', 'libvpx', '-b:v', '300k', '-deadline', 'realtime', '-cpu-used', '8',
+            '-f', 'webm', '-live', '1', 'pipe:1'
+        ]);
+        await assert.rejects(
+            processWebmToMp4({
+                inputPath: tooShortWebm,
+                outputPath: join(directory, 'too-short.mp4'),
+                width: 320,
+                height: 180,
+                fps: 30,
+                expectedDuration: 2.0,
+                toleranceSeconds: 2.0,
+                exactFrames: 60,
+                maxPadFrames: 30,
+                normalizeTimestamps: true,
+                minWebmDurationSeconds: 1.0,
+                ffmpeg: FFMPEG,
+                ffprobe: FFPROBE
+            }),
+            error => error.stage === 'webm_validate' && /shorter than minimum/.test(error.message)
+        );
+    } finally {
+        await rm(directory, { recursive: true, force: true });
+    }
+});
+
+test('real FFmpeg/FFprobe: concatenates three 1280x720 normalized segments via concat_copy with exact 30fps, yuv420p, faststart, and monotonic PTS', { skip: !FFMPEG_AVAILABLE }, async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'arena-pressure-concat-hd-'));
+    try {
+        const segmentPaths = [];
+        for (let idx = 1; idx <= 3; idx++) {
+            const webmPath = join(directory, `seg-${idx}.webm`);
+            const mp4Path = join(directory, `seg-${idx}.mp4`);
+            await generateStreamingWebm(webmPath, [
+                '-hide_banner', '-loglevel', 'error',
+                '-f', 'lavfi', '-i', `testsrc2=size=1280x720:rate=25:duration=${idx === 2 ? '1.85' : '2.25'}`,
+                '-c:v', 'libvpx', '-b:v', '800k', '-deadline', 'realtime', '-cpu-used', '8',
+                '-f', 'webm', '-live', '1', 'pipe:1'
+            ]);
+            await processWebmToMp4({
+                inputPath: webmPath,
+                outputPath: mp4Path,
+                width: 1280,
+                height: 720,
+                fps: 30,
+                expectedDuration: 2.5,
+                toleranceSeconds: 2.0,
+                exactFrames: 60,
+                maxPadFrames: 30,
+                normalizeTimestamps: true,
+                videoTrackTimescale: 30000,
+                keyint: 30,
+                h264Profile: 'high',
+                mp4ExpectedDuration: 2.0,
+                mp4ToleranceSeconds: 0.05,
+                minWebmDurationSeconds: 1.0,
+                ffmpeg: FFMPEG,
+                ffprobe: FFPROBE
+            });
+            segmentPaths.push(mp4Path);
+        }
+
+        const outPath = join(directory, 'final-1280x720.mp4');
+        const assembly = await concatenateMp4Segments({
+            segmentPaths,
+            manifestPath: join(directory, 'concat.txt'),
+            outputPath: outPath,
+            width: 1280,
+            height: 720,
+            fps: 30,
+            expectedFrames: 180,
+            expectedDuration: 6.0,
+            maxDurationDeviationSeconds: 0.08,
+            threads: 2,
+            ffmpeg: FFMPEG,
+            ffprobe: FFPROBE
+        });
+
+        assert.equal(assembly.strategy, 'concat_copy');
+        assert.deepEqual(assembly.validation.failures, []);
+        assert.equal(assembly.validation.stream.codec_name, 'h264');
+        assert.equal(assembly.validation.stream.width, 1280);
+        assert.equal(assembly.validation.stream.height, 720);
+        assert.equal(assembly.validation.stream.avg_frame_rate, '30/1');
+        assert.equal(assembly.validation.stream.pix_fmt, 'yuv420p');
+        assert.equal(assembly.validation.frames, 180);
+        assert.ok(Math.abs(assembly.validation.duration.seconds - 6.0) < 0.04);
+        assert.equal(assembly.validation.faststart, true);
+        const faststart = await checkMp4Faststart(outPath);
+        assert.equal(faststart.faststart, true);
+        assert.ok(assembly.validation.firstLuma >= 2);
+        assert.ok(assembly.validation.midLuma >= 2);
+        assert.ok(assembly.validation.lastLuma >= 2);
+    } finally {
+        await rm(directory, { recursive: true, force: true });
+    }
+});
+
+test('real FFmpeg/FFprobe: automatically falls back to reencode_fallback when segment parameters differ', { skip: !FFMPEG_AVAILABLE }, async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'arena-pressure-concat-fallback-'));
+    try {
+        const seg1 = join(directory, 'seg-1.mp4');
+        const seg2 = join(directory, 'seg-2.mp4');
+        await runCommand(FFMPEG, [
+            '-hide_banner', '-loglevel', 'error',
+            '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=30:duration=2',
+            '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
+            '-video_track_timescale', '30000', '-an', seg1
+        ]);
+        await runCommand(FFMPEG, [
+            '-hide_banner', '-loglevel', 'error',
+            '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=30:duration=2',
+            '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
+            '-video_track_timescale', '15360', '-an', seg2
+        ]);
+
+        const outPath = join(directory, 'fallback.mp4');
+        const assembly = await concatenateMp4Segments({
+            segmentPaths: [seg1, seg2],
+            manifestPath: join(directory, 'concat.txt'),
+            outputPath: outPath,
+            width: 320,
+            height: 180,
+            fps: 30,
+            expectedFrames: 120,
+            expectedDuration: 4.0,
+            maxDurationDeviationSeconds: 0.08,
+            threads: 2,
+            ffmpeg: FFMPEG,
+            ffprobe: FFPROBE
+        });
+
+        assert.equal(assembly.strategy, 'reencode_fallback');
+        assert.deepEqual(assembly.validation.failures, []);
+        assert.equal(assembly.validation.stream.width, 320);
+        assert.equal(assembly.validation.stream.height, 180);
+        assert.equal(assembly.validation.stream.avg_frame_rate, '30/1');
+        assert.equal(assembly.validation.frames, 120);
+        assert.equal(assembly.validation.faststart, true);
     } finally {
         await rm(directory, { recursive: true, force: true });
     }

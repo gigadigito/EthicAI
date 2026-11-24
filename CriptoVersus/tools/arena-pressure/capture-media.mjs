@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { access, link, mkdir, rename, rm, stat } from 'node:fs/promises';
+import { access, link, mkdir, open, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 const FRAME_TIMESTAMP_FIELDS = ['best_effort_timestamp_time', 'pts_time', 'pkt_pts_time', 'pkt_dts_time'];
@@ -65,8 +65,8 @@ export function runCommand(command, args) {
 
 export function buildProbeArgs(filePath, includeFrames = false) {
     const entries = includeFrames
-        ? 'format=format_name,duration,size:stream=codec_name,codec_type,width,height,avg_frame_rate,pix_fmt,nb_frames,nb_read_frames:frame=best_effort_timestamp_time,pts_time,pkt_pts_time,pkt_dts_time,duration_time,pkt_duration_time:packet=pts_time,dts_time,duration_time'
-        : 'format=format_name,duration,size:stream=codec_name,codec_type,width,height,avg_frame_rate,pix_fmt,nb_frames,nb_read_frames';
+        ? 'format=format_name,duration,size:stream=codec_name,codec_type,width,height,avg_frame_rate,pix_fmt,time_base,nb_frames,nb_read_frames:frame=best_effort_timestamp_time,pts_time,pkt_pts_time,pkt_dts_time,duration_time,pkt_duration_time:packet=pts_time,dts_time,duration_time'
+        : 'format=format_name,duration,size:stream=codec_name,codec_type,width,height,avg_frame_rate,pix_fmt,time_base,nb_frames,nb_read_frames';
     return [
         '-v', 'error',
         '-select_streams', 'v:0',
@@ -350,24 +350,56 @@ export async function convertWebmToMp4(
     ffmpeg,
     input,
     output,
-    { width, height, fps = 30, threads = 2, preset = 'veryfast', crf = 23 }
+    {
+        width,
+        height,
+        fps = 30,
+        threads = 2,
+        preset = 'veryfast',
+        crf = 23,
+        exactFrames = null,
+        maxPadFrames = 0,
+        normalizeTimestamps = false,
+        videoTrackTimescale = null,
+        keyint = null,
+        h264Profile = null
+    }
 ) {
-    return await run(ffmpeg, [
+    const filters = [`scale=${width}:${height}:flags=lanczos`, 'setsar=1'];
+    if (normalizeTimestamps) {
+        filters.push('setpts=PTS-STARTPTS');
+    }
+    filters.push(`fps=${fps}`);
+    if (exactFrames !== null && Number.isSafeInteger(exactFrames) && exactFrames > 0 && maxPadFrames > 0) {
+        filters.push(`tpad=stop_mode=clone:stop=${maxPadFrames}`);
+    }
+
+    const args = [
         '-n', '-hide_banner', '-loglevel', 'warning',
         '-fflags', '+genpts',
         '-i', input,
         '-map', '0:v:0',
-        '-vf', `scale=${width}:${height}:flags=lanczos,setsar=1,fps=${fps}`,
+        '-vf', filters.join(','),
         '-c:v', 'libx264',
         '-preset', String(preset),
         '-threads', String(threads),
-        '-crf', String(crf),
-        '-pix_fmt', 'yuv420p',
-        '-an',
-        '-movflags', '+faststart',
-        '-f', 'mp4',
-        output
-    ]);
+        '-crf', String(crf)
+    ];
+    if (h264Profile) {
+        args.push('-profile:v', String(h264Profile));
+    }
+    if (keyint !== null && Number.isSafeInteger(keyint) && keyint > 0) {
+        args.push('-g', String(keyint), '-keyint_min', String(keyint), '-sc_threshold', '0');
+    }
+    args.push('-pix_fmt', 'yuv420p');
+    if (exactFrames !== null && Number.isSafeInteger(exactFrames) && exactFrames > 0) {
+        args.push('-frames:v', String(exactFrames));
+    }
+    if (videoTrackTimescale !== null && Number.isSafeInteger(videoTrackTimescale) && videoTrackTimescale > 0) {
+        args.push('-video_track_timescale', String(videoTrackTimescale));
+    }
+    args.push('-an', '-movflags', '+faststart', '-f', 'mp4', output);
+    return await run(ffmpeg, args);
 }
 
 export async function frameLuma(run, ffmpeg, input, atSeconds) {
@@ -431,6 +463,15 @@ export async function processWebmToMp4({
     threads = 2,
     preset = 'veryfast',
     crf = 23,
+    exactFrames = null,
+    maxPadFrames = 0,
+    normalizeTimestamps = false,
+    videoTrackTimescale = null,
+    keyint = null,
+    h264Profile = null,
+    mp4ExpectedDuration = null,
+    mp4ToleranceSeconds = null,
+    minWebmDurationSeconds = null,
     ffmpeg = process.env.FFMPEG_PATH ?? 'ffmpeg',
     ffprobe = process.env.FFPROBE_PATH ?? 'ffprobe',
     run = runCommand,
@@ -493,6 +534,15 @@ export async function processWebmToMp4({
         if (webmValidation.failures.length > 0) {
             throw new Error(`WebM validation failed: ${webmValidation.failures.join('; ')}.`);
         }
+        if (minWebmDurationSeconds !== null
+            && Number.isFinite(minWebmDurationSeconds)
+            && webmValidation.duration.seconds !== null
+            && webmValidation.duration.seconds < minWebmDurationSeconds) {
+            throw new Error(
+                `WebM validation failed: duration ${webmValidation.duration.seconds.toFixed(3)}s ` +
+                `is shorter than minimum ${minWebmDurationSeconds.toFixed(3)}s.`
+            );
+        }
 
         stage = 'webm_decode';
         await verifyVideoDecode(run, ffmpeg, inputPath);
@@ -525,7 +575,13 @@ export async function processWebmToMp4({
             fps,
             threads,
             preset,
-            crf
+            crf,
+            exactFrames,
+            maxPadFrames,
+            normalizeTimestamps,
+            videoTrackTimescale,
+            keyint,
+            h264Profile
         });
         const conversionDurationSeconds = (Date.now() - conversionStarted) / 1000;
         emit('[VIDEO:TRANSCODE_COMPLETE]');
@@ -538,11 +594,14 @@ export async function processWebmToMp4({
         const mp4Validation = validateMp4(mp4Probe, {
             width,
             height,
-            expectedDuration,
-            toleranceSeconds,
+            expectedDuration: mp4ExpectedDuration !== null ? mp4ExpectedDuration : expectedDuration,
+            toleranceSeconds: mp4ToleranceSeconds !== null ? mp4ToleranceSeconds : toleranceSeconds,
             fps
         });
         const mp4Failures = [...mp4Validation.failures];
+        if (exactFrames !== null && Number.isSafeInteger(exactFrames) && mp4Validation.frames !== exactFrames) {
+            mp4Failures.push(`frame count is ${mp4Validation.frames ?? 'missing'}, expected ${exactFrames}`);
+        }
         let firstLuma = null;
         let lastLuma = null;
         if (mp4Validation.duration.seconds !== null) {
@@ -598,4 +657,384 @@ export async function processWebmToMp4({
         }
         throw failure;
     }
+}
+
+export async function checkMp4Faststart(filePath) {
+    const fileStat = await stat(filePath);
+    const fileSize = fileStat.size;
+    const handle = await open(filePath, 'r');
+    const header = Buffer.alloc(16);
+    let offset = 0;
+    let moovOffset = null;
+    let mdatOffset = null;
+    try {
+        while (offset + 8 <= fileSize) {
+            const bytesToRead = Math.min(16, fileSize - offset);
+            const { bytesRead } = await handle.read(header, 0, bytesToRead, offset);
+            if (bytesRead < 8) break;
+            const size32 = header.readUInt32BE(0);
+            const boxType = header.toString('ascii', 4, 8);
+            let boxSize = size32;
+            if (size32 === 1) {
+                if (bytesRead < 16) break;
+                const extended = header.readBigUInt64BE(8);
+                if (extended < 16n) break;
+                boxSize = Number(extended);
+            } else if (size32 === 0) {
+                boxSize = fileSize - offset;
+            } else if (size32 < 8) {
+                break;
+            }
+
+            if (boxType === 'moov' && moovOffset === null) {
+                moovOffset = offset;
+            } else if (boxType === 'mdat' && mdatOffset === null) {
+                mdatOffset = offset;
+            }
+            if (moovOffset !== null && mdatOffset !== null) {
+                break;
+            }
+            if (!Number.isFinite(boxSize) || boxSize <= 0) {
+                break;
+            }
+            offset += boxSize;
+        }
+    } finally {
+        await handle.close();
+    }
+
+    return {
+        faststart: moovOffset !== null && mdatOffset !== null && moovOffset < mdatOffset,
+        moovOffset,
+        mdatOffset
+    };
+}
+
+export function validateTimestampContinuity(times, fps = 30) {
+    const sorted = (Array.isArray(times) ? times : [])
+        .map(finiteNumber)
+        .filter(value => value !== null);
+    if (sorted.length < 2) {
+        return { valid: false, reason: 'insufficient frame timestamps', maxGapMs: 0 };
+    }
+    const maxAllowedGapSeconds = (2 / fps) + 0.015;
+    let maxGap = 0;
+    for (let index = 1; index < sorted.length; index++) {
+        const diff = sorted[index] - sorted[index - 1];
+        if (diff < -1e-6) {
+            return {
+                valid: false,
+                reason: `non-monotonic timestamp regression at frame ${index} (${sorted[index - 1]} -> ${sorted[index]})`,
+                maxGapMs: maxGap * 1000
+            };
+        }
+        if (diff > maxGap) maxGap = diff;
+        if (diff > maxAllowedGapSeconds) {
+            return {
+                valid: false,
+                reason: `timestamp gap ${(diff * 1000).toFixed(1)}ms at frame ${index} exceeds ${(maxAllowedGapSeconds * 1000).toFixed(1)}ms`,
+                maxGapMs: maxGap * 1000
+            };
+        }
+    }
+    return { valid: true, reason: null, maxGapMs: maxGap * 1000 };
+}
+
+export async function validateExistingSegmentMp4({
+    filePath,
+    width,
+    height,
+    fps = 30,
+    expectedFrames,
+    expectedDuration,
+    toleranceSeconds = 0.08,
+    ffmpeg = process.env.FFMPEG_PATH ?? 'ffmpeg',
+    ffprobe = process.env.FFPROBE_PATH ?? 'ffprobe',
+    run = runCommand
+}) {
+    try {
+        const fileStat = await stat(filePath);
+        if (!fileStat.isFile() || fileStat.size <= 0) {
+            return { valid: false, reason: 'segment file missing or empty', bytes: 0 };
+        }
+        const probe = await probeMedia(run, ffprobe, filePath, false);
+        const validation = validateMp4(probe, {
+            width,
+            height,
+            expectedDuration,
+            toleranceSeconds,
+            fps
+        });
+        const failures = [...validation.failures];
+        if (expectedFrames !== undefined && expectedFrames !== null && validation.frames !== expectedFrames) {
+            failures.push(`frame count is ${validation.frames ?? 'missing'}, expected ${expectedFrames}`);
+        }
+        if (failures.length > 0) {
+            return { valid: false, reason: failures.join('; '), bytes: fileStat.size, probe, validation };
+        }
+        await verifyVideoDecode(run, ffmpeg, filePath);
+        return { valid: true, reason: null, bytes: fileStat.size, probe, validation };
+    } catch (error) {
+        return { valid: false, reason: error?.message ?? String(error), bytes: 0 };
+    }
+}
+
+export function buildConcatManifest(segmentPaths) {
+    if (!Array.isArray(segmentPaths) || segmentPaths.length === 0) {
+        throw new Error('At least one segment path is required for concatenation.');
+    }
+    const lines = ['ffconcat version 1.0'];
+    for (const rawPath of segmentPaths) {
+        const normalized = String(rawPath).replace(/\\/g, '/').replace(/'/g, "'\\''");
+        lines.push(`file '${normalized}'`);
+    }
+    return `${lines.join('\n')}\n`;
+}
+
+export function checkSegmentsConcatCompatible(probes, { width, height, fps = 30 }) {
+    if (!Array.isArray(probes) || probes.length === 0) {
+        return { compatible: false, reasons: ['no segment probes available'] };
+    }
+    const reasons = [];
+    let expectedTimeBase = null;
+    for (let index = 0; index < probes.length; index++) {
+        const stream = probes[index]?.streams?.[0];
+        const tag = `segment ${index + 1}`;
+        if (!stream) {
+            reasons.push(`${tag}: missing video stream`);
+            continue;
+        }
+        if (stream.codec_name !== 'h264') {
+            reasons.push(`${tag}: codec is ${stream.codec_name ?? 'missing'}`);
+        }
+        if (stream.width !== width || stream.height !== height) {
+            reasons.push(`${tag}: resolution is ${stream.width ?? '?'}x${stream.height ?? '?'}`);
+        }
+        if (stream.pix_fmt !== 'yuv420p') {
+            reasons.push(`${tag}: pixel format is ${stream.pix_fmt ?? 'missing'}`);
+        }
+        if (stream.avg_frame_rate !== `${fps}/1`) {
+            reasons.push(`${tag}: avg_frame_rate is ${stream.avg_frame_rate ?? 'missing'}`);
+        }
+        if (stream.time_base) {
+            if (expectedTimeBase === null) {
+                expectedTimeBase = stream.time_base;
+            } else if (stream.time_base !== expectedTimeBase) {
+                reasons.push(`${tag}: time_base ${stream.time_base} differs from ${expectedTimeBase}`);
+            }
+        }
+    }
+    return { compatible: reasons.length === 0, reasons };
+}
+
+export async function validateConsolidatedMp4({
+    filePath,
+    width = 1280,
+    height = 720,
+    fps = 30,
+    expectedFrames,
+    expectedDuration,
+    maxDurationDeviationSeconds = 0.1,
+    ffmpeg = process.env.FFMPEG_PATH ?? 'ffmpeg',
+    ffprobe = process.env.FFPROBE_PATH ?? 'ffprobe',
+    run = runCommand
+}) {
+    await verifyVideoDecode(run, ffmpeg, filePath);
+    const probe = await probeMedia(run, ffprobe, filePath, true);
+    const validation = validateMp4(probe, {
+        width,
+        height,
+        expectedDuration,
+        toleranceSeconds: maxDurationDeviationSeconds,
+        fps
+    });
+    const failures = [...validation.failures];
+    if (expectedFrames !== undefined && expectedFrames !== null) {
+        if (validation.frames === null || Math.abs(validation.frames - expectedFrames) > 1) {
+            failures.push(`frame count is ${validation.frames ?? 'missing'}, expected ${expectedFrames}`);
+        }
+    }
+
+    const times = frameTimes(probe);
+    const continuity = validateTimestampContinuity(times, fps);
+    if (!continuity.valid) {
+        failures.push(`timestamp continuity check failed: ${continuity.reason}`);
+    }
+
+    let firstLuma = null;
+    let midLuma = null;
+    let lastLuma = null;
+    if (validation.duration.seconds !== null) {
+        firstLuma = await frameLuma(run, ffmpeg, filePath, 0.1);
+        if (validation.duration.seconds >= 2) {
+            midLuma = await frameLuma(run, ffmpeg, filePath, validation.duration.seconds / 2);
+        } else {
+            midLuma = firstLuma;
+        }
+        lastLuma = await frameLuma(run, ffmpeg, filePath, Math.max(0, validation.duration.seconds - 0.2));
+        if (firstLuma === null || firstLuma < 2) {
+            failures.push(`first frame is blank/unreadable (YAVG=${firstLuma})`);
+        }
+        if (midLuma === null || midLuma < 2) {
+            failures.push(`midpoint frame is blank/unreadable (YAVG=${midLuma})`);
+        }
+        if (lastLuma === null || lastLuma < 2) {
+            failures.push(`last frame is blank/unreadable (YAVG=${lastLuma})`);
+        }
+    }
+
+    const faststartInfo = await checkMp4Faststart(filePath);
+    if (!faststartInfo.faststart) {
+        failures.push('MP4 faststart atom ordering invalid (moov must precede mdat)');
+    }
+
+    return {
+        failures,
+        duration: validation.duration,
+        frames: validation.frames,
+        stream: validation.stream,
+        maxGapMs: continuity.maxGapMs,
+        firstLuma,
+        midLuma,
+        lastLuma,
+        faststart: faststartInfo.faststart
+    };
+}
+
+export async function concatenateMp4Segments({
+    segmentPaths,
+    manifestPath,
+    outputPath,
+    partialOutputPath = `${outputPath}.partial`,
+    width = 1280,
+    height = 720,
+    fps = 30,
+    expectedFrames,
+    expectedDuration,
+    maxDurationDeviationSeconds = 0.1,
+    threads = 2,
+    preset = 'veryfast',
+    crf = 23,
+    videoTrackTimescale = 30000,
+    ffmpeg = process.env.FFMPEG_PATH ?? 'ffmpeg',
+    ffprobe = process.env.FFPROBE_PATH ?? 'ffprobe',
+    run = runCommand,
+    log = () => {},
+    secrets = []
+}) {
+    const emit = message => log(redactSecret(message, secrets));
+    if (await pathExists(outputPath)) {
+        throw new Error(`Refusing to overwrite existing output file: ${outputPath}`);
+    }
+    if (await pathExists(partialOutputPath)) {
+        await rm(partialOutputPath, { force: true });
+    }
+    await mkdir(dirname(outputPath), { recursive: true });
+    await mkdir(dirname(manifestPath), { recursive: true });
+
+    const probes = [];
+    for (const segPath of segmentPaths) {
+        probes.push(await probeMedia(run, ffprobe, segPath, false));
+    }
+    const compat = checkSegmentsConcatCompatible(probes, { width, height, fps });
+    await writeFile(manifestPath, buildConcatManifest(segmentPaths), 'utf8');
+
+    const startedAt = Date.now();
+    let strategy = null;
+    let validation = null;
+
+    if (compat.compatible) {
+        try {
+            emit(`Concatenating ${segmentPaths.length} segments via FFmpeg concat demuxer (-c copy).`);
+            await run(ffmpeg, [
+                '-n', '-hide_banner', '-loglevel', 'warning',
+                '-f', 'concat', '-safe', '0',
+                '-i', manifestPath,
+                '-map', '0:v:0',
+                '-c', 'copy',
+                '-an',
+                '-movflags', '+faststart',
+                '-f', 'mp4',
+                partialOutputPath
+            ]);
+            validation = await validateConsolidatedMp4({
+                filePath: partialOutputPath,
+                width,
+                height,
+                fps,
+                expectedFrames,
+                expectedDuration,
+                maxDurationDeviationSeconds,
+                ffmpeg,
+                ffprobe,
+                run
+            });
+            if (validation.failures.length === 0) {
+                strategy = 'concat_copy';
+            } else {
+                emit(`Concat -c copy validation failed (${validation.failures.join('; ')}); falling back to bounded re-encode.`);
+                await rm(partialOutputPath, { force: true }).catch(() => {});
+            }
+        } catch (error) {
+            emit(`Concat -c copy failed (${error.message}); falling back to bounded re-encode.`);
+            await rm(partialOutputPath, { force: true }).catch(() => {});
+        }
+    } else {
+        emit(`Segments incompatible for stream copy (${compat.reasons.join('; ')}); using bounded concat re-encode.`);
+    }
+
+    if (strategy === null) {
+        const reencodeArgs = ['-n', '-hide_banner', '-loglevel', 'warning'];
+        for (const segPath of segmentPaths) {
+            reencodeArgs.push('-i', segPath);
+        }
+        const filterParts = segmentPaths.map((_, index) =>
+            `[${index}:v:0]scale=${width}:${height}:flags=lanczos,setsar=1,fps=${fps},setpts=PTS-STARTPTS[v${index}]`
+        );
+        const concatInputs = segmentPaths.map((_, index) => `[v${index}]`).join('');
+        filterParts.push(`${concatInputs}concat=n=${segmentPaths.length}:v=1:a=0[vout]`);
+        reencodeArgs.push(
+            '-filter_complex', filterParts.join(';'),
+            '-map', '[vout]',
+            '-frames:v', String(expectedFrames),
+            '-c:v', 'libx264',
+            '-preset', String(preset),
+            '-threads', String(threads),
+            '-crf', String(crf),
+            '-pix_fmt', 'yuv420p',
+            '-video_track_timescale', String(videoTrackTimescale),
+            '-an',
+            '-movflags', '+faststart',
+            '-f', 'mp4',
+            partialOutputPath
+        );
+        await run(ffmpeg, reencodeArgs);
+        validation = await validateConsolidatedMp4({
+            filePath: partialOutputPath,
+            width,
+            height,
+            fps,
+            expectedFrames,
+            expectedDuration,
+            maxDurationDeviationSeconds,
+            ffmpeg,
+            ffprobe,
+            run
+        });
+        if (validation.failures.length > 0) {
+            await rm(partialOutputPath, { force: true }).catch(() => {});
+            throw new Error(`Consolidated MP4 validation failed: ${validation.failures.join('; ')}.`);
+        }
+        strategy = 'reencode_fallback';
+    }
+
+    await publishWithoutOverwrite(partialOutputPath, outputPath);
+    const outStat = await stat(outputPath);
+    return {
+        strategy,
+        mp4Bytes: outStat.size,
+        validation,
+        assemblyDurationSeconds: (Date.now() - startedAt) / 1000,
+        outputPath
+    };
 }

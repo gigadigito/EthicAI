@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { PressureArt } from '../../dist/arena-pressure/pressure-art.js';
+import { PressureVisualStateMachine } from '../../dist/arena-pressure/pressure-visual.js';
 
 function harness(available = true) {
     const images = [];
@@ -94,6 +95,27 @@ test('all fourteen pressure states face their opponent at the enlarged size', ()
 
 test('versioned runtime includes both pressure modules', () => {
     for (const module of ['pressure-art', 'pressure-visual']) {
-        assert.ok(existsSync(new URL(`../../dist/arena-pressure/${module}.20261120e.js`, import.meta.url)));
+        assert.ok(existsSync(new URL(`../../dist/arena-pressure/${module}.20261124a.js`, import.meta.url)));
     }
+});
+
+test('PressureVisualStateMachine.reset and PressureArt.snapToPressure seek instantly without dwell or tweening', () => {
+    const machine = new PressureVisualStateMachine(50, 50, 0, 300, 2);
+    // Normal update inside dwell window stays balanced
+    const held = machine.update(80, 20, 100);
+    assert.equal(held.buy, 'buy_state_1_balanced');
+    // Reset bypasses dwell and hysteresis immediately
+    const snapped = machine.reset(80, 20, 10000);
+    assert.equal(snapped.buy, 'buy_state_3_dominant');
+    assert.equal(snapped.sell, 'sell_state_3_struggling');
+
+    const h = harness();
+    const art = new PressureArt(h.scene, h.candles, false, 50);
+    const tweensBeforeSnap = h.tweens.length;
+    art.snapToPressure(92, 8, 20000);
+    assert.equal(art.state.buy, 'buy_state_4_extreme');
+    assert.equal(art.state.sell, 'sell_state_4_collapsed');
+    assert.equal(h.tweens.length, tweensBeforeSnap, 'snapToPressure must swap sprites without crossfade tweens');
+    assert.ok(h.images.slice(0, 6).every(img => img.destroyed), 'previous balanced sprites must be destroyed immediately');
+    art.destroy();
 });

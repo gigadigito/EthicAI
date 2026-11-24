@@ -129,6 +129,26 @@ export class CandleTeamManager {
     }
 
     /**
+     * Deterministically snaps fallback candle characters to a seeked pressure state.
+     */
+    public syncToPressure(
+        leftPressure: number,
+        rightPressure: number,
+        isFinished: boolean = false,
+        time: number = 0
+    ): void {
+        this.previousLeftPressure = leftPressure;
+        for (const candle of [...this.leftCandles, ...this.rightCandles]) {
+            candle.slipKick = 0;
+            candle.hop = 0;
+            candle.currentDisplacementX = 0;
+            candle.currentDisplacementY = 0;
+            candle.lean = 0;
+        }
+        this.update(time, leftPressure, rightPressure, isFinished);
+    }
+
+    /**
      * Updates character positions, strain displacement, animation speeds and states.
      */
     public update(

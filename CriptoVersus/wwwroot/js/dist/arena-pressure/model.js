@@ -2,6 +2,19 @@
  * Arena Pressure visual state & animation model.
  * Pure logic and contracts for the tug-of-war experience.
  */
+export const CAPTURE_MIN_SPEED = 0.1;
+export const CAPTURE_MAX_SPEED = 10000;
+/**
+ * Validates and clamps a dynamic capture replay speed strictly within supported bounds.
+ * Returns null if the supplied value is not a finite positive number.
+ */
+export function clampCaptureSpeed(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+        return null;
+    }
+    return Math.max(CAPTURE_MIN_SPEED, Math.min(CAPTURE_MAX_SPEED, numeric));
+}
 /**
  * Resolves the historical position for deterministic video capture from a
  * monotonic clock. Rendering cadence must not slow the replay timeline.

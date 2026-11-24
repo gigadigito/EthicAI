@@ -67,6 +67,37 @@ export interface ArenaPressureOptions {
     renderer?: 'auto' | 'canvas' | 'webgl';
 }
 
+export const CAPTURE_MIN_SPEED = 0.1;
+export const CAPTURE_MAX_SPEED = 10000;
+
+export interface ArenaPressureCaptureStartOptions {
+    startSeconds?: number;
+    speed?: number;
+    videoStartSeconds?: number;
+}
+
+export interface ArenaPressureCapturePrepareResult {
+    ok: boolean;
+    playheadSeconds: number;
+    durationSeconds: number;
+    historySpanSeconds: number;
+    speed: number;
+    leftPercent: number;
+    videoStartSeconds: number;
+}
+
+/**
+ * Validates and clamps a dynamic capture replay speed strictly within supported bounds.
+ * Returns null if the supplied value is not a finite positive number.
+ */
+export function clampCaptureSpeed(value: number): number | null {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+        return null;
+    }
+    return Math.max(CAPTURE_MIN_SPEED, Math.min(CAPTURE_MAX_SPEED, numeric));
+}
+
 /**
  * One reconstructed pressure sample. `t` is seconds from match start, `l` is the
  * normalized left pressure percentage (0..100).

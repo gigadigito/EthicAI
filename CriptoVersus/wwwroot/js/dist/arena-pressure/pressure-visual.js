@@ -41,6 +41,12 @@ export class PressureVisualStateMachine {
         this.changedAt = time;
     }
     get state() { return this.current; }
+    /** Immediately snaps the visual state to the given pressure, bypassing dwell and hysteresis. */
+    reset(buy, sell, time = 0) {
+        this.current = resolvePressureVisualState(buy, sell);
+        this.changedAt = time;
+        return this.current;
+    }
     update(buy, sell, time) {
         const candidate = resolvePressureVisualState(buy, sell);
         if (candidate.buy === this.current.buy && candidate.sell === this.current.sell)

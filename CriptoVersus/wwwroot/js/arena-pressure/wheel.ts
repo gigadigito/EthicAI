@@ -456,6 +456,34 @@ export class WheelMechanism {
         };
     }
 
+    /**
+     * Deterministically snaps the wheel hub, ring lights, and optional wobble clock
+     * to a target pressure and ensures the target hub sprite is loaded before painting.
+     */
+    public async syncToPressure(leftPressure: number, clockSeconds?: number): Promise<void> {
+        const left = clamp(leftPressure, 0, 100);
+        this.lastPressure = left;
+        this.currentHubAngle = hubAngleForPressure(left);
+        this.hubColor = hubColorForPressure(left);
+        this.currentRingOrangeShare = clamp(left / 100, 0, 1);
+        this.mechanicalState = {
+            clock: clockSeconds !== undefined && Number.isFinite(clockSeconds) && clockSeconds >= 0
+                ? clockSeconds
+                : this.mechanicalState.clock,
+            offsetX: 0,
+            offsetY: 0,
+            angle: 0
+        };
+
+        const targetHubPath = `hub/frames/${this.hubColor}/angulo_${signedAngleName(this.currentHubAngle)}.png`;
+        const loaded = await this.loadImage(targetHubPath);
+        if (loaded && !this.destroyed) {
+            this.lastReadyHubPath = targetHubPath;
+        }
+        this.lastRenderKey = '';
+        this.render(left);
+    }
+
     public getLeftAnchor(): { x: number; y: number } {
         const scale = this.size / SOURCE_SIZE;
         const imageY = this.y + (SOURCE_IMAGE_CENTER - SOURCE_CENTER_Y) * scale;

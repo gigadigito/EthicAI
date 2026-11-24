@@ -222,32 +222,289 @@ export function buildSyntheticPageHtml(width, height) {
 </html>`;
 }
 
-export async function syntheticBrowserlessHandler({ page, context, startScreencast, stopScreencast }) {
-    let screencastStarted = false;
-    try {
-        await page.setRequestInterception(true);
-        page.on('request', request => request.abort('blockedbyclient'));
-        await page.setViewport({ width: context.width, height: context.height, deviceScaleFactor: 1 });
-        await page.setContent(context.html, { waitUntil: 'domcontentloaded' });
-        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+export function buildSyntheticContext({ width, height, durationSeconds }) {
+    const durationMs = durationSeconds * 1000;
+    const executionBudgetMs = Math.min(REQUEST_TIMEOUT_MS - 5_000, durationMs + 20_000);
+    const initBudgetMs = Math.min(15_000, Math.max(1_000, executionBudgetMs - durationMs - 2_000));
+    return {
+        width,
+        height,
+        durationMs,
+        executionBudgetMs,
+        initBudgetMs,
+        requestInterceptionTimeoutMs: 5_000,
+        viewportTimeoutMs: 5_000,
+        setContentTimeoutMs: 10_000,
+        readinessTimeoutMs: 5_000,
+        metricsTimeoutMs: 5_000,
+        screencastControlTimeoutMs: 5_000,
+        html: buildSyntheticPageHtml(width, height)
+    };
+}
 
-        startScreencast();
-        screencastStarted = true;
-        await new Promise(resolve => setTimeout(resolve, context.durationMs));
-        const metrics = await page.evaluate(() => window.__syntheticBench?.getMetrics?.() ?? null);
-        if (metrics) {
-            console.log(
-                `[PERF:SYNTHETIC] width=${Number(context.width)} height=${Number(context.height)}`
-                + ` frames=${Number(metrics.frames)} rafFps=${Number(metrics.rafFps).toFixed(2)}`
-                + ` avgGapMs=${Number(metrics.avgGapMs).toFixed(1)} p95GapMs=${Number(metrics.p95GapMs).toFixed(1)}`
-                + ` maxGapMs=${Number(metrics.maxGapMs).toFixed(1)} avgWorkMs=${Number(metrics.avgWorkMs).toFixed(2)}`
+export async function syntheticBrowserlessHandler({ page, context, startScreencast, stopScreencast }) {
+    const startedAt = Date.now();
+    const elapsed = () => Date.now() - startedAt;
+    const diagnostic = (marker, details = '') => {
+        console.log(`[SYNTHETIC:${marker}] elapsedMs=${elapsed()}${details ? ` ${details}` : ''}`);
+    };
+    const fail = (message, captureCode) => {
+        const error = new Error(message);
+        error.captureCode = captureCode;
+        return error;
+    };
+    const positiveMs = (value, fallback) => (Number.isFinite(Number(value)) && Number(value) > 0 ? Number(value) : fallback);
+
+    const expectedWidth = Number(context?.width);
+    const expectedHeight = Number(context?.height);
+    const durationMs = Number(context?.durationMs);
+    if (!Number.isFinite(expectedWidth) || expectedWidth <= 0
+        || !Number.isFinite(expectedHeight) || expectedHeight <= 0
+        || !Number.isFinite(durationMs) || durationMs <= 0
+        || typeof context?.html !== 'string' || !context.html.length) {
+        throw fail('Synthetic capture context is invalid.', 'INVALID_CONTEXT');
+    }
+
+    const executionBudgetMs = positiveMs(context.executionBudgetMs, durationMs + 20000);
+    const initBudgetMs = positiveMs(context.initBudgetMs, 15000);
+    const deadline = startedAt + executionBudgetMs;
+    const initDeadline = startedAt + Math.min(initBudgetMs, executionBudgetMs);
+    const timeouts = {
+        requestInterception: positiveMs(context.requestInterceptionTimeoutMs, 5000),
+        viewport: positiveMs(context.viewportTimeoutMs, 5000),
+        setContent: positiveMs(context.setContentTimeoutMs, 10000),
+        readiness: positiveMs(context.readinessTimeoutMs, 5000),
+        readinessPollInterval: positiveMs(context.readinessPollIntervalMs, 50),
+        metrics: positiveMs(context.metricsTimeoutMs, 5000),
+        screencastControl: positiveMs(context.screencastControlTimeoutMs, 5000)
+    };
+    const remaining = () => Math.max(0, deadline - Date.now());
+    const remainingInit = () => Math.max(0, initDeadline - Date.now());
+    const initStageLimit = (requestedMs, stageName) => {
+        const allowed = Math.min(requestedMs, remainingInit(), remaining());
+        if (allowed <= 0) {
+            throw fail(`Synthetic initialization budget exhausted before ${stageName}.`, 'INIT_BUDGET_EXHAUSTED');
+        }
+        return allowed;
+    };
+    const stageLimit = (requestedMs, stageName) => {
+        const allowed = Math.min(requestedMs, remaining());
+        if (allowed <= 0) {
+            throw fail(`Synthetic execution budget exhausted before ${stageName}.`, 'BUDGET_EXHAUSTED');
+        }
+        return allowed;
+    };
+    const withTimeout = async (operation, timeoutMs, stageName, timeoutCode) => {
+        let timer;
+        const guardedOperation = Promise.resolve(operation);
+        guardedOperation.catch(() => {});
+        const timeoutPromise = new Promise((_, reject) => {
+            timer = setTimeout(
+                () => reject(fail(`Synthetic capture timed out during ${stageName} after ${timeoutMs}ms.`, timeoutCode)),
+                timeoutMs
+            );
+        });
+        try {
+            return await Promise.race([guardedOperation, timeoutPromise]);
+        } finally {
+            clearTimeout(timer);
+        }
+    };
+
+    let stage = 'INIT';
+    let screencastStarted = false;
+    let abortedRequests = 0;
+    let requestHandlerAttached = false;
+
+    const requestHandler = request => {
+        abortedRequests += 1;
+        Promise.resolve()
+            .then(() => request.abort('blockedbyclient'))
+            .catch(() => {});
+    };
+
+    const safeStopScreencast = async (cleanup = false) => {
+        if (!screencastStarted) return;
+        screencastStarted = false;
+        diagnostic('SCREENCAST_STOP_START', cleanup ? 'cleanup=true' : '');
+        try {
+            const stopResult = stopScreencast();
+            if (stopResult && typeof stopResult.then === 'function') {
+                await withTimeout(stopResult, timeouts.screencastControl, 'SCREENCAST_STOP', 'STOP_SCREENCAST_TIMEOUT');
+            }
+            diagnostic('SCREENCAST_STOP_OK', cleanup ? 'cleanup=true' : '');
+        } catch (stopError) {
+            const stopReason = stopError?.captureCode ?? stopError?.name ?? 'ERROR';
+            console.error(`[SYNTHETIC:SCREENCAST_STOP_FAILED] elapsedMs=${elapsed()} cleanup=${cleanup} reason=${stopReason}`);
+            if (!cleanup) throw stopError;
+        }
+    };
+
+    try {
+        stage = 'REQUEST_INTERCEPTION';
+        diagnostic('REQUEST_INTERCEPTION_START');
+        await withTimeout(
+            page.setRequestInterception(true),
+            initStageLimit(timeouts.requestInterception, stage),
+            stage,
+            'REQUEST_INTERCEPTION_TIMEOUT'
+        );
+        page.on('request', requestHandler);
+        requestHandlerAttached = true;
+        diagnostic('REQUEST_INTERCEPTION_OK');
+
+        stage = 'VIEWPORT';
+        diagnostic('VIEWPORT_START', `width=${expectedWidth} height=${expectedHeight}`);
+        await withTimeout(
+            page.setViewport({ width: expectedWidth, height: expectedHeight, deviceScaleFactor: 1 }),
+            initStageLimit(timeouts.viewport, stage),
+            stage,
+            'VIEWPORT_TIMEOUT'
+        );
+        diagnostic('VIEWPORT_OK', `width=${expectedWidth} height=${expectedHeight}`);
+
+        stage = 'SET_CONTENT';
+        diagnostic('SET_CONTENT_START', `htmlBytes=${context.html.length}`);
+        const setContentLimit = initStageLimit(timeouts.setContent, stage);
+        try {
+            await withTimeout(
+                page.setContent(context.html, { waitUntil: 'domcontentloaded', timeout: setContentLimit }),
+                setContentLimit,
+                stage,
+                'SET_CONTENT_TIMEOUT'
+            );
+        } catch (error) {
+            if (error?.captureCode) throw error;
+            if (error?.name === 'TimeoutError') {
+                throw fail(`Synthetic capture timed out during ${stage}.`, 'SET_CONTENT_TIMEOUT');
+            }
+            throw error;
+        }
+        diagnostic('SET_CONTENT_OK');
+
+        stage = 'CANVAS_READY';
+        diagnostic('CANVAS_CHECK_START');
+        const readinessLimit = initStageLimit(timeouts.readiness, stage);
+        const readinessDeadline = Date.now() + readinessLimit;
+        let readinessAttempts = 0;
+        let readiness = null;
+        while (true) {
+            readinessAttempts += 1;
+            const attemptLimit = readinessDeadline - Date.now();
+            if (attemptLimit <= 0) {
+                throw fail(
+                    `Synthetic canvas and __syntheticBench were not ready within ${readinessLimit}ms (hasCanvas=${Boolean(readiness?.hasCanvas)}, hasBench=${Boolean(readiness?.hasBench)}).`,
+                    'CANVAS_READY_TIMEOUT'
+                );
+            }
+            readiness = await withTimeout(
+                page.evaluate((w, h) => {
+                    const canvas = typeof document !== 'undefined' ? document.getElementById('bench') : null;
+                    const ctx = canvas && typeof canvas.getContext === 'function' ? canvas.getContext('2d') : null;
+                    const hasCanvas = Boolean(canvas && Number(canvas.width) === w && Number(canvas.height) === h && ctx);
+                    const bench = typeof window !== 'undefined' ? window.__syntheticBench : null;
+                    const hasBench = Boolean(
+                        bench
+                        && Number.isFinite(Number(bench.startedAt))
+                        && typeof bench.getMetrics === 'function'
+                    );
+                    return {
+                        ready: hasCanvas && hasBench,
+                        hasCanvas,
+                        canvasWidth: canvas ? Number(canvas.width) : 0,
+                        canvasHeight: canvas ? Number(canvas.height) : 0,
+                        hasBench,
+                        readyState: typeof document !== 'undefined' ? String(document.readyState ?? '') : ''
+                    };
+                }, expectedWidth, expectedHeight),
+                attemptLimit,
+                stage,
+                'CANVAS_READY_TIMEOUT'
+            );
+            if (readiness?.ready) break;
+            const sleepMs = Math.min(timeouts.readinessPollInterval, readinessDeadline - Date.now());
+            if (sleepMs <= 0) {
+                throw fail(
+                    `Synthetic canvas and __syntheticBench were not ready within ${readinessLimit}ms (hasCanvas=${Boolean(readiness?.hasCanvas)}, hasBench=${Boolean(readiness?.hasBench)}).`,
+                    'CANVAS_READY_TIMEOUT'
+                );
+            }
+            await new Promise(resolve => setTimeout(resolve, sleepMs));
+        }
+        diagnostic(
+            'CANVAS_READY',
+            `attempts=${readinessAttempts} width=${Number(readiness.canvasWidth)} height=${Number(readiness.canvasHeight)}`
+            + ` hasBench=${Boolean(readiness.hasBench)} readyState=${String(readiness.readyState || 'unknown')}`
+        );
+
+        stage = 'SCREENCAST_START';
+        if (remaining() < durationMs) {
+            throw fail('Insufficient synthetic execution budget for the requested recording duration.', 'BUDGET_EXHAUSTED');
+        }
+        diagnostic('SCREENCAST_START', `durationMs=${durationMs}`);
+        const startResult = startScreencast();
+        if (startResult && typeof startResult.then === 'function') {
+            await withTimeout(
+                startResult,
+                stageLimit(timeouts.screencastControl, stage),
+                stage,
+                'START_SCREENCAST_TIMEOUT'
             );
         }
-        stopScreencast();
-        screencastStarted = false;
+        screencastStarted = true;
+        diagnostic('SCREENCAST_STARTED');
+
+        stage = 'RECORDING';
+        diagnostic('RECORDING_START', `durationMs=${durationMs}`);
+        const recordingStartedAt = Date.now();
+        await new Promise(resolve => setTimeout(resolve, durationMs));
+        const recordingElapsedMs = Date.now() - recordingStartedAt;
+        diagnostic('RECORDING_END', `requestedMs=${durationMs} wallElapsedMs=${recordingElapsedMs}`);
+
+        stage = 'METRICS';
+        diagnostic('METRICS_START');
+        const metricsLimit = stageLimit(timeouts.metrics, stage);
+        const metrics = await withTimeout(
+            page.evaluate(() => window.__syntheticBench?.getMetrics?.() ?? null),
+            metricsLimit,
+            stage,
+            'METRICS_TIMEOUT'
+        );
+        if (metrics) {
+            const num = (value, digits = 2) => (Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : 'na');
+            const intOrNa = value => (Number.isFinite(Number(value)) ? Number(value) : 'na');
+            console.log(
+                `[PERF:SYNTHETIC] width=${expectedWidth} height=${expectedHeight}`
+                + ` frames=${intOrNa(metrics.frames)} rafFps=${num(metrics.rafFps)}`
+                + ` avgGapMs=${num(metrics.avgGapMs, 1)} p95GapMs=${num(metrics.p95GapMs, 1)}`
+                + ` maxGapMs=${num(metrics.maxGapMs, 1)} avgWorkMs=${num(metrics.avgWorkMs)}`
+            );
+            diagnostic('METRICS_OK', `available=true frames=${intOrNa(metrics.frames)}`);
+        } else {
+            diagnostic('METRICS_OK', 'available=false');
+        }
+
+        stage = 'SCREENCAST_STOP';
+        await safeStopScreencast(false);
+        diagnostic('COMPLETE', `abortedRequests=${abortedRequests}`);
+    } catch (error) {
+        const reason = error?.captureCode ?? error?.name ?? 'ERROR';
+        console.error(`[SYNTHETIC:FAILED] stage=${stage} elapsedMs=${elapsed()} reason=${reason}`);
+        throw error;
     } finally {
         if (screencastStarted) {
-            stopScreencast();
+            await safeStopScreencast(true);
+        }
+        if (requestHandlerAttached) {
+            try {
+                if (typeof page.off === 'function') {
+                    page.off('request', requestHandler);
+                } else if (typeof page.removeListener === 'function') {
+                    page.removeListener('request', requestHandler);
+                }
+            } catch {
+                // Ignore listener cleanup errors during page teardown.
+            }
         }
     }
 }
@@ -326,12 +583,7 @@ async function runSyntheticBenchmark(ffprobe, options) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 code: syntheticBrowserlessFunction,
-                context: {
-                    width: options.width,
-                    height: options.height,
-                    durationMs: options.durationSeconds * 1000,
-                    html: buildSyntheticPageHtml(options.width, options.height)
-                }
+                context: buildSyntheticContext(options)
             }),
             signal: controller.signal
         });

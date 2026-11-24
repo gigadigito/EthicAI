@@ -183,6 +183,17 @@ export class ArenaParticleSystem {
         }
     }
 
+    /** Resets all pooled particles for deterministic segment seek boundaries. */
+    public clear(): void {
+        for (const particle of [...this.sparks, ...this.smoke]) {
+            particle.active = false;
+            particle.age = 0;
+            particle.image.setVisible(false);
+        }
+        this.lastSparkTime = 0;
+        this.lastSmokeTime = 0;
+    }
+
     public destroy(): void {
         for (const particle of this.sparks) {
             particle.image.destroy();

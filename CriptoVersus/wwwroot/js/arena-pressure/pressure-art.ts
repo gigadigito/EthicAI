@@ -113,6 +113,27 @@ export class PressureArt {
         }
     }
 
+    /** Immediately positions characters at the target pressure state for deterministic seek. */
+    public snapToPressure(buy: number, sell: number, time: number = 0): void {
+        const state = this.machine.reset(buy, sell, time);
+        if (!this.available) return;
+
+        for (const image of this.fading) {
+            this.scene.tweens.killTweensOf(image);
+            image.destroy();
+        }
+        this.fading.clear();
+
+        this.show('buy', state.buy, 0);
+        this.show('sell', state.sell, 0);
+        for (const side of ['buy', 'sell'] as const) {
+            const trio = this.active[side];
+            if (!trio) continue;
+            const y = GROUND_Y + (this.reducedMotion ? 0 : Math.sin(time * 0.006 + (side === 'buy' ? 0 : 1.8)) * 1.2);
+            for (const image of trio.images) image.y = y;
+        }
+    }
+
     private show(side: Side, key: string, duration: number): void {
         const old = this.active[side];
         let images: Phaser.GameObjects.Image[];

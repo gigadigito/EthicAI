@@ -232,11 +232,77 @@ unless the playhead starts at zero and advances within tolerance of 40 logical
 seconds (or reaches the end). The technical JSON records that validation but leaves
 the exact end playhead null rather than inventing a value.
 
+## Full-match 120s segmented capture (Phase 3)
+
+`CriptoVersus/tools/arena-pressure/capture-full-match.mjs` generates a single
+consolidated MP4 (~120 seconds, H.264, `1280×720`, `30 FPS`, `yuv420p`, `+faststart`)
+covering an entire finished historical match from start to official end without
+extending global Browserless container timeouts or running concurrent sessions.
+
+### How it works
+
+1. **Metadata probe (`/function`)**: calls `browserlessMetadataFunction` on the
+   existing Browserless `/function` endpoint using the same `X-Arena-Capture-Key`
+   exact-navigation contract. Verifies that the match exists, is officially finished
+   (and not cancelled), has `>= 2` historical samples, a usable historical span
+   (`>= 1s`), and supports segmented seek/dynamic-speed capabilities.
+2. **Dynamic speed & temporal planning (`capture-planner.mjs`)**: computes
+   `replaySpeed = historicalDurationSeconds / exactTargetVideoDurationSeconds`
+   (clamped safely for ultra-short matches at `0.1×` and capped at `10000×`) and
+   partitions the output timeline into exact frame budgets (default 10s = 300 frames
+   per segment, balancing short tails so no sliver < 2s is produced). Every segment
+   boundary maps bit-for-bit from exact output frame index (`endFrame`) so segment
+   `i` ends at the exact historical instant where segment `i + 1` starts.
+3. **Deterministic seek & visual continuity (`engine.ts`)**: `prepareSegment()` seeks
+   statelessly via `sampleHistory()`, snaps `PressureArt` immediately (bypassing
+   dwell/hysteresis and crossfade tweens), clears pooled particles, awaits target
+   `WheelMechanism` hub frame preloading at the continuous video clock phase, updates
+   the HUD, and waits two animation frames before `startScreencast()`. During
+   recording, `resolveCapturePlayhead` advances monotonically at `replaySpeed` from
+   `performance.now()`, decoupled from Browserless render FPS.
+4. **Sequential capture, normalization & assembly (`capture-media.mjs`)**: captures
+   segments one at a time (locked via `browserless-preview.lock`), records an extra
+   `0.5s` wall tail pad, validates WebM decode, and normalizes every segment MP4 to
+   its exact target frame count (`setpts=PTS-STARTPTS`, `fps=30`, bounded
+   `tpad=stop_mode=clone` up to `1.0s`, `-frames:v`, closed 1s GOP `-g 30 -keyint_min 30`,
+   `-video_track_timescale 30000`, `-pix_fmt yuv420p`).
+5. **Concatenation & strict validation**: joins segments with FFmpeg concat demuxer
+   `-c copy` (falling back to a single `-threads 2` re-encode only if stream
+   parameters mismatch), validates full stream decode (`-v error -xerror`), frame
+   count (`±1`), monotonic frame timestamps, non-blank start/mid/end luma (`YAVG >= 2`),
+   and ISO BMFF `+faststart` (`moov` before `mdat`) before atomic publication.
+6. **Resilience & recovery**: persists run state atomically in
+   `<output>/runs/match-<id>-<runId>/manifest.json` with a SHA-256 `planFingerprint`,
+   retries transient segment failures up to `--max-retries` (default 2), and
+   supports `--resume <runId>` to verify and reuse already completed segment MP4s.
+
+### CLI & VPS hot-update
+
+```bash
+node tools/arena-pressure/capture-full-match.mjs \
+  --match-id 46156 \
+  --target-duration 120 \
+  --width 1280 \
+  --height 720 \
+  --output /tmp/arena-pressure-phase2/out
+```
+
+Use `--max-segments 3` for an initial few-segment continuity test before running all
+segments. Additional VPS runtime files to copy alongside the Phase 2 scripts:
+
+- `CriptoVersus/tools/arena-pressure/capture-planner.mjs`
+- `CriptoVersus/tools/arena-pressure/capture-full-match.mjs`
+
+Note that `engine.ts` / `.20261124a.js` and `ArenaPressureGameHost.razor` /
+`ArenaPressureGamePage.razor` must also be deployed to `CriptoVersus.Web` before
+real segmented captures can run against production/staging.
+
 ## Future n8n phase (not implemented)
 
 A future authenticated internal job endpoint can enqueue a match ID for a dedicated
-capture worker. That worker can invoke this same command in an isolated Linux image,
-store the validated MP4 in managed object storage, and return an artifact reference
-to n8n. Only after successful validation should a separate publishing workflow send
-that reference to Binance. Queue idempotency, service authentication, retention, and
-publication audit records belong to that later phase.
+capture worker. Because segmented full-match capture spawns multiple sequential
+Browserless sessions and takes longer than a single synchronous HTTP request, that
+worker should run asynchronously (`enqueue -> poll status -> read validated MP4 artifact reference`)
+and hand off only validated outputs to a separate publication workflow. Queue
+idempotency, service authentication, retention, and publication audit records belong
+to that later phase.

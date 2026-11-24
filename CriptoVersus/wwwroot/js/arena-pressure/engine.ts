@@ -1,9 +1,12 @@
 import type PhaserTypes from 'phaser';
 import {
+    ArenaPressureCapturePrepareResult,
+    ArenaPressureCaptureStartOptions,
     ArenaPressureHistoryPoint,
     ArenaPressureOptions,
     ArenaPressureResult,
     ARENA_COLORS,
+    clampCaptureSpeed,
     clampPercent,
     DEFAULT_LABELS,
     determineDominance,
@@ -67,7 +70,10 @@ export interface ArenaPressurePerfMetrics {
 
 interface ArenaPressureCaptureControl {
     readonly version: 1;
-    start(): boolean;
+    readonly capabilities: readonly string[];
+    start(options?: ArenaPressureCaptureStartOptions): boolean;
+    seek(seconds: number, videoStartSeconds?: number): boolean;
+    prepareSegment(options?: ArenaPressureCaptureStartOptions): Promise<ArenaPressureCapturePrepareResult>;
     getState(): ReturnType<ArenaPressureEngine['getCaptureState']>;
     getPerfMetrics?(): ArenaPressurePerfMetrics;
 }
@@ -178,6 +184,7 @@ export class ArenaPressureEngine {
     private readonly mode: EngineMode;
     private readonly history: ArenaPressureHistoryPoint[];
     private readonly historyDurationSeconds: number;
+    private readonly historySpanSeconds: number;
     private playheadSeconds: number = 0;
     private playing: boolean = true;
     private speed: number = 1;
@@ -185,6 +192,8 @@ export class ArenaPressureEngine {
     private captureCompletedAt: number | null = null;
     private captureClockStartedAt: number | null = null;
     private captureClockStartPlayhead: number = 0;
+    private captureVisualBaseMs: number = 0;
+    private capturePrepared: boolean = false;
     private captureControl?: ArenaPressureCaptureControl;
 
     private visibilityHandler?: () => void;
@@ -216,6 +225,9 @@ export class ArenaPressureEngine {
 
         this.history = Array.isArray(options.history) ? options.history : [];
         this.historyDurationSeconds = resolveHistoryDuration(this.history, options.historyDurationSeconds);
+        this.historySpanSeconds = this.history.length >= 2
+            ? Math.max(0, this.history[this.history.length - 1].t)
+            : 0;
         this.mode = this.history.length > 0 ? 'replay' : 'live';
 
         const initial = normalizePressure(options.initialLeft, options.initialRight);
@@ -366,6 +378,7 @@ export class ArenaPressureEngine {
                     }
 
                     const safeDelta = Math.min(64, Math.max(0, delta));
+                    const visualTime = self.resolveVisualTimeMs(time);
 
                     // 1. Resolve the pressure for this frame.
                     if (self.mode === 'replay') {
@@ -395,12 +408,12 @@ export class ArenaPressureEngine {
 
                     // 3. Character pull teams
                     self.candles.update(
-                        time,
+                        visualTime,
                         self.currentPressure,
                         100 - self.currentPressure,
                         self.isFinished
                     );
-                    self.pressureArt?.update(time, self.currentPressure, 100 - self.currentPressure);
+                    self.pressureArt?.update(visualTime, self.currentPressure, 100 - self.currentPressure);
                     if (self.options.diagnostics && Math.floor(time / 250) !== Math.floor((time - safeDelta) / 250)) {
                         const grips = self.pressureArt?.getRopeGripPoints('buy');
                         self.host.dataset.arenaCharacterScale = String(self.pressureArt?.getCharacterScale('buy') ?? 1);
@@ -409,7 +422,7 @@ export class ArenaPressureEngine {
                     }
                     self.logos.setSymbols(self.leftSymbol, self.rightSymbol);
                     self.logos.update(
-                        time,
+                        visualTime,
                         self.candles.getTeamBadgeAnchor('left'),
                         self.candles.getTeamBadgeAnchor('right')
                     );
@@ -420,7 +433,7 @@ export class ArenaPressureEngine {
                     const leftGrips = self.pressureArt?.getRopeGripPoints('buy') ?? self.candles.getRopeGripPoints('left');
                     const rightGrips = self.pressureArt?.getRopeGripPoints('sell') ?? self.candles.getRopeGripPoints('right');
                     self.rope.render(
-                        time,
+                        visualTime,
                         leftAnchor,
                         rightAnchor,
                         leftGrips,
@@ -442,9 +455,9 @@ export class ArenaPressureEngine {
                     // 6. Pooled strain effects
                     self.particles.update(safeDelta);
                     if (self.currentPressure >= 68) {
-                        self.particles.emitStrainSparks(time, rightGrips, ARENA_COLORS.right);
+                        self.particles.emitStrainSparks(visualTime, rightGrips, ARENA_COLORS.right);
                     } else if (self.currentPressure <= 32) {
-                        self.particles.emitStrainSparks(time, leftGrips, ARENA_COLORS.left);
+                        self.particles.emitStrainSparks(visualTime, leftGrips, ARENA_COLORS.left);
                     }
 
                     if (Math.abs(self.currentPressure - 50) > 25 && Math.random() < 0.05) {
@@ -787,6 +800,44 @@ export class ArenaPressureEngine {
         };
     }
 
+    private resolveVisualTimeMs(phaserTime: number): number {
+        if (!this.options.videoCapture) {
+            return phaserTime;
+        }
+        if (this.captureStatus === 'recording' && this.captureClockStartedAt !== null) {
+            return this.captureVisualBaseMs + Math.max(0, performance.now() - this.captureClockStartedAt);
+        }
+        return this.captureVisualBaseMs;
+    }
+
+    private applyCaptureSeekState(seconds: number, videoStartSeconds?: number): number {
+        const clampedSeconds = Math.max(0, Math.min(this.historyDurationSeconds, seconds));
+        const visualBaseMs = videoStartSeconds !== undefined && Number.isFinite(videoStartSeconds) && videoStartSeconds >= 0
+            ? videoStartSeconds * 1000
+            : 0;
+        this.playheadSeconds = clampedSeconds;
+        this.captureVisualBaseMs = visualBaseMs;
+
+        const sampled = sampleHistory(this.history, clampedSeconds);
+        const resolvedPressure = sampled !== null ? clampPercent(sampled) : this.currentPressure;
+        this.targetPressure = resolvedPressure;
+        this.currentPressure = resolvedPressure;
+        this.previousPressureSample = resolvedPressure;
+
+        this.particles?.clear();
+        this.pressureArt?.snapToPressure(resolvedPressure, 100 - resolvedPressure, visualBaseMs);
+        this.candles?.syncToPressure(resolvedPressure, 100 - resolvedPressure, this.isFinished, visualBaseMs);
+        this.hud?.update(
+            resolvedPressure,
+            determineDominance(resolvedPressure, 100 - resolvedPressure),
+            this.leftSymbol,
+            this.rightSymbol,
+            this.isFinished,
+            this.officialResult
+        );
+        return resolvedPressure;
+    }
+
     public installVideoCaptureControl(): void {
         if (typeof window === 'undefined' || !this.options.videoCapture || this.captureControl) {
             return;
@@ -794,19 +845,116 @@ export class ArenaPressureEngine {
 
         const control: ArenaPressureCaptureControl = {
             version: 1,
-            start: () => {
+            capabilities: ['seek', 'dynamicSpeed', 'prepareSegment'],
+            seek: (seconds: number, videoStartSeconds: number = 0): boolean => {
+                if (this.captureStatus !== 'ready' || this.mode !== 'replay' || this.history.length < 2) {
+                    return false;
+                }
+                if (!Number.isFinite(seconds) || seconds < 0) {
+                    return false;
+                }
+                if (!Number.isFinite(videoStartSeconds) || videoStartSeconds < 0) {
+                    return false;
+                }
+                this.playing = false;
+                const pressure = this.applyCaptureSeekState(seconds, videoStartSeconds);
+                if (this.wheel) {
+                    void this.wheel.syncToPressure(pressure, videoStartSeconds);
+                }
+                this.capturePrepared = true;
+                return true;
+            },
+            prepareSegment: async (segmentOptions?: ArenaPressureCaptureStartOptions): Promise<ArenaPressureCapturePrepareResult> => {
+                if (this.captureStatus !== 'ready' || this.mode !== 'replay' || this.history.length < 2) {
+                    return {
+                        ok: false,
+                        playheadSeconds: this.playheadSeconds,
+                        durationSeconds: this.historyDurationSeconds,
+                        historySpanSeconds: this.historySpanSeconds,
+                        speed: this.speed,
+                        leftPercent: Math.round(this.currentPressure),
+                        videoStartSeconds: this.captureVisualBaseMs / 1000
+                    };
+                }
+
+                const requestedStart = segmentOptions?.startSeconds ?? 0;
+                const requestedSpeed = segmentOptions?.speed ?? 4;
+                const requestedVideoStart = segmentOptions?.videoStartSeconds ?? 0;
+                if (!Number.isFinite(requestedStart) || requestedStart < 0) {
+                    throw new Error('Invalid segment startSeconds.');
+                }
+                const clampedSpeed = clampCaptureSpeed(requestedSpeed);
+                if (clampedSpeed === null) {
+                    throw new Error('Invalid segment replay speed.');
+                }
+                if (!Number.isFinite(requestedVideoStart) || requestedVideoStart < 0) {
+                    throw new Error('Invalid segment videoStartSeconds.');
+                }
+
+                this.playing = false;
+                this.speed = clampedSpeed;
+                const pressure = this.applyCaptureSeekState(requestedStart, requestedVideoStart);
+                if (this.wheel) {
+                    await this.wheel.syncToPressure(pressure, requestedVideoStart);
+                }
+                this.capturePrepared = true;
+
+                return {
+                    ok: true,
+                    playheadSeconds: this.playheadSeconds,
+                    durationSeconds: this.historyDurationSeconds,
+                    historySpanSeconds: this.historySpanSeconds,
+                    speed: this.speed,
+                    leftPercent: Math.round(this.currentPressure),
+                    videoStartSeconds: requestedVideoStart
+                };
+            },
+            start: (segmentOptions?: ArenaPressureCaptureStartOptions): boolean => {
                 if (this.captureStatus !== 'ready' || this.mode !== 'replay' || this.history.length === 0) {
                     return false;
                 }
-                this.command('pause');
-                this.command('seek', 0);
-                this.command('speed', 4);
+
+                this.playing = false;
+                if (!segmentOptions) {
+                    this.speed = 4;
+                    this.applyCaptureSeekState(0, 0);
+                    this.wheel?.resetMotion();
+                    if (this.wheel) {
+                        void this.wheel.syncToPressure(this.currentPressure, 0);
+                    }
+                } else {
+                    const startSeconds = segmentOptions.startSeconds ?? this.playheadSeconds;
+                    const requestedSpeed = segmentOptions.speed ?? this.speed;
+                    const videoStartSeconds = segmentOptions.videoStartSeconds ?? (this.captureVisualBaseMs / 1000);
+                    const clampedSpeed = clampCaptureSpeed(requestedSpeed);
+                    if (!Number.isFinite(startSeconds) || startSeconds < 0
+                        || clampedSpeed === null
+                        || !Number.isFinite(videoStartSeconds) || videoStartSeconds < 0) {
+                        return false;
+                    }
+                    const clampedStart = Math.max(0, Math.min(this.historyDurationSeconds, startSeconds));
+                    this.speed = clampedSpeed;
+                    const needsSnap = !this.capturePrepared
+                        || Math.abs(this.playheadSeconds - clampedStart) > 1e-4
+                        || Math.abs(this.captureVisualBaseMs - videoStartSeconds * 1000) > 1;
+                    if (needsSnap) {
+                        const pressure = this.applyCaptureSeekState(clampedStart, videoStartSeconds);
+                        if (this.wheel) {
+                            void this.wheel.syncToPressure(pressure, videoStartSeconds);
+                        }
+                    }
+                }
+
                 this.perfCollector = createPerfCollectorState();
                 this.captureCompletedAt = null;
                 this.captureClockStartPlayhead = this.playheadSeconds;
                 this.captureClockStartedAt = performance.now();
                 this.captureStatus = 'recording';
-                this.command('play');
+                this.playing = true;
+                if (this.scene && this.autoPaused) {
+                    this.autoPaused = false;
+                    this.scene.scene.resume();
+                }
                 return true;
             },
             getState: () => this.getCaptureState(),
@@ -821,10 +969,15 @@ export class ArenaPressureEngine {
         status: CaptureStatus;
         playheadSeconds: number;
         durationSeconds: number;
+        historySpanSeconds: number;
         speed: number;
         historyPoints: number;
         isFinished: boolean;
         finalFrameStable: boolean;
+        officialResult: ArenaPressureResult;
+        leftSymbol: string;
+        rightSymbol: string;
+        leftPercent: number;
     } {
         const holdMs = Math.max(250, this.options.captureFinalHoldMs ?? 2000);
         const finalFrameStable = this.captureCompletedAt !== null
@@ -839,10 +992,15 @@ export class ArenaPressureEngine {
             status: this.captureStatus,
             playheadSeconds: this.playheadSeconds,
             durationSeconds: this.historyDurationSeconds,
+            historySpanSeconds: this.historySpanSeconds,
             speed: this.speed,
             historyPoints: this.history.length,
             isFinished: this.isFinished,
-            finalFrameStable
+            finalFrameStable,
+            officialResult: this.officialResult,
+            leftSymbol: this.leftSymbol,
+            rightSymbol: this.rightSymbol,
+            leftPercent: Math.round(this.currentPressure)
         };
     }
 

@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import vm from 'node:vm';
-import { browserlessFunction, browserlessFunctionHandler } from './browserless-capture-function.mjs';
+import {
+    browserlessFunction,
+    browserlessFunctionHandler,
+    browserlessMetadataFunction,
+    browserlessMetadataHandler
+} from './browserless-capture-function.mjs';
 
 const secret = 'test-secret-never-log';
 function navigationFor(matchId = 46156) {
@@ -585,4 +590,316 @@ test('emits [PERF:PHASER] and [PERF:BROWSERLESS] when capture perf metrics are e
         && entry.includes('wallElapsedMs=10000')
         && entry.includes('screencastMode=browserless_v1_rest')
         && entry.includes('frameEvents=unavailable_in_v1_response')));
+});
+
+class FakeSegmentPage extends FakePage {
+    constructor(options = {}) {
+        super(options);
+        this.waitOutcome = options.waitOutcome ?? 'ready';
+        this.preparedResult = options.preparedResult ?? {
+            ok: true,
+            playheadSeconds: options.startState?.playheadSeconds ?? 451.051,
+            durationSeconds: options.readyState?.durationSeconds ?? 5412.612,
+            historySpanSeconds: options.readyState?.historySpanSeconds ?? 5412.612,
+            speed: options.startState?.speed ?? 45.1051,
+            leftPercent: 58,
+            videoStartSeconds: 10
+        };
+        this.metadataPayload = options.metadataPayload ?? {
+            found: true,
+            pageError: false,
+            status: 'ready',
+            isFinished: true,
+            officialResult: 'left',
+            durationSeconds: 5412.612,
+            historySpanSeconds: 5412.612,
+            historyPoints: 240,
+            leftSymbol: 'BTC',
+            rightSymbol: 'ETH',
+            supportsSegmentedCapture: true
+        };
+        this.evaluateCalls = [];
+    }
+    async waitForFunction() {
+        if (this.phaserNever) return new Promise(() => {});
+        for (const resource of this.resources) this.emit(resource);
+        return this.waitOutcome;
+    }
+    async evaluate(fn, arg) {
+        this.evaluateCall += 1;
+        this.evaluateCalls.push({ call: this.evaluateCall, source: String(fn), arg });
+        const src = String(fn);
+        if (src.includes('supportsSegmentedCapture')) {
+            return this.metadataPayload;
+        }
+        if (src.includes('prepareSegment')) {
+            return this.preparedResult;
+        }
+        if (src.includes('document.fonts')) {
+            if (this.fontsNever) return new Promise(() => {});
+            return undefined;
+        }
+        if (src.includes('.start(')) {
+            return { accepted: this.replayAccepted, state: this.startState, monotonicMs: this.clockStartMs };
+        }
+        if (src.includes('getPerfMetrics')) {
+            return { state: this.endState, monotonicMs: this.clockEndMs, perf: this.perfMetrics };
+        }
+        return this.readyState;
+    }
+}
+
+test('segment mode seeks via prepareSegment before VISUAL_PREPARATION and validates dynamic speed clock', async () => {
+    const speed = 45.1051;
+    const page = new FakeSegmentPage({
+        readyState: {
+            status: 'ready',
+            isFinished: true,
+            officialResult: 'left',
+            historyPoints: 240,
+            durationSeconds: 5412.612,
+            historySpanSeconds: 5412.612,
+            speed: 4
+        },
+        startState: {
+            status: 'recording',
+            playheadSeconds: 451.051,
+            durationSeconds: 5412.612,
+            speed
+        },
+        clockStartMs: 1_000,
+        clockEndMs: 11_000,
+        endState: {
+            status: 'recording',
+            playheadSeconds: 902.102,
+            durationSeconds: 5412.612,
+            speed
+        }
+    });
+    const events = [];
+    const diagnostics = await captureDiagnostics(async () => {
+        await browserlessFunctionHandler({
+            page,
+            context: context({
+                segment: {
+                    index: 2,
+                    totalSegments: 12,
+                    historicalStartSeconds: 451.051,
+                    historicalEndSeconds: 902.102,
+                    speed,
+                    videoStartSeconds: 10,
+                    expectedHistoricalDurationSeconds: 5412.612,
+                    isFinalSegment: false,
+                    maxWallDeviationSeconds: 0.75
+                }
+            }),
+            startScreencast: () => { events.push('startScreencast'); },
+            stopScreencast: () => { events.push('stopScreencast'); }
+        });
+    });
+
+    assert.equal(page.evaluateCalls.length, 5);
+    assert.ok(page.evaluateCalls[1].source.includes('prepareSegment'));
+    assert.ok(page.evaluateCalls[2].source.includes('document.fonts'));
+    assert.ok(page.evaluateCalls[3].source.includes('.start('));
+    assert.deepEqual(page.evaluateCalls[3].arg, { startSeconds: 451.051, speed, videoStartSeconds: 10 });
+    assert.deepEqual(events, ['startScreencast', 'stopScreencast']);
+    assert(diagnostics.some(entry => entry.includes('[CAPTURE:SEGMENT_SEEK]') && entry.includes('segment=2/12')));
+    assert(diagnostics.some(entry => entry.includes('[CAPTURE:CLOCK_END]') && entry.includes('deviationSeconds=0.000')));
+});
+
+test('segment mode rejects stuck 4x clock when dynamic speed was requested and enforces final segment end reach', async () => {
+    const stuckPage = new FakeSegmentPage({
+        readyState: {
+            status: 'ready',
+            isFinished: true,
+            officialResult: 'left',
+            historyPoints: 240,
+            durationSeconds: 5412.612,
+            historySpanSeconds: 5412.612,
+            speed: 4
+        },
+        startState: {
+            status: 'recording',
+            playheadSeconds: 451.051,
+            durationSeconds: 5412.612,
+            speed: 45.1051
+        },
+        clockStartMs: 1_000,
+        clockEndMs: 11_000,
+        endState: {
+            status: 'recording',
+            playheadSeconds: 491.051, // advanced only 40s (4x) instead of 451.051s
+            durationSeconds: 5412.612,
+            speed: 45.1051
+        }
+    });
+    await captureDiagnostics(async () => {
+        await assert.rejects(
+            browserlessFunctionHandler({
+                page: stuckPage,
+                context: context({
+                    segment: {
+                        index: 2,
+                        totalSegments: 12,
+                        historicalStartSeconds: 451.051,
+                        historicalEndSeconds: 902.102,
+                        speed: 45.1051,
+                        videoStartSeconds: 10,
+                        expectedHistoricalDurationSeconds: 5412.612,
+                        isFinalSegment: false,
+                        maxWallDeviationSeconds: 0.75
+                    }
+                }),
+                startScreencast() {},
+                stopScreencast() {}
+            }),
+            error => error.captureCode === 'REPLAY_CLOCK'
+        );
+    });
+
+    const incompleteFinalPage = new FakeSegmentPage({
+        readyState: {
+            status: 'ready',
+            isFinished: true,
+            officialResult: 'right',
+            historyPoints: 240,
+            durationSeconds: 5412.612,
+            historySpanSeconds: 5412.612,
+            speed: 4
+        },
+        preparedResult: {
+            ok: true,
+            playheadSeconds: 4961.561,
+            durationSeconds: 5412.612,
+            historySpanSeconds: 5412.612,
+            speed: 45.1051,
+            leftPercent: 40,
+            videoStartSeconds: 110
+        },
+        startState: {
+            status: 'recording',
+            playheadSeconds: 4961.561,
+            durationSeconds: 5412.612,
+            speed: 45.1051
+        },
+        clockStartMs: 1_000,
+        clockEndMs: 10_600,
+        endState: {
+            status: 'recording',
+            playheadSeconds: 5394.570,
+            durationSeconds: 5412.612,
+            speed: 45.1051
+        }
+    });
+    await captureDiagnostics(async () => {
+        await assert.rejects(
+            browserlessFunctionHandler({
+                page: incompleteFinalPage,
+                context: context({
+                    segment: {
+                        index: 12,
+                        totalSegments: 12,
+                        historicalStartSeconds: 4961.561,
+                        historicalEndSeconds: 5412.612,
+                        speed: 45.1051,
+                        videoStartSeconds: 110,
+                        expectedHistoricalDurationSeconds: 5412.612,
+                        isFinalSegment: true,
+                        maxWallDeviationSeconds: 0.75
+                    }
+                }),
+                startScreencast() {},
+                stopScreencast() {}
+            }),
+            error => error.captureCode === 'REPLAY_END_NOT_REACHED'
+        );
+    });
+});
+
+test('segment mode detects outdated capture contract and fast-fails on missing match', async () => {
+    const outdatedPage = new FakeSegmentPage({
+        readyState: {
+            status: 'ready',
+            isFinished: true,
+            officialResult: 'left',
+            historyPoints: 240,
+            durationSeconds: 5412.612,
+            historySpanSeconds: 5412.612,
+            speed: 4
+        },
+        preparedResult: { unsupported: true }
+    });
+    await captureDiagnostics(async () => {
+        await assert.rejects(
+            browserlessFunctionHandler({
+                page: outdatedPage,
+                context: context({
+                    segment: {
+                        index: 1,
+                        totalSegments: 12,
+                        historicalStartSeconds: 0,
+                        historicalEndSeconds: 451.051,
+                        speed: 45.1051,
+                        videoStartSeconds: 0,
+                        expectedHistoricalDurationSeconds: 5412.612,
+                        isFinalSegment: false
+                    }
+                }),
+                startScreencast() {},
+                stopScreencast() {}
+            }),
+            error => error.captureCode === 'CAPTURE_CONTRACT_OUTDATED'
+        );
+    });
+
+    const notFoundPage = new FakeSegmentPage({ waitOutcome: 'notfound' });
+    await captureDiagnostics(async () => {
+        await assert.rejects(
+            browserlessFunctionHandler({
+                page: notFoundPage,
+                context: context(),
+                startScreencast() {},
+                stopScreencast() {}
+            }),
+            error => error.captureCode === 'MATCH_NOT_FOUND'
+        );
+    });
+});
+
+test('browserlessMetadataFunction is self-contained, protects captureKey, and extracts match metadata', async () => {
+    assert.match(browserlessMetadataFunction, /^module\.exports = async function browserlessMetadataHandler/);
+    assert.doesNotMatch(browserlessMetadataFunction, /setExtraHTTPHeaders/);
+    assert.doesNotMatch(browserlessMetadataFunction, /new URL\s*\(/);
+    assert.doesNotThrow(() => new Function(browserlessMetadataFunction));
+
+    const sandbox = { module: { exports: null }, setTimeout, clearTimeout, console };
+    vm.runInNewContext(browserlessMetadataFunction, sandbox);
+    const page = new FakeSegmentPage({
+        resources: [
+            { url: 'https://capture.example:8443/_framework/blazor.server.js', headers: { 'x-arena-capture-key': secret } }
+        ]
+    });
+    const res = await sandbox.module.exports({ page, context: context() });
+    assert.equal(res.type, 'application/json');
+    assert.equal(res.data.found, true);
+    assert.equal(res.data.historyPoints, 240);
+    assert.equal(res.data.historySpanSeconds, 5412.612);
+    assert.equal(header(page.requests[0], 'X-Arena-Capture-Key'), secret);
+    assert.equal(header(page.requests[1], 'X-Arena-Capture-Key'), undefined);
+    assert.equal(page.cleanedUp, true);
+
+    const notFoundRes = await browserlessMetadataHandler({
+        page: new FakeSegmentPage({ waitOutcome: 'notfound' }),
+        context: context()
+    });
+    assert.deepEqual(notFoundRes.data, { found: false, pageError: false, pageState: 'notfound' });
+
+    await assert.rejects(
+        browserlessMetadataHandler({
+            page: new FakeSegmentPage({ redirect: 'https://attacker.example/' }),
+            context: context()
+        }),
+        /unauthorized navigation/
+    );
 });
