@@ -214,6 +214,7 @@ Responsibilities:
 - SignalR dashboard hub.
 - PostgreSQL access and startup migrations.
 - External integrations such as DexScreener, Turnstile, AI narration, Solana verification/transfers, and image sources.
+- Authenticated, read-only Arena Pressure daily ranking at `GET /api/arena-pressure/rankings/today`. It selects only officially completed matches by effective `EndTime` within the `America/Sao_Paulo` calendar day, batch-loads persisted metric snapshots and score events, and scores movement, sustained reversals, and a cached Binance Spot 24h Top Gainers snapshot. Binance failure produces an explicitly partial normalized score. No browser rendering or video capture is invoked. The repository currently has no durable video-generation ledger, so the contract reports duplicate control as unavailable instead of claiming idempotency.
 
 The fallback authorization policy requires authentication unless an endpoint explicitly allows anonymous access.
 

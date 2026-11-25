@@ -96,6 +96,15 @@ builder.Services.AddScoped<IPriceCrossoverHighlightSelector, PriceCrossoverHighl
 builder.Services.AddScoped<ICandleBattlePublicationService, CandleBattlePublicationService>();
 builder.Services.AddScoped<ICandleBattleSocialService, CandleBattleSocialService>();
 builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+builder.Services.Configure<ArenaPressureRankingOptions>(
+    builder.Configuration.GetSection(ArenaPressureRankingOptions.SectionName));
+builder.Services.AddSingleton<ArenaPressureQualityScorer>();
+builder.Services.AddHttpClient<ITopGainersProvider, BinanceTopGainersProvider>(client =>
+{
+    client.BaseAddress = new Uri("https://api.binance.com/");
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddScoped<IArenaPressureRankingService, ArenaPressureRankingService>();
 builder.Services.AddSingleton<ICandleBattleBroadcastSessionStore, CandleBattleBroadcastSessionStore>();
 builder.Services.AddScoped<ICandleBattleBroadcastSelectionService, CandleBattleBroadcastSelectionService>();
 builder.Services.AddHttpContextAccessor();
