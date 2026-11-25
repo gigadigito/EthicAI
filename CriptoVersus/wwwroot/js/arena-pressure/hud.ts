@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { ARENA_COLORS, ArenaPressureResult, DEFAULT_LABELS, DominanceKind, formatDisplaySymbol } from './model.js';
+import { ARENA_COLORS, ArenaPressureResult, DEFAULT_LABELS, DominanceKind, formatDisplaySymbol, formatWinnerLabel } from './model.js';
 
 export class ArenaPressureHud {
     private readonly scene: Phaser.Scene;
@@ -182,8 +182,8 @@ export class ArenaPressureHud {
         let statusString = this.labels.balanced;
         let statusColor = '#ffffff';
         if (isFinished) {
-            statusString = officialResult === 'left' ? this.labels.leftVictory
-                : officialResult === 'right' ? this.labels.rightVictory
+            statusString = officialResult === 'left' ? formatWinnerLabel(this.labels.winner, leftSymbol)
+                : officialResult === 'right' ? formatWinnerLabel(this.labels.winner, rightSymbol)
                 : officialResult === 'draw' ? this.labels.draw
                 : officialResult === 'pending' ? this.labels.resultPending
                 : officialResult === 'cancelled' ? this.labels.cancelled

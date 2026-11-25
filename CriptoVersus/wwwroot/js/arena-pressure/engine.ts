@@ -13,7 +13,8 @@ import {
     normalizePressure,
     resolveHistoryDuration,
     resolveCapturePlayhead,
-    sampleHistory
+    sampleHistory,
+    shouldRevealResult
 } from './model.js';
 import { WheelMechanism } from './wheel.js';
 import { CandleTeamManager } from './candles.js';
@@ -407,11 +408,13 @@ export class ArenaPressureEngine {
                     }
 
                     // 3. Character pull teams
+                    const visualFinished = self.isVisualFinished();
                     self.candles.update(
                         visualTime,
                         self.currentPressure,
                         100 - self.currentPressure,
-                        self.isFinished
+                        visualFinished,
+                        self.officialResult
                     );
                     self.pressureArt?.update(visualTime, self.currentPressure, 100 - self.currentPressure);
                     if (self.options.diagnostics && Math.floor(time / 250) !== Math.floor((time - safeDelta) / 250)) {
@@ -448,7 +451,7 @@ export class ArenaPressureEngine {
                         dominance,
                         self.leftSymbol,
                         self.rightSymbol,
-                        self.isFinished,
+                        visualFinished,
                         self.officialResult
                     );
 
@@ -520,6 +523,15 @@ export class ArenaPressureEngine {
             : 0;
         this.previousPressureSample = current;
         return delta;
+    }
+
+    private isVisualFinished(): boolean {
+        return shouldRevealResult(
+            this.isFinished,
+            this.mode === 'replay' && this.history.length > 0,
+            this.playheadSeconds,
+            this.historyDurationSeconds
+        );
     }
 
     /**
@@ -826,13 +838,20 @@ export class ArenaPressureEngine {
 
         this.particles?.clear();
         this.pressureArt?.snapToPressure(resolvedPressure, 100 - resolvedPressure, visualBaseMs);
-        this.candles?.syncToPressure(resolvedPressure, 100 - resolvedPressure, this.isFinished, visualBaseMs);
+        const visualFinished = this.isVisualFinished();
+        this.candles?.syncToPressure(
+            resolvedPressure,
+            100 - resolvedPressure,
+            visualFinished,
+            visualBaseMs,
+            this.officialResult
+        );
         this.hud?.update(
             resolvedPressure,
             determineDominance(resolvedPressure, 100 - resolvedPressure),
             this.leftSymbol,
             this.rightSymbol,
-            this.isFinished,
+            visualFinished,
             this.officialResult
         );
         return resolvedPressure;

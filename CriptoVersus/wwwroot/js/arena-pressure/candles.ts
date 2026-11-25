@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { CandlePullState, determineCandleState, RopePoint } from './model.js';
+import { ArenaPressureResult, CandlePullState, determineCandleState, RopePoint } from './model.js';
 
 export interface CandleCharacter {
     sprite: Phaser.GameObjects.Sprite;
@@ -135,7 +135,8 @@ export class CandleTeamManager {
         leftPressure: number,
         rightPressure: number,
         isFinished: boolean = false,
-        time: number = 0
+        time: number = 0,
+        officialResult: ArenaPressureResult = null
     ): void {
         this.previousLeftPressure = leftPressure;
         for (const candle of [...this.leftCandles, ...this.rightCandles]) {
@@ -145,7 +146,7 @@ export class CandleTeamManager {
             candle.currentDisplacementY = 0;
             candle.lean = 0;
         }
-        this.update(time, leftPressure, rightPressure, isFinished);
+        this.update(time, leftPressure, rightPressure, isFinished, officialResult);
     }
 
     /**
@@ -155,22 +156,25 @@ export class CandleTeamManager {
         time: number,
         leftPressure: number,
         rightPressure: number,
-        isFinished: boolean = false
+        isFinished: boolean = false,
+        officialResult: ArenaPressureResult = null
     ): void {
         const leftDominant = leftPressure > 50;
         const rightDominant = rightPressure > 50;
-        const leftWon = leftPressure > rightPressure;
+        const hasOfficialWinner = officialResult === 'left' || officialResult === 'right';
+        const showFinalPose = isFinished && hasOfficialWinner;
+        const leftWon = officialResult === 'left';
 
         // Update Left Team
         this.leftCandles.forEach(candle => {
             const state = determineCandleState(
                 leftPressure,
                 leftDominant,
-                isFinished,
+                showFinalPose,
                 leftWon,
                 this.previousLeftPressure
             );
-            this.applyStateBehaviors(candle, state, time, leftPressure, leftDominant, isFinished);
+            this.applyStateBehaviors(candle, state, time, leftPressure, leftDominant, showFinalPose);
         });
 
         // Update Right Team
@@ -178,11 +182,11 @@ export class CandleTeamManager {
             const state = determineCandleState(
                 rightPressure,
                 rightDominant,
-                isFinished,
+                showFinalPose,
                 !leftWon,
                 100 - this.previousLeftPressure
             );
-            this.applyStateBehaviors(candle, state, time, rightPressure, rightDominant, isFinished);
+            this.applyStateBehaviors(candle, state, time, rightPressure, rightDominant, showFinalPose);
         });
 
         this.previousLeftPressure = leftPressure;

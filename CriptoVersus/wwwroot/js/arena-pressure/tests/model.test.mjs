@@ -11,7 +11,9 @@ import {
     clampCaptureSpeed,
     CAPTURE_MIN_SPEED,
     CAPTURE_MAX_SPEED,
-    clampPercent
+    clampPercent,
+    formatWinnerLabel,
+    shouldRevealResult
 } from '../../dist/arena-pressure/model.js';
 
 test('normalizePressure handles balanced defaults when empty or null', () => {
@@ -69,6 +71,22 @@ test('formatDisplaySymbol formats and strips USDT suffix', () => {
     assert.equal(formatDisplaySymbol('SOL'), 'SOL');
     assert.equal(formatDisplaySymbol(''), '--');
     assert.equal(formatDisplaySymbol(null), '--');
+});
+
+test('winner label uses the actual official-side symbol', () => {
+    assert.equal(formatWinnerLabel('{symbol} WINS', 'LISTAUSDT'), 'LISTA WINS');
+    assert.equal(formatWinnerLabel('GANA {symbol}', 'PROM/USDT'), 'GANA PROM');
+    assert.equal(formatWinnerLabel(undefined, 'PAXGUSDT'), 'PAXG WINS');
+});
+
+test('completed historical matches reveal their result only at replay completion', () => {
+    assert.equal(shouldRevealResult(true, true, 0, 120), false);
+    for (const seconds of [10, 20, 30, 60, 90, 110, 119.999]) {
+        assert.equal(shouldRevealResult(true, true, seconds, 120), false);
+    }
+    assert.equal(shouldRevealResult(true, true, 120, 120), true);
+    assert.equal(shouldRevealResult(true, false, 0, 120), true);
+    assert.equal(shouldRevealResult(false, true, 120, 120), false);
 });
 
 const history = [

@@ -318,7 +318,7 @@
     private static readonly string[] LabelKeys =
     [
         "title", "leftPressure", "rightPressure", "leftDominance", "rightDominance",
-        "balanced", "live", "finished", "leftVictory", "rightVictory", "draw",
+        "balanced", "live", "finished", "winner", "draw",
         "resultPending", "cancelled", "pressureEngine"
     ];
 
@@ -412,7 +412,7 @@
         var stage = "module_import";
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/arena-pressure/engine.20261124a.js");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/dist/arena-pressure/engine.20261125a.js");
             if (_disposed) return;
 
             stage = "history_load";
