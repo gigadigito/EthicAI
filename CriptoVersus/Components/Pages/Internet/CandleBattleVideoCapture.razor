@@ -1,0 +1,37 @@
+@layout BlankLayout
+@page "/{Culture}/tv/candle-battle/{MatchId:int}/match"
+@rendermode InteractiveServer
+@using CriptoVersus.Components.Shared
+@using CriptoVersus.Web.Services
+@inject AppCultureService AppCulture
+
+<PageTitle>Candle Battle Replay | CriptoVersus</PageTitle>
+@if (IsVideoCapture)
+{
+    <main class="candle-video-capture" data-candle-video-capture="true">
+        <div class="candle-video-capture__badge">REPLAY · FINALIZADA</div>
+        <CandleBattlesHost MatchId="MatchId" Culture="@NormalizedCulture" VideoCapture="true" />
+    </main>
+}
+else
+{
+    <main><h1>Not found</h1></main>
+}
+
+@code {
+    [Parameter] public string Culture { get; set; } = "pt";
+    [Parameter] public int MatchId { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "mode")] public string? Mode { get; set; }
+    private string NormalizedCulture => AppCulture.NormalizeRouteCulture(Culture);
+    private bool IsVideoCapture => string.Equals(Mode, "videoCapture", StringComparison.Ordinal);
+}
+
+<style>
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #030812; }
+    .candle-video-capture { position: relative; width: 1280px; height: 720px; overflow: hidden; background: #030812; }
+    .candle-video-capture .candle-battles { width: 1280px; height: 720px; padding: 8px; box-sizing: border-box; }
+    .candle-video-capture .candle-battles__toolbar, .candle-video-capture .candle-battles__audio,
+    .candle-video-capture .candle-battles__bottom, .candle-video-capture .candle-battles__footer { display: none !important; }
+    .candle-video-capture .candle-battles__canvas { height: 480px; }
+    .candle-video-capture__badge { position: absolute; z-index: 20; top: 12px; left: 50%; transform: translateX(-50%); padding: 6px 18px; border: 1px solid #ff9c27; border-radius: 999px; color: #fff; background: rgba(3,8,18,.88); font: 700 14px/1 sans-serif; letter-spacing: .12em; }
+</style>

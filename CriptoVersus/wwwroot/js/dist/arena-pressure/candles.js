@@ -86,7 +86,7 @@ export class CandleTeamManager {
     /**
      * Deterministically snaps fallback candle characters to a seeked pressure state.
      */
-    syncToPressure(leftPressure, rightPressure, isFinished = false, time = 0) {
+    syncToPressure(leftPressure, rightPressure, isFinished = false, time = 0, officialResult = null) {
         this.previousLeftPressure = leftPressure;
         for (const candle of [...this.leftCandles, ...this.rightCandles]) {
             candle.slipKick = 0;
@@ -95,24 +95,26 @@ export class CandleTeamManager {
             candle.currentDisplacementY = 0;
             candle.lean = 0;
         }
-        this.update(time, leftPressure, rightPressure, isFinished);
+        this.update(time, leftPressure, rightPressure, isFinished, officialResult);
     }
     /**
      * Updates character positions, strain displacement, animation speeds and states.
      */
-    update(time, leftPressure, rightPressure, isFinished = false) {
+    update(time, leftPressure, rightPressure, isFinished = false, officialResult = null) {
         const leftDominant = leftPressure > 50;
         const rightDominant = rightPressure > 50;
-        const leftWon = leftPressure > rightPressure;
+        const hasOfficialWinner = officialResult === 'left' || officialResult === 'right';
+        const showFinalPose = isFinished && hasOfficialWinner;
+        const leftWon = officialResult === 'left';
         // Update Left Team
         this.leftCandles.forEach(candle => {
-            const state = determineCandleState(leftPressure, leftDominant, isFinished, leftWon, this.previousLeftPressure);
-            this.applyStateBehaviors(candle, state, time, leftPressure, leftDominant, isFinished);
+            const state = determineCandleState(leftPressure, leftDominant, showFinalPose, leftWon, this.previousLeftPressure);
+            this.applyStateBehaviors(candle, state, time, leftPressure, leftDominant, showFinalPose);
         });
         // Update Right Team
         this.rightCandles.forEach(candle => {
-            const state = determineCandleState(rightPressure, rightDominant, isFinished, !leftWon, 100 - this.previousLeftPressure);
-            this.applyStateBehaviors(candle, state, time, rightPressure, rightDominant, isFinished);
+            const state = determineCandleState(rightPressure, rightDominant, showFinalPose, !leftWon, 100 - this.previousLeftPressure);
+            this.applyStateBehaviors(candle, state, time, rightPressure, rightDominant, showFinalPose);
         });
         this.previousLeftPressure = leftPressure;
     }

@@ -1,4 +1,4 @@
-import { ARENA_COLORS, clampCaptureSpeed, clampPercent, DEFAULT_LABELS, determineDominance, normalizePressure, resolveHistoryDuration, resolveCapturePlayhead, sampleHistory } from './model.js';
+import { ARENA_COLORS, clampCaptureSpeed, clampPercent, DEFAULT_LABELS, determineDominance, normalizePressure, resolveHistoryDuration, resolveCapturePlayhead, sampleHistory, shouldRevealResult } from './model.js';
 import { WheelMechanism } from './wheel.js';
 import { CandleTeamManager } from './candles.js';
 import { PressureArt } from './pressure-art.js';
@@ -237,7 +237,8 @@ export class ArenaPressureEngine {
                         self.perfCollector.wheelWorkMs.push(Math.max(0, performance.now() - wheelStartedAt));
                     }
                     // 3. Character pull teams
-                    self.candles.update(visualTime, self.currentPressure, 100 - self.currentPressure, self.isFinished);
+                    const visualFinished = self.isVisualFinished();
+                    self.candles.update(visualTime, self.currentPressure, 100 - self.currentPressure, visualFinished, self.officialResult);
                     self.pressureArt?.update(visualTime, self.currentPressure, 100 - self.currentPressure);
                     if (self.options.diagnostics && Math.floor(time / 250) !== Math.floor((time - safeDelta) / 250)) {
                         const grips = self.pressureArt?.getRopeGripPoints('buy');
@@ -254,7 +255,7 @@ export class ArenaPressureEngine {
                     const rightGrips = self.pressureArt?.getRopeGripPoints('sell') ?? self.candles.getRopeGripPoints('right');
                     self.rope.render(visualTime, leftAnchor, rightAnchor, leftGrips, rightGrips, self.currentPressure, 100 - self.currentPressure);
                     // 5. HUD (values, dominance, proportion gauge)
-                    self.hud.update(self.currentPressure, dominance, self.leftSymbol, self.rightSymbol, self.isFinished, self.officialResult);
+                    self.hud.update(self.currentPressure, dominance, self.leftSymbol, self.rightSymbol, visualFinished, self.officialResult);
                     // 6. Pooled strain effects
                     self.particles.update(safeDelta);
                     if (self.currentPressure >= 68) {
@@ -312,6 +313,9 @@ export class ArenaPressureEngine {
             : 0;
         this.previousPressureSample = current;
         return delta;
+    }
+    isVisualFinished() {
+        return shouldRevealResult(this.isFinished, this.mode === 'replay' && this.history.length > 0, this.playheadSeconds, this.historyDurationSeconds);
     }
     /**
      * Stops rendering when the tab is hidden and resumes afterwards. The browser
@@ -596,8 +600,9 @@ export class ArenaPressureEngine {
         this.previousPressureSample = resolvedPressure;
         this.particles?.clear();
         this.pressureArt?.snapToPressure(resolvedPressure, 100 - resolvedPressure, visualBaseMs);
-        this.candles?.syncToPressure(resolvedPressure, 100 - resolvedPressure, this.isFinished, visualBaseMs);
-        this.hud?.update(resolvedPressure, determineDominance(resolvedPressure, 100 - resolvedPressure), this.leftSymbol, this.rightSymbol, this.isFinished, this.officialResult);
+        const visualFinished = this.isVisualFinished();
+        this.candles?.syncToPressure(resolvedPressure, 100 - resolvedPressure, visualFinished, visualBaseMs, this.officialResult);
+        this.hud?.update(resolvedPressure, determineDominance(resolvedPressure, 100 - resolvedPressure), this.leftSymbol, this.rightSymbol, visualFinished, this.officialResult);
         return resolvedPressure;
     }
     installVideoCaptureControl() {

@@ -78,6 +78,7 @@ else
     [Parameter] public int MatchId { get; set; }
     [Parameter] public string Culture { get; set; } = "en";
     [Parameter] public bool SocialCapture { get; set; }
+    [Parameter] public bool VideoCapture { get; set; }
     [Parameter] public EventCallback<string> OnFailure { get; set; }
     /// <summary>Dev tooling: start the replay timeline paused so the panel drives every step.</summary>
     [Parameter] public bool ManualTimeline { get; set; }
@@ -147,7 +148,8 @@ else
                     finaleFreezeTimeoutMs = Math.Clamp(Config.GetValue("CandleBattles:FinaleFreezeTimeoutMs", 20000), 1000, 60000),
                     socialCapture = SocialCapture,
                     shell = SocialCapture ? true : (bool?)null,
-                    autoplay = !ManualTimeline,
+                    autoplay = VideoCapture ? false : !ManualTimeline,
+                    videoCapture = VideoCapture,
                     moneyFlowVisualEffects = IsMoneyFlowVisualEffectsEnabled,
                     moneyFlowCollectorsEnabled = IsMoneyFlowCollectorsEnabled,
                     moneyFlowCollectorQuality = MoneyFlowCollectorQuality,

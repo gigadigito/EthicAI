@@ -16,6 +16,8 @@ export async function create(host, options) {
     const engine = new GameEngine(host, options, Phaser);
     try {
         await engine.ready;
+        if (options.videoCapture)
+            installVideoCaptureContract(engine);
         return engine;
     }
     catch (error) {
@@ -23,10 +25,44 @@ export async function create(host, options) {
         throw error;
     }
 }
+function installVideoCaptureContract(engine) {
+    const target = window;
+    let state = 'loading';
+    let lastError = null;
+    let videoStartedAt = 0;
+    const refresh = () => {
+        const snapshot = engine.captureState(videoStartedAt);
+        if (snapshot.isFinished && snapshot.historyPoints > 0 && state === 'loading')
+            state = 'ready';
+        if (snapshot.completed && state === 'playing')
+            state = 'completed';
+        return snapshot;
+    };
+    target.__candleBattleCapture = {
+        getState: () => ({ state, ...refresh(), lastError }),
+        start: (settings) => {
+            const before = refresh();
+            if (state !== 'ready' || !before.isFinished || before.historyPoints < 1)
+                throw new Error('capture_not_ready');
+            const speed = Number(settings?.speed ?? Math.max(1, before.durationSeconds / 100));
+            if (!Number.isFinite(speed) || speed <= 0 || speed > 10000)
+                throw new Error('invalid_capture_speed');
+            videoStartedAt = performance.now();
+            engine.startVideoCapture(speed);
+            state = 'playing';
+            return { state, speed };
+        },
+        pause: () => engine.command('pause'),
+        seek: (round) => engine.command('seek', round),
+        fail: (reason) => { lastError = String(reason ?? 'capture_error'); state = 'error'; }
+    };
+    engine.onDispose(() => { delete target.__candleBattleCapture; });
+}
 export class GameEngine {
     constructor(host, options, Phaser) {
         this.host = host;
         this.options = options;
+        this.disposeCallbacks = [];
         this.showAllHistory = false;
         this.lastDashboardSecond = -1;
         this.logos = new Map();
@@ -857,6 +893,29 @@ export class GameEngine {
             right: fighter(this.right)
         };
     }
+    captureState(videoStartedAt = 0) {
+        const total = this.replaySourceRounds().length;
+        const finished = this.feed?.finished === true && this.feed.status === 'finished';
+        const left = this.feed?.scoreLeft ?? this.territory.score.left;
+        const right = this.feed?.scoreRight ?? this.territory.score.right;
+        return {
+            matchId: this.feed?.matchId ?? null,
+            isFinished: finished,
+            durationSeconds: this.matchLimit() / 1000,
+            historyPoints: total,
+            videoSeconds: videoStartedAt > 0 ? Math.max(0, (performance.now() - videoStartedAt) / 1000) : 0,
+            renderProgress: total === 0 ? 0 : Math.min(1, this.completedRounds / total),
+            completed: finished && this.terminal && this.completedRounds === total,
+            finalScore: finished ? { left, right } : null
+        };
+    }
+    startVideoCapture(speed) {
+        this.replayHistory = this.history.map(r => ({ ...r, left: { ...r.left }, right: { ...r.right } }));
+        this.mode = 'replay';
+        this.restart();
+        this.setSpeed(speed);
+    }
+    onDispose(callback) { this.disposeCallbacks.push(callback); }
     showDemoForming(fraction) {
         const r = demoRound(this.demoIndex);
         for (const side of ['left', 'right']) {
@@ -2276,6 +2335,8 @@ export class GameEngine {
         if (this.disposed)
             return;
         this.disposed = true;
+        for (const callback of this.disposeCallbacks.splice(0))
+            callback();
         this.clearDialogue();
         if (this.readyTimer)
             clearTimeout(this.readyTimer);

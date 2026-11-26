@@ -1,4 +1,4 @@
-import { ARENA_COLORS, DEFAULT_LABELS, formatDisplaySymbol } from './model.js';
+import { ARENA_COLORS, DEFAULT_LABELS, formatDisplaySymbol, formatWinnerLabel } from './model.js';
 export class ArenaPressureHud {
     constructor(scene, labels = DEFAULT_LABELS, leftSymbol = 'LSK', rightSymbol = 'BMT') {
         this.lastLeftVal = null;
@@ -130,8 +130,8 @@ export class ArenaPressureHud {
         let statusString = this.labels.balanced;
         let statusColor = '#ffffff';
         if (isFinished) {
-            statusString = officialResult === 'left' ? this.labels.leftVictory
-                : officialResult === 'right' ? this.labels.rightVictory
+            statusString = officialResult === 'left' ? formatWinnerLabel(this.labels.winner, leftSymbol)
+                : officialResult === 'right' ? formatWinnerLabel(this.labels.winner, rightSymbol)
                     : officialResult === 'draw' ? this.labels.draw
                         : officialResult === 'pending' ? this.labels.resultPending
                             : officialResult === 'cancelled' ? this.labels.cancelled

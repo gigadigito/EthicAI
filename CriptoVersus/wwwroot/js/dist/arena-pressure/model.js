@@ -46,8 +46,7 @@ export const DEFAULT_LABELS = {
     balanced: 'BALANCED',
     live: 'LIVE',
     finished: 'FINISHED',
-    leftVictory: 'LEMON WINS',
-    rightVictory: 'OIL WINS',
+    winner: '{symbol} WINS',
     draw: 'DRAW',
     resultPending: 'RESULT PENDING',
     cancelled: 'CANCELLED',
@@ -122,6 +121,23 @@ export function formatDisplaySymbol(symbol) {
         return '--';
     const trimmed = symbol.trim().toUpperCase();
     return trimmed.replace(/\/USDT$/i, '').replace(/USDT$/i, '');
+}
+/** Formats the official winner without coupling the HUD to placeholder teams. */
+export function formatWinnerLabel(template, symbol) {
+    const winner = formatDisplaySymbol(symbol);
+    const pattern = template?.includes('{symbol}') ? template : '{symbol} WINS';
+    return pattern.split('{symbol}').join(winner);
+}
+/**
+ * A completed backend match remains visually live while its historical replay is
+ * before the final playhead. Live/no-history scenes keep their existing lifecycle.
+ */
+export function shouldRevealResult(officiallyFinished, hasReplayHistory, playheadSeconds, durationSeconds) {
+    if (!officiallyFinished)
+        return false;
+    if (!hasReplayHistory)
+        return true;
+    return playheadSeconds >= durationSeconds;
 }
 /**
  * Reads the left pressure at an arbitrary point in the replay.

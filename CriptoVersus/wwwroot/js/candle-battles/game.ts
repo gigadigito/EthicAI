@@ -14,7 +14,7 @@ import type { LocomotionState } from './character-behavior-controller.js';
 
 export interface Feed { matchId: number; leftSymbol: string; rightSymbol: string; left: Candle | null; right: Candle | null; rounds: Round[]; status: string; finished: boolean; matchStartTime?: number | null; matchEndTime?: number | null; expectedRounds?: number; serverTime?: number | null; scoreLeft?: number; scoreRight?: number; }
 export interface CaptureTarget { round?: number; phase?: string; }
-export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; finaleFreezeTimeoutMs?: number; socialCapture?: boolean; shell?: boolean; autoplay?: boolean; localLogos?: Record<string,string>; captureTarget?: CaptureTarget; moneyFlowVisualEffects?: boolean; moneyFlowCollectorsEnabled?: boolean; moneyFlowCollectorQuality?: 'low' | 'medium' | 'high'; diagnostics?: boolean; }
+export interface Options { mode: 'live' | 'demo'; culture?: string; labels: Record<string,string>; reducedMotion?: boolean; battleDurationMs?: number; crushingDifference?: number; finaleFreezeTimeoutMs?: number; socialCapture?: boolean; videoCapture?: boolean; shell?: boolean; autoplay?: boolean; localLogos?: Record<string,string>; captureTarget?: CaptureTarget; moneyFlowVisualEffects?: boolean; moneyFlowCollectorsEnabled?: boolean; moneyFlowCollectorQuality?: 'low' | 'medium' | 'high'; diagnostics?: boolean; }
 type RoundFreezeStatus = 'none' | 'pending' | 'finale' | 'resuming';
 const CANDLE_BATTLE_RUNTIME_REVISION = '20261106b';
 const CANDLE_FREEZE_DIAGNOSTIC_VERSION = 'diagnostic-v1';
@@ -23,7 +23,42 @@ export async function create(host: HTMLElement, options: Options): Promise<GameE
     const url = '/games/candle-battles/vendor/phaser-3.90.0.esm.min.js';
     const Phaser: typeof PhaserTypes = await import(url);
     const engine = new GameEngine(host, options, Phaser);
-    try { await engine.ready; return engine; } catch(error) { engine.dispose(); throw error; }
+    try {
+        await engine.ready;
+        if (options.videoCapture) installVideoCaptureContract(engine);
+        return engine;
+    } catch(error) { engine.dispose(); throw error; }
+}
+
+function installVideoCaptureContract(engine: GameEngine): void {
+    const target = window as Window & { __candleBattleCapture?: unknown };
+    let state: 'loading'|'ready'|'playing'|'completed'|'error' = 'loading';
+    let lastError: string|null = null;
+    let videoStartedAt = 0;
+    const refresh = (): ReturnType<GameEngine['captureState']> => {
+        const snapshot = engine.captureState(videoStartedAt);
+        if (snapshot.isFinished && snapshot.historyPoints > 0 && state === 'loading') state = 'ready';
+        if (snapshot.completed && state === 'playing') state = 'completed';
+        return snapshot;
+    };
+    target.__candleBattleCapture = {
+        getState: () => ({ state, ...refresh(), lastError }),
+        start: (settings?: { speed?: number }) => {
+            const before = refresh();
+            if (state !== 'ready' || !before.isFinished || before.historyPoints < 1)
+                throw new Error('capture_not_ready');
+            const speed = Number(settings?.speed ?? Math.max(1, before.durationSeconds / 100));
+            if (!Number.isFinite(speed) || speed <= 0 || speed > 10000) throw new Error('invalid_capture_speed');
+            videoStartedAt = performance.now();
+            engine.startVideoCapture(speed);
+            state = 'playing';
+            return { state, speed };
+        },
+        pause: () => engine.command('pause'),
+        seek: (round: number) => engine.command('seek', round),
+        fail: (reason: unknown) => { lastError = String(reason ?? 'capture_error'); state = 'error'; }
+    };
+    engine.onDispose(() => { delete target.__candleBattleCapture; });
 }
 
 export class GameEngine {
@@ -31,6 +66,7 @@ export class GameEngine {
     private readyResolve!: () => void;
     private readyReject!: (error:Error) => void;
     private readyTimer?: ReturnType<typeof setTimeout>;
+    private disposeCallbacks: Array<()=>void> = [];
     private controls: HTMLElement;
     private readonly dashboard: HTMLElement | null;
     private readonly shell: boolean;
@@ -677,6 +713,29 @@ export class GameEngine {
             right: fighter(this.right)
         };
     }
+    captureState(videoStartedAt = 0): { matchId:number|null; isFinished:boolean; durationSeconds:number; historyPoints:number; videoSeconds:number; renderProgress:number; completed:boolean; finalScore:{left:number;right:number}|null } {
+        const total = this.replaySourceRounds().length;
+        const finished = this.feed?.finished === true && this.feed.status === 'finished';
+        const left = this.feed?.scoreLeft ?? this.territory.score.left;
+        const right = this.feed?.scoreRight ?? this.territory.score.right;
+        return {
+            matchId: this.feed?.matchId ?? null,
+            isFinished: finished,
+            durationSeconds: this.matchLimit() / 1000,
+            historyPoints: total,
+            videoSeconds: videoStartedAt > 0 ? Math.max(0, (performance.now() - videoStartedAt) / 1000) : 0,
+            renderProgress: total === 0 ? 0 : Math.min(1, this.completedRounds / total),
+            completed: finished && this.terminal && this.completedRounds === total,
+            finalScore: finished ? { left, right } : null
+        };
+    }
+    startVideoCapture(speed:number): void {
+        this.replayHistory = this.history.map(r=>({...r,left:{...r.left},right:{...r.right}}));
+        this.mode='replay';
+        this.restart();
+        this.setSpeed(speed);
+    }
+    onDispose(callback:()=>void): void { this.disposeCallbacks.push(callback); }
     private showDemoForming(fraction:number): void {
         const r=demoRound(this.demoIndex);
         for(const side of ['left','right'] as const) {
@@ -1873,6 +1932,7 @@ export class GameEngine {
     }
     dispose():void {
         if(this.disposed)return; this.disposed=true;
+        for(const callback of this.disposeCallbacks.splice(0)) callback();
         this.clearDialogue();
         if(this.readyTimer)clearTimeout(this.readyTimer);
         this.controls.removeEventListener('click',this.controlClick);this.controls.removeEventListener('input',this.controlInput);
