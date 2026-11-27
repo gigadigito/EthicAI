@@ -39,7 +39,19 @@ function installVideoCaptureContract(engine) {
         return snapshot;
     };
     target.__candleBattleCapture = {
-        getState: () => ({ state, ...refresh(), lastError }),
+        version: 2,
+        capabilities: ['metadata', 'prepareSegment', 'cinematicTimeline', 'separateAnimationClock', 'perfMetrics'],
+        getState: () => { const snapshot = refresh(); return { state, ...snapshot, lastError }; },
+        getMetadata: () => engine.captureMetadata(),
+        prepareSegment: async (settings) => {
+            const before = refresh();
+            if (!before.isFinished || before.historyPoints < 1)
+                throw new Error('capture_not_ready');
+            const prepared = engine.prepareVideoCaptureSegment(settings);
+            videoStartedAt = 0;
+            state = 'ready';
+            return prepared;
+        },
         start: (settings) => {
             const before = refresh();
             if (state !== 'ready' || !before.isFinished || before.historyPoints < 1)
@@ -48,12 +60,16 @@ function installVideoCaptureContract(engine) {
             if (!Number.isFinite(speed) || speed <= 0 || speed > 10000)
                 throw new Error('invalid_capture_speed');
             videoStartedAt = performance.now();
-            engine.startVideoCapture(speed);
+            if (settings?.videoStartSeconds != null)
+                engine.startPreparedVideoCapture(settings);
+            else
+                engine.startVideoCapture(speed);
             state = 'playing';
             return { state, speed };
         },
         pause: () => engine.command('pause'),
         seek: (round) => engine.command('seek', round),
+        getPerfMetrics: () => engine.capturePerfMetrics(),
         fail: (reason) => { lastError = String(reason ?? 'capture_error'); state = 'error'; }
     };
     engine.onDispose(() => { delete target.__candleBattleCapture; });
@@ -85,6 +101,10 @@ export class GameEngine {
         this.started = false;
         this.reduced = false;
         this.speed = 1;
+        this.captureVideoElapsed = 0;
+        this.capturePrepared = false;
+        this.captureFrames = 0;
+        this.captureMaxDelta = 0;
         this.demoIndex = 0;
         this.demoElapsed = 0;
         this.replayIndex = 0;
@@ -898,17 +918,76 @@ export class GameEngine {
         const finished = this.feed?.finished === true && this.feed.status === 'finished';
         const left = this.feed?.scoreLeft ?? this.territory.score.left;
         const right = this.feed?.scoreRight ?? this.territory.score.right;
+        const renderedScore = { ...this.territory.score };
+        const officialScore = finished ? { left, right } : null;
         return {
             matchId: this.feed?.matchId ?? null,
             isFinished: finished,
             durationSeconds: this.matchLimit() / 1000,
             historyPoints: total,
-            videoSeconds: videoStartedAt > 0 ? Math.max(0, (performance.now() - videoStartedAt) / 1000) : 0,
+            videoSeconds: this.options.videoCapture ? this.captureVideoElapsed / 1000 : videoStartedAt > 0 ? Math.max(0, (performance.now() - videoStartedAt) / 1000) : 0,
             renderProgress: total === 0 ? 0 : Math.min(1, this.completedRounds / total),
             completed: finished && this.terminal && this.completedRounds === total,
-            finalScore: finished ? { left, right } : null
+            finalScore: officialScore,
+            officialScore,
+            renderedScore,
+            scoreMatchesOfficial: officialScore != null && renderedScore.left === officialScore.left && renderedScore.right === officialScore.right,
+            historicalPositionSeconds: this.replayElapsed / 1000,
+            timelinePositionSeconds: this.captureVideoElapsed / 1000,
+            plannedVideoDurationSeconds: (this.captureTimeline?.totalMs ?? 120000) / 1000,
+            currentRound: this.active ? Math.max(1, this.replayIndex) : Math.min(total, this.completedRounds + 1),
+            completedRounds: this.completedRounds, totalRounds: total,
+            combatPhase: this.state.phase,
+            finalePhase: this.finaleSequence.running ? this.finaleSequence.phase : null,
+            historicalSpeed: this.speed,
+            progress: this.captureTimeline ? Math.min(1, this.captureVideoElapsed / this.captureTimeline.totalMs) : 0
         };
     }
+    captureMetadata() {
+        const total = this.replaySourceRounds().length;
+        return { version: 2, matchId: this.feed?.matchId ?? null, isFinished: this.feed?.finished === true && this.feed.status === 'finished',
+            historyPoints: total, historicalDurationSeconds: this.matchLimit() / 1000, plannedVideoDurationSeconds: 120,
+            roundWindowSeconds: 100, finaleWindowSeconds: 20, officialScore: this.feed?.finished ? { left: this.feed.scoreLeft ?? 0, right: this.feed.scoreRight ?? 0 } : null,
+            leftSymbol: this.feed?.leftSymbol ?? null, rightSymbol: this.feed?.rightSymbol ?? null, status: this.feed?.status ?? null };
+    }
+    prepareVideoCaptureSegment(settings) {
+        const start = Number(settings.videoStartSeconds), roundWindow = Number(settings.roundWindowSeconds ?? 100), finaleWindow = Number(settings.finaleWindowSeconds ?? 20);
+        if (!Number.isFinite(start) || start < 0 || !Number.isFinite(roundWindow) || roundWindow <= 0 || !Number.isFinite(finaleWindow) || finaleWindow < 2)
+            throw new Error('invalid_segment_settings');
+        const totalRounds = this.replaySourceRounds().length;
+        const battleMs = Math.max(1, totalRounds) * this.state.durationMs;
+        this.captureTimeline = { roundWindowMs: roundWindow * 1000, finaleWindowMs: finaleWindow * 1000, totalMs: (roundWindow + finaleWindow) * 1000,
+            historicalMs: this.matchLimit(), animationScale: battleMs / (roundWindow * 1000 * .9), finaleScale: this.finaleSequence.durationMs / (finaleWindow * 1000) };
+        this.replayHistory = this.history.map(r => ({ ...r, left: { ...r.left }, right: { ...r.right } }));
+        this.mode = 'replay';
+        this.restart();
+        this.captureVideoElapsed = 0;
+        this.captureFrames = 0;
+        this.captureMaxDelta = 0;
+        this.capturePrepared = true;
+        this.audio.pause();
+        // Preparation advances a deterministic, non-render-delayed simulation in
+        // bounded 100 ms ticks. It never sleeps for historical wall-clock time.
+        const target = Math.min(start * 1000, this.captureTimeline.totalMs);
+        const step = 100;
+        while (this.captureVideoElapsed + step < target)
+            this.update(step);
+        if (target > this.captureVideoElapsed)
+            this.update(target - this.captureVideoElapsed);
+        this.paused = true;
+        this.audio.pause();
+        this.host.dataset.paused = 'true';
+        return { prepared: true, ...this.captureState(), requestedVideoStartSeconds: start };
+    }
+    startPreparedVideoCapture(settings) {
+        if (!this.capturePrepared)
+            this.prepareVideoCaptureSegment(settings);
+        this.paused = false;
+        this.started = true;
+        this.audio.pause();
+        this.host.dataset.paused = 'false';
+    }
+    capturePerfMetrics() { return { frames: this.captureFrames, maxDeltaMs: this.captureMaxDelta, videoSeconds: this.captureVideoElapsed / 1000 }; }
     startVideoCapture(speed) {
         this.replayHistory = this.history.map(r => ({ ...r, left: { ...r.left }, right: { ...r.right } }));
         this.mode = 'replay';
@@ -935,10 +1014,20 @@ export class GameEngine {
     update(delta) {
         if (this.disposed || this.paused || this.backgrounded)
             return;
-        const dt = Math.min(delta, 100), battleDt = dt * (this.mode === 'replay' ? this.speed : 1);
+        const dt = Math.min(delta, 100);
+        if (this.options.videoCapture && this.captureTimeline) {
+            this.captureVideoElapsed = Math.min(this.captureTimeline.totalMs, this.captureVideoElapsed + dt);
+            this.captureFrames++;
+            this.captureMaxDelta = Math.max(this.captureMaxDelta, dt);
+        }
+        const captureScale = this.options.videoCapture && this.captureTimeline ? (this.terminal || this.finaleSequence.running ? this.captureTimeline.finaleScale : this.captureTimeline.animationScale) : null;
+        const battleDt = dt * (captureScale ?? (this.mode === 'replay' ? this.speed : 1));
         this.time += battleDt;
-        if (this.mode === 'replay' && this.started && !this.terminal)
-            this.replayElapsed = Math.min(this.matchLimit(), this.replayElapsed + battleDt);
+        if (this.mode === 'replay' && this.started && !this.terminal) {
+            const historicalDt = this.options.videoCapture && this.captureTimeline
+                ? dt * this.captureTimeline.historicalMs / this.captureTimeline.roundWindowMs : battleDt;
+            this.replayElapsed = Math.min(this.matchLimit(), this.replayElapsed + historicalDt);
+        }
         if (this.mode === 'demo' && this.started) {
             this.demoElapsed += dt;
             this.showDemoForming(Math.min(1, this.demoElapsed / (this.state.durationMs + 400)));

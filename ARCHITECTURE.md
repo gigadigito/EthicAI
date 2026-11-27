@@ -185,9 +185,15 @@ Responsibilities:
 - Candle Battle video capture uses the protected technical route
   `/{culture}/tv/candle-battle/{matchId}/match?mode=videoCapture`. It replays only
   persisted, validated five-minute rounds through the existing Phaser rule/presentation
-  engine and exposes `window.__candleBattleCapture` for Browserless orchestration.
-  The dedicated 120-second pipeline shares Arena Pressure's Browserless lock and
-  media validator while keeping publication jobs and idempotency state separate.
+  engine and exposes the versioned `window.__candleBattleCapture` contract for
+  Browserless orchestration. Capture contract v2 separates the historical clock from
+  the combat/finale animation clocks and can deterministically prepare an arbitrary
+  ten-second video segment without changing LIVE, TV, interactive replay, or social
+  capture behavior. The dedicated 120-second pipeline records twelve sequential
+  segments with a bounded Browserless budget, validates and normalizes each segment,
+  persists an atomic resumable manifest, and concatenates an exact-frame H.264 MP4.
+  It reuses Arena Pressure's read-only planning/media implementation without changing
+  the Arena Pressure capture path. Publication jobs and idempotency state remain separate.
 - Server-side SignalR client for dashboard invalidation events.
 
 The application is an Interactive Server Blazor application. Component C# runs on the Web server. Browser-side JavaScript is used for wallet providers, media, charts, audio, TV effects, and Futurebol.

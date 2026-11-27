@@ -1,49 +1,74 @@
 #!/usr/bin/env node
 import { createWriteStream } from 'node:fs';
-import { existsSync } from 'node:fs';
 import { mkdir, open, rename, rm, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { resolve } from 'node:path';
-import { spawn } from 'node:child_process';
-import { candleBattleBrowserlessFunction } from './browserless-video-function.mjs';
-const isolatedMedia = new URL('./capture-media.mjs', import.meta.url);
-const repositoryMedia = new URL('../arena-pressure/capture-media.mjs', import.meta.url);
-const { processWebmToMp4 } = await import(existsSync(isolatedMedia) ? isolatedMedia : repositoryMedia);
+import { fileURLToPath } from 'node:url';
+import { runFullMatchCapture } from '../arena-pressure/capture-full-match.mjs';
+import { redactSecret } from '../arena-pressure/capture-media.mjs';
+import { candleBattleBrowserlessFunction, candleBattleMetadataFunction } from './browserless-video-function.mjs';
 
-const args = Object.fromEntries(process.argv.slice(2).reduce((a,v,i,x)=>{if(v.startsWith('--'))a.push([v.slice(2),x[i+1]&&!x[i+1].startsWith('--')?x[i+1]:true]);return a;},[]));
-const matchId = Number(args['match-id']);
-if (!Number.isSafeInteger(matchId) || matchId < 1) throw new Error('--match-id must be a positive integer');
-const width=1280,height=720,fps=30,duration=120,maxBytes=500*1024*1024;
-const root=resolve(String(args.output??'.codex-artifacts-local/candle-battle'));
-const browserlessRaw=process.env.ARENA_PRESSURE_BROWSERLESS_URL;
-const baseRaw=process.env.ARENA_PRESSURE_CAPTURE_BASE_URL;
-const captureKey=process.env.ARENA_PRESSURE_CAPTURE_KEY;
-if(!browserlessRaw||!baseRaw||!captureKey)throw new Error('Browserless URL, capture base URL and capture key are required');
-const endpoint=new URL(browserlessRaw);endpoint.pathname='/screencast';
-const base=new URL(baseRaw);if(base.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(base.hostname))throw new Error('Capture base URL must use HTTPS');
-const culture=String(args.culture??'pt');
-if(!/^(en|pt|zh|es|fr|de|it|ja|hi)$/.test(culture))throw new Error('Unsupported culture');
-const target=new URL(`/${culture}/tv/candle-battle/${matchId}/match?mode=videoCapture`,base.origin);
-const runId=new Date().toISOString().replace(/[-:.]/g,'');
-const prefix=`candle-battle-match-${matchId}-${runId}`;
-const partial=resolve(root,`${prefix}.partial.webm`), webm=resolve(root,`${prefix}.webm`), mp4=resolve(root,`${prefix}.mp4`), mp4Partial=resolve(root,`${prefix}.partial.mp4`);
-const report=resolve(root,`${prefix}.json`), lock=resolve(root,'browserless-preview.lock');
-const run=(command,commandArgs)=>new Promise((ok,fail)=>{const p=spawn(command,commandArgs,{stdio:['ignore','pipe','pipe']});let out='',err='';p.stdout.on('data',x=>out+=x);p.stderr.on('data',x=>err+=x);p.on('error',fail);p.on('close',code=>code===0?ok({stdout:out,stderr:err}):fail(new Error(`${command} failed (${code}): ${err.slice(-1000)}`)));});
-let lockHandle,timer;
-try{
- await mkdir(root,{recursive:true});
- lockHandle=await open(lock,'wx').catch(()=>{const e=new Error('capture_busy');e.code='CAPTURE_BUSY';throw e;});
- await lockHandle.writeFile(JSON.stringify({kind:'candle-battle',matchId,pid:process.pid,startedAt:new Date().toISOString()}));
- const controller=new AbortController();timer=setTimeout(()=>controller.abort(),150000);
- const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:candleBattleBrowserlessFunction,context:{targetUrl:target.href,captureKey,width,height,durationMs:duration*1000,matchId}}),signal:controller.signal});
- clearTimeout(timer);if(!response.ok||!response.body)throw new Error(`Browserless HTTP ${response.status}`);
- let bytes=0;const limit=new Transform({transform(c,e,cb){bytes+=c.length;cb(bytes<=maxBytes?null:new Error('WebM size limit exceeded'),c);}});
- await pipeline(Readable.fromWeb(response.body),limit,createWriteStream(partial,{flags:'wx'}));
- const processed=await processWebmToMp4({inputPath:partial,outputPath:mp4,mp4PartialPath:mp4Partial,width,height,fps,expectedDuration:duration,toleranceSeconds:2,exactFrames:3600,maxPadFrames:30,normalizeTimestamps:true,mp4ExpectedDuration:duration,mp4ToleranceSeconds:.11,ffmpeg:process.env.FFMPEG_PATH??'ffmpeg',ffprobe:process.env.FFPROBE_PATH??'ffprobe',run,log:()=>{},secrets:[captureKey],onWebmValidated:async()=>{await rename(partial,webm);return webm;}});
- const frames=Number(processed.mp4Validation.frameCount);
- if(Math.abs(frames-3600)>1)throw new Error(`Expected 3600 frames, got ${frames}`);
- await writeFile(report,JSON.stringify({schemaVersion:1,status:'validated',kind:'candle-battle',matchId,width,height,fps,frames,durationSeconds:processed.mp4Validation.duration.seconds,videoPath:mp4},null,2));
- console.log(`CV_STATUS=captured\nCV_MATCH_ID=${matchId}\nCV_VIDEO_PATH=${mp4}\nCV_WEBM_PATH=${webm}\nCV_REPORT_PATH=${report}\nCV_FRAMES=${frames}\nCV_PUBLISH_READY=1`);
-}catch(error){if(error?.code==='CAPTURE_BUSY'){console.log('CV_STATUS=capture_busy');process.exitCode=3;}else{console.error(error.message);console.log('CV_STATUS=capture_failed');process.exitCode=1;}}
-finally{if(timer)clearTimeout(timer);if(lockHandle){await lockHandle.close();await rm(lock,{force:true});}await rm(partial,{force:true});await rm(mp4Partial,{force:true});}
+const HTTP_TIMEOUT_MS=55_000, MAX_WEBM_BYTES=100*1024*1024;
+const cultures=new Set(['en','pt','zh','es','fr','de','it','ja','hi']);
+const toolRoot=dirname(fileURLToPath(import.meta.url));
+const defaultOutput=resolve(toolRoot,'..','..','..','.codex-artifacts-local','candle-battle');
+const sharedBrowserlessLock=resolve(toolRoot,'..','..','..','.codex-artifacts-local','arena-pressure','browserless-preview.lock');
+
+export function strictFrameCount(value, expected) {
+  if(!Number.isSafeInteger(value)||value<1)throw new Error(`Invalid MP4 frame count: ${String(value)}`);
+  if(value!==expected)throw new Error(`Expected ${expected} frames, got ${value}`);
+  return value;
+}
+
+function argsOf(argv){const out={};for(let i=0;i<argv.length;i++){const key=argv[i];if(!key.startsWith('--'))continue;const next=argv[i+1];out[key.slice(2)]=next&&!next.startsWith('--')?(i++,next):true;}return out;}
+function safeUrl(raw,name){if(!raw)throw new Error(`${name} is required`);const url=new URL(raw);if(!['http:','https:'].includes(url.protocol))throw new Error(`${name} must use HTTP or HTTPS`);url.username='';url.password='';return url;}
+function navigation(base,culture,matchId){const url=new URL(`/${culture}/tv/candle-battle/${matchId}/match?mode=videoCapture`,base.origin);if(url.protocol!=='https:')throw new Error('Capture base URL must use HTTPS');return {targetUrl:url.href,authorizedNavigation:{href:url.href,protocol:url.protocol,hostname:url.hostname,port:url.port,pathname:url.pathname,search:url.search}};}
+async function browserlessJson({endpoint,code,context,secrets}){
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),HTTP_TIMEOUT_MS);
+  try{const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code,context}),signal:controller.signal});const text=await response.text();if(!response.ok)throw new Error(`Browserless HTTP ${response.status}: ${redactSecret(text,secrets).slice(0,300)}`);const parsed=JSON.parse(text);return parsed?.data??parsed;}finally{clearTimeout(timer);}
+}
+async function streamSegment({endpoint,context,path,secrets}){
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),HTTP_TIMEOUT_MS);
+  try{
+    const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:candleBattleBrowserlessFunction,context}),signal:controller.signal});
+    if(!response.ok||!response.body){const body=await response.text().catch(()=> '');throw new Error(`Browserless HTTP ${response.status}: ${redactSecret(body,secrets).slice(0,300)}`);}
+    let bytes=0;const limit=new Transform({transform(chunk,_encoding,callback){bytes+=chunk.length;callback(bytes<=MAX_WEBM_BYTES?null:new Error('WebM size limit exceeded'),chunk);}});
+    // The abort timer remains armed until the response body has been fully consumed.
+    await pipeline(Readable.fromWeb(response.body),limit,createWriteStream(path,{flags:'wx'}));
+  }finally{clearTimeout(timer);}
+}
+
+export async function runCandleBattleCapture(options){
+  const {matchId,culture='pt',browserlessBaseUrl,captureBaseUrl,captureKey,secrets=[]}=options;
+  const nav=navigation(captureBaseUrl,culture,matchId);
+  const functionEndpoint=new URL('/function',browserlessBaseUrl),screencastEndpoint=new URL('/screencast',browserlessBaseUrl);
+  const fetchMetadata=()=>browserlessJson({endpoint:functionEndpoint,code:candleBattleMetadataFunction,context:{...nav,captureKey,matchId,width:options.width??1280,height:options.height??720,metadataOnly:true,executionBudgetMs:30_000},secrets});
+  const captureSegmentWebm=async({segment,totalSegments,recordingDurationSeconds,outputWebmPartialPath,width,height})=>{
+    const durationMs=Math.round(recordingDurationSeconds*1000);
+    await streamSegment({endpoint:screencastEndpoint,path:outputWebmPartialPath,secrets,context:{...nav,captureKey,matchId,width,height,durationMs,executionBudgetMs:48_000,segment:{index:segment.index,totalSegments,videoStartSeconds:segment.videoStartSeconds,videoEndSeconds:segment.videoEndSeconds,speed:1,roundWindowSeconds:100,finaleWindowSeconds:20,isFinalSegment:segment.isFinalSegment}}});
+  };
+  await mkdir(dirname(sharedBrowserlessLock),{recursive:true});
+  const sharedLock=await open(sharedBrowserlessLock,'wx').catch(()=>{const error=new Error('capture_busy');error.code='CAPTURE_BUSY';throw error;});
+  try{
+    await sharedLock.writeFile(JSON.stringify({kind:'candle-battle',matchId,pid:process.pid,startedAt:new Date().toISOString()}));
+    const report=await runFullMatchCapture({...options,matchId,culture,browserlessBaseUrl:null,allowedCaptureOrigin:null,captureKey:null,secrets,fetchMetadata,captureSegmentWebm,targetDurationSeconds:120,segmentDurationSeconds:10,tailPadSeconds:.5,outputRoot:options.outputRoot??defaultOutput});
+    strictFrameCount(report.finalFrames,report.expectedFrames);
+    const enriched={...report,kind:'candle-battle',contractVersion:2,timeline:{roundWindowSeconds:100,finaleWindowSeconds:20,totalSeconds:120}};
+    const temp=`${report.reportPath}.tmp-${process.pid}`;await writeFile(temp,`${JSON.stringify(enriched,null,2)}\n`,'utf8');await rename(temp,report.reportPath);
+    return enriched;
+  }finally{await sharedLock.close().catch(()=>{});await rm(sharedBrowserlessLock,{force:true}).catch(()=>{});}
+}
+
+async function main(){
+  const args=argsOf(process.argv.slice(2));const matchId=Number(args['match-id']);if(!Number.isSafeInteger(matchId)||matchId<1)throw new Error('--match-id must be a positive integer');
+  const culture=String(args.culture??'pt');if(!cultures.has(culture))throw new Error('Unsupported culture');
+  const rawBrowserless=process.env.ARENA_PRESSURE_BROWSERLESS_URL,captureKey=process.env.ARENA_PRESSURE_CAPTURE_KEY;
+  const browserlessBaseUrl=safeUrl(rawBrowserless,'ARENA_PRESSURE_BROWSERLESS_URL'),captureBaseUrl=safeUrl(process.env.ARENA_PRESSURE_CAPTURE_BASE_URL,'ARENA_PRESSURE_CAPTURE_BASE_URL');if(!captureKey?.trim())throw new Error('ARENA_PRESSURE_CAPTURE_KEY is required');
+  const secrets=[captureKey,...browserlessBaseUrl.searchParams.values()];
+  await mkdir(resolve(String(args.output??defaultOutput)),{recursive:true});
+  const report=await runCandleBattleCapture({matchId,culture,browserlessBaseUrl,captureBaseUrl,captureKey,secrets,outputRoot:resolve(String(args.output??defaultOutput)),resume:args.resume===true?null:args.resume??null,keepIntermediates:Boolean(args['keep-intermediates']),maxSegments:args['max-segments']?Number(args['max-segments']):null,maxRetries:args['max-retries']?Number(args['max-retries']):2});
+  console.log(`CV_STATUS=captured\nCV_MATCH_ID=${matchId}\nCV_VIDEO_PATH=${report.outputPath}\nCV_WEBM_PATH=segmented\nCV_REPORT_PATH=${report.reportPath}\nCV_FRAMES=${report.finalFrames}\nCV_PUBLISH_READY=1`);
+}
+
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(error=>{console.error(error.message);console.log('CV_STATUS=capture_failed\nCV_PUBLISH_READY=0');process.exitCode=1;});
