@@ -105,7 +105,7 @@ public class ArenaPressureLifecycleTests
         var start = new DateTime(2026, 11, 20, 12, 0, 0, DateTimeKind.Unspecified);
         var scheduled = start.AddMinutes(90);
         var projected = ArenaPressureLifecycle.Utc(scheduled);
-        Assert.Equal(DateTimeKind.Utc, projected.Kind);
+        Assert.Equal(TimeSpan.Zero, projected.Offset);
         Assert.Equal(new DateTimeOffset(2026, 11, 20, 13, 30, 0, TimeSpan.Zero), projected);
         Assert.Equal("90:00", ArenaPressureLifecycle.Clock(scheduled, Now));
     }
