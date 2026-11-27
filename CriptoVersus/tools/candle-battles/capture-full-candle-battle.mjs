@@ -42,7 +42,8 @@ async function streamSegment({endpoint,context,path,secrets}){
 export async function runCandleBattleCapture(options){
   const {matchId,culture='pt',browserlessBaseUrl,captureBaseUrl,captureKey,secrets=[]}=options;
   const nav=navigation(captureBaseUrl,culture,matchId);
-  const functionEndpoint=new URL('/function',browserlessBaseUrl),screencastEndpoint=new URL('/screencast',browserlessBaseUrl);
+  const functionEndpoint=new URL(browserlessBaseUrl.href),screencastEndpoint=new URL(browserlessBaseUrl.href);
+  functionEndpoint.pathname='/function';screencastEndpoint.pathname='/screencast';
   const fetchMetadata=()=>browserlessJson({endpoint:functionEndpoint,code:candleBattleMetadataFunction,context:{...nav,captureKey,matchId,width:options.width??1280,height:options.height??720,metadataOnly:true,executionBudgetMs:30_000},secrets});
   const captureSegmentWebm=async({segment,totalSegments,recordingDurationSeconds,outputWebmPartialPath,width,height})=>{
     const durationMs=Math.round(recordingDurationSeconds*1000);
@@ -68,7 +69,8 @@ async function main(){
   const secrets=[captureKey,...browserlessBaseUrl.searchParams.values()];
   await mkdir(resolve(String(args.output??defaultOutput)),{recursive:true});
   const report=await runCandleBattleCapture({matchId,culture,browserlessBaseUrl,captureBaseUrl,captureKey,secrets,outputRoot:resolve(String(args.output??defaultOutput)),resume:args.resume===true?null:args.resume??null,keepIntermediates:Boolean(args['keep-intermediates']),maxSegments:args['max-segments']?Number(args['max-segments']):null,maxRetries:args['max-retries']?Number(args['max-retries']):2});
-  console.log(`CV_STATUS=captured\nCV_MATCH_ID=${matchId}\nCV_VIDEO_PATH=${report.outputPath}\nCV_WEBM_PATH=segmented\nCV_REPORT_PATH=${report.reportPath}\nCV_FRAMES=${report.finalFrames}\nCV_PUBLISH_READY=1`);
+  const complete=!report.isPartialValidationRun;
+  console.log(`CV_STATUS=${complete?'captured':'partial_validated'}\nCV_MATCH_ID=${matchId}\nCV_VIDEO_PATH=${report.outputPath}\nCV_WEBM_PATH=segmented\nCV_REPORT_PATH=${report.reportPath}\nCV_FRAMES=${report.finalFrames}\nCV_PUBLISH_READY=${complete?1:0}`);
 }
 
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(error=>{console.error(error.message);console.log('CV_STATUS=capture_failed\nCV_PUBLISH_READY=0');process.exitCode=1;});

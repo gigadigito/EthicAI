@@ -1,12 +1,13 @@
-import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, roundClosedAt, roundSupersededAt, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261110a';
-import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261110a';
-import { CandleRenderer } from './renderer.js?v=20261110a';
-import { AudioManager } from './audio.js?v=20261110a';
-import { DialogueClock, lineDuration } from './dialogue.js?v=20261110a';
-import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261110a';
-import { MoneyFlowController, formatMoneyFlowAmount } from './money-flow-visual.js?v=20261110a';
-import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261110a';
-import { CandleCharacterBehaviorController } from './character-behavior-controller.js?v=20261110a';
+import { MarketHeartbeat, BattleClock, BattleStateMachine, FinaleStateMachine, TerritoryManager, TEAM, PERIOD, MATCH_DURATION, MATCH_ROUNDS, demoRound, sharedRange, validRound, roundInMatch, roundClosedAt, roundSupersededAt, clockParts, nextCandleCountdown, combatFrame, combatAdvantage, resolveFinalePose, FINALE_PHASES } from './model.js?v=20261127a';
+import { impactLevel, personalityFor, resolveCombatState, CombatSequencer } from './combat-animations.js?v=20261127a';
+import { CandleRenderer } from './renderer.js?v=20261127a';
+import { AudioManager } from './audio.js?v=20261127a';
+import { DialogueClock, lineDuration } from './dialogue.js?v=20261127a';
+import { CandleBattleDialogueEngine } from './dialogue-engine.js?v=20261127a';
+import { MoneyFlowController, formatMoneyFlowAmount } from './money-flow-visual.js?v=20261127a';
+import { buildMoneyFlowAnchors } from './money-flow-collectors.js?v=20261127a';
+import { CandleCharacterBehaviorController } from './character-behavior-controller.js?v=20261127a';
+import { MonotonicCaptureClock } from './capture-clock.js?v=20261127a';
 const CANDLE_BATTLE_RUNTIME_REVISION = '20261106b';
 const CANDLE_FREEZE_DIAGNOSTIC_VERSION = 'diagnostic-v1';
 const displaySymbol = (symbol) => symbol.replace(/USDT$/i, '');
@@ -105,6 +106,13 @@ export class GameEngine {
         this.capturePrepared = false;
         this.captureFrames = 0;
         this.captureMaxDelta = 0;
+        this.captureMaxRawDelta = 0;
+        this.captureSubsteps = 0;
+        this.captureStartedAt = 0;
+        this.capturePreparationMs = 0;
+        this.capturePreparing = false;
+        this.captureSegmentEndMs = 0;
+        this.captureClock = new MonotonicCaptureClock();
         this.demoIndex = 0;
         this.demoElapsed = 0;
         this.replayIndex = 0;
@@ -208,8 +216,11 @@ export class GameEngine {
         this.backgrounded = document.hidden;
         this.visibility = () => {
             this.backgrounded = document.hidden;
-            if (document.hidden)
+            if (document.hidden) {
+                if (this.options.videoCapture && this.captureTimeline)
+                    this.captureClock.pause();
                 this.audio.pause();
+            }
             else {
                 // Wake and paint from the deterministic simulation state; no
                 // timer or browser-focus side effect is used to advance it.
@@ -219,8 +230,11 @@ export class GameEngine {
                     if (this.feed)
                         this.reconcile();
                 }
-                else if (this.started && !this.paused)
+                else if (this.started && !this.paused) {
+                    if (this.options.videoCapture && this.captureTimeline)
+                        this.captureClock.start();
                     this.audio.loop('arena');
+                }
                 if (!this.paused)
                     this.update(0);
             }
@@ -667,6 +681,12 @@ export class GameEngine {
         if (action === 'pause') {
             this.paused = !this.paused;
             this.audio.play('pause');
+            if (this.options.videoCapture && this.captureTimeline) {
+                if (this.paused)
+                    this.captureClock.pause();
+                else
+                    this.captureClock.start();
+            }
             if (this.paused)
                 this.audio.pause();
             else
@@ -742,6 +762,7 @@ export class GameEngine {
             select.value = String(speed);
     }
     restart() {
+        this.captureClock.reset();
         this.clearDialogue();
         delete this.host.dataset.finished;
         this.resetRoundFreeze();
@@ -946,7 +967,8 @@ export class GameEngine {
     captureMetadata() {
         const total = this.replaySourceRounds().length;
         return { version: 2, matchId: this.feed?.matchId ?? null, isFinished: this.feed?.finished === true && this.feed.status === 'finished',
-            historyPoints: total, historicalDurationSeconds: this.matchLimit() / 1000, plannedVideoDurationSeconds: 120,
+            historyPoints: total, historicalDurationSeconds: this.matchLimit() / 1000, durationSeconds: this.matchLimit() / 1000, historySpanSeconds: this.matchLimit() / 1000,
+            supportsSegmentedCapture: true, plannedVideoDurationSeconds: 120,
             roundWindowSeconds: 100, finaleWindowSeconds: 20, officialScore: this.feed?.finished ? { left: this.feed.scoreLeft ?? 0, right: this.feed.scoreRight ?? 0 } : null,
             leftSymbol: this.feed?.leftSymbol ?? null, rightSymbol: this.feed?.rightSymbol ?? null, status: this.feed?.status ?? null };
     }
@@ -964,16 +986,36 @@ export class GameEngine {
         this.captureVideoElapsed = 0;
         this.captureFrames = 0;
         this.captureMaxDelta = 0;
+        this.captureMaxRawDelta = 0;
+        this.captureSubsteps = 0;
+        this.captureStartedAt = 0;
         this.capturePrepared = true;
+        this.captureSegmentEndMs = this.captureTimeline.totalMs;
         this.audio.pause();
         // Preparation advances a deterministic, non-render-delayed simulation in
         // bounded 100 ms ticks. It never sleeps for historical wall-clock time.
         const target = Math.min(start * 1000, this.captureTimeline.totalMs);
         const step = 100;
-        while (this.captureVideoElapsed + step < target)
-            this.update(step);
-        if (target > this.captureVideoElapsed)
-            this.update(target - this.captureVideoElapsed);
+        const preparationStartedAt = performance.now();
+        const maxIterations = Math.ceil(this.captureTimeline.totalMs / step) + 1;
+        let iterations = 0;
+        this.capturePreparing = true;
+        try {
+            while (this.captureVideoElapsed + step < target) {
+                if (++iterations > maxIterations)
+                    throw new Error('segment_preparation_iteration_limit');
+                this.simulate(step, false);
+            }
+            if (target > this.captureVideoElapsed)
+                this.simulate(target - this.captureVideoElapsed, true);
+        }
+        finally {
+            this.capturePreparing = false;
+        }
+        this.capturePreparationMs = performance.now() - preparationStartedAt;
+        const requestedEnd = Number(settings.videoEndSeconds ?? this.captureTimeline.totalMs / 1000);
+        this.captureSegmentEndMs = Math.min(this.captureTimeline.totalMs, Math.max(target, requestedEnd * 1000));
+        this.captureClock.prepare(target, this.captureSegmentEndMs);
         this.paused = true;
         this.audio.pause();
         this.host.dataset.paused = 'true';
@@ -984,10 +1026,18 @@ export class GameEngine {
             this.prepareVideoCaptureSegment(settings);
         this.paused = false;
         this.started = true;
+        this.captureStartedAt = performance.now();
+        this.captureClock.start();
         this.audio.pause();
         this.host.dataset.paused = 'false';
     }
-    capturePerfMetrics() { return { frames: this.captureFrames, maxDeltaMs: this.captureMaxDelta, videoSeconds: this.captureVideoElapsed / 1000 }; }
+    capturePerfMetrics() {
+        const realMs = this.captureStartedAt > 0 ? Math.max(0, performance.now() - this.captureStartedAt) : 0;
+        return { frames: this.captureFrames, maxDeltaMs: this.captureMaxDelta, maxRawDeltaMs: this.captureMaxRawDelta, videoSeconds: this.captureVideoElapsed / 1000,
+            historicalSeconds: this.replayElapsed / 1000, realElapsedMs: realMs, realFps: realMs > 0 ? this.captureFrames * 1000 / realMs : 0,
+            substeps: this.captureSubsteps, preparationMs: this.capturePreparationMs, completedRounds: this.completedRounds,
+            driftMs: this.captureStartedAt > 0 ? (this.captureVideoElapsed - (this.captureClock.position())) : 0 };
+    }
     startVideoCapture(speed) {
         this.replayHistory = this.history.map(r => ({ ...r, left: { ...r.left }, right: { ...r.right } }));
         this.mode = 'replay';
@@ -1014,10 +1064,29 @@ export class GameEngine {
     update(delta) {
         if (this.disposed || this.paused || this.backgrounded)
             return;
-        const dt = Math.min(delta, 100);
-        if (this.options.videoCapture && this.captureTimeline) {
-            this.captureVideoElapsed = Math.min(this.captureTimeline.totalMs, this.captureVideoElapsed + dt);
+        if (this.options.videoCapture && this.captureTimeline && !this.capturePreparing) {
+            const target = this.captureClock.position();
+            const pending = Math.max(0, target - this.captureVideoElapsed);
             this.captureFrames++;
+            this.captureMaxRawDelta = Math.max(this.captureMaxRawDelta, delta);
+            let remaining = pending, iterations = 0;
+            while (remaining > .001) {
+                if (++iterations > 1200)
+                    throw new Error('capture_catch_up_iteration_limit');
+                const step = Math.min(remaining, 100);
+                this.simulate(step, remaining <= 100);
+                remaining = target - this.captureVideoElapsed;
+                this.captureSubsteps++;
+            }
+            return;
+        }
+        this.simulate(Math.min(delta, 100), true);
+    }
+    simulate(dt, renderPresentation) {
+        if (this.disposed || this.paused || this.backgrounded)
+            return;
+        if (this.options.videoCapture && this.captureTimeline) {
+            this.captureVideoElapsed = Math.min(this.captureSegmentEndMs || this.captureTimeline.totalMs, this.captureVideoElapsed + dt);
             this.captureMaxDelta = Math.max(this.captureMaxDelta, dt);
         }
         const captureScale = this.options.videoCapture && this.captureTimeline ? (this.terminal || this.finaleSequence.running ? this.captureTimeline.finaleScale : this.captureTimeline.animationScale) : null;
@@ -1126,7 +1195,8 @@ export class GameEngine {
                 this.effects.splice(i, 1);
             }
         }
-        this.updateClocks();
+        if (renderPresentation)
+            this.updateClocks();
         if (this.mode === 'replay' && this.catchUpReplay && !this.active && this.clock.count === 0 && this.replayIndex >= this.replayHistory.length) {
             this.catchUpReplay = false;
             if (this.feed?.finished)
